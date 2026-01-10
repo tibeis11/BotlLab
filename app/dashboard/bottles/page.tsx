@@ -297,7 +297,8 @@ export default function BottlesPage() {
 	}
 
 	async function showQrModal(bottle: any) {
-		const scanUrl = `${window.location.origin}/b/${bottle.id}`;
+		const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://botllab.vercel.app';
+		const scanUrl = `${baseUrl}/b/${bottle.id}`;
 		const qrDataUrl = await generateQRWithLogo(scanUrl);
 		setViewQr({ url: qrDataUrl, bottleNumber: bottle.bottle_number, id: bottle.id });
 	}

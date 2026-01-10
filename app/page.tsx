@@ -184,7 +184,7 @@ export default function Home() {
          <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
             <div className="flex flex-col items-center md:items-start">
                <div className="mb-4 scale-125 origin-left"><Logo /></div>
-               <p className="text-zinc-500 text-sm">© 2024 BotlLab Inc. Made with 🍺 in Germany.</p>
+               <p className="text-zinc-500 text-sm">© {new Date().getFullYear()} BotlLab. Made with 🍺 in Germany.</p>
             </div>
             <div className="flex gap-8 text-sm font-bold text-zinc-400">
                <Link href="/login" className="hover:text-white transition">Login</Link>

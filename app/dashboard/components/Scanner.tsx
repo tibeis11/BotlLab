@@ -12,40 +12,67 @@ interface ScannerProps {
 
 export default function Scanner({ onScanSuccess, width = 500, height = 500 }: ScannerProps) {
     const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+    const callbackRef = useRef(onScanSuccess);
     const divId = "params-qr-reader";
 
+    // Immer den aktuellsten Callback speichern
     useEffect(() => {
-        if (!scannerRef.current) {
+        callbackRef.current = onScanSuccess;
+    }, [onScanSuccess]);
+
+    useEffect(() => {
+        // Sicherstellen, dass der Container wirklich existiert, bevor wir starten
+        const checkElement = setInterval(() => {
+            if (document.getElementById(divId)) {
+                clearInterval(checkElement);
+                startScanner();
+            }
+        }, 100);
+
+        function startScanner() {
+            if (scannerRef.current) return;
+
             const scanner = new Html5QrcodeScanner(
                 divId,
                 { 
                     fps: 10, 
                     qrbox: { width: 250, height: 250 },
                     aspectRatio: 1.0,
-                    showTorchButtonIfSupported: true
+                    showTorchButtonIfSupported: true,
+                    videoConstraints: {
+                        facingMode: "environment" // Versucht Rückkamera zu nehmen
+                    }
                 },
                 false
             );
             
             scanner.render((decodedText) => {
-                onScanSuccess(decodedText);
+                if (callbackRef.current) {
+                    callbackRef.current(decodedText);
+                }
             }, (error) => {
+                // Ignore scan errors, they happen continuously
             });
 
             scannerRef.current = scanner;
         }
 
         return () => {
+            clearInterval(checkElement);
             if (scannerRef.current) {
-                scannerRef.current.clear().catch(err => console.error("Failed to clear scanner", err));
+                try {
+                    scannerRef.current.clear().catch(err => console.warn("Scanner clear error", err));
+                } catch (e) {
+                   console.warn("Scanner clear exception", e);
+                }
+                scannerRef.current = null;
             }
         };
-    }, [onScanSuccess]);
+    }, []); // Leeres Array -> Nur einmal beim Laden initialisieren!
 
     return (
-        <div className="w-full max-w-md mx-auto bg-black rounded-xl overflow-hidden">
-            <div id={divId} style={{ backgroundColor: 'black' }}></div>
-            <p className="text-center text-xs text-zinc-500 py-2">Kamera-Zugriff erlauben</p>
+        <div className="w-full max-w-md mx-auto bg-black rounded-xl overflow-hidden relative">
+            <div id={divId} className="bg-black text-white"></div>
         </div>
     );
 }
