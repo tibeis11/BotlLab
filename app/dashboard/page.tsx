@@ -147,9 +147,6 @@ export default function DashboardPage() {
 				</div>
         
 				<div className="flex gap-3">
-					 <Link href="/discover" className="bg-zinc-800 text-white hover:bg-zinc-700 px-5 py-3 rounded-xl font-bold transition flex items-center gap-2">
-						 <span>🔎</span> Entdecken
-					 </Link>
 					 <Link href="/dashboard/brews" className="bg-white text-black hover:bg-zinc-200 px-5 py-3 rounded-xl font-bold transition flex items-center gap-2">
 						 <span>🍺</span> Neues Rezept
 					 </Link>
