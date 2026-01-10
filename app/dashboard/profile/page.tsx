@@ -246,7 +246,7 @@ export default function ProfilePage() {
 					</div>
 
 					<div className="space-y-6">
-						<div className="bg-gradient-to-r from-zinc-800 to-zinc-900 border border-zinc-700 rounded-xl p-4 flex items-center justify-between">
+						<div className="bg-gradient-to-r from-zinc-800 to-zinc-900 border border-zinc-700 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
 							<div>
 								<h4 className="text-sm font-bold text-white mb-1">🌍 Dein öffentliches Profil</h4>
 								<p className="text-xs text-zinc-400">Teile diesen Link mit Freunden.</p>
@@ -254,7 +254,8 @@ export default function ProfilePage() {
 							<Link
 								href={`/brewery/${user?.id}`}
 								target="_blank"
-								className="bg-zinc-950 hover:bg-black text-cyan-400 border border-zinc-700 px-4 py-2 rounded-lg text-sm font-bold transition flex items-center gap-2"
+								className="bg-zinc-950 hover:bg-black text-cyan-400 border border-zinc-700 px-3 py-2 rounded-lg text-sm font-bold transition flex items-center justify-center gap-2 w-full sm:w-auto"
+								aria-label="Öffentliches Profil ansehen (öffnet in neuem Tab)"
 							>
 								Ansehen ↗
 							</Link>
