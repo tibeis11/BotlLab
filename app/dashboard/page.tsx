@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import TierProgressWidget from './components/TierProgressWidget';
+import ProfileCompletionRing from './components/ProfileCompletionRing';
 import { supabase } from '@/lib/supabase';
 
 export default function DashboardPage() {
@@ -21,6 +22,15 @@ export default function DashboardPage() {
 		distribution: [0,0,0,0,0]
 	});
 	const [breweryName, setBreweryName] = useState("");
+	const [profileInfo, setProfileInfo] = useState({
+		brewery_name: '',
+		founded_year: '',
+		logo_url: '',
+		banner_url: '',
+		location: '',
+		website: '',
+		bio: ''
+	});
 	const router = useRouter();
 
 	useEffect(() => {
@@ -42,8 +52,23 @@ export default function DashboardPage() {
 			const { data: { user } } = await supabase.auth.getUser();
 			if (!user) return; 
 
-			const { data: profile } = await supabase.from('profiles').select('brewery_name').eq('id', user.id).single();
+			const { data: profile } = await supabase
+				.from('profiles')
+				.select('brewery_name,founded_year,logo_url,banner_url,location,website,bio')
+				.eq('id', user.id)
+				.single();
 			if (profile?.brewery_name) setBreweryName(profile.brewery_name);
+			if (profile) {
+				setProfileInfo({
+					brewery_name: profile.brewery_name || '',
+					founded_year: profile.founded_year ? String(profile.founded_year) : '',
+					logo_url: profile.logo_url || '',
+					banner_url: profile.banner_url || '',
+					location: profile.location || '',
+					website: profile.website || '',
+					bio: profile.bio || ''
+				});
+			}
 
 			const { count: brewCount } = await supabase
 				.from('brews')
@@ -156,7 +181,45 @@ export default function DashboardPage() {
 				</div>
 			</header>
 
-			<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+			<div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+				{/* Profilstatus Kachel */}
+				<Link href="/dashboard/profile" className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-2xl relative overflow-hidden group hover:border-zinc-600 transition">
+					<div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition text-6xl rotate-12">🧩</div>
+					<p className="text-sm text-zinc-500 uppercase font-bold tracking-widest mb-3">Profilstatus</p>
+					{(() => {
+						const fields: Array<{ key: keyof typeof profileInfo; label: string; isDone?: (v: any) => boolean }> = [
+							{ key: 'brewery_name', label: 'Name' },
+							{ key: 'founded_year', label: 'Gründungsjahr', isDone: (v) => !!(v && String(v).trim().length > 0) },
+							{ key: 'logo_url', label: 'Profilbild' },
+							{ key: 'banner_url', label: 'Banner' },
+							{ key: 'location', label: 'Standort' },
+							{ key: 'website', label: 'Webseite' },
+							{ key: 'bio', label: 'Über uns' },
+						];
+						const isFilled = (key: keyof typeof profileInfo, custom?: (v: any) => boolean) => {
+							const val = profileInfo[key];
+							return custom ? custom(val) : !!(val && String(val).trim().length > 0);
+						};
+						const completed = fields.reduce((acc, f) => acc + (isFilled(f.key, f.isDone) ? 1 : 0), 0);
+						const pending = fields.filter(f => !isFilled(f.key, f.isDone)).map(f => f.label);
+						return (
+							<div className="flex items-center justify-between gap-4">
+								<div className="flex-1">
+									<ProfileCompletionRing
+										completed={completed}
+										total={fields.length}
+										label="Profil-Vervollständigung"
+										pendingLabels={pending}
+										variant="inline"
+										showPending={false}
+										size={80}
+									/>
+								</div>
+								<div className="shrink-0 text-zinc-400 font-bold">→</div>
+							</div>
+						);
+					})()}
+				</Link>
 					<div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-2xl relative overflow-hidden group">
 							<div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition text-6xl rotate-12">🍺</div>
 							<p className="text-sm text-zinc-500 uppercase font-bold tracking-widest">Aktive Rezepte</p>
