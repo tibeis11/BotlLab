@@ -1,78 +1,116 @@
 'use client';
 
-import { Html5QrcodeScanner } from "html5-qrcode";
-import { useEffect, useRef } from "react";
+import { Html5Qrcode } from "html5-qrcode";
+import { useEffect, useRef, useState } from "react";
 
 interface ScannerProps {
     onScanSuccess: (decodedText: string) => void;
+    // Alte props ignorieren wir, aber lassen sie drin für Kompatibilität
     onScanFailure?: (error: any) => void;
     width?: number;
     height?: number;
 }
 
-export default function Scanner({ onScanSuccess, width = 500, height = 500 }: ScannerProps) {
-    const scannerRef = useRef<Html5QrcodeScanner | null>(null);
-    const callbackRef = useRef(onScanSuccess);
-    const divId = "params-qr-reader";
-
-    // Immer den aktuellsten Callback speichern
-    useEffect(() => {
-        callbackRef.current = onScanSuccess;
-    }, [onScanSuccess]);
+export default function Scanner({ onScanSuccess }: ScannerProps) {
+    const scannerRef = useRef<Html5Qrcode | null>(null);
+    const [isScanning, setIsScanning] = useState(false);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const divId = "reader-camera";
 
     useEffect(() => {
-        // Sicherstellen, dass der Container wirklich existiert, bevor wir starten
-        const checkElement = setInterval(() => {
-            if (document.getElementById(divId)) {
-                clearInterval(checkElement);
-                startScanner();
-            }
-        }, 100);
-
-        function startScanner() {
-            if (scannerRef.current) return;
-
-            const scanner = new Html5QrcodeScanner(
-                divId,
-                { 
-                    fps: 10, 
-                    qrbox: { width: 250, height: 250 },
-                    aspectRatio: 1.0,
-                    showTorchButtonIfSupported: true,
-                    videoConstraints: {
-                        facingMode: "environment" // Versucht Rückkamera zu nehmen
-                    }
-                },
-                false
-            );
-            
-            scanner.render((decodedText) => {
-                if (callbackRef.current) {
-                    callbackRef.current(decodedText);
-                }
-            }, (error) => {
-                // Ignore scan errors, they happen continuously
-            });
-
-            scannerRef.current = scanner;
-        }
-
         return () => {
-            clearInterval(checkElement);
             if (scannerRef.current) {
-                try {
-                    scannerRef.current.clear().catch(err => console.warn("Scanner clear error", err));
-                } catch (e) {
-                   console.warn("Scanner clear exception", e);
+                if (scannerRef.current.isScanning) {
+                    scannerRef.current.stop().catch(console.warn);
                 }
-                scannerRef.current = null;
+                scannerRef.current.clear().catch(console.warn);
             }
         };
-    }, []); // Leeres Array -> Nur einmal beim Laden initialisieren!
+    }, []);
+
+    async function startScanner() {
+        setErrorMsg(null);
+        try {
+            // Falls schon einer existiert, aufräumen
+            if (scannerRef.current) {
+                 await scannerRef.current.clear();
+            }
+
+            const scanner = new Html5Qrcode(divId);
+            scannerRef.current = scanner;
+
+            await scanner.start(
+                { facingMode: "environment" }, 
+                {
+                    fps: 10,
+                    qrbox: { width: 250, height: 250 },
+                    aspectRatio: 1.0
+                },
+                (decodedText) => {
+                    onScanSuccess(decodedText);
+                },
+                (errorMessage) => {
+                    // ignore frame errors
+                }
+            );
+            setIsScanning(true);
+        } catch (err: any) {
+            console.error("Scanner Error:", err);
+            setErrorMsg("Kamera-Fehler: " + (err?.message || err));
+            setIsScanning(false);
+        }
+    }
+
+    async function stopScanner() {
+        if (scannerRef.current && isScanning) {
+            try {
+                await scannerRef.current.stop();
+                setIsScanning(false);
+            } catch (err) {
+                console.error(err);
+            }
+        }
+    }
 
     return (
-        <div className="w-full max-w-md mx-auto bg-black rounded-xl overflow-hidden relative">
-            <div id={divId} className="bg-black text-white"></div>
+        <div className="w-full max-w-md mx-auto">
+             <div id={divId} className="overflow-hidden rounded-xl bg-black min-h-[300px] mb-4 relative shadow-2xl border border-zinc-800">
+                {!isScanning && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
+                        <div className="mb-4 text-4xl">📷</div>
+                        <h3 className="text-white font-bold mb-2">QR-Scanner</h3>
+                        <p className="text-zinc-400 text-sm mb-6">Zum Scannen von Flaschencodes Zugriff erlauben.</p>
+                        <button 
+                            onClick={startScanner}
+                            className="bg-cyan-500 hover:bg-cyan-400 text-black font-bold py-3 px-8 rounded-full transition shadow-lg shadow-cyan-500/20 active:scale-95"
+                        >
+                            Kamera starten
+                        </button>
+                    </div>
+                )}
+             </div>
+             
+             {isScanning && (
+                 <button 
+                    onClick={stopScanner} 
+                    className="w-full py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-xl font-bold transition flex items-center justify-center gap-2"
+                 >
+                    🛑 Scanner stoppen
+                 </button>
+             )}
+
+             {errorMsg && (
+                 <div className="bg-red-500/10 border border-red-500/50 text-red-200 p-4 rounded-xl text-sm mb-4 animate-in fade-in slide-in-from-top-2">
+                     <p className="font-bold">⚠️ Zugriff fehlgeschlagen</p>
+                     <p className="mt-1">{errorMsg}</p>
+                     <p className="mt-2 text-xs opacity-70 bg-black/20 p-2 rounded">
+                        Tipp: Prüfe die Browser-Einstellungen (Schloss-Symbol in der Adresszeile) und erlaube den Zugriff auf die Kamera.
+                     </p>
+                     <button onClick={() => setErrorMsg(null)} className="mt-3 text-red-400 underline text-xs">
+                        Schließen
+                     </button>
+                 </div>
+             )}
         </div>
     );
 }
