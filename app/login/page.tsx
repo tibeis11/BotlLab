@@ -1,0 +1,218 @@
+"use client";
+import { useState } from "react";
+import { supabase } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
+import Link from "next/link";import Logo from "../components/Logo";
+export default function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [breweryName, setBreweryName] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  
+  const [isRegister, setIsRegister] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const router = useRouter();
+
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage("");
+
+    if (isRegister) {
+        // --- SIGN UP ---
+        if(!breweryName) {
+            setMessage("Bitte gib deiner Brauerei einen Namen!");
+            setLoading(false);
+            return;
+        }
+
+        const { data, error } = await supabase.auth.signUp({ email, password });
+        
+        if (error) {
+            setMessage(error.message);
+        } else if (data.user) {
+            // Profil Eintrag erstellen
+            const { error: profileError } = await supabase.from('profiles').insert([{
+                id: data.user.id,
+                brewery_name: breweryName,
+                founded_year: new Date().getFullYear()
+            }]);
+
+            if (profileError) {
+                console.error("Profil konnte nicht angelegt werden:", profileError);
+                setMessage("Account erstellt, aber Profil-Fehler: " + profileError.message);
+            } else {
+                setMessage("🎉 Account erfolgreich erstellt! Du kannst dich jetzt einloggen.");
+                setIsRegister(false);
+            }
+        }
+    } else {
+        // --- LOGIN ---
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) setMessage(error.message);
+        else router.push("/dashboard");
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="min-h-screen bg-black text-white flex items-center justify-center p-4 relative overflow-hidden">
+      
+      {/* --- Background FX (matching Landing Page) --- */}
+      <div className="absolute top-1/3 left-1/4 w-[600px] h-[600px] bg-cyan-900/20 blur-[140px] rounded-full pointer-events-none animate-pulse" />
+      <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-purple-900/10 blur-[120px] rounded-full pointer-events-none" />
+
+      {/* --- Back to Home Link --- */}
+      <Link 
+        href="/" 
+        className="absolute top-8 left-8 flex items-center gap-2 text-zinc-400 hover:text-white transition group"
+      >
+        <div className="w-8 h-8 bg-zinc-900 border border-zinc-800 rounded-lg flex items-center justify-center group-hover:border-cyan-500 transition">
+          ←
+        </div>
+        <span className="text-sm font-bold hidden sm:block">Zurück zur Startseite</span>
+      </Link>
+
+      {/* --- Login Card --- */}
+      <div className="relative z-10 w-full max-w-md">
+        
+        {/* Logo Header */}
+        <div className="text-center mb-8 flex flex-col items-center">
+          <div className="mb-4 scale-125">
+            <Logo />
+          </div>
+          <p className="text-zinc-500 text-sm">
+            {isRegister ? 'Starte deine digitale Brauerei' : 'Willkommen zurück 👋'}
+          </p>
+        </div>
+
+        {/* Main Card */}
+        <div className="bg-zinc-900/50 backdrop-blur-xl border border-zinc-800/50 rounded-3xl p-8 shadow-2xl">
+          
+          <form onSubmit={handleAuth} className="space-y-5">
+            
+            {/* Email Field */}
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">
+                Email
+              </label>
+              <input 
+                type="email" 
+                placeholder="dein@email.de" 
+                required
+                value={email}
+                className="w-full bg-zinc-950/50 border border-zinc-800 p-4 rounded-xl focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition text-white placeholder:text-zinc-600"
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+
+            {/* Password Field */}
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">
+                Passwort
+              </label>
+              <div className="relative">
+                <input 
+                  type={showPassword ? "text" : "password"} 
+                  placeholder="••••••••" 
+                  required
+                  value={password}
+                  className="w-full bg-zinc-950/50 border border-zinc-800 p-4 pr-12 rounded-xl focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition text-white placeholder:text-zinc-600"
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition"
+                >
+                  {showPassword ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
+                    </svg>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Brewery Name (nur bei Registrierung) */}
+            {isRegister && (
+              <div className="animate-in fade-in slide-in-from-top-3 duration-300">
+                <label className="block text-xs font-bold uppercase tracking-widest text-cyan-500 mb-2">
+                  🍺 Name deiner Brauerei
+                </label>
+                <input 
+                  type="text" 
+                  placeholder="z.B. Tims Craft Lab" 
+                  required
+                  value={breweryName}
+                  className="w-full bg-cyan-950/20 border border-cyan-800/50 p-4 rounded-xl focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 outline-none transition text-white placeholder:text-cyan-700 font-medium"
+                  onChange={(e) => setBreweryName(e.target.value)}
+                />
+                <p className="text-[10px] text-zinc-500 mt-2 px-1">
+                  Dieser Name erscheint auf deinen Labels und öffentlichen Seiten.
+                </p>
+              </div>
+            )}
+            
+            {/* Submit Button */}
+            <button 
+              type="submit" 
+              disabled={loading} 
+              className="w-full bg-white text-black py-4 rounded-xl font-black text-lg hover:bg-cyan-400 hover:scale-105 transition transform disabled:opacity-50 disabled:cursor-not-allowed shadow-lg mt-6"
+            >
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <div className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                  Lade...
+                </span>
+              ) : (
+                isRegister ? '🚀 Brauerei gründen' : '→ Einloggen'
+              )}
+            </button>
+          </form>
+
+          {/* Toggle Login/Register */}
+          <div className="mt-8 pt-6 border-t border-zinc-800 text-center">
+            <p className="text-sm text-zinc-500 mb-3">
+              {isRegister ? 'Du hast schon einen Account?' : 'Noch keine Brauerei?'}
+            </p>
+            <button 
+              onClick={() => { 
+                setIsRegister(!isRegister); 
+                setMessage(""); 
+                setEmail(""); 
+                setPassword(""); 
+                setBreweryName(""); 
+              }}
+              className="text-sm font-bold text-cyan-400 hover:text-cyan-300 transition underline decoration-cyan-400/30 underline-offset-4 hover:decoration-cyan-300"
+            >
+              {isRegister ? 'Hier einloggen' : 'Jetzt kostenlos registrieren'}
+            </button>
+          </div>
+          
+          {/* Feedback Message */}
+          {message && (
+            <div className={`mt-6 p-4 rounded-xl text-sm font-medium text-center border ${
+              message.includes("erstellt") || message.includes("🎉") 
+                ? "bg-green-950/30 border-green-800/30 text-green-400" 
+                : "bg-red-950/30 border-red-800/30 text-red-400"
+            }`}>
+              {message}
+            </div>
+          )}
+        </div>
+
+        {/* Footer Info */}
+        <p className="text-center text-zinc-600 text-xs mt-6">
+          Mit der Registrierung stimmst du unseren <a href="/terms" className="text-cyan-400 underline hover:text-cyan-300">AGB</a> und der <a href="/privacy" className="text-cyan-400 underline hover:text-cyan-300">Datenschutzerklärung</a> zu.
+        </p>
+      </div>
+    </div>
+  );
+}
