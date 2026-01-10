@@ -11,6 +11,7 @@ export default function Header() {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showMenu, setShowMenu] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
 
   const supabase = createClient(
@@ -52,18 +53,20 @@ export default function Header() {
         <Link href="/">
           <Logo />
         </Link>
-        <div className="flex gap-4 items-center">
+        
+        {/* Desktop Navigation */}
+        <div className="hidden md:flex gap-4 items-center">
           {pathname === '/discover' ? (
             <Link 
               href="/" 
-              className="hidden sm:block text-sm font-bold text-zinc-400 hover:text-white px-4 py-2 transition"
+              className="text-sm font-bold text-zinc-400 hover:text-white px-4 py-2 transition"
             >
               Startseite
             </Link>
           ) : (
             <Link 
               href="/discover" 
-              className="hidden sm:block text-sm font-bold text-zinc-400 hover:text-white px-4 py-2 transition"
+              className="text-sm font-bold text-zinc-400 hover:text-white px-4 py-2 transition"
             >
               Entdecken
             </Link>
@@ -92,7 +95,7 @@ export default function Header() {
                     {profile?.brewery_name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || '?'}
                   </div>
                 )}
-                <span className="hidden sm:inline text-sm font-bold text-zinc-400 group-hover:text-white transition">
+                <span className="text-sm font-bold text-zinc-400 group-hover:text-white transition">
                   {profile?.brewery_name || 'Mein Profil'}
                 </span>
               </Link>
@@ -127,7 +130,7 @@ export default function Header() {
             <>
               <Link 
                 href="/login" 
-                className="hidden sm:block text-sm font-bold text-zinc-400 hover:text-white px-4 py-2 transition"
+                className="text-sm font-bold text-zinc-400 hover:text-white px-4 py-2 transition"
               >
                 Login
               </Link>
@@ -140,7 +143,96 @@ export default function Header() {
             </>
           )}
         </div>
+
+        {/* Mobile Menu Button */}
+        <button 
+          className="md:hidden p-2 text-zinc-400 hover:text-white"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        >
+          {isMobileMenuOpen ? (
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+            </svg>
+          )}
+        </button>
       </div>
+
+      {/* Mobile Navigation */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden bg-zinc-950/95 border-b border-zinc-800 animate-in slide-in-from-top-5 fade-in duration-200">
+          <div className="px-6 py-4 flex flex-col space-y-4">
+            {pathname === '/discover' ? (
+              <Link 
+                href="/" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="text-lg font-bold text-zinc-400 hover:text-white transition"
+              >
+                Startseite
+              </Link>
+            ) : (
+              <Link 
+                href="/discover" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="text-lg font-bold text-zinc-400 hover:text-white transition"
+              >
+                Entdecken
+              </Link>
+            )}
+
+            <div className="h-px bg-zinc-800 my-2"></div>
+
+            {loading ? (
+              <div className="py-2 text-zinc-500">Lade...</div>
+            ) : user ? (
+              <>
+                 <div className="flex items-center gap-3 mb-2">
+                    {profile?.logo_url ? (
+                      <img src={profile.logo_url} alt="Profile" className="w-10 h-10 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center text-white font-bold">
+                        {profile?.brewery_name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || '?'}
+                      </div>
+                    )}
+                    <span className="font-bold text-white">
+                      {profile?.brewery_name || 'Mein Profil'}
+                    </span>
+                 </div>
+                 
+                 <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)} className="text-zinc-400 hover:text-white transition py-1 flex items-center gap-2">
+                   <span>📊</span> Dashboard
+                 </Link>
+                 <Link href="/dashboard/profile" onClick={() => setIsMobileMenuOpen(false)} className="text-zinc-400 hover:text-white transition py-1 flex items-center gap-2">
+                   <span>⚙️</span> Einstellungen
+                 </Link>
+                 <button onClick={handleLogout} className="text-red-500 hover:text-red-400 transition py-1 text-left flex items-center gap-2">
+                   <span>🚪</span> Abmelden
+                 </button>
+              </>
+            ) : (
+              <div className="flex flex-col gap-3">
+                 <Link 
+                   href="/login"
+                   onClick={() => setIsMobileMenuOpen(false)} 
+                   className="text-center w-full py-3 bg-zinc-800 rounded-full text-zinc-200 font-bold hover:bg-zinc-700 transition"
+                 >
+                   Login
+                 </Link>
+                 <Link 
+                   href="/login"
+                   onClick={() => setIsMobileMenuOpen(false)} 
+                   className="text-center w-full py-3 bg-white text-black rounded-full font-bold hover:bg-cyan-400 transition"
+                 >
+                   Jetzt Starten
+                 </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </nav>
   );
 }
