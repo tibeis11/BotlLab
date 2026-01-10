@@ -19,11 +19,19 @@ export default function Scanner({ onScanSuccess }: ScannerProps) {
 
     useEffect(() => {
         return () => {
+            // Safer cleanup
             if (scannerRef.current) {
-                if (scannerRef.current.isScanning) {
-                    scannerRef.current.stop().catch(console.warn);
+                try {
+                    if (scannerRef.current.isScanning) {
+                        scannerRef.current.stop()
+                            .then(() => scannerRef.current?.clear())
+                            .catch(console.warn);
+                    } else {
+                        scannerRef.current.clear().catch(console.warn);
+                    }
+                } catch (e) {
+                    console.warn(e);
                 }
-                scannerRef.current.clear().catch(console.warn);
             }
         };
     }, []);
@@ -31,9 +39,17 @@ export default function Scanner({ onScanSuccess }: ScannerProps) {
     async function startScanner() {
         setErrorMsg(null);
         try {
-            // Falls schon einer existiert, aufräumen
+            // Falls schon einer existiert und läuft -> stoppen!
             if (scannerRef.current) {
-                 await scannerRef.current.clear();
+                 if (scannerRef.current.isScanning) {
+                      await scannerRef.current.stop();
+                 }
+                 // Reset DOM
+                 try {
+                    await scannerRef.current.clear();
+                 } catch (e) {
+                    // Ignorieren, falls schon gecleart
+                 }
             }
 
             const scanner = new Html5Qrcode(divId);
