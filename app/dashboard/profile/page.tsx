@@ -170,13 +170,22 @@ export default function ProfilePage() {
 
 			{/* Profil-Vervollständigungsstatus */}
 			{(() => {
-				const fields: Array<{ key: keyof typeof profile; label: string }> = [
+				const fields: Array<{ key: keyof typeof profile; label: string; isDone?: (v: any) => boolean }> = [
+					{ key: 'brewery_name', label: 'Name' },
+					{ key: 'founded_year', label: 'Gründungsjahr', isDone: (v) => !!(v && String(v).trim().length > 0) },
+					{ key: 'logo_url', label: 'Profilbild' },
+					{ key: 'banner_url', label: 'Banner' },
 					{ key: 'location', label: 'Standort' },
 					{ key: 'website', label: 'Webseite' },
 					{ key: 'bio', label: 'Über uns' },
 				];
-				const completed = fields.reduce((acc, f) => acc + (profile[f.key] ? 1 : 0), 0);
-				const pending = fields.filter(f => !profile[f.key]).map(f => f.label);
+				const isFilled = (key: keyof typeof profile, custom?: (v: any) => boolean) => {
+					const val = profile[key];
+					return custom ? custom(val) : !!(val && String(val).trim().length > 0);
+				};
+
+				const completed = fields.reduce((acc, f) => acc + (isFilled(f.key, f.isDone) ? 1 : 0), 0);
+				const pending = fields.filter(f => !isFilled(f.key, f.isDone)).map(f => f.label);
 				return (
 					<ProfileCompletionRing
 						completed={completed}
