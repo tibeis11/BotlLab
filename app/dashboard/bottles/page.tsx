@@ -189,9 +189,10 @@ export default function BottlesPage() {
 			let x = 20;
 			let y = 45;
 			const qrSize = 35;
+			const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://botllab.vercel.app';
 
 			for (const bottle of createdBottles) {
-				const scanUrl = `${window.location.origin}/b/${bottle.id}`;
+				const scanUrl = `${baseUrl}/b/${bottle.id}`;
         
 				const qrDataUrl = await generateQRWithLogo(scanUrl);
 

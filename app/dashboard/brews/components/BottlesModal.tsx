@@ -95,9 +95,11 @@ export default function BottlesModal({ brewId, brewName, isOpen, onClose }: Bott
 
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                 {bottles.map(bottle => (
-                  <Link 
+                  <a 
                     key={bottle.id}
-                    href={`/b/${bottle.id}`}
+                    href={`https://botllab.vercel.app/b/${bottle.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="group relative bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700/50 hover:border-cyan-500/30 rounded-xl p-4 text-center transition-all duration-300"
                     onClick={onClose}
                   >
@@ -113,7 +115,7 @@ export default function BottlesModal({ brewId, brewName, isOpen, onClose }: Bott
                         })}
                       </div>
                     )}
-                  </Link>
+                  </a>
                 ))}
               </div>
             </>
