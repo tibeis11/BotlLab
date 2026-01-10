@@ -4,7 +4,7 @@ import Link from "next/link";
 import Logo from "./Logo";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabase";
 
 export default function Header() {
   const [user, setUser] = useState<any>(null);
@@ -14,30 +14,55 @@ export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-
   useEffect(() => {
-    checkUser();
-  }, []);
+    let cancelled = false;
 
-  async function checkUser() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      setUser(user);
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('logo_url, brewery_name')
-        .eq('id', user.id)
-        .single();
-      if (profileData) {
-        setProfile(profileData);
+    async function init() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (cancelled) return;
+        if (user) {
+          setUser(user);
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('logo_url, brewery_name')
+            .eq('id', user.id)
+            .single();
+          if (!cancelled && profileData) {
+            setProfile(profileData);
+          }
+        }
+      } catch (e) {
+        // noop; ensure we always clear loading state below
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     }
-    setLoading(false);
-  }
+
+    init();
+
+    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (cancelled) return;
+      const nextUser = session?.user ?? null;
+      setUser(nextUser);
+      if (nextUser) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('logo_url, brewery_name')
+          .eq('id', nextUser.id)
+          .single();
+        if (!cancelled && profileData) setProfile(profileData);
+      } else {
+        setProfile(null);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
+
 
   async function handleLogout() {
     await supabase.auth.signOut();
