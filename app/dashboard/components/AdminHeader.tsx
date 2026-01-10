@@ -10,6 +10,7 @@ export default function AdminHeader() {
   const [breweryName, setBreweryName] = useState<string | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const router = useRouter();
 
   const supabase = createClient(
@@ -49,7 +50,8 @@ export default function AdminHeader() {
              <Logo />
           </Link>
           
-          <div className="flex gap-6 text-sm font-medium items-center">
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex gap-6 text-sm font-medium items-center">
             <Link href="/dashboard" className="hover:text-brand transition">Dashboard</Link>
             <Link href="/dashboard/brews" className="hover:text-brand transition">Meine Rezepte</Link>
             <Link href="/dashboard/bottles" className="hover:text-brand transition">Inventar</Link>
@@ -101,7 +103,48 @@ export default function AdminHeader() {
               )}
             </div>
           </div>
+
+          {/* Mobile Menu Button */}
+          <button 
+            className="md:hidden p-2 text-zinc-400 hover:text-white"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            {isMobileMenuOpen ? (
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+              </svg>
+            )}
+          </button>
         </div>
+
+        {/* Mobile Navigation */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden pt-4 pb-2 animate-in slide-in-from-top-5 fade-in duration-200">
+            <div className="flex flex-col space-y-3">
+               <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)} className="px-2 py-1 text-zinc-400 hover:text-white transition block">Dashboard</Link>
+               <Link href="/dashboard/brews" onClick={() => setIsMobileMenuOpen(false)} className="px-2 py-1 text-zinc-400 hover:text-white transition block">Meine Rezepte</Link>
+               <Link href="/dashboard/bottles" onClick={() => setIsMobileMenuOpen(false)} className="px-2 py-1 text-zinc-400 hover:text-white transition block">Inventar</Link>
+               <Link href="/discover" onClick={() => setIsMobileMenuOpen(false)} className="px-2 py-1 text-zinc-400 hover:text-white transition block">Entdecken</Link>
+               
+               <div className="h-px bg-zinc-800 my-2"></div>
+               
+               <p className="px-2 text-xs font-bold text-zinc-600 uppercase tracking-wider">Mein Account</p>
+               <Link href="/dashboard/profile" onClick={() => setIsMobileMenuOpen(false)} className="px-2 py-1 text-zinc-400 hover:text-white transition flex items-center gap-2">
+                 <span>⚙️</span> Profileinstellungen
+               </Link>
+               <Link href="/dashboard/account" onClick={() => setIsMobileMenuOpen(false)} className="px-2 py-1 text-zinc-400 hover:text-white transition flex items-center gap-2">
+                 <span>🔐</span> Kontoeinstellungen
+               </Link>
+               <button onClick={handleLogout} className="px-2 py-1 text-red-500 hover:text-red-400 transition text-left flex items-center gap-2">
+                 <span>🚪</span> Abmelden
+               </button>
+            </div>
+          </div>
+        )}
       </nav>
   );
 }
