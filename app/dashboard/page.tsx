@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import TierProgressWidget from './components/TierProgressWidget';
 import ProfileCompletionRing from './components/ProfileCompletionRing';
+import { useAchievementNotification } from '../context/AchievementNotificationContext';
 import { supabase } from '@/lib/supabase';
 
 export default function DashboardPage() {
@@ -22,6 +23,7 @@ export default function DashboardPage() {
 		distribution: [0,0,0,0,0]
 	});
 	const [breweryName, setBreweryName] = useState("");
+	const [userId, setUserId] = useState<string | null>(null);
 	const [profileInfo, setProfileInfo] = useState({
 		brewery_name: '',
 		founded_year: '',
@@ -31,6 +33,7 @@ export default function DashboardPage() {
 		website: '',
 		bio: ''
 	});
+	const { showAchievement } = useAchievementNotification();
 	const router = useRouter();
 
 	useEffect(() => {
@@ -51,6 +54,7 @@ export default function DashboardPage() {
 			setLoading(true);
 			const { data: { user } } = await supabase.auth.getUser();
 			if (!user) return; 
+			setUserId(user.id);
 
 			const { data: profile } = await supabase
 				.from('profiles')
@@ -157,6 +161,40 @@ export default function DashboardPage() {
 			setLoading(false);
 		}
 	}
+
+	// Show a one-time toast per session if profile is incomplete
+	useEffect(() => {
+		if (!userId) return;
+		const fields: Array<{ key: keyof typeof profileInfo; isDone?: (v: any) => boolean }> = [
+			{ key: 'brewery_name' },
+			{ key: 'founded_year', isDone: (v) => !!(v && String(v).trim().length > 0) },
+			{ key: 'logo_url' },
+			{ key: 'banner_url' },
+			{ key: 'location' },
+			{ key: 'website' },
+			{ key: 'bio' },
+		];
+		const isFilled = (key: keyof typeof profileInfo, custom?: (v: any) => boolean) => {
+			const val = profileInfo[key];
+			return custom ? custom(val) : !!(val && String(val).trim().length > 0);
+		};
+		const total = fields.length;
+		const completed = fields.reduce((acc, f) => acc + (isFilled(f.key, f.isDone) ? 1 : 0), 0);
+		if (completed < total) {
+			const key = `toast-profile-${userId}`;
+			if (typeof window !== 'undefined' && !sessionStorage.getItem(key)) {
+				showAchievement({
+					id: key,
+					name: 'Profil fast fertig',
+					description: 'Ergänze Logo, Banner und Infos für dein bestes Auftreten.',
+					icon: '🧩',
+					tier: 'bronze',
+					points: 0,
+				});
+				sessionStorage.setItem(key, '1');
+			}
+		}
+	}, [profileInfo, userId, showAchievement]);
 
 	return (
 		<div className="space-y-10 py-8">
