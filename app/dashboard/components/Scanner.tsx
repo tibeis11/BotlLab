@@ -1,6 +1,6 @@
 'use client';
 
-import { Html5Qrcode } from "html5-qrcode";
+import { Html5Qrcode, Html5QrcodeScannerState } from "html5-qrcode";
 import { useEffect, useRef, useState } from "react";
 
 interface ScannerProps {
@@ -25,16 +25,18 @@ export default function Scanner({ onScanSuccess }: ScannerProps) {
                 
                 // Versuch zu stoppen, falls er läuft
                 try {
-                    // @ts-ignore - isScanning exists at runtime
-                    if (scanner.isScanning) {
+                    const state = scanner.getState();
+                    if (state === Html5QrcodeScannerState.SCANNING || state === Html5QrcodeScannerState.PAUSED) {
                         scanner.stop()
                             .then(() => scanner.clear())
-                            .catch(() => { /* ignore cleanup errors */ });
-                    } else {
+                            .catch((err) => console.warn("Scanner cleanup stop error:", err));
+                    } else if (state === Html5QrcodeScannerState.NOT_STARTED || state === Html5QrcodeScannerState.UNKNOWN) {
+                        // Might already be cleared or never started, but try clear just in case to remove DOM
                         scanner.clear().catch(() => {});
                     }
                 } catch (e) {
                     // Safe cleanup fail
+                    console.warn("Scanner cleanup failsafe error:", e);
                 }
             }
         };
@@ -46,8 +48,8 @@ export default function Scanner({ onScanSuccess }: ScannerProps) {
             // Hard Reset: Falls noch einer da ist, weg damit
             if (scannerRef.current) {
                  try {
-                     // @ts-ignore
-                     if (scannerRef.current.isScanning) {
+                     const state = scannerRef.current.getState();
+                     if (state === Html5QrcodeScannerState.SCANNING || state === Html5QrcodeScannerState.PAUSED) {
                         await scannerRef.current.stop();
                      }
                      await scannerRef.current.clear();
@@ -94,8 +96,8 @@ export default function Scanner({ onScanSuccess }: ScannerProps) {
     async function stopScanner() {
         if (scannerRef.current) {
             try {
-                // @ts-ignore
-                if (scannerRef.current.isScanning) {
+                const state = scannerRef.current.getState();
+                if (state === Html5QrcodeScannerState.SCANNING || state === Html5QrcodeScannerState.PAUSED) {
                     await scannerRef.current.stop();
                 }
                 await scannerRef.current.clear();
