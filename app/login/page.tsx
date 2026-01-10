@@ -2,7 +2,16 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import Link from "next/link";import Logo from "../components/Logo";
+import Link from "next/link";
+import Logo from "../components/Logo";
+
+const getRedirectUrl = () => {
+  if (typeof window !== 'undefined') {
+    return `${window.location.origin}/auth/callback`;
+  }
+  return undefined;
+};
+
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -33,7 +42,7 @@ export default function LoginPage() {
           email, 
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback`
+            emailRedirectTo: getRedirectUrl()
           }
         });
         
@@ -41,29 +50,19 @@ export default function LoginPage() {
             setMessage(error.message);
         } else if (data.user) {
             // Profil Eintrag erstellen
-            try {
-              const { error: profileError } = await supabase.from('profiles').insert([{
-                  id: data.user.id,
-                  brewery_name: breweryName,
-                  founded_year: new Date().getFullYear()
-              }]);
+            const { error: profileError } = await supabase.from('profiles').insert([{
+                id: data.user.id,
+                brewery_name: breweryName,
+                founded_year: new Date().getFullYear()
+            }]);
 
-              if (profileError) {
-                  console.error("Profil-Fehler Details:", profileError.message, profileError.code);
-                  const errorMsg = profileError.message || "Unbekannter Fehler";
-                  setMessage("Account erstellt! Aber Profil-Fehler: " + errorMsg);
-              } else {
-                  setMessage("✅ Brauerei gegründet! Bestätige deine E-Mail-Adresse über den Link in deinem Postfach.");
-                  setAwaitingConfirmation(true);
-                  setIsRegister(false);
-                  // Reset form
-                  setEmail("");
-                  setPassword("");
-                  setBreweryName("");
-              }
-            } catch (err: any) {
-              console.error("Profil-Insert Exception:", err);
-              setMessage("Fehler beim Erstellen des Profils: " + (err?.message || "Unbekannter Fehler"));
+            if (profileError) {
+                console.error("Profil konnte nicht angelegt werden:", profileError);
+                setMessage("Account erstellt, aber Profil-Fehler: " + profileError.message);
+            } else {
+                setMessage("✅ Brauerei gegründet! Bestätige deine E-Mail-Adresse über den Link in deinem Postfach.");
+                setAwaitingConfirmation(true);
+                setIsRegister(false);
             }
         }
     } else {
@@ -92,7 +91,7 @@ export default function LoginPage() {
         type: 'signup',
         email: email,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`
+          emailRedirectTo: getRedirectUrl()
         }
       });
       if (error) {
