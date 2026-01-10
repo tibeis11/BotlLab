@@ -265,22 +265,25 @@ function RequirementCard({ label, current, required, icon, color }: { label: str
             {icon}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-[10px] uppercase font-bold tracking-wider text-zinc-400 mb-1">
+            <div className="text-[10px] uppercase font-bold tracking-wider text-zinc-400 mb-1 truncate whitespace-nowrap sm:whitespace-normal" title={label}>
               {label}
             </div>
             <div className="text-xl font-black text-white">
               {current} <span className="text-zinc-500 text-sm">/ {required}</span>
+              {isComplete && (
+                <span className="sm:hidden text-green-400 text-xs font-bold ml-2 align-middle">✓</span>
+              )}
             </div>
           </div>
-          {isComplete && (
-            <div 
-              className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
-              style={{ backgroundColor: '#10b981' }}
-            >
-              <span className="text-white text-sm">✓</span>
-            </div>
-          )}
         </div>
+        {isComplete && (
+          <div 
+            className="hidden sm:flex absolute top-3 right-3 w-6 h-6 rounded-full items-center justify-center"
+            style={{ backgroundColor: '#10b981' }}
+          >
+            <span className="text-white text-sm">✓</span>
+          </div>
+        )}
         
         <div className="h-2 bg-white/10 rounded-full overflow-hidden">
           <div 
