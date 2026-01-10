@@ -19,18 +19,22 @@ export default function Scanner({ onScanSuccess }: ScannerProps) {
 
     useEffect(() => {
         return () => {
-            // Safer cleanup
+            // Cleanup function must be synchronous, handles promises silently
             if (scannerRef.current) {
+                const scanner = scannerRef.current;
+                
+                // Versuch zu stoppen, falls er läuft
                 try {
-                    if (scannerRef.current.isScanning) {
-                        scannerRef.current.stop()
-                            .then(() => scannerRef.current?.clear())
-                            .catch(console.warn);
+                    // @ts-ignore - isScanning exists at runtime
+                    if (scanner.isScanning) {
+                        scanner.stop()
+                            .then(() => scanner.clear())
+                            .catch(() => { /* ignore cleanup errors */ });
                     } else {
-                        scannerRef.current.clear().catch(console.warn);
+                        scanner.clear().catch(() => {});
                     }
                 } catch (e) {
-                    console.warn(e);
+                    // Safe cleanup fail
                 }
             }
         };
@@ -39,18 +43,21 @@ export default function Scanner({ onScanSuccess }: ScannerProps) {
     async function startScanner() {
         setErrorMsg(null);
         try {
-            // Falls schon einer existiert und läuft -> stoppen!
+            // Hard Reset: Falls noch einer da ist, weg damit
             if (scannerRef.current) {
-                 if (scannerRef.current.isScanning) {
-                      await scannerRef.current.stop();
-                 }
-                 // Reset DOM
                  try {
-                    await scannerRef.current.clear();
+                     // @ts-ignore
+                     if (scannerRef.current.isScanning) {
+                        await scannerRef.current.stop();
+                     }
+                     await scannerRef.current.clear();
                  } catch (e) {
-                    // Ignorieren, falls schon gecleart
+                     console.warn("Cleanup warning:", e);
                  }
             }
+
+            // Kurze Pause für den Browser
+            await new Promise(r => setTimeout(r, 100));
 
             const scanner = new Html5Qrcode(divId);
             scannerRef.current = scanner;
@@ -64,6 +71,8 @@ export default function Scanner({ onScanSuccess }: ScannerProps) {
                 },
                 (decodedText) => {
                     onScanSuccess(decodedText);
+                    // Optional: Scanner direkt stoppen nach Erfolg?
+                    // stopScanner(); 
                 },
                 (errorMessage) => {
                     // ignore frame errors
@@ -72,19 +81,28 @@ export default function Scanner({ onScanSuccess }: ScannerProps) {
             setIsScanning(true);
         } catch (err: any) {
             console.error("Scanner Error:", err);
-            setErrorMsg("Kamera-Fehler: " + (err?.message || err));
+            setErrorMsg("Kamera-Fehler: " + (err?.message || "Unbekannter Fehler"));
             setIsScanning(false);
+            
+            // Versuch aufzuräumen bei Fehler
+            if (scannerRef.current) {
+                try { await scannerRef.current.clear(); } catch(e) {}
+            }
         }
     }
 
     async function stopScanner() {
-        if (scannerRef.current && isScanning) {
+        if (scannerRef.current) {
             try {
-                await scannerRef.current.stop();
-                setIsScanning(false);
+                // @ts-ignore
+                if (scannerRef.current.isScanning) {
+                    await scannerRef.current.stop();
+                }
+                await scannerRef.current.clear();
             } catch (err) {
-                console.error(err);
+                console.warn("Stop failed", err);
             }
+            setIsScanning(false);
         }
     }
 
