@@ -23,20 +23,17 @@ export default function Scanner({ onScanSuccess }: ScannerProps) {
             if (scannerRef.current) {
                 const scanner = scannerRef.current;
                 
-                // Versuch zu stoppen, falls er läuft
                 try {
                     const state = scanner.getState();
+                    // Nur aufräumen wenn der Scanner wirklich läuft
                     if (state === Html5QrcodeScannerState.SCANNING || state === Html5QrcodeScannerState.PAUSED) {
                         scanner.stop()
                             .then(() => scanner.clear())
-                            .catch((err) => console.warn("Scanner cleanup stop error:", err));
-                    } else if (state === Html5QrcodeScannerState.NOT_STARTED || state === Html5QrcodeScannerState.UNKNOWN) {
-                        // Might already be cleared or never started, but try clear just in case to remove DOM
-                        scanner.clear().catch(() => {});
+                            .catch(() => { /* Silent cleanup */ });
                     }
+                    // Bei NOT_STARTED/UNKNOWN: Nichts tun - Scanner wurde nie gestartet
                 } catch (e) {
-                    // Safe cleanup fail
-                    console.warn("Scanner cleanup failsafe error:", e);
+                    // getState() might fail if scanner is in invalid state - that's OK
                 }
             }
         };
