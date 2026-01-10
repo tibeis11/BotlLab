@@ -74,9 +74,13 @@ export default function Scanner({ onScanSuccess }: ScannerProps) {
 
     return (
         <div className="w-full max-w-md mx-auto">
-             <div id={divId} className="overflow-hidden rounded-xl bg-black min-h-[300px] mb-4 relative shadow-2xl border border-zinc-800">
+             <div className="relative overflow-hidden rounded-xl bg-black min-h-[300px] mb-4 shadow-2xl border border-zinc-800">
+                {/* Scanner Target - React must NOT put children here */}
+                <div id={divId}></div>
+
+                {/* UI Overlay - liegt DARÜBER, nicht DRIN */}
                 {!isScanning && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
+                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-6 text-center bg-black/80 backdrop-blur-sm">
                         <div className="mb-4 text-4xl">📷</div>
                         <h3 className="text-white font-bold mb-2">QR-Scanner</h3>
                         <p className="text-zinc-400 text-sm mb-6">Zum Scannen von Flaschencodes Zugriff erlauben.</p>
