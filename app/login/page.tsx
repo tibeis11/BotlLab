@@ -10,6 +10,8 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   
   const [isRegister, setIsRegister] = useState(false);
+  const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const router = useRouter();
@@ -27,7 +29,13 @@ export default function LoginPage() {
             return;
         }
 
-        const { data, error } = await supabase.auth.signUp({ email, password });
+        const { data, error } = await supabase.auth.signUp({ 
+          email, 
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback`
+          }
+        });
         
         if (error) {
             setMessage(error.message);
@@ -43,17 +51,49 @@ export default function LoginPage() {
                 console.error("Profil konnte nicht angelegt werden:", profileError);
                 setMessage("Account erstellt, aber Profil-Fehler: " + profileError.message);
             } else {
-                setMessage("🎉 Account erfolgreich erstellt! Du kannst dich jetzt einloggen.");
+                setMessage("✅ Brauerei gegründet! Bestätige deine E-Mail-Adresse über den Link in deinem Postfach.");
+                setAwaitingConfirmation(true);
                 setIsRegister(false);
             }
         }
     } else {
         // --- LOGIN ---
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) setMessage(error.message);
-        else router.push("/dashboard");
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+          setMessage(error.message);
+        } else if (data.user) {
+          // Check if email is confirmed
+          if (!data.user.email_confirmed_at) {
+            setMessage("⚠️ Bitte bestätige deine E-Mail-Adresse zuerst.");
+            setAwaitingConfirmation(true);
+          } else {
+            router.push("/dashboard");
+          }
+        }
     }
     setLoading(false);
+  };
+
+  const handleResendVerification = async () => {
+    setResendLoading(true);
+    setMessage("");
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`
+        }
+      });
+      if (error) {
+        setMessage("Fehler beim Versenden: " + error.message);
+      } else {
+        setMessage("✅ Bestätigungslink erneut versendet! Schau in dein Postfach.");
+      }
+    } catch (e: any) {
+      setMessage("Fehler: " + (e?.message || "Unbekannter Fehler"));
+    }
+    setResendLoading(false);
   };
 
   return (
@@ -199,11 +239,27 @@ export default function LoginPage() {
           {/* Feedback Message */}
           {message && (
             <div className={`mt-6 p-4 rounded-xl text-sm font-medium text-center border ${
-              message.includes("erstellt") || message.includes("🎉") 
+              message.includes("Bestätige") || message.includes("✅") 
                 ? "bg-green-950/30 border-green-800/30 text-green-400" 
                 : "bg-red-950/30 border-red-800/30 text-red-400"
             }`}>
               {message}
+            </div>
+          )}
+
+          {/* Resend Verification Button */}
+          {awaitingConfirmation && (
+            <div className="mt-6 p-4 rounded-xl bg-amber-950/30 border border-amber-800/30">
+              <p className="text-xs text-amber-400 mb-4">
+                Hast du die Mail nicht bekommen?
+              </p>
+              <button
+                onClick={handleResendVerification}
+                disabled={resendLoading}
+                className="w-full bg-amber-600 hover:bg-amber-500 text-white py-2 rounded-lg font-bold text-sm transition disabled:opacity-50"
+              >
+                {resendLoading ? "Sende..." : "Bestätigungslink erneut senden"}
+              </button>
             </div>
           )}
         </div>
