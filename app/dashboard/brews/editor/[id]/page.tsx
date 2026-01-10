@@ -599,33 +599,32 @@ export default function BrewEditorPage() {
 	return (
 		<div className="min-h-screen text-white py-8">
 			<div className="max-w-6xl mx-auto px-4 space-y-8">
-<div className="flex items-center justify-between gap-3 mb-6">
-				<div>
-					<div className="flex items-center gap-2 mb-1">
-						<span className="text-2xl">🧪</span>
-						<p className="text-xs uppercase tracking-[0.2em] text-cyan-400 font-bold">Rezept Editor</p>
+				<div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
+					<div>
+						<div className="flex items-center gap-2 mb-1">
+							<span className="text-2xl">🧪</span>
+							<p className="text-xs uppercase tracking-[0.2em] text-cyan-400 font-bold">Rezept Editor</p>
+						</div>
+						<h1 className="text-3xl md:text-4xl font-black">{id === 'new' ? 'Neues Rezept anlegen' : brew.name || 'Rezept bearbeiten'}</h1>
+						<p className="text-zinc-400 mt-1">Hier entstehen deine Brau-Kreationen</p>
 					</div>
-					<h1 className="text-3xl md:text-4xl font-black">{id === 'new' ? 'Neues Rezept anlegen' : brew.name || 'Rezept bearbeiten'}</h1>
-					<p className="text-zinc-400 mt-1">Hier entstehen deine Brau-Kreationen</p>
-				</div>
-				<div className="flex items-center gap-3">
-					<label className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-sm cursor-pointer hover:border-cyan-500/50 transition">
-						<input
-							type="checkbox"
-							checked={brew.is_public}
-							onChange={(e) => handleField('is_public', e.target.checked)}
-							className="h-5 w-5 rounded-lg border border-zinc-800 bg-zinc-900 accent-cyan-500 focus:ring-2 focus:ring-cyan-500/30"
-						/>
-						<span>Öffentlich</span>
-					</label>
-					<button
-						onClick={handleSave}
-						disabled={saving}
-						className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold px-5 py-2 rounded-xl hover:shadow-lg hover:shadow-cyan-500/30 transition disabled:opacity-60"
-					>
-						{saving ? 'Speichern...' : 'Speichern'}
-					</button>
-					<Link href="/dashboard/brews" className="text-zinc-400 hover:text-cyan-400 text-sm transition">Zurück</Link>
+					<div className="flex items-center gap-3 w-full md:w-auto">
+						<label className="flex-1 md:flex-none justify-center flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm cursor-pointer hover:border-cyan-500/50 transition">
+							<input
+								type="checkbox"
+								checked={brew.is_public}
+								onChange={(e) => setBrew(prev => ({ ...prev, is_public: e.target.checked }))}
+								className="h-5 w-5 rounded-lg border border-zinc-800 bg-zinc-900 accent-cyan-500 focus:ring-2 focus:ring-cyan-500/30"
+							/>
+							<span>Öffentlich</span>
+						</label>
+						<button
+							onClick={handleSave}
+							disabled={saving}
+							className="flex-1 md:flex-none bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold px-6 py-3 rounded-xl hover:shadow-lg hover:shadow-cyan-500/30 transition disabled:opacity-60 text-center justify-center flex items-center"
+						>
+							{saving ? 'Speichern...' : 'Speichern'}
+						</button>
 					</div>
 				</div>
 
