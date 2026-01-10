@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import ProfileCompletionRing from "../components/ProfileCompletionRing";
 
 export default function ProfilePage() {
 	const [loading, setLoading] = useState(true);
@@ -166,6 +167,25 @@ export default function ProfilePage() {
 				<h2 className="text-3xl font-bold tracking-tight">Deine Brauerei 🏰</h2>
 				<p className="text-zinc-400">Hier verwaltest du die Identität deiner Heimbrauerei.</p>
 			</div>
+
+			{/* Profil-Vervollständigungsstatus */}
+			{(() => {
+				const fields: Array<{ key: keyof typeof profile; label: string }> = [
+					{ key: 'location', label: 'Standort' },
+					{ key: 'website', label: 'Webseite' },
+					{ key: 'bio', label: 'Über uns' },
+				];
+				const completed = fields.reduce((acc, f) => acc + (profile[f.key] ? 1 : 0), 0);
+				const pending = fields.filter(f => !profile[f.key]).map(f => f.label);
+				return (
+					<ProfileCompletionRing
+						completed={completed}
+						total={fields.length}
+						label="Profil-Vervollständigung"
+						pendingLabels={pending}
+					/>
+				);
+			})()}
 
 			<div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-xl">
 				<div className="h-48 w-full bg-zinc-800 relative group">
