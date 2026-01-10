@@ -27,11 +27,7 @@ export default function CookieBanner() {
         <div className="text-zinc-300 text-sm leading-relaxed text-center md:text-left">
           <p>
             🍪 <strong>Nur das Nötigste:</strong> Wir nutzen ausschließlich essenzielle Cookies, 
-            damit Login und Funktionen sicher laufen. Keine Tracker, keine Werbung. 
-            Mehr dazu in unserer{' '}
-            <Link href="/privacy" className="text-cyan-400 hover:text-cyan-300 hover:underline">
-              Datenschutzerklärung
-            </Link>.
+            damit Login und Funktionen sicher laufen. Keine Tracker, keine Werbung.
           </p>
         </div>
         <button
