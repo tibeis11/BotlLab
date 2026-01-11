@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import TierProgressWidget from './components/TierProgressWidget';
@@ -11,6 +11,14 @@ import { getBreweryFeed, type FeedItem } from '@/lib/feed-service';
 import { getTierConfig } from '@/lib/tier-system';
 
 export default function DashboardPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center">Lade Dashboard...</div>}>
+            <DashboardContent />
+        </Suspense>
+    );
+}
+
+function DashboardContent() {
 	const { user, loading: authLoading } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
