@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import QRCode from 'qrcode'; 
 import { jsPDF } from 'jspdf'; 
@@ -36,11 +36,6 @@ export default function BottlesPage() {
 	const [sortOption, setSortOption] = useState<"newest" | "number_asc" | "number_desc">("number_asc");
 	const [filterStatus, setFilterStatus] = useState<"all" | "filled" | "empty">("all");
 	const router = useRouter();
-
-	const supabase = createClient(
-		process.env.NEXT_PUBLIC_SUPABASE_URL!,
-		process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-	);
 
 	useEffect(() => {
 		setIsMounted(true);

@@ -5,11 +5,11 @@ import Logo from "./Logo";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "../context/AuthContext";
 
 export default function Header() {
-  const [user, setUser] = useState<any>(null);
+  const { user, loading, signOut } = useAuth();
   const [profile, setProfile] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
   const [showMenu, setShowMenu] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
@@ -17,59 +17,32 @@ export default function Header() {
   useEffect(() => {
     let cancelled = false;
 
-    async function init() {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (cancelled) return;
-        if (user) {
-          setUser(user);
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('logo_url, brewery_name')
-            .eq('id', user.id)
-            .single();
-          if (!cancelled && profileData) {
-            setProfile(profileData);
-          }
-        }
-      } catch (e) {
-        // noop; ensure we always clear loading state below
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    init();
-
-    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (cancelled) return;
-      const nextUser = session?.user ?? null;
-      setUser(nextUser);
-      if (nextUser) {
+    async function loadProfile() {
+      if (user) {
         const { data: profileData } = await supabase
           .from('profiles')
           .select('logo_url, brewery_name')
-          .eq('id', nextUser.id)
+          .eq('id', user.id)
           .single();
-        if (!cancelled && profileData) setProfile(profileData);
+        if (!cancelled && profileData) {
+          setProfile(profileData);
+        }
       } else {
-        setProfile(null);
+        if (!cancelled) setProfile(null);
       }
-    });
+    }
+
+    loadProfile();
 
     return () => {
       cancelled = true;
-      sub.subscription.unsubscribe();
     };
-  }, []);
-
+  }, [user]);
 
   async function handleLogout() {
-    await supabase.auth.signOut();
-    setUser(null);
-    setProfile(null);
+    await signOut();
     setShowMenu(false);
-    window.location.reload();
+    // Refresh wird im Context behandelt
   }
 
   return (
