@@ -734,7 +734,7 @@ export default function BrewEditorPage() {
 				<div className="bg-zinc-900/50 p-1.5 rounded-2xl border border-zinc-800 flex items-center mb-8 relative">
 					{(() => {
 						const tabs = [
-							{ id: 'editor', label: 'Eingabe', icon: '⚗️' },
+							{ id: 'editor', label: 'Eingabe', icon: '📋' },
 							{ id: 'label', label: 'Label', icon: '🏷️' },
 							{ id: 'ratings', label: 'Bewertungen', icon: '⭐', hidden: id === 'new' }
 						].filter(t => !t.hidden);
@@ -775,22 +775,22 @@ export default function BrewEditorPage() {
 				<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 					<div className="space-y-5 bg-zinc-950 border border-zinc-800 rounded-2xl p-5">
 						<div>
-							<label className="text-xs uppercase font-bold text-cyan-400 mb-2 flex items-center justify-between">
-								<span>Name</span>
+							<label className="text-xs uppercase font-bold text-cyan-400 mb-2 block">Name</label>
+							<div className="flex items-center w-full bg-zinc-900 border border-zinc-800 rounded-xl transition focus-within:border-cyan-500 focus-within:ring-2 focus-within:ring-cyan-500/20 overflow-hidden pr-1.5">
+								<input
+									value={brew.name}
+									onChange={(e) => handleField('name', e.target.value)}
+									className="flex-1 bg-transparent border-none px-3 py-2.5 text-white outline-none placeholder:text-zinc-600 min-w-0"
+									placeholder="z.B. Galaxy IPA"
+								/>
 								<button
 									onClick={handleGenerateName}
 									disabled={generatingName}
-									className="text-[10px] bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white px-2 py-1 rounded-lg transition disabled:opacity-50 flex items-center gap-1"
+									className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg transition disabled:opacity-50 flex items-center gap-1 whitespace-nowrap"
 								>
 									{generatingName ? '⚡ Generiert...' : '✨ KI-Name'}
 								</button>
-							</label>
-							<input
-								value={brew.name}
-								onChange={(e) => handleField('name', e.target.value)}
-								className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition"
-								placeholder="z.B. Galaxy IPA"
-							/>
+							</div>
 						</div>
 						<div>
 							<label className="text-xs uppercase font-bold text-cyan-400">Stil</label>
@@ -1277,23 +1277,25 @@ export default function BrewEditorPage() {
 							</div>
 						)}
 
-						<div>
-							<label className="text-xs uppercase font-bold text-cyan-400 mb-2 flex items-center justify-between">
-								<span>Beschreibung</span>
-								<button
-									onClick={handleGenerateDescription}
-									disabled={generatingDescription}
-									className="text-[10px] bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white px-2 py-1 rounded-lg transition disabled:opacity-50 flex items-center gap-1"
-								>
-									{generatingDescription ? '⚡ Generiert...' : '✨ KI-Text'}
-								</button>
-							</label>
-							<textarea
-								value={brew.description || ''}
-								onChange={(e) => handleField('description', e.target.value)}
-								className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white min-h-[140px] focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition"
-								placeholder="Aromen, Malz, Hopfen, Frucht, Farbe..."
-							/>
+						<div className="relative">
+							<label className="text-xs uppercase font-bold text-cyan-400 mb-2 block">Beschreibung</label>
+							<div className="relative flex flex-col w-full bg-zinc-900 border border-zinc-800 rounded-xl transition focus-within:border-purple-500 focus-within:ring-2 focus-within:ring-purple-500/20 overflow-hidden">
+								<textarea
+									value={brew.description || ''}
+									onChange={(e) => handleField('description', e.target.value)}
+									className="w-full bg-transparent border-none px-3 py-2 text-white min-h-[140px] outline-none placeholder:text-zinc-600 resize-none pb-12"
+									placeholder="Aromen, Malz, Hopfen, Frucht, Farbe..."
+								/>
+								<div className="absolute bottom-2 right-2">
+									<button
+										onClick={handleGenerateDescription}
+										disabled={generatingDescription}
+										className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg transition disabled:opacity-50 flex items-center gap-1 shadow-lg"
+									>
+										{generatingDescription ? '⚡ Generiert...' : '✨ KI-Text generieren'}
+									</button>
+								</div>
+							</div>
 						</div>
 					</div>
 
