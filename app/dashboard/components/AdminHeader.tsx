@@ -54,6 +54,7 @@ export default function AdminHeader() {
           <div className="hidden md:flex gap-6 text-sm font-medium items-center">
             <Link href="/dashboard" className="hover:text-brand transition">Dashboard</Link>
             <Link href="/dashboard/brews" className="hover:text-brand transition">Meine Rezepte</Link>
+            <Link href="/dashboard/collection" className="hover:text-brand transition">Meine Sammlung</Link>
             <Link href="/dashboard/bottles" className="hover:text-brand transition">Inventar</Link>
             <Link href="/discover" className="hover:text-brand transition">Entdecken</Link>
             
@@ -92,6 +93,12 @@ export default function AdminHeader() {
                     >
                       🔐 Kontoeinstellungen
                     </Link>
+                    <Link 
+                      href="/dashboard/collection"
+                      className="block w-full px-4 py-3 text-white hover:bg-zinc-800 transition text-sm font-medium flex items-center gap-2"
+                    >
+                      🟡 Meine Sammlung
+                    </Link>
                     <button
                       onClick={handleLogout}
                       className="block w-full px-4 py-3 text-red-400 hover:bg-zinc-800 transition text-sm font-medium flex items-center gap-2 text-left border-t border-zinc-800"
@@ -124,24 +131,12 @@ export default function AdminHeader() {
         {/* Mobile Navigation */}
         {isMobileMenuOpen && (
           <div className="md:hidden pt-4 pb-2 animate-in slide-in-from-top-5 fade-in duration-200">
-            <div className="flex flex-col space-y-3">
-               <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)} className="px-2 py-1 text-zinc-400 hover:text-white transition block">Dashboard</Link>
-               <Link href="/dashboard/brews" onClick={() => setIsMobileMenuOpen(false)} className="px-2 py-1 text-zinc-400 hover:text-white transition block">Meine Rezepte</Link>
-               <Link href="/dashboard/bottles" onClick={() => setIsMobileMenuOpen(false)} className="px-2 py-1 text-zinc-400 hover:text-white transition block">Inventar</Link>
-               <Link href="/discover" onClick={() => setIsMobileMenuOpen(false)} className="px-2 py-1 text-zinc-400 hover:text-white transition block">Entdecken</Link>
-               
-               <div className="h-px bg-zinc-800 my-2"></div>
-               
-               <p className="px-2 text-xs font-bold text-zinc-600 uppercase tracking-wider">Mein Account</p>
-               <Link href="/dashboard/profile" onClick={() => setIsMobileMenuOpen(false)} className="px-2 py-1 text-zinc-400 hover:text-white transition flex items-center gap-2">
-                 <span>⚙️</span> Profileinstellungen
-               </Link>
-               <Link href="/dashboard/account" onClick={() => setIsMobileMenuOpen(false)} className="px-2 py-1 text-zinc-400 hover:text-white transition flex items-center gap-2">
-                 <span>🔐</span> Kontoeinstellungen
-               </Link>
-               <button onClick={handleLogout} className="px-2 py-1 text-red-500 hover:text-red-400 transition text-left flex items-center gap-2">
-                 <span>🚪</span> Abmelden
-               </button>
+            <div className="flex flex-col gap-2 p-2">
+              <Link href="/dashboard" className="p-4 rounded-xl hover:bg-zinc-900 transition flex items-center gap-3">📊 Dashboard</Link>
+              <Link href="/dashboard/brews" className="p-4 rounded-xl hover:bg-zinc-900 transition flex items-center gap-3">📋 Rezepte</Link>
+              <Link href="/dashboard/collection" className="p-4 rounded-xl hover:bg-zinc-900 transition flex items-center gap-3">🟡 Sammlung</Link>
+              <Link href="/dashboard/bottles" className="p-4 rounded-xl hover:bg-zinc-900 transition flex items-center gap-3">🍾 Inventar</Link>
+              <Link href="/discover" className="p-4 rounded-xl hover:bg-zinc-900 transition flex items-center gap-3">🌍 Entdecken</Link>
             </div>
           </div>
         )}

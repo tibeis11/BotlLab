@@ -16,6 +16,7 @@ interface BrewForm {
 	brew_type: string;
 	description?: string;
 	image_url?: string | null;
+	cap_url?: string | null;
 	is_public: boolean;
 	data?: any;
 	remix_parent_id?: string | null;
@@ -119,6 +120,8 @@ function Toggle({
   );
 }
 
+const CAP_ICONS = ['🍺', '🍷', '🍎', '🍯', '🥤', '🔥', '🌊', '🧬', '🚀', '🧪', '💎', '🎨', '🦴', '🌿', '🍄', '🍋'];
+
 export default function BrewEditorPage() {
 	const params = useParams();
 	const router = useRouter();
@@ -137,7 +140,7 @@ export default function BrewEditorPage() {
 	const [analyzingRecipe, setAnalyzingRecipe] = useState(false);
 	const [optimizationSuggestions, setOptimizationSuggestions] = useState<string[]>([]);
 	const [message, setMessage] = useState<string | null>(null);
-	const [activeTab, setActiveTab] = useState<'editor' | 'label' | 'ratings'>('editor');
+	const [activeTab, setActiveTab] = useState<'editor' | 'label' | 'badges' | 'ratings'>('editor');
 	const [extraPrompt, setExtraPrompt] = useState('');
 	const [ratings, setRatings] = useState<any[]>([]);
 	const [ratingsLoading, setRatingsLoading] = useState(false);
@@ -149,6 +152,7 @@ export default function BrewEditorPage() {
 		brew_type: 'beer',
 		description: '',
 		image_url: null,
+		cap_url: null,
 		is_public: false,
 		data: {}
 	});
@@ -237,6 +241,7 @@ export default function BrewEditorPage() {
 				brew_type: brew.brew_type,
 				description: brew.description,
 				image_url: brew.image_url,
+				cap_url: brew.cap_url,
 				is_public: brew.is_public || false,
 				data: brew.data || {},
 				user_id: user.id,
@@ -275,6 +280,7 @@ export default function BrewEditorPage() {
 				brew_type: brew.brew_type,
 				description: brew.description,
 				image_url: brew.image_url,
+				cap_url: brew.cap_url,
 				is_public: brew.is_public,
 				data: brew.data || {},
 			})
@@ -736,6 +742,7 @@ export default function BrewEditorPage() {
 						const tabs = [
 							{ id: 'editor', label: 'Eingabe', icon: '📋' },
 							{ id: 'label', label: 'Label', icon: '🏷️' },
+							{ id: 'badges', label: 'Kronkorken', icon: '🟡' },
 							{ id: 'ratings', label: 'Bewertungen', icon: '⭐', hidden: id === 'new' }
 						].filter(t => !t.hidden);
 						
@@ -1165,10 +1172,10 @@ export default function BrewEditorPage() {
 											step={0.001} 
 										/>
 										<NumberInput 
-											label="Reifezeit (Monate)" 
-											value={brew.data?.aging_months || ''} 
-											onChange={(val) => updateData('aging_months', val)} 
-											placeholder="6" 
+										 label="Reifezeit (Monate)" 
+										 value={brew.data?.aging_months || ''} 
+										 onChange={(val) => updateData('aging_months', val)} 
+										 placeholder="6" 
 										/>
 									</div>
 								</div>
@@ -1358,14 +1365,14 @@ export default function BrewEditorPage() {
 						<div className={`space-y-4 bg-zinc-950 border border-zinc-800 rounded-2xl p-5 ${!brew.id ? 'opacity-50 pointer-events-none' : ''}`}>
 							<div className="flex items-center justify-between gap-4">
 								<div>
-									<p className="text-xs uppercase tracking-[0.2em] text-purple-400 font-bold">Label Design</p>
+									<p className="text-xs uppercase tracking-[0.2em] text-purple-400 font-bold mb-1">Label Design</p>
 									<p className="text-lg font-bold">Vorschau & Generator</p>
 								</div>
 								{brew.id && (
 									<Link 
 										href={`/brew/${brew.id}`} 
 										target="_blank"
-										className="h-10 w-10 sm:w-auto sm:px-4 flex items-center justify-center gap-2 bg-zinc-900 border border-zinc-800 rounded-xl hover:bg-zinc-800 hover:border-zinc-700 hover:text-white text-zinc-400 transition flex-shrink-0"
+										className="h-10 w-10 sm:w-auto sm:px-4 flex items-center justify-center gap-2 bg-zinc-900 border border-zinc-800 rounded-xl hover:bg-zinc-800 hover:border-zinc-700 hover:text-white text-zinc-400 transition disabled:opacity-50"
 										title="Öffentlich ansehen"
 									>
 										<span>🌍</span>
@@ -1435,6 +1442,91 @@ export default function BrewEditorPage() {
 										className="hidden"
 										onChange={handleFileUpload}
 									/>
+								</div>
+							</div>
+						</div>
+					</div>
+				)}
+
+				{activeTab === 'badges' && (
+					<div className="max-w-2xl mx-auto space-y-6 text-center">
+						<div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-8 space-y-6">
+							<div>
+								<p className="text-xs uppercase tracking-[0.2em] text-cyan-400 font-bold mb-1">Digitale Abzeichen</p>
+								<h2 className="text-2xl font-black">Dein Sammlerstück</h2>
+								<p className="text-zinc-500 text-sm mt-2">
+									Dieser Kronkorken wird an User vergeben, die dein Rezept scannen und sammeln.
+								</p>
+							</div>
+
+							{/* Cap Preview */}
+							<div className="flex justify-center py-4">
+								<div className="relative group">
+									<div className="absolute -inset-4 bg-cyan-500/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition duration-500" />
+									<div className="w-40 h-40 rounded-full bg-zinc-900 border-4 border-zinc-800 shadow-2xl relative overflow-hidden flex items-center justify-center">
+										{/* Serrated Edge Decoration */}
+										<div className="absolute inset-0 opacity-20 pointer-events-none">
+											{[...Array(24)].map((_, i) => (
+												<div 
+													key={i} 
+													className="absolute w-0.5 h-full left-1/2 -translate-x-1/2 bg-zinc-600" 
+													style={{ transform: `rotate(${i * 15}deg)` }} 
+												/>
+											))}
+										</div>
+										
+										{brew.cap_url ? (
+											brew.cap_url.length < 5 ? ( // Emoji check (hacky)
+												<span className="text-6xl z-10">{brew.cap_url}</span>
+											) : (
+												<img src={brew.cap_url} alt="Kronkorken" className="w-full h-full object-cover rounded-full" />
+											)
+										) : (
+											<div className="text-center z-10">
+												<span className="text-4xl block mb-2 opacity-20">🟡</span>
+												<p className="text-[10px] uppercase font-black text-zinc-700 tracking-tighter">Wähle ein Icon</p>
+											</div>
+										)}
+									</div>
+								</div>
+							</div>
+
+							<div className="space-y-6">
+									{CAP_ICONS.map(icon => (
+										<button
+											key={icon}
+											onClick={() => setBrew(prev => ({ ...prev, cap_url: icon }))}
+											className={`h-10 w-10 flex items-center justify-center rounded-xl transition ${
+												brew.cap_url === icon 
+													? 'bg-cyan-500/20 border border-cyan-500 text-white' 
+													: 'bg-zinc-900 border border-zinc-800 text-zinc-500 hover:border-zinc-700'
+											}`}
+										>
+											{icon}
+										</button>
+									))}
+								
+								<div className="pt-4 border-t border-zinc-900 grid grid-cols-1 sm:grid-cols-2 gap-3">
+									<button 
+										className="bg-zinc-900/50 border border-zinc-800 hover:border-cyan-500/50 p-4 rounded-2xl transition group flex items-center gap-3"
+										onClick={() => setMessage("KI-Kronkorken Generierung bald verfügbar!")}
+									>
+										<span className="text-2xl">✨</span>
+										<div className="text-left">
+											<span className="text-xs font-bold uppercase block text-white">KI Design</span>
+											<span className="text-[10px] text-zinc-500">DALL-E 3 Icon</span>
+										</div>
+									</button>
+									<button 
+										className="bg-zinc-900/50 border border-zinc-800 hover:border-cyan-500/50 p-4 rounded-2xl transition group flex items-center gap-3"
+										onClick={() => setMessage("Upload bald verfügbar!")}
+									>
+										<span className="text-2xl">📂</span>
+										<div className="text-left">
+											<span className="text-xs font-bold uppercase block text-white">Upload</span>
+											<span className="text-[10px] text-zinc-500">Eigenes Bild</span>
+										</div>
+									</button>
 								</div>
 							</div>
 						</div>

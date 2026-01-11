@@ -34,6 +34,10 @@ export default function PublicScanPage() {
   const [honeypot, setHoneypot] = useState('');
   const [formStartTime, setFormStartTime] = useState<number>(0);
 
+  // Cap Collection
+  const [collectingCap, setCollectingCap] = useState(false);
+  const [capCollected, setCapCollected] = useState(false);
+
   // Supabase singleton imported
 
 
@@ -95,7 +99,8 @@ export default function PublicScanPage() {
           description,
           brew_type,
           data,
-          remix_parent_id
+          remix_parent_id,
+          cap_url
         `)
         .eq('id', bottle.brew_id)
         .maybeSingle();
@@ -127,6 +132,7 @@ export default function PublicScanPage() {
       if (brew?.id) {
         console.log("Loading ratings for brew:", brew.id);
         loadRatings(brew.id);
+        checkCapCollected(brew.id);
       }
 
       setLoading(false);
@@ -274,6 +280,43 @@ export default function PublicScanPage() {
     }
   }
 
+  async function checkCapCollected(brewId: string) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data } = await supabase
+      .from('collected_caps')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('brew_id', brewId)
+      .maybeSingle();
+
+    setCapCollected(!!data);
+  }
+
+  async function collectCap() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      alert("Bitte logge dich ein, um diesen Kronkorken zu sammeln!");
+      return;
+    }
+
+    setCollectingCap(true);
+    try {
+      const { error } = await supabase
+        .from('collected_caps')
+        .insert([{ user_id: user.id, brew_id: data.brews.id }]);
+      
+      if (error) throw error;
+      setCapCollected(true);
+      alert("Kronkorken gesammelt! 🎉 Schau in deine Sammlung.");
+    } catch (err: any) {
+      alert("Fehler beim Sammeln: " + err.message);
+    } finally {
+      setCollectingCap(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -308,7 +351,7 @@ export default function PublicScanPage() {
   const brew = data.brews;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-zinc-950 via-zinc-900 to-black text-white font-sans">
+    <div className="min-h-screen bg-black text-white flex flex-col items-center">
       {/* 1. Das KI-Label als Hero-Bild - GRÖSSER */}
       <div className="relative w-full max-w-2xl mx-auto overflow-hidden">
         <div className="aspect-square w-full shadow-2xl">
@@ -635,13 +678,61 @@ export default function PublicScanPage() {
           </div>
         )}
 
-        <div className="flex gap-3">
+        <div className="flex flex-col gap-3">
           <Link 
             href={`/brew/${brew.id}`}
-            className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-center py-4 rounded-xl font-bold transition border border-zinc-700 shadow-lg"
+            className="w-full bg-zinc-800 hover:bg-zinc-700 text-center py-4 rounded-xl font-bold transition border border-zinc-700 shadow-lg"
           >
             📖 Vollständiges Rezept
           </Link>
+          
+          {/* Cap Collection Section - Integrated */}
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 text-center space-y-4">
+            <div className="flex justify-center -mt-12 mb-2">
+              <div className={`w-24 h-24 rounded-full bg-zinc-950 border-4 ${capCollected ? 'border-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.4)]' : 'border-zinc-800'} relative flex items-center justify-center overflow-hidden transition-all duration-500 group`}>
+                 <div className="absolute inset-0 opacity-10 pointer-events-none">
+                    {[...Array(24)].map((_, i) => (
+                      <div key={i} className="absolute w-0.5 h-full left-1/2 -translate-x-1/2 bg-zinc-500" style={{ transform: `rotate(${i * 15}deg)` }} />
+                    ))}
+                 </div>
+                 {brew.cap_url ? (
+                   brew.cap_url.length < 5 ? (
+                     <span className={`text-4xl transition-all duration-500 ${capCollected ? 'scale-110' : 'grayscale opacity-20'}`}>
+                       {brew.cap_url}
+                     </span>
+                   ) : (
+                     <img src={brew.cap_url} className={`w-full h-full object-cover rounded-full transition-all duration-500 ${capCollected ? '' : 'grayscale contrast-125 opacity-20'}`} />
+                   )
+                 ) : (
+                   <span className={`text-4xl transition-all duration-500 ${capCollected ? 'scale-110' : 'grayscale opacity-20'}`}>🟡</span>
+                 )}
+              </div>
+            </div>
+            
+            <div className="space-y-1">
+              <h3 className="text-lg font-black">{capCollected ? 'Sud gesammelt!' : 'Diesen Sud sammeln?'}</h3>
+              <p className="text-zinc-500 text-xs">
+                Sammle den digitalen Kronkorken für deinen Trophäenschrank.
+              </p>
+            </div>
+
+            {!capCollected ? (
+              <button
+                onClick={collectCap}
+                disabled={collectingCap}
+                className="w-full bg-cyan-500 hover:bg-cyan-400 text-black font-black py-3 rounded-xl hover:scale-[1.02] active:scale-95 transition shadow-lg shadow-cyan-500/10 disabled:opacity-50"
+              >
+                {collectingCap ? 'Sammle...' : 'Sammeln'}
+              </button>
+            ) : (
+              <Link 
+                href="/dashboard/collection"
+                className="inline-block text-cyan-400 text-xs font-bold hover:underline"
+              >
+                Ansehen in "Meine Sammlung" →
+              </Link>
+            )}
+          </div>
         </div>
 
         {/* === BEWERTUNGEN SECTION === */}
@@ -818,6 +909,7 @@ export default function PublicScanPage() {
           <p className="text-[8px] text-zinc-800 mt-2 font-mono">{data.id}</p>
         </footer>
       </div>
+
     </div>
   );
 }
