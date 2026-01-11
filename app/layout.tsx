@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 
 export const metadata = {
   title: 'BotlLab | Digital Brew Lab',
-  description: 'Scanne den QR-Code auf meiner Flasche und entdecke das Geheimnis dieses Suds.',
+  description: 'Scanne den QR-Code auf meiner Flasche und entdecke das Geheimnis dieses Rezepts.',
   metadataBase: new URL('https://botllab.vercel.app'), // Hier deine echte Vercel-URL rein
   openGraph: {
     title: 'BotlLab – Handcrafted Beer',

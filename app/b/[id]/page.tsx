@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Logo from '../../components/Logo';
 import { checkAndGrantAchievements } from '@/lib/achievements';
+import CrownCap from '../../components/CrownCap';
 
 export default function PublicScanPage() {
   const params = useParams();
@@ -687,51 +688,52 @@ export default function PublicScanPage() {
           </Link>
           
           {/* Cap Collection Section - Integrated */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 text-center space-y-4">
-            <div className="flex justify-center -mt-12 mb-2">
-              <div className={`w-24 h-24 rounded-full bg-zinc-950 border-4 ${capCollected ? 'border-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.4)]' : 'border-zinc-800'} relative flex items-center justify-center overflow-hidden transition-all duration-500 group`}>
-                 <div className="absolute inset-0 opacity-10 pointer-events-none">
-                    {[...Array(24)].map((_, i) => (
-                      <div key={i} className="absolute w-0.5 h-full left-1/2 -translate-x-1/2 bg-zinc-500" style={{ transform: `rotate(${i * 15}deg)` }} />
-                    ))}
-                 </div>
-                 {brew.cap_url ? (
-                   brew.cap_url.length < 5 ? (
-                     <span className={`text-4xl transition-all duration-500 ${capCollected ? 'scale-110' : 'grayscale opacity-20'}`}>
-                       {brew.cap_url}
-                     </span>
-                   ) : (
-                     <img src={brew.cap_url} className={`w-full h-full object-cover rounded-full transition-all duration-500 ${capCollected ? '' : 'grayscale contrast-125 opacity-20'}`} />
-                   )
-                 ) : (
-                   <span className={`text-4xl transition-all duration-500 ${capCollected ? 'scale-110' : 'grayscale opacity-20'}`}>🟡</span>
-                 )}
-              </div>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 text-center space-y-6 relative overflow-hidden group">
+            {/* Background Light */}
+            <div className={`absolute -top-12 -left-12 w-32 h-32 blur-3xl transition-opacity duration-1000 ${capCollected ? 'bg-cyan-500/20 opacity-100' : 'bg-zinc-500/10 opacity-50'}`} />
+            
+            <div className="flex justify-center -mt-16 mb-2 relative z-10">
+              <CrownCap 
+                content={brew.cap_url} 
+                tier={capCollected ? "gold" : "zinc"} 
+                size="md"
+                className={`transition-all duration-700 ${capCollected ? 'scale-110 drop-shadow-[0_0_15px_rgba(6,182,212,0.4)]' : 'grayscale contrast-75'}`}
+              />
             </div>
             
-            <div className="space-y-1">
-              <h3 className="text-lg font-black">{capCollected ? 'Sud gesammelt!' : 'Diesen Sud sammeln?'}</h3>
-              <p className="text-zinc-500 text-xs">
-                Sammle den digitalen Kronkorken für deinen Trophäenschrank.
+            <div className="space-y-1 relative z-10">
+              <p className="text-[10px] uppercase font-black tracking-[0.3em] text-cyan-500 mb-1">Digitale Sammlung</p>
+              <h3 className="text-xl font-black">{capCollected ? 'Abzeichen gesammelt!' : 'Dieses Abzeichen sammeln?'}</h3>
+              <p className="text-zinc-500 text-xs max-w-[200px] mx-auto leading-relaxed">
+                Sammle den digitalen Kronkorken als Beweis für deine Verkostung.
               </p>
             </div>
 
-            {!capCollected ? (
-              <button
-                onClick={collectCap}
-                disabled={collectingCap}
-                className="w-full bg-cyan-500 hover:bg-cyan-400 text-black font-black py-3 rounded-xl hover:scale-[1.02] active:scale-95 transition shadow-lg shadow-cyan-500/10 disabled:opacity-50"
-              >
-                {collectingCap ? 'Sammle...' : 'Sammeln'}
-              </button>
-            ) : (
-              <Link 
-                href="/dashboard/collection"
-                className="inline-block text-cyan-400 text-xs font-bold hover:underline"
-              >
-                Ansehen in "Meine Sammlung" →
-              </Link>
-            )}
+            <div className="relative z-10 pt-2">
+              {!capCollected ? (
+                <button
+                  onClick={collectCap}
+                  disabled={collectingCap}
+                  className="w-full bg-white text-black hover:bg-cyan-400 font-black py-4 rounded-xl hover:scale-[1.02] active:scale-95 transition shadow-xl disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {collectingCap ? (
+                    <span className="animate-spin text-xl">🧪</span>
+                  ) : (
+                    <>
+                      <span>🟡</span>
+                      <span>Sammeln</span>
+                    </>
+                  )}
+                </button>
+              ) : (
+                <Link 
+                  href="/dashboard/collection"
+                  className="flex items-center justify-center gap-2 bg-zinc-950 border border-zinc-800 text-cyan-400 text-xs font-black uppercase tracking-widest py-3 rounded-xl hover:bg-zinc-900 transition"
+                >
+                  ✨ In der Sammlung ansehen
+                </Link>
+              )}
+            </div>
           </div>
         </div>
 

@@ -7,7 +7,7 @@ const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env
 
 export async function POST(req: Request) {
   try {
-    const { prompt, brewId } = await req.json();
+    const { prompt, brewId, type = 'label' } = await req.json();
 
     if (!prompt) {
       return NextResponse.json({ error: "Prompt is missing" }, { status: 400 });
@@ -18,21 +18,33 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "API Key missing" }, { status: 500 });
     }
 
-    // 1. Imagen Endpunkt auf Google AI Studio (generativelanguage)
-    // Wir nutzen "imagen-4.0-fast-generate-001" da dieser evtl. großzügigere Quotas hat,
-    // oder "imagen-4.0-generate-001".
+    // Define style based on type
+    let finalPrompt = "";
+    let storageBucket = "labels";
+    let dbField = "image_url";
+    let filenamePrefix = "brew";
+
+    if (type === 'cap') {
+      // Optimized prompt for high-end circular icons
+      finalPrompt = `${prompt} . minimalist flat vector icon, centered on solid black background, circular composition, high contrast, clean lines, professional graphic design, no text, no letters, no typography, 4k high quality.`;
+      storageBucket = "caps"; // We might need to create this bucket in Supabase
+      dbField = "cap_url";
+      filenamePrefix = "cap";
+    } else {
+      // Standard label style
+      finalPrompt = `${prompt} . iconic beer label art, illustration style. showing hops, barley, malt, wheat or beer foam artfully arranged. square format, full bleed, edge to edge. no text, no typography, no letters. rich colors, detailed.`;
+    }
+
     const modelName = "imagen-4.0-generate-001";
     const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:predict?key=${apiKey}`;
 
-    console.log(`[Gemini Image Gen] Calling model: ${modelName}`);
+    console.log(`[Gemini Image Gen] Calling model: ${modelName} for ${type}`);
 
     const response = await fetch(imagenUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        // Optimierter Prompt: 1:1, Randlos, KEIN Text (dafür ist das Template da)
-        // Fokus auf Bier-Thematik (Hopfen, Malz), aber ohne Schrift
-        instances: [{ prompt: prompt + " . iconic beer label art, illustration style. showing hops, barley, malt, wheat or beer foam artfully arranged. square format, full bleed, edge to edge. no text, no typography, no letters. rich colors, detailed." }],
+        instances: [{ prompt: finalPrompt }],
         parameters: {
           sampleCount: 1,
           aspectRatio: "1:1", 
@@ -65,27 +77,42 @@ export async function POST(req: Request) {
     
     // Fallback ID falls brewId fehlt
     const cleanBrewId = brewId || `temp-${Date.now()}`;
-    const fileName = `brew-${cleanBrewId}.png`;
+    const fileName = `${filenamePrefix}-${cleanBrewId}.png`;
 
     // 4. Upload zu Supabase
     const { error: uploadError } = await supabase.storage
-      .from('labels')
+      .from(storageBucket)
       .upload(fileName, imageBuffer, {
         contentType: 'image/png',
         upsert: true,
         cacheControl: '3600'
       });
 
-    if (uploadError) throw uploadError;
+    if (uploadError) {
+      // If the specific bucket doesn't exist, try falling back to labels
+      if (uploadError.message.includes('not found') && storageBucket === 'caps') {
+        const { error: fallbackError } = await supabase.storage
+          .from('labels')
+          .upload(fileName, imageBuffer, {
+            contentType: 'image/png',
+            upsert: true,
+            cacheControl: '3600'
+          });
+        if (fallbackError) throw fallbackError;
+        storageBucket = 'labels';
+      } else {
+        throw uploadError;
+      }
+    }
 
-    const { data: { publicUrl } } = supabase.storage.from('labels').getPublicUrl(fileName);
+    const { data: { publicUrl } } = supabase.storage.from(storageBucket).getPublicUrl(fileName);
     const finalUrl = `${publicUrl}?t=${Date.now()}`;
 
     // 5. URL in der Datenbank speichern, wenn eine brewId vorhanden ist
     if (brewId) {
       await supabase
         .from('brews')
-        .update({ image_url: finalUrl })
+        .update({ [dbField]: finalUrl })
         .eq('id', brewId);
     }
 

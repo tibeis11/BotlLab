@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { getTierConfig } from '@/lib/tier-system';
 import { checkAndGrantAchievements } from '@/lib/achievements';
 import { useAchievementNotification } from '@/app/context/AchievementNotificationContext';
+import CrownCap from '@/app/components/CrownCap';
 
 interface BrewForm {
 	id?: string;
@@ -135,6 +136,8 @@ export default function BrewEditorPage() {
 	const [saving, setSaving] = useState(false);
 	const [generating, setGenerating] = useState(false);
 	const [uploading, setUploading] = useState(false);
+	const [generatingCap, setGeneratingCap] = useState(false);
+	const [uploadingCap, setUploadingCap] = useState(false);
 	const [generatingName, setGeneratingName] = useState(false);
 	const [generatingDescription, setGeneratingDescription] = useState(false);
 	const [analyzingRecipe, setAnalyzingRecipe] = useState(false);
@@ -146,6 +149,7 @@ export default function BrewEditorPage() {
 	const [ratingsLoading, setRatingsLoading] = useState(false);
 	const [ratingsMessage, setRatingsMessage] = useState<string | null>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
+	const fileInputCapRef = useRef<HTMLInputElement>(null);
 	const [brew, setBrew] = useState<BrewForm>({
 		name: '',
 		style: '',
@@ -444,7 +448,23 @@ export default function BrewEditorPage() {
 	}
 
 	async function handleField<K extends keyof BrewForm>(key: K, value: BrewForm[K]) {
-		setBrew(prev => ({ ...prev, [key]: value }));
+		setBrew(prev => {
+			const next = { ...prev, [key]: value };
+			
+			// Automatische Icon-Wahl bei Typ-Wechsel (nur wenn bisher ein Emoji oder nichts gewählt war)
+			if (key === 'brew_type' && (!prev.cap_url || CAP_ICONS.includes(prev.cap_url))) {
+				const iconMap: Record<string, string> = {
+					beer: '🍺',
+					wine: '🍷',
+					cider: '🍎',
+					mead: '🍯',
+					softdrink: '🥤'
+				};
+				next.cap_url = iconMap[value as string] || '🍺';
+			}
+			
+			return next;
+		});
 	}
 
 	async function handleGenerateName() {
@@ -684,6 +704,80 @@ export default function BrewEditorPage() {
 		} finally {
 			setUploading(false);
 			if (fileInputRef.current) fileInputRef.current.value = '';
+		}
+	}
+
+	async function handleCapUpload(e: ChangeEvent<HTMLInputElement>) {
+		const file = e.target.files?.[0];
+		if (!file) return;
+
+		if (!brew.id) {
+			setMessage('Bitte zuerst speichern.');
+			return;
+		}
+
+		setUploadingCap(true);
+		try {
+			const fileName = `cap-${brew.id}-${Date.now()}.${file.name.split('.').pop()}`;
+			const { data: uploadData, error: uploadError } = await supabase.storage
+				.from('labels') // Fallback to labels for now, or use 'caps' if it exists
+				.upload(fileName, file, { upsert: true });
+
+			if (uploadError) throw uploadError;
+
+			const { data: urlData } = supabase.storage.from('labels').getPublicUrl(fileName);
+			const imageUrl = urlData?.publicUrl;
+
+			const { error } = await supabase
+				.from('brews')
+				.update({ cap_url: imageUrl })
+				.eq('id', brew.id);
+
+			if (error) throw error;
+
+			setBrew(prev => ({ ...prev, cap_url: imageUrl }));
+			setMessage('Kronkorken-Design hochgeladen!');
+		} catch (err: any) {
+			setMessage(err.message);
+		} finally {
+			setUploadingCap(false);
+			if (fileInputCapRef.current) fileInputCapRef.current.value = '';
+		}
+	}
+
+	async function handleGenerateCap() {
+		if (!brew.id) {
+			setMessage('Bitte zuerst speichern.');
+			return;
+		}
+
+		setGeneratingCap(true);
+		setMessage(null);
+
+		try {
+			const prompt = `A minimalist flat vector icon for a ${brew.brew_type} named "${brew.name}", style: ${brew.style}. Clean graphic on solid black background, highly iconic.`;
+			
+			const response = await fetch('/api/generate-image', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					prompt,
+					brewId: brew.id,
+					type: 'cap'
+				})
+			});
+
+			const data = await response.json();
+			if (data.imageUrl) {
+				setBrew(prev => ({ ...prev, cap_url: data.imageUrl }));
+				setMessage('KI-Kronkorken generiert! ✨');
+			} else {
+				throw new Error(data.error || 'Fehler');
+			}
+		} catch (err: any) {
+			setMessage('KI-Generierung fehlgeschlagen: ' + err.message);
+		} finally {
+			setGeneratingCap(false);
 		}
 	}
 
@@ -1449,84 +1543,93 @@ export default function BrewEditorPage() {
 				)}
 
 				{activeTab === 'badges' && (
-					<div className="max-w-2xl mx-auto space-y-6 text-center">
-						<div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-8 space-y-6">
-							<div>
-								<p className="text-xs uppercase tracking-[0.2em] text-cyan-400 font-bold mb-1">Digitale Abzeichen</p>
-								<h2 className="text-2xl font-black">Dein Sammlerstück</h2>
-								<p className="text-zinc-500 text-sm mt-2">
-									Dieser Kronkorken wird an User vergeben, die dein Rezept scannen und sammeln.
+					<div className="max-w-2xl mx-auto space-y-6 text-center text-white">
+						<div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-8 space-y-8 shadow-2xl relative overflow-hidden">
+							{/* Background Decoration */}
+							<div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 blur-3xl -mr-16 -mt-16 rounded-full" />
+							
+							<div className="relative z-10">
+								<p className="text-xs uppercase tracking-[0.2em] text-cyan-400 font-bold mb-2">Digitale Abzeichen</p>
+								<h2 className="text-3xl font-black tracking-tight">Kronkorken-Designer</h2>
+								<p className="text-zinc-500 text-sm mt-3 max-w-md mx-auto leading-relaxed">
+									Wähle ein Symbol für dein digitales Sammlerstück. Dieses Abzeichen wird an User vergeben, die deine Flaschen scannen.
 								</p>
 							</div>
 
-							{/* Cap Preview */}
-							<div className="flex justify-center py-4">
-								<div className="relative group">
-									<div className="absolute -inset-4 bg-cyan-500/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition duration-500" />
-									<div className="w-40 h-40 rounded-full bg-zinc-900 border-4 border-zinc-800 shadow-2xl relative overflow-hidden flex items-center justify-center">
-										{/* Serrated Edge Decoration */}
-										<div className="absolute inset-0 opacity-20 pointer-events-none">
-											{[...Array(24)].map((_, i) => (
-												<div 
-													key={i} 
-													className="absolute w-0.5 h-full left-1/2 -translate-x-1/2 bg-zinc-600" 
-													style={{ transform: `rotate(${i * 15}deg)` }} 
-												/>
-											))}
-										</div>
-										
-										{brew.cap_url ? (
-											brew.cap_url.length < 5 ? ( // Emoji check (hacky)
-												<span className="text-6xl z-10">{brew.cap_url}</span>
-											) : (
-												<img src={brew.cap_url} alt="Kronkorken" className="w-full h-full object-cover rounded-full" />
-											)
-										) : (
-											<div className="text-center z-10">
-												<span className="text-4xl block mb-2 opacity-20">🟡</span>
-												<p className="text-[10px] uppercase font-black text-zinc-700 tracking-tighter">Wähle ein Icon</p>
-											</div>
-										)}
-									</div>
-								</div>
+							{/* Cap Preview using the new Component */}
+							<div className="flex justify-center py-6">
+								<CrownCap 
+									content={brew.cap_url} 
+									tier="gold" 
+									size="lg"
+									className="hover:scale-105 transition-transform duration-500 cursor-pointer"
+								/>
 							</div>
 
-							<div className="space-y-6">
-									{CAP_ICONS.map(icon => (
-										<button
-											key={icon}
-											onClick={() => setBrew(prev => ({ ...prev, cap_url: icon }))}
-											className={`h-10 w-10 flex items-center justify-center rounded-xl transition ${
-												brew.cap_url === icon 
-													? 'bg-cyan-500/20 border border-cyan-500 text-white' 
-													: 'bg-zinc-900 border border-zinc-800 text-zinc-500 hover:border-zinc-700'
-											}`}
-										>
-											{icon}
-										</button>
-									))}
+							<div className="space-y-8 relative z-10">
+								<div>
+									<p className="text-[10px] uppercase font-black text-zinc-500 tracking-widest mb-4">Standard Symbole</p>
+									<div className="grid grid-cols-4 sm:grid-cols-8 gap-3">
+										{CAP_ICONS.map(icon => (
+											<button
+												key={icon}
+												onClick={() => setBrew(prev => ({ ...prev, cap_url: icon }))
+												}
+												className={`h-12 w-12 flex items-center justify-center rounded-2xl transition-all duration-300 ${
+													brew.cap_url === icon 
+														? 'bg-cyan-500 text-black scale-110 shadow-lg shadow-cyan-500/20' 
+														: 'bg-zinc-900 border border-zinc-800 text-zinc-500 hover:border-zinc-600 hover:text-zinc-300'
+												}`}
+											>
+												<span className="text-xl">{icon}</span>
+											</button>
+										))}
+									</div>
+								</div>
 								
-								<div className="pt-4 border-t border-zinc-900 grid grid-cols-1 sm:grid-cols-2 gap-3">
+								<div className="pt-8 border-t border-zinc-900 grid grid-cols-1 gap-4">
 									<button 
-										className="bg-zinc-900/50 border border-zinc-800 hover:border-cyan-500/50 p-4 rounded-2xl transition group flex items-center gap-3"
-										onClick={() => setMessage("KI-Kronkorken Generierung bald verfügbar!")}
+										className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold px-6 py-4 rounded-xl hover:shadow-lg hover:shadow-purple-500/30 transition disabled:opacity-60 flex items-center justify-center gap-3 min-h-[60px]"
+										onClick={handleGenerateCap}
+										disabled={generatingCap || uploadingCap}
 									>
-										<span className="text-2xl">✨</span>
-										<div className="text-left">
-											<span className="text-xs font-bold uppercase block text-white">KI Design</span>
-											<span className="text-[10px] text-zinc-500">DALL-E 3 Icon</span>
-										</div>
+										{generatingCap ? (
+											<>
+												<span className="animate-spin text-xl">🧪</span>
+												<span className="uppercase text-xs font-black tracking-widest">Generiere...</span>
+											</>
+										) : (
+											<>
+												<span className="text-xl">✨</span>
+												<div className="text-left">
+													<span className="text-xs font-black uppercase block tracking-wider">KI Design generieren</span>
+													<span className="text-[10px] opacity-70 font-medium">Einzigartiges Symbol via Gemini</span>
+												</div>
+											</>
+										)}
 									</button>
+									
 									<button 
-										className="bg-zinc-900/50 border border-zinc-800 hover:border-cyan-500/50 p-4 rounded-2xl transition group flex items-center gap-3"
-										onClick={() => setMessage("Upload bald verfügbar!")}
+										className="bg-zinc-900 border border-zinc-800 hover:border-zinc-700 p-4 rounded-xl transition-all group flex items-center justify-center gap-3 text-zinc-400 hover:text-white disabled:opacity-50"
+										onClick={() => fileInputCapRef.current?.click()}
+										disabled={generatingCap || uploadingCap}
 									>
-										<span className="text-2xl">📂</span>
-										<div className="text-left">
-											<span className="text-xs font-bold uppercase block text-white">Upload</span>
-											<span className="text-[10px] text-zinc-500">Eigenes Bild</span>
-										</div>
+										{uploadingCap ? (
+											<span className="animate-spin text-xl">⏳</span>
+										) : (
+											<>
+												<span className="text-xl">📂</span>
+												<span className="text-xs font-bold uppercase tracking-wider text-inherit">Eigener Icon-Upload</span>
+											</>
+										)}
 									</button>
+									<input
+										ref={fileInputCapRef}
+										type="file"
+										accept="image/*"
+										className="hidden"
+										onChange={handleCapUpload}
+									/>
 								</div>
 							</div>
 						</div>
