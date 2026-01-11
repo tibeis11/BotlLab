@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import Link from 'next/link';
-import { getTierConfig } from '@/lib/tier-system';
+import { getTierConfig, getBreweryTierConfig } from '@/lib/tier-system';
 
 export default function BrewDetailPage() {
   const params = useParams();
@@ -48,13 +48,32 @@ export default function BrewDetailPage() {
       .select('id')
       .eq('user_id', user.id);
 
-    const tierConfig = getTierConfig(profileData?.tier || 'bronze');
-    const brewCount = myBrews?.length || 0;
-
-    if (brewCount >= tierConfig.limits.maxBrews) {
-      setRemixMessage(`Limit erreicht: ${tierConfig.displayName} erlaubt ${tierConfig.limits.maxBrews} Rezepte.`);
-      setRemixLoading(false);
-      return;
+    const tierConfig = getTierConfig(profileData?.tier || 'lehrling');
+    
+    // Limits are now on Team/Brewery level, not User.
+    // For individual "Remix" actions into a personal context (if supported), we should check the target brewery limit.
+    // However, since we now strictly create brews inside a Brewery Context, this "Remix to Personal" flow needs adjustment.
+    // For now, removing the user-level limit check as it no longer exists on ReputationLevelConfig.
+    
+    // Use first brewery if available or force user to pick one
+    const { data: member } = await supabase.from('brewery_members').select('brewery_id').eq('user_id', user.id).limit(1).maybeSingle();
+    
+    if (!member) {
+        setRemixMessage("Du musst Mitglied einer Brauerei sein, um Rezepte zu remixen.");
+        setRemixLoading(false);
+        return;
+    }
+    
+    // Check Brewery Limits
+    const { data: brewery } = await supabase.from('breweries').select('tier').eq('id', member.brewery_id).single();
+    const { data: brews } = await supabase.from('brews').select('id', { count: 'exact', head: true }).eq('brewery_id', member.brewery_id);
+    
+    const breweryTierConfig = getBreweryTierConfig((brewery?.tier || 'garage') as any);
+    
+    if ((brews?.length || 0) >= breweryTierConfig.limits.maxBrews) {
+         setRemixMessage(`Brauerei-Limit erreicht: ${breweryTierConfig.displayName} erlaubt maximal ${breweryTierConfig.limits.maxBrews} Rezepte.`);
+         setRemixLoading(false);
+         return;
     }
 
     const payload = {
@@ -66,6 +85,7 @@ export default function BrewDetailPage() {
       image_url: brew.image_url || null,
       is_public: false,
       user_id: user.id,
+      brewery_id: member.brewery_id,
       remix_parent_id: brew.id,
     };
 
@@ -80,7 +100,7 @@ export default function BrewDetailPage() {
     }
 
     setRemixLoading(false);
-    router.push('/dashboard/brews');
+    router.push('/dashboard');
   }
 
   useEffect(() => {

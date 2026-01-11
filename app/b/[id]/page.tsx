@@ -259,28 +259,33 @@ export default function PublicScanPage() {
         ip_address: userIp
       });
 
-      const { data: insertedData, error } = await supabase
-        .from('ratings')
-        .insert([{
+      const response = await fetch('/api/ratings/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           brew_id: brewId,
           rating: newRating.rating,
           comment: newRating.comment.trim() || null,
           author_name: newRating.author_name.trim(),
           ip_address: userIp,
-          moderation_status: 'auto_approved'
-        }]);
+        }),
+      });
 
-      if (error) {
-        console.error('Supabase Error:', error);
-        // Check if it's a unique constraint violation (doppelte Bewertung)
-        if (error.message.includes('unique') || error.message.includes('duplicate')) {
+      const result = await response.json();
+
+      if (!response.ok) {
+        console.error('API Error:', result.error);
+        
+        if (response.status === 409) {
           alert('Du hast bereits eine Bewertung für dieses Rezept eingegeben! 🚫');
           setHasAlreadyRated(true);
         } else {
-          alert('Fehler: ' + error.message);
+          alert('Fehler: ' + result.error);
         }
       } else {
-        console.log('Rating erfolgreich eingefügt:', insertedData);
+        console.log('Rating erfolgreich eingefügt:', result.rating);
         setNewRating({ rating: 0, comment: '', author_name: '' });
         setShowRatingForm(false);
         setHasAlreadyRated(true);

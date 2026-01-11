@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "../context/AuthContext";
+import { getTierConfig } from "@/lib/tier-system";
 
 export default function Header() {
   const { user, loading, signOut } = useAuth();
@@ -21,7 +22,7 @@ export default function Header() {
       if (user) {
         const { data: profileData } = await supabase
           .from('profiles')
-          .select('logo_url, brewery_name')
+          .select('logo_url, brewery_name, tier, display_name')
           .eq('id', user.id)
           .single();
         if (!cancelled && profileData) {
@@ -44,6 +45,8 @@ export default function Header() {
     setShowMenu(false);
     // Refresh wird im Context behandelt
   }
+
+  const tierConfig = profile ? getTierConfig(profile.tier || 'lehrling') : getTierConfig('lehrling');
 
   return (
     <nav className="fixed top-0 w-full z-50 bg-black/80 backdrop-blur-md border-b border-white/5">
@@ -80,22 +83,23 @@ export default function Header() {
             >
               <Link 
                 href="/dashboard" 
-                className="group flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-cyan-500/30 transition"
+                className="group flex items-center gap-3 pl-1 pr-4 py-1 rounded-full bg-zinc-900 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800 transition"
               >
-                {profile?.logo_url ? (
-                  <img 
-                    src={profile.logo_url} 
-                    alt="Profile" 
-                    className="w-8 h-8 rounded-full object-cover border-2 border-cyan-500/30 group-hover:border-cyan-500 transition"
-                  />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center text-white font-bold text-sm border-2 border-cyan-500/30 group-hover:border-cyan-500 transition">
-                    {profile?.brewery_name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || '?'}
-                  </div>
-                )}
-                <span className="text-sm font-bold text-zinc-400 group-hover:text-white transition">
-                  {profile?.brewery_name || 'Mein Profil'}
-                </span>
+                <div 
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-xs overflow-hidden relative shadow-lg"
+                    style={{ backgroundColor: `${tierConfig.color}20` }}
+                >
+                    <div className="absolute inset-0 border-2 rounded-full opacity-50" style={{ borderColor: tierConfig.color }}></div>
+                    <img src={tierConfig.avatarPath} alt="Avatar" className="w-full h-full object-cover" />
+                </div>
+                <div className="flex flex-col items-start leading-none">
+                    <span className="truncate max-w-[120px] font-bold text-white text-sm">
+                        {profile?.display_name || 'Profil'}
+                    </span>
+                    <span className="text-[9px] font-black uppercase tracking-wider mt-0.5" style={{ color: tierConfig.color }}>
+                        {tierConfig.displayName}
+                    </span>
+                </div>
               </Link>
 
               {showMenu && (

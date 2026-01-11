@@ -6,20 +6,32 @@ import { supabase, getActiveBrewery } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import ProfileCompletionRing from "../components/ProfileCompletionRing";
+import { useAuth } from '@/app/context/AuthContext';
+import { getTierConfig } from '@/lib/tier-system';
 
 export default function ProfilePage() {
+	const { user, loading: authLoading } = useAuth();
 	const [loading, setLoading] = useState(true);
 	const [saving, setSaving] = useState(false);
-	const [user, setUser] = useState<any>(null);
-
-	const [profile, setProfile] = useState({
+	
+	const [profile, setProfile] = useState<{
+        brewery_name: string,
+        location: string,
+        founded_year: string,
+        bio: string,
+        website: string,
+        logo_url: string,
+        banner_url: string,
+        tier?: string
+    }>({
 		brewery_name: '',
 		location: '',
 		founded_year: new Date().getFullYear().toString(),
 		bio: '',
 		website: '',
 		logo_url: '',
-		banner_url: ''
+		banner_url: '',
+        tier: 'lehrling'
 	});
 
 	const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -28,20 +40,21 @@ export default function ProfilePage() {
 	const router = useRouter();
 
 	useEffect(() => {
-		checkAuth();
-	}, []);
-
-	async function checkAuth() {
-		const { data: { user: currentUser } } = await supabase.auth.getUser();
-		if (!currentUser) {
-			router.push('/login');
-			return;
+		if (!authLoading) {
+			if (!user) {
+				router.push('/login');
+			} else {
+				initPage();
+			}
 		}
-		setUser(currentUser);
-		loadProfile(currentUser.id);
+	}, [user, authLoading]);
+
+	async function initPage() {
+		if (!user) return;
+		loadProfile(user.id);
 
 		// Brauerei laden für den Link
-		const brewery = await getActiveBrewery(currentUser.id);
+		const brewery = await getActiveBrewery(user.id);
 		if (brewery) setActiveBrewery(brewery);
 	}
 
@@ -62,7 +75,8 @@ export default function ProfilePage() {
 				bio: data.bio || '',
 				website: data.website || '',
 				logo_url: data.logo_url || '',
-				banner_url: data.banner_url || ''
+				banner_url: data.banner_url || '',
+                tier: data.tier || 'lehrling'
 			});
 		}
 		setLoading(false);
@@ -103,6 +117,7 @@ export default function ProfilePage() {
 	}
 
 	async function deleteImage(type: 'logo' | 'banner') {
+		if (!user) return;
 		if (!confirm(`Möchtest du dein ${type === 'logo' ? 'Logo' : 'Banner'} wirklich löschen?`)) return;
 
 		const url = type === 'logo' ? profile.logo_url : profile.banner_url;
@@ -233,45 +248,28 @@ export default function ProfilePage() {
 				<div className="p-8 relative">
 					<div className="absolute -top-16 left-8">
 						<div className="w-32 h-32 rounded-full border-4 border-zinc-900 bg-zinc-800 relative group overflow-hidden shadow-2xl">
-							{profile.logo_url ? (
-								<img src={profile.logo_url} className="w-full h-full object-cover" alt="Logo" />
-							) : (
-								<div className="w-full h-full flex items-center justify-center text-4xl bg-gradient-to-br from-cyan-600 to-blue-700">
-									🏰
-								</div>
-							)}
-
-							<label className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition z-0">
-								<span className="text-[10px] bg-black/70 px-2 py-1 rounded text-white font-bold">
-									{uploadingLogo ? '...' : '📷'}
-								</span>
-								<input
-									type="file"
-									accept="image/*"
-									className="hidden"
-									onChange={(e) => uploadImage(e, 'logo')}
-									disabled={uploadingLogo}
-								/>
-							</label>
-
-							{profile.logo_url && (
-								<button
-									onClick={(e) => {
-										e.preventDefault();
-										deleteImage('logo');
-									}}
-									className="absolute bottom-2 right-1/2 translate-x-1/2 bg-red-500/80 hover:bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full opacity-0 group-hover:opacity-100 transition z-20"
-									title="Logo löschen"
-								>
-									Löschen
-								</button>
-							)}
+							{(() => {
+                                // Dynamic Avatar based on Tier
+                                const tierConfig = getTierConfig(profile.tier || 'lehrling');
+                                return (
+                                    <div className="w-full h-full relative">
+                                        <img src={tierConfig.avatarPath} className="w-full h-full object-cover" alt="User Avatar" />
+                                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-300">
+                                            <p className="text-[10px] text-white text-center px-2 font-bold leading-tight">
+                                                Automatisch durch<br/>
+                                                <span style={{ color: tierConfig.color }}>{tierConfig.displayName}</span><br/>
+                                                Status
+                                            </p>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
 						</div>
 					</div>
 
 					<div className="mt-12 mb-8 border-b border-zinc-800 pb-8">
 						<h3 className="text-2xl font-bold text-white">{profile.brewery_name || user?.email}</h3>
-						<p className="text-sm text-zinc-500">Community Mitglied seit {new Date(user?.created_at).getFullYear()}</p>
+						<p className="text-sm text-zinc-500">Community Mitglied seit {user?.created_at ? new Date(user.created_at).getFullYear() : new Date().getFullYear()}</p>
 					</div>
 
 					<div className="space-y-6">

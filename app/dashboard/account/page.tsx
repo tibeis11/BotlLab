@@ -2,12 +2,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/app/context/AuthContext';
 
 export default function AccountPage() {
+	const { user, loading: authLoading } = useAuth();
 	const [loading, setLoading] = useState(true);
-	const [user, setUser] = useState<any>(null);
 
 	// Password State
 	const [newPassword, setNewPassword] = useState('');
@@ -22,25 +23,16 @@ export default function AccountPage() {
 
 	const router = useRouter();
 
-	const supabase = createClient(
-		process.env.NEXT_PUBLIC_SUPABASE_URL!,
-		process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-	);
-
 	useEffect(() => {
-		checkAuth();
-	}, []);
-
-	async function checkAuth() {
-		const { data: { user: currentUser } } = await supabase.auth.getUser();
-		if (!currentUser) {
-			router.push('/login');
-			return;
+		if (!authLoading) {
+			if (!user) {
+				router.push('/login');
+			} else {
+				setEmail(user.email || '');
+				setLoading(false);
+			}
 		}
-		setUser(currentUser);
-		setEmail(currentUser.email || '');
-		setLoading(false);
-	}
+	}, [user, authLoading]);
 
 	async function handleUpdatePassword(e: React.FormEvent) {
 		e.preventDefault();

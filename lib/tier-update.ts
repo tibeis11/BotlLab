@@ -33,15 +33,16 @@ export async function updateUserTier(userId: string): Promise<void> {
 
     // Calculate new tier
     const newTier = checkTierUpgrade(
-      profile.tier || 'hobby',
-      daysActive,
-      totalFills,
-      totalViews,
-      brewCount
+      profile.tier || 'lehrling',
+      {
+        daysActive,
+        bottlesScanned: totalFills,
+        globalCheers: totalViews
+      }
     );
 
     // Update if changed
-    if (newTier !== profile.tier) {
+    if (newTier && newTier !== profile.tier) {
       await supabase
         .from('profiles')
         .update({ tier: newTier })

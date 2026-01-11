@@ -35,14 +35,15 @@ export async function updateUserTier(userId: string) {
     // Prüfen ob Upgrade möglich
     const newTier = checkTierUpgrade(
       profile.tier,
-      daysActive,
-      profile.total_bottle_fills,
-      profile.total_profile_views,
-      brewsCount || 0
+      {
+        daysActive,
+        bottlesScanned: profile.total_bottle_fills || 0,
+        globalCheers: profile.total_profile_views || 0
+      }
     );
 
     // Wenn Tier sich geändert hat, update
-    if (newTier !== profile.tier) {
+    if (newTier && newTier !== profile.tier) {
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ tier: newTier })

@@ -3,9 +3,11 @@
 import { useEffect, useState, use } from 'react';
 import { supabase, getBreweryMembers } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/app/context/AuthContext';
 
 export default function TeamSettingsPage({ params }: { params: Promise<{ breweryId: string }> }) {
   const { breweryId } = use(params);
+  const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [brewery, setBrewery] = useState<any>(null);
   
@@ -22,15 +24,16 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
   const router = useRouter();
 
   useEffect(() => {
-    loadData();
-  }, [breweryId]);
+    if (!authLoading) {
+      loadData();
+    }
+  }, [breweryId, authLoading]);
 
   async function loadData() {
     try {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        // Redirection handled by layout or middleware usually, but good fallback
+        // Redirection handled by layout or middleware usually, but good fallback by layout or middleware usually, but good fallback
         router.push('/login');
         return;
       }

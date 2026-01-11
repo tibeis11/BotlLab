@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/app/context/AuthContext';
 import {
 	getAllAchievements,
 	getUserAchievements,
@@ -11,32 +12,29 @@ import {
 } from '@/lib/achievements';
 
 export default function AchievementsPage() {
+    const { user, loading: authLoading } = useAuth();
 	const [allAchievements, setAllAchievements] = useState<Achievement[]>([]);
 	const [userAchievements, setUserAchievements] = useState<UserAchievement[]>([]);
 	const [loading, setLoading] = useState(true);
-	const [userId, setUserId] = useState<string | null>(null);
+	
 	const [totalPoints, setTotalPoints] = useState(0);
 	const [filterCategory, setFilterCategory] = useState<string>('all');
 	const [filterTier, setFilterTier] = useState<string>('all');
+    const router = useRouter();
 
 	useEffect(() => {
-		loadData();
-	}, []);
+        if (!authLoading) {
+            if (!user) {
+                router.push('/login');
+            } else {
+                loadData();
+            }
+        }
+	}, [user, authLoading]);
 
 	async function loadData() {
-		const supabase = createClient(
-			process.env.NEXT_PUBLIC_SUPABASE_URL!,
-			process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-		);
-		const { data: { user } } = await supabase.auth.getUser();
+		if (!user) return;
     
-		if (!user) {
-			window.location.href = '/login';
-			return;
-		}
-
-		setUserId(user.id);
-
 		const [all, userAch] = await Promise.all([
 			getAllAchievements(),
 			getUserAchievements(user.id),

@@ -3,29 +3,37 @@
 import { useEffect, useState, use } from 'react';
 import { supabase, getBreweryMembers } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/app/context/AuthContext';
+import { addToFeed } from '@/lib/feed-service';
 
 export default function TeamMembersPage({ params }: { params: Promise<{ breweryId: string }> }) {
   const { breweryId } = use(params);
+  const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [members, setMembers] = useState<any[]>([]);
   const [activeBrewery, setActiveBrewery] = useState<any>(null);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   
-  const [inviteEmail, setInviteEmail] = useState("");
-  const [isInviting, setIsInviting] = useState(false);
+  const [inviteLink, setInviteLink] = useState("");
+  const [copied, setCopied] = useState(false);
   const [message, setMessage] = useState<{type: 'success' | 'error', msg: string} | null>(null);
   
   const router = useRouter();
 
   useEffect(() => {
-    loadData();
-  }, [breweryId]);
+    if (!authLoading) {
+      loadData();
+      if (typeof window !== 'undefined') {
+        setInviteLink(`${window.location.origin}/team/join/${breweryId}`);
+      }
+    }
+  }, [breweryId, authLoading]);
 
   async function loadData() {
     try {
       setLoading(true);
-      
-      const { data: { user } } = await supabase.auth.getUser();
+
+      // Get Brewery Info
       
       // Get Brewery Info
       const { data: brewery } = await supabase
@@ -52,36 +60,19 @@ export default function TeamMembersPage({ params }: { params: Promise<{ breweryI
     }
   }
 
-  async function handleInvite(e: React.FormEvent) {
-    e.preventDefault();
-    if (!inviteEmail) return;
-
-    setIsInviting(true);
-    setMessage(null);
-
+  async function copyToClipboard() {
     try {
-      // Logic for adding a member by email will go here.
-      // Usually: 
-      // 1. Look up user by email in profiles (if public emails) or auth (admin only).
-      // 2. Or create an 'invitation' record.
-      // For now, we keep the mock message or partial implementation.
-      
-      // Attempt to find user by email (assuming accessible profiles table has email, often it doesn't for security)
-      // Since we can't easily look up user ID by email client-side without a specific RPC or generic search,
-      // we will just show the placeholder message as requested/present in the old dashboard.
-      
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Fake delay
-      setMessage({ type: 'error', msg: 'Das Einladungs-System erfordert eine API-Route für E-Mails. (Prototype)' });
-
-    } catch (error: any) {
-      setMessage({ type: 'error', msg: error.message });
-    } finally {
-      setIsInviting(false);
+        await navigator.clipboard.writeText(inviteLink);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+        console.error("Copy failed", err);
     }
   }
 
   async function handleRemoveMember(userId: string) {
     if (!confirm('Möchtest du dieses Mitglied wirklich entfernen?')) return;
+    if (!user) return;
 
     try {
       const { error } = await supabase
@@ -91,6 +82,11 @@ export default function TeamMembersPage({ params }: { params: Promise<{ breweryI
         .eq('user_id', userId);
 
       if (error) throw error;
+
+      // Feed Update
+      await addToFeed(breweryId, user, 'POST', {
+        message: 'hat ein Mitglied aus dem Team entfernt.'
+      });
       
       setMessage({ type: 'success', msg: 'Mitglied entfernt.' });
       loadData(); // Reload list
@@ -142,46 +138,30 @@ export default function TeamMembersPage({ params }: { params: Promise<{ breweryI
         </div>
       </div>
 
-      {/* Invite Form */}
+      {/* Invite Link */}
       {canManage && (
         <div className="bg-zinc-900/50 border border-zinc-800 p-8 rounded-3xl">
             <h2 className="text-2xl font-black mb-4 text-white">Brauer einladen</h2>
             <p className="text-sm text-zinc-500 mb-6 leading-relaxed">
-            Teile den Namen oder die E-Mail eines anderen BotlLab Nutzers, um ihn zu deinem Team hinzuzufügen.
+                Kopiere diesen Link und sende ihn an deine Freunde. Sie können dem Team dann sofort beitreten.
             </p>
             
-            <form onSubmit={handleInvite} className="space-y-4">
-            <input 
-                type="email" 
-                placeholder="E-Mail Adresse"
-                className="w-full bg-zinc-950 border border-zinc-800 p-3 rounded-xl outline-none focus:border-cyan-500 transition text-white placeholder-zinc-600"
-                value={inviteEmail}
-                onChange={e => setInviteEmail(e.target.value)}
-            />
-            <button 
-                disabled={isInviting}
-                className="w-full bg-white text-black font-black py-3 rounded-xl hover:bg-cyan-400 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
-            >
-                {isInviting ? 'Sende Einladung...' : 'Einladung senden'}
-            </button>
-            </form>
-
-            {message && (
-            <div className={`text-sm p-4 rounded-xl font-medium mt-4 border ${
-                message.type === 'success' 
-                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
-                    : 'bg-red-500/10 border-red-500/20 text-red-400'
-            }`}>
-                {message.msg}
+            <div className="bg-zinc-950 border border-zinc-800 p-2 pl-4 rounded-xl flex items-center justify-between gap-2 overflow-hidden">
+                <code className="text-xs text-cyan-400 font-mono truncate">{inviteLink}</code>
+                <button 
+                    onClick={copyToClipboard}
+                    className="bg-white hover:bg-zinc-200 text-black font-bold px-4 py-2 rounded-lg text-xs transition"
+                >
+                    {copied ? 'Kopiert!' : 'Kopieren'}
+                </button>
             </div>
-            )}
 
             <div className="mt-6 p-4 border border-dashed border-zinc-800 rounded-2xl bg-zinc-950/30">
             <div className="flex items-center gap-2 mb-1">
-                <span className="text-amber-500">⚠️</span>
-                <p className="text-[10px] text-zinc-400 uppercase font-bold tracking-widest">Wichtig</p>
+                <span className="text-emerald-500">💡</span>
+                <p className="text-[10px] text-zinc-400 uppercase font-bold tracking-widest">Tipp</p>
             </div>
-            <p className="text-xs text-zinc-500">Teammitglieder können Rezepte bearbeiten und Flaschen abfüllen.</p>
+            <p className="text-xs text-zinc-500">Wenn jemand dem Link folgt, wird automatisch eine Nachricht im Team-Feed gepostet.</p>
             </div>
         </div>
       )}

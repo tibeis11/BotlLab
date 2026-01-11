@@ -1,14 +1,19 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import TierProgressWidget from './components/TierProgressWidget';
-import ProfileCompletionRing from './components/ProfileCompletionRing';
 import { useAchievementNotification } from '../context/AchievementNotificationContext';
 import { supabase, getActiveBrewery } from '@/lib/supabase';
+import { useAuth } from '../context/AuthContext';
+import { getBreweryFeed, type FeedItem } from '@/lib/feed-service';
+import { getTierConfig } from '@/lib/tier-system';
 
 export default function DashboardPage() {
+	const { user, loading: authLoading } = useAuth();
+    const router = useRouter();
+    const searchParams = useSearchParams();
 	const [loading, setLoading] = useState(true);
 	const [stats, setStats] = useState({
 		brewCount: 0,
@@ -16,6 +21,7 @@ export default function DashboardPage() {
 		filledCount: 0,
 		collectionCount: 0
 	});
+    const [dashboardFeed, setDashboardFeed] = useState<FeedItem[]>([]);
 	const [recentBrews, setRecentBrews] = useState<any[]>([]);
 	const [activeBrewery, setActiveBrewery] = useState<any>(null);
 	const [brewRatings, setBrewRatings] = useState<{[key: string]: {avg: number, count: number}}>({});
@@ -25,6 +31,9 @@ export default function DashboardPage() {
 		distribution: [0,0,0,0,0]
 	});
 	const [breweryName, setBreweryName] = useState("");
+	const [userName, setUserName] = useState("");
+    const [userTitle, setUserTitle] = useState("");
+    const [titleColor, setTitleColor] = useState("");
 	const [userId, setUserId] = useState<string | null>(null);
 	const [profileInfo, setProfileInfo] = useState({
 		brewery_name: '',
@@ -36,7 +45,6 @@ export default function DashboardPage() {
 		bio: ''
 	});
 	const { showAchievement } = useAchievementNotification();
-	const router = useRouter();
     
     // State for Onboarding
     const [isCreatingBrewery, setIsCreatingBrewery] = useState(false);
@@ -46,27 +54,52 @@ export default function DashboardPage() {
     const [onboardingError, setOnboardingError] = useState<string | null>(null);
 
 	useEffect(() => {
-		checkAuth();
-	}, []);
-
-	async function checkAuth() {
-		const { data: { user } } = await supabase.auth.getUser();
-		if (!user) {
-			router.push('/login');
-			return;
+		if (!authLoading) {
+			if (!user) {
+				router.push('/login');
+			} else {
+				loadDashboardData();
+			}
 		}
-		loadDashboardData();
-	}
+	}, [user, authLoading, searchParams]);
 
 	async function loadDashboardData() {
+		if (!user) return;
 		try {
 			setLoading(true);
-			const { data: { user } } = await supabase.auth.getUser();
-			if (!user) return; 
 			setUserId(user.id);
 
+            // Fetch User Profile for Greeting
+            const { data: userProfile } = await supabase.from('profiles').select('display_name, tier').eq('id', user.id).single();
+            if(userProfile) {
+                setUserName(userProfile.display_name);
+                const tier = getTierConfig(userProfile.tier || 'lehrling');
+                setUserTitle(tier.displayName);
+                setTitleColor(tier.color);
+            }
+
 			// 1. Kontext: In welcher Brauerei bin ich gerade?
-			const brewery = await getActiveBrewery(user.id);
+            // Priorität: URL Param > Standard (erste Brauerei)
+            let brewery = null;
+            const paramId = searchParams.get('breweryId');
+            
+            if (paramId) {
+                const { data: member } = await supabase
+                    .from('brewery_members')
+                    .select('brewery_id, breweries(*)')
+                    .eq('user_id', user.id)
+                    .eq('brewery_id', paramId)
+                    .maybeSingle();
+
+                 if (member && member.breweries) {
+                     brewery = Array.isArray(member.breweries) ? member.breweries[0] : member.breweries;
+                }
+            }
+
+            if (!brewery) {
+			    brewery = await getActiveBrewery(user.id);
+            }
+
 			setActiveBrewery(brewery);
 
 			if (brewery) {
@@ -159,6 +192,10 @@ export default function DashboardPage() {
 					}
 					setBrewRatings(ratingsMap);
 				}
+
+                // 4. Feed für Dashboard laden (Mini Preview)
+                const feedItems = await getBreweryFeed(brewery.id);
+                setDashboardFeed(feedItems ? feedItems.slice(0, 3) : []);
 			}
 
 		} catch (e) {
@@ -361,210 +398,130 @@ export default function DashboardPage() {
 		<div className="space-y-10 py-8">
 			<header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
 				<div>
-					 <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs mb-2">Dashboard</p>
+					 <div className="flex items-center gap-3 mb-2">
+                        <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs">Dashboard</p>
+                        {userTitle && (
+                            <span className="text-[10px] font-black px-2 py-0.5 rounded uppercase border" style={{ borderColor: `${titleColor}50`, color: titleColor, backgroundColor: `${titleColor}10` }}>
+                                {userTitle}
+                            </span>
+                        )}
+                     </div>
 					 <h2 className="text-4xl font-bold text-white">
-						 {loading ? 'Lade Daten...' : `Moin, ${breweryName || 'Braumeister'}! 👋`}
+						 {loading ? 'Lade Daten...' : `Moin, ${userName || 'Braumeister'}! 👋`}
 					 </h2>
 					 <p className="text-zinc-400 mt-2 max-w-lg">
 						 Alles unter Kontrolle im Labor. Hier ist der aktuelle Status deiner digitalen Brauerei.
 					 </p>
 				</div>
-        
-				<div className="flex gap-3">
-					 <Link href="/dashboard/brews" className="bg-white text-black hover:bg-zinc-200 px-5 py-3 rounded-xl font-bold transition flex items-center gap-2">
-						 <span>🍺</span> Neues Rezept
-					 </Link>
-					 <Link href="/dashboard/bottles" className="bg-zinc-800 text-white hover:bg-zinc-700 px-5 py-3 rounded-xl font-bold transition flex items-center gap-2">
-						 <span>🏷️</span> Inventar
-					 </Link>
-				</div>
 			</header>
 
-			<div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-				{/* Profilstatus Kachel */}
-				<Link href="/dashboard/profile" className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-2xl relative overflow-hidden group hover:border-zinc-600 transition">
-					<div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition text-6xl rotate-12">🧩</div>
-					<p className="text-sm text-zinc-500 uppercase font-bold tracking-widest mb-3">Profilstatus</p>
-					{(() => {
-						const fields: Array<{ key: keyof typeof profileInfo; label: string; isDone?: (v: any) => boolean }> = [
-							{ key: 'brewery_name', label: 'Name' },
-							{ key: 'founded_year', label: 'Gründungsjahr', isDone: (v) => !!(v && String(v).trim().length > 0) },
-							{ key: 'logo_url', label: 'Profilbild' },
-							{ key: 'banner_url', label: 'Banner' },
-							{ key: 'location', label: 'Standort' },
-							{ key: 'website', label: 'Webseite' },
-							{ key: 'bio', label: 'Über uns' },
-						];
-						const isFilled = (key: keyof typeof profileInfo, custom?: (v: any) => boolean) => {
-							const val = profileInfo[key];
-							return custom ? custom(val) : !!(val && String(val).trim().length > 0);
-						};
-						const completed = fields.reduce((acc, f) => acc + (isFilled(f.key, f.isDone) ? 1 : 0), 0);
-						const pending = fields.filter(f => !isFilled(f.key, f.isDone)).map(f => f.label);
-						return (
-							<div className="flex items-center justify-between gap-4">
-								<div className="flex-1">
-									<ProfileCompletionRing
-										completed={completed}
-										total={fields.length}
-										label="Profil-Vervollständigung"
-										pendingLabels={pending}
-										variant="inline"
-										showPending={false}
-										size={80}
-									/>
-								</div>
-								<div className="shrink-0 text-zinc-400 font-bold">→</div>
-							</div>
-						);
-					})()}
-				</Link>
-					<div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-2xl relative overflow-hidden group">
-							<div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition text-6xl rotate-12">🍺</div>
-							<p className="text-sm text-zinc-500 uppercase font-bold tracking-widest">Aktive Rezepte</p>
-							<p className="text-4xl font-black text-white mt-1">{loading ? '-' : stats.brewCount}</p>
-							<div className="mt-4 pt-4 border-t border-zinc-800/50 flex items-center gap-2 text-xs text-zinc-400">
-									<span className="text-cyan-500">↗</span> bereit zum Abfüllen
-							</div>
-					</div>
 
-					<div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-2xl relative overflow-hidden group">
-							<div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition text-6xl rotate-12">📦</div>
-							<p className="text-sm text-zinc-500 uppercase font-bold tracking-widest">Inventar</p>
-							<p className="text-4xl font-black text-white mt-1">{loading ? '-' : stats.bottleCount}</p>
-							<div className="mt-4 pt-4 border-t border-zinc-800/50 flex items-center gap-2 text-xs text-zinc-400">
-									<span className="text-sm font-bold text-white">{stats.filledCount}</span> aktuell befüllt ({stats.bottleCount > 0 ? Math.round((stats.filledCount / stats.bottleCount) * 100) : 0}%)
-							</div>
-					</div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Left Column: Feeds */}
+                <div className="lg:col-span-2 space-y-8">
+                    {/* Mini Team Feed */}
+                    {activeBrewery && (
+                        <div className="bg-zinc-900/50 border border-zinc-800 rounded-3xl p-6 relative overflow-hidden">
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                                    <span>📢</span>
+                                    Was ist neu im Team?
+                                </h3>
+                                <Link href={`/team/${activeBrewery.id}/feed`} className="text-xs font-bold text-zinc-500 hover:text-cyan-400 transition uppercase tracking-widest">
+                                    Alle anzeigen →
+                                </Link>
+                            </div>
 
-					<Link href="/dashboard/collection" className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-2xl relative overflow-hidden group hover:border-zinc-600 transition">
-							<div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition text-6xl rotate-12">🟡</div>
-							<p className="text-sm text-zinc-500 uppercase font-bold tracking-widest">Sammlung</p>
-							<p className="text-4xl font-black text-white mt-1">{loading ? '-' : stats.collectionCount}</p>
-							<div className="mt-4 pt-4 border-t border-zinc-800/50 flex items-center gap-2 text-xs text-zinc-400">
-									<span className="text-cyan-500 font-bold">Badge</span> Sammlerstücke gesamt
-							</div>
-					</Link>
-			</div>
+                            <div className="space-y-3">
+                                {loading ? (
+                                    <div className="h-20 bg-zinc-900/50 rounded-xl animate-pulse"/>
+                                ) : dashboardFeed.length === 0 ? (
+                                    <div className="text-center py-6 text-zinc-500 text-sm">
+                                        Noch keine Neuigkeiten. <br/>
+                                        <Link href={`/team/${activeBrewery.id}/feed`} className="text-cyan-500 underline">Schreib den ersten Post!</Link>
+                                    </div>
+                                ) : (
+                                    dashboardFeed.map(item => (
+                                        <Link 
+                                            key={item.id} 
+                                            href={`/team/${activeBrewery.id}/feed`}
+                                            className="block bg-zinc-950 border border-zinc-800/50 rounded-xl p-3 hover:border-zinc-700 transition group"
+                                        >
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-8 h-8 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0 overflow-hidden text-xs">
+                                                    {item.profiles?.logo_url ? <img src={item.profiles.logo_url} className="w-full h-full object-cover"/> : item.type === 'BREW_RATED' ? '⭐' : '👤'}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex justify-between items-center mb-0.5">
+                                                        <span className="text-xs font-bold text-white truncate">
+                                                            {item.type === 'BREW_RATED' ? (item.content.author || 'Gast') : (item.profiles?.display_name || 'Unbekannt')}
+                                                        </span>
+                                                        <span className="text-[10px] text-zinc-600">
+                                                            {new Date(item.created_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-xs text-zinc-400 truncate group-hover:text-zinc-300 transition">
+                                                        {item.type === 'BREW_CREATED' ? `🍺 hat ein neues Rezept "${item.content.brew_name}" erstellt.` : item.content.message}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </Link>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    )}
 
-			<div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-				 <div className="space-y-6">
-						<div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-3xl">
-							 <h3 className="text-lg font-bold mb-6 flex items-center gap-2">⭐ Community Feedback</h3>
-               
-							 <div className="flex items-center gap-8">
-									<div className="text-center">
-										 <div className="text-5xl font-black text-white">{globalRatingStats.total > 0 ? globalRatingStats.avg : '-'}</div>
-										 <div className="flex gap-1 justify-center my-2 text-yellow-500">
-												{[1,2,3,4,5].map(s => (
-													 <span key={s} className={s <= Math.round(globalRatingStats.avg) ? 'opacity-100' : 'opacity-30'}>★</span>
-												))}
-										 </div>
-										 <p className="text-xs text-zinc-500 uppercase font-bold tracking-widest">{globalRatingStats.total} Votes</p>
-									</div>
+                    {/* Discovery Feed Placeholder */}
+                    {activeBrewery && (
+                        <div className="bg-zinc-900/10 border border-zinc-800/50 border-dashed rounded-3xl p-6 relative overflow-hidden flex flex-col items-center justify-center text-center py-12">
+                            <span className="text-4xl mb-4 grayscale opacity-30">🌍</span>
+                            <h3 className="text-lg font-bold text-zinc-500">Community Feed wird geladen...</h3>
+                            <p className="text-xs text-zinc-600 mt-2 max-w-xs">
+                                Hier siehst du bald globale Neuigkeiten, neue öffentliche Rezepte und Trends aus der BotlLab Community.
+                            </p>
+                        </div>
+                    )}
+                </div>
 
-									<div className="flex-1 space-y-2">
-										 {[5,4,3,2,1].map((star) => {
-												const count = globalRatingStats.distribution[star-1];
-												const percent = globalRatingStats.total > 0 ? (count / globalRatingStats.total) * 100 : 0;
-												return (
-													<div key={star} className="flex items-center gap-3 text-xs">
-														 <span className="w-3 font-bold text-zinc-500">{star}</span>
-														 <span className="text-yellow-500">★</span>
-														 <div className="flex-1 h-2 bg-zinc-800 rounded-full overflow-hidden">
-																<div className="h-full bg-cyan-500 rounded-full" style={{ width: `${percent}%` }} />
-														 </div>
-														 <span className="w-6 text-right text-zinc-600 font-mono">{count}</span>
-													</div>
-												);
-										 })}
-									</div>
-							 </div>
-						</div>
+                {/* Right Column: Widgets */}
+                <div className="space-y-6">
+                    <TierProgressWidget />
 
-						<div className="bg-gradient-to-br from-purple-900/20 to-pink-900/10 border border-purple-500/20 p-6 rounded-3xl flex flex-col justify-center relative overflow-hidden">
-							 <div className="absolute top-0 right-0 p-8 opacity-10 text-9xl rotate-12 pointer-events-none">🚀</div>
-							 <h3 className="text-2xl font-bold text-white mb-2">Mehr Feedback erhalten?</h3>
-							 <p className="text-zinc-400 mb-6 max-w-sm">
-									Drucke QR-Codes für deine Flaschen. Gäste können direkt beim Trinken bewerten – ohne App, ohne Login.
-							 </p>
-							 <div>
-									<Link href="/dashboard/bottles" className="bg-white text-black hover:bg-purple-400 font-bold py-3 px-6 rounded-xl transition inline-flex items-center gap-2">
-										<span>🖨️</span> Codes drucken
-								 </Link>
-							 </div>
-						</div>
+                    {/* Collection Widget */}
+                    <div className="bg-gradient-to-br from-purple-900/20 to-fuchsia-900/10 border border-purple-500/20 p-6 rounded-3xl flex flex-col justify-center relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-8 opacity-10 text-9xl rotate-12 pointer-events-none">🏅</div>
+                        <div className="flex justify-between items-start mb-2">
+                        <h3 className="text-2xl font-bold text-white">Sammlung</h3>
+                        <span className="bg-purple-500/20 text-purple-400 text-xs font-black px-2 py-1 rounded-lg border border-purple-500/30">
+                            {loading ? '-' : stats.collectionCount} KRONKORKEN
+                        </span>
+                        </div>
+                        <p className="text-zinc-400 mb-6 max-w-sm text-sm">
+                            Verwalte deine einzigartigen Kronkorken und tausche digitale Sammelobjekte.
+                        </p>
+                        <div>
+                            <Link href="/dashboard/collection" className="bg-white text-black hover:bg-purple-400 font-bold py-3 px-6 rounded-xl transition inline-flex items-center gap-2">
+                                <span>🏅</span> Zur Sammlung
+                            </Link>
+                        </div>
+                    </div>
 
-						<div className="bg-gradient-to-br from-amber-900/20 to-yellow-900/10 border border-amber-500/20 p-6 rounded-3xl flex flex-col justify-center relative overflow-hidden">
-							 <div className="absolute top-0 right-0 p-8 opacity-10 text-9xl rotate-12 pointer-events-none">🏆</div>
-							 <h3 className="text-2xl font-bold text-white mb-2">Achievements</h3>
-							 <p className="text-zinc-400 mb-6 max-w-sm">
-									Schalte Erfolge frei und sammle Punkte für deine Brau-Aktivitäten.
-							 </p>
-							 <div>
-										<Link href="/dashboard/achievements" className="bg-white text-black hover:bg-amber-400 font-bold py-3 px-6 rounded-xl transition inline-flex items-center gap-2">
-										<span>🏆</span> Zu den Achievements
-								 </Link>
-							 </div>
-						</div>
-				 </div>
-
-				 <TierProgressWidget />
-			</div>
-
-			<div>
-				<div className="flex justify-between items-end mb-6">
-						<h3 className="text-xl font-bold">Zuletzt gebraut</h3>
-					<Link href="/dashboard/brews" className="text-sm text-zinc-500 hover:text-white transition">Alle anzeigen →</Link>
-				</div>
-        
-				{loading ? (
-					 <div className="h-32 bg-zinc-900/50 rounded-2xl animate-pulse" />
-				) : recentBrews.length === 0 ? (
-					 <div className="text-center p-12 bg-zinc-900/30 rounded-2xl border border-dashed border-zinc-800">
-							 <p className="text-zinc-500">Noch keine Rezepte angelegt.</p>
-							 <Link href="/dashboard/brews" className="text-cyan-500 font-bold mt-2 inline-block hover:underline">Erstes Bier brauen</Link>
-					 </div>
-				) : (
-					 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-							 {recentBrews.map(brew => (
-									 <div key={brew.id} className="group bg-zinc-900 border border-zinc-800 rounded-2xl p-4 hover:border-zinc-600 transition flex flex-col">
-											 <div className="flex items-center gap-4 mb-3">
-													 <div className="w-16 h-16 bg-zinc-800 rounded-lg overflow-hidden shrink-0">
-															 {brew.image_url ? (
-																	 <img src={brew.image_url} className="w-full h-full object-cover group-hover:scale-110 transition"/>
-															 ) : (
-																	 <div className="w-full h-full flex items-center justify-center text-xl">🍺</div>
-															 )}
-													 </div>
-													 <div className="flex-1 min-w-0">
-															 <h4 className="font-bold text-white truncate">{brew.name}</h4>
-															 <p className="text-xs text-zinc-500">{brew.style}</p>
-															 <p className="text-[10px] text-zinc-600 mt-1 capitalize">
-																	{new Date(brew.created_at).toLocaleDateString('de-DE', { month: 'short', day: 'numeric'})}
-															 </p>
-													 </div>
-													<Link href={`/dashboard/brews`} className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 hover:bg-cyan-500 hover:text-black transition shrink-0">
-															→
-													 </Link>
-											 </div>
-                       
-											 {brewRatings[brew.id] && (
-													 <div className="pt-3 border-t border-zinc-800 flex items-center gap-2">
-															 <span className="text-sm font-bold text-cyan-400">{brewRatings[brew.id].avg}</span>
-															 <div className="flex gap-0.5">
-																	 {[1,2,3,4,5].map(star => (
-																			 <span key={star} className={`text-xs ${star <= Math.round(brewRatings[brew.id].avg) ? 'text-yellow-500' : 'text-zinc-700'}`}>★</span>
-																	 ))}
-															 </div>
-															 <span className="text-xs text-zinc-500">({brewRatings[brew.id].count})</span>
-													 </div>
-											 )}
-									 </div>
-							 ))}
-					 </div>
-				)}
-			</div>
+                    {/* Achievements Widget */}
+                    <div className="bg-gradient-to-br from-amber-900/20 to-yellow-900/10 border border-amber-500/20 p-6 rounded-3xl flex flex-col justify-center relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-8 opacity-10 text-9xl rotate-12 pointer-events-none">🏆</div>
+                        <h3 className="text-2xl font-bold text-white mb-2">Achievements</h3>
+                        <p className="text-zinc-400 mb-6 max-w-sm">
+                            Schalte Erfolge frei und sammle Punkte für deine Brau-Aktivitäten.
+                        </p>
+                        <div>
+                            <Link href="/dashboard/achievements" className="bg-white text-black hover:bg-amber-400 font-bold py-3 px-6 rounded-xl transition inline-flex items-center gap-2">
+                                <span>🏆</span> Zu den Achievements
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            </div>
 		</div>
 	);
 }

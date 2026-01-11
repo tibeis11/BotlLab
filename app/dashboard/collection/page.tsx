@@ -4,14 +4,15 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import CrownCap from '@/app/components/CrownCap';
+import { useAuth } from '@/app/context/AuthContext';
 
 export default function CollectionPage() {
+  const { user } = useAuth();
   const [caps, setCaps] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadCollection() {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
       const { data, error } = await supabase
@@ -37,8 +38,8 @@ export default function CollectionPage() {
       }
       setLoading(false);
     }
-    loadCollection();
-  }, []);
+    if (user) loadCollection();
+  }, [user]);
 
   if (loading) {
     return <div className="flex items-center justify-center py-20 animate-pulse text-zinc-500">Lade Sammlung...</div>;

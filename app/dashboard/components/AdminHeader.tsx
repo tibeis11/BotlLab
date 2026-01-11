@@ -2,161 +2,338 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import Logo from '../../components/Logo';
-import { supabase } from '@/lib/supabase';
+import { supabase, getActiveBrewery, getUserBreweries } from '@/lib/supabase';
+import { useAuth } from '@/app/context/AuthContext';
+import { getTierConfig } from '@/lib/tier-system';
 
 export default function AdminHeader() {
+  const { user, signOut } = useAuth();
+  const userId = user?.id;
   const [userName, setUserName] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [userLogo, setUserLogo] = useState<string | null>(null);
+  const [tierData, setTierData] = useState<{ path: string, color: string, name: string } | null>(null);
+  const [breweryId, setBreweryId] = useState<string | null>(null);
+  const [activeBreweryName, setActiveBreweryName] = useState<string | null>(null);
+  const [userBreweries, setUserBreweries] = useState<any[]>([]);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showBreweryMenu, setShowBreweryMenu] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const router = useRouter();
-
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
-    async function fetchContext() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserId(user.id);
-        
-        // Fetch User Profile instead of Active Brewery
+    let isMounted = true;
+
+    async function fetchUserData() {
+      if (!user) return;
+
+      try {
+        // Fetch User Profile
         const { data: profile } = await supabase
           .from('profiles')
-          .select('brewery_name, logo_url, display_name') // legacy: brewery_name is often used as display name
+          .select('display_name, tier')
           .eq('id', user.id)
           .single();
           
+        if (!isMounted) return;
+        
         if (profile) {
-          // Fallback logic for name display
-          setUserName(profile.display_name || profile.brewery_name || user.email?.split('@')[0] || 'Brauer');
-          setUserLogo(profile.logo_url);
+          setUserName(profile.display_name || user.email?.split('@')[0] || 'Brauer');
+          const config = getTierConfig(profile.tier || 'lehrling');
+          setTierData({
+              path: config.avatarPath,
+              color: config.color,
+              name: config.displayName
+          });
+        }
+
+        // 1. Get all breweries for the user
+        const allBreweries = await getUserBreweries(user.id);
+        if (isMounted) setUserBreweries(allBreweries);
+
+        // 2. Determine active brewery
+        // Priority: URL Param > Default Active (from DB)
+        const paramBreweryId = searchParams.get('breweryId');
+        let selectedBrewery = null;
+
+        if (paramBreweryId) {
+            selectedBrewery = allBreweries.find(b => b.id === paramBreweryId);
+        }
+
+        if (!selectedBrewery) {
+             // Fallback to DB active brewery
+             selectedBrewery = await getActiveBrewery(user.id);
+        }
+
+        // If still nothing, maybe just take the first one from the list?
+        if (!selectedBrewery && allBreweries.length > 0) {
+            selectedBrewery = allBreweries[0];
+        }
+
+        if (isMounted && selectedBrewery) {
+          setBreweryId(selectedBrewery.id);
+          setActiveBreweryName(selectedBrewery.name);
+        }
+      } catch (err) {
+        if (isMounted) {
+          console.error('Error loading header data:', err);
         }
       }
     }
-    fetchContext();
-  }, []);
+
+    fetchUserData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user, searchParams]);
 
   async function handleLogout() {
-    await supabase.auth.signOut();
-    router.push('/login');
+    await signOut();
+    // Router push is handled in AuthContext, but just in case:
+    // router.push('/login'); 
   }
 
+  function handleSwitchBrewery(id: string) {
+    if (id === breweryId) return;
+    
+    // Construct new URL with param
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('breweryId', id);
+    
+    router.push(`${pathname}?${params.toString()}`);
+    setShowBreweryMenu(false);
+    setIsMobileMenuOpen(false);
+  }
+
+  const tabs = [
+    { name: 'Dashboard', path: '/dashboard', icon: '📊' },
+    { name: 'Sammlung', path: '/dashboard/collection', icon: '🏅' },
+    { name: 'Achievements', path: '/dashboard/achievements', icon: '🏆' },
+  ];
+
   return (
-      <nav className="border-b border-border bg-surface/50 p-4 sticky top-0 z-50 backdrop-blur-md">
-        <div className="max-w-6xl mx-auto flex justify-between items-center">
-          
+    <nav className="border-b border-zinc-900 bg-zinc-950/80 p-3 sticky top-0 z-50 backdrop-blur-md">
+      <div className="max-w-6xl mx-auto flex justify-between items-center">
+        
+        <div className="flex items-center gap-6">
           <Link href="/dashboard">
-             <Logo />
+            <Logo />
           </Link>
-          
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex gap-6 text-sm font-medium items-center">
-            <Link href="/dashboard" className="hover:text-brand transition">Dashboard</Link>
-            <Link href="/dashboard/brews" className="hover:text-brand transition">Meine Rezepte</Link>
-            <Link href="/dashboard/collection" className="hover:text-brand transition">Meine Sammlung</Link>
-            <Link href="/dashboard/bottles" className="hover:text-brand transition">Inventar</Link>
-            <Link href="/dashboard/team" className="hover:text-brand transition">Team</Link>
-            <Link href="/discover" className="hover:text-brand transition">Entdecken</Link>
-            
-            <div className="h-4 w-px bg-zinc-700 mx-2"></div>
-            
-            <div 
-              className="relative"
-              onMouseEnter={() => setShowProfileMenu(true)}
-              onMouseLeave={() => setShowProfileMenu(false)}
-            >
-              <Link href="/dashboard/profile" className="flex items-center gap-2 hover:text-brand transition group">
-                <div className="w-8 h-8 rounded-full bg-brand-dim/50 border border-cyan-700/50 flex items-center justify-center group-hover:bg-brand-dim transition text-xs overflow-hidden">
-                  {userLogo ? (
-                    <img src={userLogo} alt="Logo" className="w-full h-full object-cover" />
-                  ) : (
-                    <span>👤</span>
-                  )}
-                </div>
-                <span className="truncate max-w-[150px] font-bold">
-                  {userName || 'Mein Profil'}
-                </span>
-              </Link>
 
-              {showProfileMenu && (
-                <div className="absolute right-0 top-full pt-2 w-48 z-50">
-                  <div className="bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                    <Link 
-                      href="/dashboard/profile"
-                      className="block w-full px-4 py-3 text-white hover:bg-zinc-800 transition text-sm font-medium flex items-center gap-2"
-                    >
-                      👤 Profil bearbeiten
+          {/* Left Desktop Navigation (External Context) */}
+          <div className="hidden md:flex gap-6 text-sm font-medium items-center border-l border-zinc-800 pl-6 h-8">
+            {breweryId && (
+              <div 
+                className="relative group"
+                onMouseEnter={() => setShowBreweryMenu(true)}
+                onMouseLeave={() => setShowBreweryMenu(false)}
+              >
+                <div className="flex items-center gap-1">
+                    <Link href={`/team/${breweryId}`} className="group-hover:text-cyan-400 text-zinc-400 transition flex items-center gap-2">
+                        🏭 <span className={userBreweries.length > 1 ? 'border-b border-dashed border-zinc-600' : ''}>{activeBreweryName || 'Brauerei'}</span>
                     </Link>
-                    {userId && (
-                      <Link 
-                        href={`/brewer/${userId}`}
-                        target="_blank"
-                        className="block w-full px-4 py-3 text-white hover:bg-zinc-800 transition text-sm font-medium flex items-center gap-2"
-                      >
-                        🌐 Öffentliches Profil
-                      </Link>
+                    {userBreweries.length > 1 && (
+                        <span className="text-[10px] text-zinc-600 ml-1">▼</span>
                     )}
-                    <Link 
-                      href="/dashboard/account"
-                      className="block w-full px-4 py-3 text-white hover:bg-zinc-800 transition text-sm font-medium flex items-center gap-2"
-                    >
-                      🔐 Kontoeinstellungen
-                    </Link>
-                    <Link 
-                      href="/dashboard/collection"
-                      className="block w-full px-4 py-3 text-white hover:bg-zinc-800 transition text-sm font-medium flex items-center gap-2"
-                    >
-                      🟡 Meine Sammlung
-                    </Link>
-                    <button
-                      onClick={handleLogout}
-                      className="block w-full px-4 py-3 text-red-400 hover:bg-zinc-800 transition text-sm font-medium flex items-center gap-2 text-left border-t border-zinc-800"
-                    >
-                      🚪 Abmelden
-                    </button>
-                  </div>
                 </div>
-              )}
-            </div>
-          </div>
-
-          {/* Mobile Menu Button */}
-          <button 
-            className="md:hidden p-2 text-zinc-400 hover:text-white"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          >
-            {isMobileMenuOpen ? (
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-              </svg>
+                
+                {showBreweryMenu && userBreweries.length > 1 && (
+                    <div className="absolute left-0 top-full pt-2 w-48 z-50">
+                         <div className="bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-1">
+                             <p className="px-3 py-2 text-[10px] text-zinc-500 uppercase font-bold border-b border-zinc-800 bg-zinc-950">Team wechseln</p>
+                             {userBreweries.map(b => (
+                                 <button
+                                    key={b.id}
+                                    onClick={() => handleSwitchBrewery(b.id)}
+                                    className={`w-full text-left px-3 py-2 text-sm hover:bg-zinc-800 transition flex items-center gap-2 ${breweryId === b.id ? 'text-cyan-400 font-bold bg-zinc-800/50' : 'text-zinc-300'}`}
+                                 >
+                                    {breweryId === b.id && <span className="text-cyan-500">●</span>}
+                                    {b.name}
+                                 </button>
+                             ))}
+                        </div>
+                    </div>
+                )}
+              </div>
             )}
-          </button>
+            
+            <Link href="/discover" className="hover:text-cyan-400 text-zinc-400 transition flex items-center gap-2">
+              🌍 Entdecken
+            </Link>
+          </div>
+        </div>
+        
+        {/* Desktop Navigation (Dashboard Context) */}
+        <div className="hidden md:flex gap-1 text-sm font-medium items-center">
+          {tabs.map(tab => {
+            // Dashboard root matches only exact, others match prefix
+            const isActive = tab.path === '/dashboard' 
+              ? pathname === '/dashboard'
+              : (pathname === tab.path || pathname?.startsWith(tab.path + '/'));
+              
+            return (
+              <Link 
+                key={tab.path} 
+                href={tab.path} 
+                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${isActive ? 'bg-cyan-950/50 text-cyan-400' : 'text-zinc-500 hover:text-white hover:bg-zinc-800/50'}`}
+              >
+                <span>{tab.icon}</span>
+                <span>{tab.name}</span>
+              </Link>
+            );
+          })}
+          
+          <div className="h-4 w-px bg-zinc-800 mx-2"></div>
+          
+          {/* Profile Menu */}
+          <div 
+            className="relative"
+            onMouseEnter={() => setShowProfileMenu(true)}
+            onMouseLeave={() => setShowProfileMenu(false)}
+          >
+            <button className="flex items-center gap-3 pl-1 pr-4 py-1 rounded-full bg-zinc-900 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800 transition group">
+              <div 
+                className="w-8 h-8 rounded-full flex items-center justify-center text-xs overflow-hidden relative shadow-lg"
+                style={{ backgroundColor: tierData ? `${tierData.color}20` : '#333' }}
+              >
+                  <div className="absolute inset-0 border-2 rounded-full opacity-50" style={{ borderColor: tierData?.color || '#555' }}></div>
+                  <img src={tierData?.path || '/tiers/lehrling.png'} alt="Avatar" className="w-full h-full object-cover" />
+              </div>
+              <div className="flex flex-col items-start leading-none">
+                <span className="truncate max-w-[120px] font-bold text-white text-sm">
+                    {userName || 'Profil'}
+                </span>
+                {tierData && (
+                    <span className="text-[9px] font-black uppercase tracking-wider mt-0.5" style={{ color: tierData.color }}>
+                        {tierData.name}
+                    </span>
+                )}
+              </div>
+            </button>
+
+            {showProfileMenu && (
+              <div className="absolute right-0 top-full pt-2 w-56 z-50">
+                <div className="bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="px-4 py-3 border-b border-zinc-800">
+                    <p className="text-xs text-zinc-500 uppercase tracking-widest font-bold mb-1">Konto</p>
+                    <p className="font-bold text-white truncate">{userName}</p>
+                  </div>
+
+                  <Link 
+                    href="/dashboard/profile"
+                    className="block w-full px-4 py-3 text-white hover:bg-zinc-800 transition text-sm font-medium flex items-center gap-2"
+                  >
+                    ✏️ Profil bearbeiten
+                  </Link>
+
+                  <Link 
+                    href="/dashboard/account"
+                    className="block w-full px-4 py-3 text-white hover:bg-zinc-800 transition text-sm font-medium flex items-center gap-2"
+                  >
+                    🔐 Kontoeinstellungen
+                  </Link>
+
+                  {userId && (
+                    <Link 
+                      href={`/brewer/${userId}`}
+                      target="_blank"
+                      className="block w-full px-4 py-3 text-white hover:bg-zinc-800 transition text-sm font-medium flex items-center gap-2"
+                    >
+                      🌐 Öffentliches Profil
+                    </Link>
+                  )}
+
+                  <button
+                    onClick={handleLogout}
+                    className="block w-full px-4 py-3 text-red-400 hover:bg-zinc-800 transition text-sm font-medium flex items-center gap-2 text-left border-t border-zinc-800"
+                  >
+                    🚪 Abmelden
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Mobile Navigation */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden pt-4 pb-2 animate-in slide-in-from-top-5 fade-in duration-200">
-            <div className="flex flex-col gap-2 p-2">
-              <Link href="/dashboard" className="p-4 rounded-xl hover:bg-zinc-900 transition flex items-center gap-3">📊 Dashboard</Link>
-              <Link href="/dashboard/brews" className="p-4 rounded-xl hover:bg-zinc-900 transition flex items-center gap-3">📋 Rezepte</Link>
-              <Link href="/dashboard/team" className="p-4 rounded-xl hover:bg-zinc-900 transition flex items-center gap-3">👥 Mein Team</Link>
-              <Link href="/dashboard/collection" className="p-4 rounded-xl hover:bg-zinc-900 transition flex items-center gap-3">🟡 Sammlung</Link>
-              <Link href="/dashboard/bottles" className="p-4 rounded-xl hover:bg-zinc-900 transition flex items-center gap-3">🍾 Inventar</Link>
-              <Link href="/discover" className="p-4 rounded-xl hover:bg-zinc-900 transition flex items-center gap-3">🌍 Entdecken</Link>
-            </div>
+        {/* Mobile Menu Button */}
+        <button 
+          className="md:hidden p-2 text-zinc-400 hover:text-white"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        >
+          {isMobileMenuOpen ? (
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+            </svg>
+          )}
+        </button>
+      </div>
+
+      {/* Mobile Navigation */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden pt-4 pb-2 animate-in slide-in-from-top-5 fade-in duration-200">
+          <div className="flex flex-col gap-2 p-2">
+            <Link href="/dashboard" className="p-3 rounded-lg hover:bg-zinc-900 transition flex items-center gap-3 text-sm font-medium">
+              📊 Dashboard
+            </Link>
+            <Link href="/dashboard/collection" className="p-3 rounded-lg hover:bg-zinc-900 transition flex items-center gap-3 text-sm font-medium">
+              🟡 Sammlung
+            </Link>
+            <Link href="/dashboard/achievements" className="p-3 rounded-lg hover:bg-zinc-900 transition flex items-center gap-3 text-sm font-medium">
+              🏆 Achievements
+            </Link>
+            
+            <div className="h-px bg-zinc-800 my-2"></div>
+            
+            {userBreweries.length > 0 && (
+                <div className="mb-2">
+                    <p className="px-3 text-[10px] uppercase text-zinc-500 font-bold mb-2">Aktives Team: <span className="text-white">{activeBreweryName}</span></p>
+                    <Link href={`/team/${breweryId}`} className="p-3 rounded-lg bg-zinc-900/50 hover:bg-zinc-900 transition flex items-center gap-3 text-sm font-medium text-cyan-400 mb-2 border border-zinc-800">
+                        🏭 Team-Dashboard öffnen
+                    </Link>
+                    
+                    {userBreweries.length > 1 && (
+                        <>
+                             <p className="px-3 text-[10px] uppercase text-zinc-600 font-bold mb-1 mt-3">Wechseln zu:</p>
+                             {userBreweries.filter(b => b.id !== breweryId).map(b => (
+                                <button
+                                    key={b.id}
+                                    onClick={() => handleSwitchBrewery(b.id)}
+                                    className="w-full text-left p-3 rounded-lg hover:bg-zinc-900 transition flex items-center gap-3 text-sm font-medium text-zinc-400"
+                                >
+                                    Login als {b.name}
+                                </button>
+                             ))}
+                        </>
+                    )}
+                </div>
+            )}
+            
+            <Link href="/discover" className="p-3 rounded-lg hover:bg-zinc-900 transition flex items-center gap-3 text-sm font-medium">
+              🌍 Entdecken
+            </Link>
+            <div className="h-px bg-zinc-800 my-2"></div>
+            <Link href="/dashboard/profile" className="p-3 rounded-lg hover:bg-zinc-900 transition flex items-center gap-3 text-sm font-medium">
+              ✏️ Profil
+            </Link>
+            <Link href="/dashboard/account" className="p-3 rounded-lg hover:bg-zinc-900 transition flex items-center gap-3 text-sm font-medium">
+              🔐 Einstellungen
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="p-3 rounded-lg hover:bg-zinc-900 transition flex items-center gap-3 text-sm font-medium text-red-400 w-full text-left"
+            >
+              🚪 Abmelden
+            </button>
           </div>
-        )}
-      </nav>
+        </div>
+      )}
+    </nav>
   );
 }

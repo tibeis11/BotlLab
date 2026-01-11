@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 
 export type AchievementCategory = 'brewing' | 'social' | 'quality' | 'milestone';
 export type AchievementTier = 'bronze' | 'silver' | 'gold' | 'platinum';
@@ -26,11 +26,6 @@ export interface UserAchievement {
  * Prüft und vergibt Achievements für einen User basierend auf seinen Stats
  */
 export async function checkAndGrantAchievements(userId: string) {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-
   // Stats des Users laden
   const { data: brews } = await supabase
     .from('brews')
@@ -131,11 +126,6 @@ export async function checkAndGrantAchievements(userId: string) {
  * Lädt alle Achievements eines Users
  */
 export async function getUserAchievements(userId: string) {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-
   const { data, error } = await supabase
     .from('user_achievements')
     .select('*, achievements(*)')
@@ -143,7 +133,7 @@ export async function getUserAchievements(userId: string) {
     .order('unlocked_at', { ascending: false });
 
   if (error) {
-    console.error('Error loading achievements:', error);
+    console.error('Error loading user achievements:', JSON.stringify(error, null, 2));
     return [];
   }
 
@@ -154,18 +144,13 @@ export async function getUserAchievements(userId: string) {
  * Lädt alle verfügbaren Achievements
  */
 export async function getAllAchievements() {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-
   const { data, error } = await supabase
     .from('achievements')
     .select('*')
     .order('points', { ascending: true });
 
   if (error) {
-    console.error('Error loading achievements:', error);
+    console.error('Error loading all achievements:', JSON.stringify(error, null, 2));
     return [];
   }
 

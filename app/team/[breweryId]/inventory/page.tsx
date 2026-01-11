@@ -5,19 +5,22 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import QRCode from 'qrcode'; 
 import { jsPDF } from 'jspdf'; 
-import Scanner from '@/app/dashboard/components/Scanner';
-import { getTierConfig, type TierName } from '@/lib/tier-system';
+import Scanner from '@/app/components/Scanner';
+import { getBreweryTierConfig, type BreweryTierName } from '@/lib/tier-system';
 import { checkAndGrantAchievements } from '@/lib/achievements';
 import { useAchievementNotification } from '@/app/context/AchievementNotificationContext';
+import { useAuth } from '@/app/context/AuthContext';
 
 export default function TeamInventoryPage({ params }: { params: Promise<{ breweryId: string }> }) {
 	const { breweryId } = use(params);
+	const { user, loading: authLoading } = useAuth();
+	
 	const [bottles, setBottles] = useState<any[]>([]);
 	const [brews, setBrews] = useState<any[]>([]);
 	const [amount, setAmount] = useState(10);
 	const [isWorking, setIsWorking] = useState(false);
 	const [isMounted, setIsMounted] = useState(false);
-	const [userTier, setUserTier] = useState<TierName>('hobby');
+	const [breweryTier, setBreweryTier] = useState<BreweryTierName>('garage');
 	const { showAchievement } = useAchievementNotification();
 
 	const [showScanner, setShowScanner] = useState(false);
@@ -42,46 +45,37 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 
 	useEffect(() => {
 		setIsMounted(true);
-		checkAuth();
-	}, [breweryId]);
-
-	async function checkAuth() {
-		const { data: { user } } = await supabase.auth.getUser();
-		if (!user) {
-			router.push(`/login?next=/team/${breweryId}/inventory`);
-			return;
+		if (!authLoading) {
+			if (!user) {
+				router.push(`/login?redirect=/team/${breweryId}/inventory`);
+			} else {
+				loadData();
+			}
 		}
-		loadData();
-	}
+	}, [user, authLoading, breweryId]);
 
 	async function loadData() {
-		const { data: { user } } = await supabase.auth.getUser();
 		if (!user) return;
 
-		// 1. Validate Brewery Access
+		// 1. Validate Brewery Access (Team Context)
 		const { data: brewery, error } = await supabase
 			.from('breweries')
 			.select('*, brewery_members!inner(user_id)')
 			.eq('id', breweryId)
-			.eq('brewery_members.user_id', user.id)
-			.single();
+			.eq('brewery_members.user_id', user.id) // Ensure user is a member
+			.maybeSingle();
 
 		if (error || !brewery) {
 			console.error("Access denied or brewery not found");
-			router.push('/dashboard'); // or /team selection
+			router.push('/dashboard'); 
 			return;
 		}
 
 		setActiveBrewery(brewery);
 
 		if (brewery) {
-			// TODO: Verify if we should use the Team Owner's tier instead of the current user's tier
-			const { data: profile } = await supabase
-				.from('profiles')
-				.select('tier')
-				.eq('id', user.id)
-				.single();
-			if (profile?.tier) setUserTier(profile.tier as TierName);
+			// Get Brewery Tier
+			setBreweryTier((brewery.tier as BreweryTierName) || 'garage');
 
 			const { data: btl } = await supabase
 				.from('bottles')
@@ -169,7 +163,6 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 		}
 	}
 
-	// Helper function for PDF generation reusable for batch and selection
 	async function generatePdfForBottles(bottlesList: any[], title: string) {
 		const doc = new jsPDF();
 		doc.setFont("helvetica", "bold");
@@ -216,20 +209,20 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 			return;
 		}
 
-		const tierConfig = getTierConfig(userTier);
+		const tierConfig = getBreweryTierConfig(breweryTier);
 		if (bottles.length + amount > tierConfig.limits.maxBottles) {
 			alert(
 				`🔒 Limit erreicht!\n\n` +
-				`Dein Tier "${tierConfig.displayName}" erlaubt maximal ${tierConfig.limits.maxBottles} Flaschen.\n` +
-				`Du hast aktuell ${bottles.length} Flaschen. Du kannst nur noch ${tierConfig.limits.maxBottles - bottles.length} erstellen.\n\n` +
-				`Lösche alte Flaschen, um mehr zu erstellen.`
+				`Der Brauerei-Status "${tierConfig.displayName}" erlaubt maximal ${tierConfig.limits.maxBottles} Flaschen.\n` +
+				`Aktuell: ${bottles.length} Flaschen. Noch möglich: ${tierConfig.limits.maxBottles - bottles.length}.\n\n` +
+				`Lösche alte Flaschen, um neue zu erstellen.`
 			);
 			return;
 		}
 
 		setIsWorking(true);
 		try {
-			const { data: { user } } = await supabase.auth.getUser();
+			if (!user) return;
 
 			// Aktuelle Max-Nummer holen
 			const { data: maxResult } = await supabase
@@ -247,7 +240,7 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 				return {
 					brew_id: null,
 					user_id: user?.id,
-					brewery_id: activeBrewery?.id,
+					brewery_id: activeBrewery?.id, 
 					bottle_number: currentNum
 				};
 			});
@@ -263,7 +256,7 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
       
 			await loadData();
 			
-			// Achievements im Hintergrund prüfen (neue Flaschen erstellt)
+			// Achievements
 			if (user?.id) {
 				checkAndGrantAchievements(user.id).then(newAchievements => {
 					newAchievements.forEach(achievement => showAchievement(achievement));
@@ -295,7 +288,6 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 	};
 
 	async function renumberBottles() {
-		const { data: { user } } = await supabase.auth.getUser();
 		if (!user || !activeBrewery) return;
 
 		// 1. Alle Flaschen holen, sortiert nach aktueller Nummer (Brauerei)
@@ -316,7 +308,7 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 
 		const { error } = await supabase
 			.from('bottles')
-			.upsert(updates, { onConflict: 'id' as never }); 
+			.upsert(updates, { onConflict: 'id' });
 
 		if (error) console.error("Renumber Error", error);
 	}
@@ -328,7 +320,6 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 			const { error } = await supabase.from('bottles').delete().in('id', Array.from(selectedBottles));
 			if (error) throw error;
 			
-			// Lücken schließen durch Neunummerierung
 			await renumberBottles();
 
 			setSelectedBottles(new Set());
@@ -387,7 +378,6 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 
 		const bottleId = idMatch[0];
 
-		// Verhindere Dauerfeuer auf dieselbe Flasche
 		if (bottleId === lastScannedId) return;
 
 		if (!scanBrewId) {
@@ -400,10 +390,8 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 		setIsProcessingScan(true);
 		
 		try {
-			const { data: { user } } = await supabase.auth.getUser();
 			if (!user) throw new Error("Nicht eingeloggt");
 
-			// Neue Nummer berechnen (max + 1), damit sie sauber ins Inventar passt
 			const { data: maxResult } = await supabase
 				.from('bottles')
 				.select('bottle_number')
@@ -413,11 +401,8 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 				.single();
 			
 			const nextNumber = (maxResult?.bottle_number || 0) + 1;
-
-			// Bestimme brew_id
 			const newBrewId = scanBrewId === "EMPTY_ACTION" ? null : scanBrewId;
-
-			// Check bottle existing state
+			
 			const { data: existingBottle } = await supabase
 				.from('bottles')
 				.select('brewery_id, bottle_number')
@@ -429,7 +414,6 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 				brewery_id: activeBrewery.id
 			};
 
-			// If bottle was from another brewery, assign new number
 			if (existingBottle && existingBottle.brewery_id !== activeBrewery.id) {
 				updatePayload.bottle_number = nextNumber;
 			}
@@ -479,18 +463,6 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 		if (!error) loadData();
 	}
 
-	async function deleteBottle(id: string, number: number) {
-		if (!confirm(`Möchtest du Flasche #${number} wirklich aus dem Inventar löschen?`)) return;
-
-		try {
-			const { error } = await supabase.from('bottles').delete().eq('id', id);
-			if (error) throw error;
-			loadData();
-		} catch (e: any) {
-			alert("Fehler beim Löschen: " + e.message);
-		}
-	}
-
 	async function showQrModal(bottle: any) {
 		const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://botllab.vercel.app';
 		const scanUrl = `${baseUrl}/b/${bottle.id}`;
@@ -525,29 +497,27 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 		empty: bottles.filter(b => !b.brew_id).length
 	};
 
-	if (!isMounted) return null;
-
 	return (
-		<div className="space-y-8 pb-20 p-6 sm:p-8 animate-fade-in">
+		<div className="space-y-8 pb-32">
       
 			<div className="flex flex-col xl:flex-row xl:items-end justify-between gap-6">
 				<div>
 					<h2 className="text-4xl font-black text-foreground tracking-tight">Inventar</h2>
 					<p className="text-zinc-400 mt-2 max-w-lg">
-						Verwalte deine Mehrwegflaschen. Generiere Codes für neue Flaschen oder scanne bestehende, um sie einem Rezept zuzuordnen.
+						Verwalte deine Mehrwegflaschen im Team. Generiere Codes für neue Flaschen oder scanne bestehende, um sie einem Rezept zuzuordnen.
 					</p>
 				</div>
         
 					<div className="flex gap-4">
-						<div className="bg-surface border border-border p-4 rounded-2xl w-32 shadow-lg">
+						<div className="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl w-32 shadow-lg">
 							<div className="text-xs font-bold uppercase text-zinc-500 tracking-wider mb-1">Gesamt</div>
-							<div className="text-3xl font-black text-brand">{stats.total}</div>
+							<div className="text-3xl font-black text-cyan-500">{stats.total}</div>
 						</div>
-						<div className="bg-surface border border-border p-4 rounded-2xl w-32 shadow-lg">
+						<div className="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl w-32 shadow-lg">
 							<div className="text-xs font-bold uppercase text-zinc-500 tracking-wider mb-1">Gefüllt</div>
 							<div className="text-3xl font-black text-emerald-300">{stats.full}</div>
 						</div>
-						<div className="bg-surface border border-border p-4 rounded-2xl w-32 shadow-lg">
+						<div className="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl w-32 shadow-lg">
 							<div className="text-xs font-bold uppercase text-zinc-500 tracking-wider mb-1">Leer</div>
 							<div className="text-3xl font-black text-amber-200">{stats.empty}</div>
 						</div>
@@ -558,27 +528,27 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
         
 				<div className="lg:col-span-4 space-y-6">
            
-					 <div className={`bg-surface border border-border rounded-3xl overflow-hidden transition-all duration-300 shadow-xl ${showScanner ? 'ring-2 ring-brand/50' : ''}`}>
+					 <div className={`bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden transition-all duration-300 shadow-xl ${showScanner ? 'ring-2 ring-cyan-500/50' : ''}`}>
 							<div className="p-6">
 								 <div className="flex justify-between items-center mb-4">
 										<h3 className="text-lg font-bold flex items-center gap-2">📷 &nbsp;Scanner</h3>
 										<button 
 											onClick={() => setShowScanner(!showScanner)} 
-											className={`text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide border transition ${showScanner ? 'bg-red-500/10 text-red-500 border-red-500/30' : 'bg-surface-hover text-zinc-400 border-zinc-700'}`}
+											className={`text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide border transition ${showScanner ? 'bg-red-500/10 text-red-500 border-red-500/30' : 'bg-zinc-800 text-zinc-400 border-zinc-700'}`}
 										>
 											{showScanner ? 'Schließen' : 'Starten'}
 										</button>
 								 </div>
                  
 								 {showScanner ? (
-									 <div className="space-y-4 animate-fade-in">
+									 <div className="space-y-4 animate-in fade-in">
 											<div>
 												<label className="text-[10px] font-bold uppercase text-zinc-500 tracking-widest block mb-2">Rezept füllen / Leeren</label>
 												<select 
 													 value={scanBrewId}
 													 onChange={(e) => setScanBrewId(e.target.value)}
 													suppressHydrationWarning
-													className="w-full bg-black border border-zinc-700 rounded-xl p-3 text-sm focus:border-brand outline-none"
+													className="w-full bg-black border border-zinc-700 rounded-xl p-3 text-sm focus:border-cyan-500 outline-none"
 												>
 													<option value="">-- Aktion wählen --</option>
 													<option value="EMPTY_ACTION">🗑️ Flasche leeren</option>
@@ -611,7 +581,7 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 							</div>
 					 </div>
 
-					 <div className="bg-surface border border-border rounded-3xl p-6 shadow-xl">
+					 <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-xl">
 							<h3 className="text-lg font-bold mb-4 flex items-center gap-2">📦 &nbsp;Neue Flaschen</h3>
 							<div className="space-y-4">
 								 <div>
@@ -623,13 +593,13 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 											max="100"
 											value={amount} 
 											onChange={(e) => setAmount(parseInt(e.target.value))}
-											className="w-full bg-black border border-zinc-700 rounded-xl p-3 text-lg font-bold focus:border-brand outline-none"
+											className="w-full bg-black border border-zinc-700 rounded-xl p-3 text-lg font-bold focus:border-cyan-500 outline-none"
 										/>
 								 </div>
 								 <button 
 									 onClick={createBatchAndDownloadPDF}
 									 disabled={isWorking}
-									 className="w-full py-4 bg-brand hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed text-black font-bold rounded-xl transition flex items-center justify-center gap-2"
+									 className="w-full py-4 bg-cyan-500 hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed text-black font-bold rounded-xl transition flex items-center justify-center gap-2"
 								 >
 									 {isWorking ? <span className="animate-pulse">Erstelle...</span> : <span>Generieren & Drucken</span>}
 								 </button>
@@ -642,7 +612,7 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 
 				<div className="lg:col-span-8 flex flex-col gap-6">
            
-					 <div className="bg-surface border border-border p-2 rounded-2xl flex flex-col sm:flex-row gap-2 shadow-lg">
+					 <div className="bg-zinc-900 border border-zinc-800 p-2 rounded-2xl flex flex-col sm:flex-row gap-2 shadow-lg">
 							<div className="flex-1 relative">
 								 <span className="absolute left-4 top-3.5 text-zinc-500">🔍</span>
 								 <input 
@@ -651,7 +621,7 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 									 value={filterText}
 									 onChange={e => setFilterText(e.target.value)}
 									 suppressHydrationWarning
-									 className="w-full bg-transparent pl-10 pr-4 py-3 text-sm font-bold text-foreground outline-none placeholder:font-normal placeholder:text-zinc-600"
+									 className="w-full bg-transparent pl-10 pr-4 py-3 text-sm font-bold text-white outline-none placeholder:font-normal placeholder:text-zinc-600"
 								 />
 							</div>
 							<div className="flex gap-2">
@@ -660,11 +630,11 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 										value={filterStatus}
 										onChange={(e) => setFilterStatus(e.target.value as any)}
 										suppressHydrationWarning
-										className="appearance-none bg-surface-hover text-foreground text-xs font-bold pl-4 pr-8 py-3 rounded-xl outline-none hover:bg-zinc-700 focus:ring-2 focus:ring-brand transition cursor-pointer border border-zinc-700"
+										className="appearance-none bg-zinc-800 text-white text-xs font-bold pl-4 pr-8 py-3 rounded-xl outline-none hover:bg-zinc-700 focus:ring-2 focus:ring-cyan-500 transition cursor-pointer border border-zinc-700"
 									>
-										<option value="all" className="bg-surface">Alle Flaschen</option>
-										<option value="filled" className="bg-surface">Nur Gefüllte</option>
-										<option value="empty" className="bg-surface">Nur Leere</option>
+										<option value="all" className="bg-zinc-900">Alle Flaschen</option>
+										<option value="filled" className="bg-zinc-900">Nur Gefüllte</option>
+										<option value="empty" className="bg-zinc-900">Nur Leere</option>
 									</select>
 									<div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-zinc-400">
 										<svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
@@ -676,11 +646,11 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 										value={sortOption}
 										onChange={(e) => setSortOption(e.target.value as any)}
 										suppressHydrationWarning
-										className="appearance-none bg-surface-hover text-foreground text-xs font-bold pl-4 pr-8 py-3 rounded-xl outline-none hover:bg-zinc-700 focus:ring-2 focus:ring-brand transition cursor-pointer border border-zinc-700"
+										className="appearance-none bg-zinc-800 text-white text-xs font-bold pl-4 pr-8 py-3 rounded-xl outline-none hover:bg-zinc-700 focus:ring-2 focus:ring-cyan-500 transition cursor-pointer border border-zinc-700"
 									>
-										<option value="number_asc" className="bg-surface">Nr. Aufsteigend</option>
-										<option value="number_desc" className="bg-surface">Nr. Absteigend</option>
-										<option value="newest" className="bg-surface">Neueste zuerst</option>
+										<option value="number_asc" className="bg-zinc-900">Nr. Aufsteigend</option>
+										<option value="number_desc" className="bg-zinc-900">Nr. Absteigend</option>
+										<option value="newest" className="bg-zinc-900">Neueste zuerst</option>
 									</select>
 									<div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-zinc-400">
 										<svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
@@ -689,10 +659,10 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 							</div>
 					 </div>
            
-					 <div className="bg-surface border border-border rounded-3xl overflow-hidden flex-1 min-h-[500px] shadow-xl">
+					 <div className="bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden flex-1 min-h-[500px] shadow-xl">
 							<div className="overflow-x-auto">
 								<table className="w-full text-left">
-									<thead className="bg-black/20 text-zinc-500 text-[10px] uppercase font-bold tracking-widest border-b border-border">
+									<thead className="bg-black/20 text-zinc-500 text-[10px] uppercase font-bold tracking-widest border-b border-zinc-800">
 										<tr>
 											<th className="p-5 w-10">
 												<label className="relative flex items-center justify-center cursor-pointer group">
@@ -715,9 +685,9 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 											<th className="p-5 w-24 text-right"></th>
 										</tr>
 									</thead>
-									<tbody className="divide-y divide-border">
+									<tbody className="divide-y divide-zinc-800">
 										{filteredBottles.map((bottle) => (
-											<tr key={bottle.id} className={`group transition-colors ${selectedBottles.has(bottle.id) ? 'bg-zinc-500/10' : 'hover:bg-surface-hover/30'}`}>
+											<tr key={bottle.id} className={`group transition-colors ${selectedBottles.has(bottle.id) ? 'bg-zinc-500/10' : 'hover:bg-zinc-800/30'}`}>
 												<td className="p-5">
 													<label className="relative flex items-center justify-center cursor-pointer">
 														<input 
@@ -733,13 +703,13 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 														</div>
 													</label>
 												</td>
-												<td className="p-5 font-black text-brand text-lg">
+												<td className="p-5 font-black text-cyan-500 text-lg">
 													 #{bottle.bottle_number}
 												</td>
 												<td className="p-5">
 													 {bottle.brews?.name ? (
 														 <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
-																<div className="font-bold text-foreground text-base truncate max-w-[120px] sm:max-w-none">{bottle.brews.name}</div>
+																<div className="font-bold text-white text-base truncate max-w-[120px] sm:max-w-none">{bottle.brews.name}</div>
 																{/* Desktop Badge */}
 																<span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-wide">
 																	<span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
@@ -755,7 +725,7 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 														<div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
 																<div className="font-bold text-zinc-600 text-base">Unbelegt</div>
 																{/* Desktop Badge */}
-																<span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-hover border border-zinc-700 text-zinc-400 text-[10px] font-bold uppercase tracking-wide">
+																<span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-400 text-[10px] font-bold uppercase tracking-wide">
 																	<span className="w-1.5 h-1.5 rounded-full bg-zinc-500"></span>
 																	Leer
 																</span>
@@ -772,7 +742,7 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 														value={bottle.brew_id || ""}
 														onChange={(e) => updateBottleBrew(bottle.id, e.target.value)}
 													 suppressHydrationWarning
-													 className="w-full appearance-none bg-surface-hover border border-zinc-700 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-brand focus:ring-2 focus:ring-brand/50 hover:border-brand/40 transition shadow-sm"
+													 className="w-full appearance-none bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/50 hover:border-cyan-500/40 transition shadow-sm"
 													 >
 															<option value="">(Leer)</option>
 															{brews.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
@@ -782,7 +752,7 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 													 <div className="flex justify-end gap-2 opacity-50 group-hover:opacity-100 transition-opacity">
 															<button 
 																onClick={() => showQrModal(bottle)}
-																className="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-hover hover:bg-zinc-700 text-foreground transition"
+																className="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white transition"
 																title="QR Code"
 															>
 																📱
@@ -796,7 +766,7 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 											<tr>
 												<td colSpan={4} className="p-12 text-center">
 													 <div className="text-4xl mb-4">🫙</div>
-													 <h3 className="text-foreground font-bold mb-2">Keine Flaschen gefunden</h3>
+													 <h3 className="text-white font-bold mb-2">Keine Flaschen gefunden</h3>
 													 <p className="text-zinc-500 text-sm">Passe deine Filter an oder erstelle neue Flaschen.</p>
 												</td>
 											</tr>
@@ -811,7 +781,7 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 
 			{viewQr && (
 				<div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setViewQr(null)}>
-					<div className="bg-surface border border-border rounded-2xl p-6 w-full max-w-md relative" onClick={e => e.stopPropagation()}>
+					<div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 w-full max-w-md relative" onClick={e => e.stopPropagation()}>
 						<button className="absolute top-3 right-3 text-zinc-500 hover:text-white" onClick={() => setViewQr(null)}>✖</button>
 						<h3 className="text-lg font-bold mb-4">QR-Code für Flasche #{viewQr.bottleNumber}</h3>
 						<div className="bg-white p-4 rounded-xl">
@@ -824,9 +794,9 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 
 			{/* Bulk Action Bar */}
 			{selectedBottles.size > 0 && (
-				<div className="fixed bottom-0 left-0 right-0 p-4 bg-zinc-900 border-t border-zinc-800 flex items-center justify-between z-40 animate-slide-up shadow-2xl">
+				<div className="fixed bottom-0 left-0 right-0 p-4 bg-zinc-900 border-t border-zinc-800 flex items-center justify-between z-40 animate-in slide-in-from-bottom shadow-2xl">
 					<div className="flex items-center gap-4">
-						<div className="bg-brand text-black font-bold px-3 py-1 rounded-full text-xs">
+						<div className="bg-cyan-500 text-black font-bold px-3 py-1 rounded-full text-xs">
 							{selectedBottles.size} ausgewählt
 						</div>
 						<div className="hidden sm:block text-xs text-zinc-400">
@@ -862,7 +832,7 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 			{/* Bulk Assign Modal */}
 			{showBulkAssign && (
 				<div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowBulkAssign(false)}>
-					<div className="bg-surface border border-border rounded-2xl p-6 w-full max-w-sm relative" onClick={e => e.stopPropagation()}>
+					<div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 w-full max-w-sm relative" onClick={e => e.stopPropagation()}>
 						<button className="absolute top-3 right-3 text-zinc-500 hover:text-white" onClick={() => setShowBulkAssign(false)}>✖</button>
 						<h3 className="text-lg font-bold mb-4">Massen-Zuweisung</h3>
 						<p className="text-sm text-zinc-400 mb-4">Wähle ein Rezept für die {selectedBottles.size} ausgewählten Flaschen.</p>
@@ -870,7 +840,7 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 						<select 
 							value={bulkAssignBrewId}
 							onChange={(e) => setBulkAssignBrewId(e.target.value)}
-							className="w-full bg-black border border-zinc-700 rounded-xl p-3 text-sm focus:border-brand outline-none mb-4"
+							className="w-full bg-black border border-zinc-700 rounded-xl p-3 text-sm focus:border-cyan-500 outline-none mb-4"
 						>
 							<option value="">(Leer / Entleeren)</option>
 							{brews.map(b => (
@@ -888,7 +858,7 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 							<button 
 								onClick={handleBulkAssign}
 								disabled={isWorking}
-								className="flex-1 py-3 bg-brand hover:brightness-110 text-black rounded-xl font-bold text-sm"
+								className="flex-1 py-3 bg-cyan-500 hover:brightness-110 text-black rounded-xl font-bold text-sm"
 							>
 								{isWorking ? 'Speichere...' : 'Anwenden'}
 							</button>
@@ -900,4 +870,3 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 		</div>
 	);
 }
-

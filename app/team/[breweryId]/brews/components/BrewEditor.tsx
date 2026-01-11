@@ -4,9 +4,11 @@ import { useEffect, useState, useRef, type ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-import { getTierConfig } from '@/lib/tier-system';
+import { getBreweryTierConfig } from '@/lib/tier-system';
 import { checkAndGrantAchievements } from '@/lib/achievements';
 import { useAchievementNotification } from '@/app/context/AchievementNotificationContext';
+import { useAuth } from '@/app/context/AuthContext';
+import { addToFeed } from '@/lib/feed-service';
 import CrownCap from '@/app/components/CrownCap';
 
 // Simple SVG Component to replace Heroicons
@@ -129,10 +131,12 @@ const CAP_ICONS = ['🍺', '🍷', '🍎', '🍯', '🥤', '🔥', '🌊', '🧬
 
 export default function BrewEditor({ breweryId, brewId }: { breweryId: string, brewId?: string }) {
 	const router = useRouter();
+	const { user, loading: authLoading } = useAuth();
 	const id = brewId || 'new';
 	const { showAchievement } = useAchievementNotification();
 
 	const [loading, setLoading] = useState(true);
+	const [breweryTier, setBreweryTier] = useState<string>('garage');
 	const [saving, setSaving] = useState(false);
 	const [generating, setGenerating] = useState(false);
 	const [uploading, setUploading] = useState(false);
@@ -166,12 +170,14 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 	}
 
 	useEffect(() => {
-		init();
-	}, [id, breweryId]);
+		if (!authLoading) {
+			init();
+		}
+	}, [id, breweryId, authLoading]);
 
 	async function init() {
 		setLoading(true);
-		const { data: { user } } = await supabase.auth.getUser();
+		
 		if (!user) {
 			const redirectPath = id === 'new' 
                 ? `/team/${breweryId}/brews/new` 
@@ -179,6 +185,10 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 			router.push(`/login?redirect=${redirectPath}`);
 			return;
 		}
+        
+        // Fetch Brewery Tier
+        const { data: bData } = await supabase.from('breweries').select('tier').eq('id', breweryId).maybeSingle();
+        if (bData) setBreweryTier(bData.tier || 'garage');
 
 		if (id !== 'new') {
 			const { data, error } = await supabase
@@ -189,7 +199,6 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 				.maybeSingle();
 
 			if (error || !data) {
-                // If not found, maybe redirect to list
 				router.push(`/team/${breweryId}/brews`);
 				return;
 			}
@@ -218,24 +227,18 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 	async function handleSave() {
 		setMessage(null);
 		setSaving(true);
-		const { data: { user } } = await supabase.auth.getUser();
+		
 		if (!user) return;
 
 		if (id === 'new') {
-			const { data: profile } = await supabase
-				.from('profiles')
-				.select('tier')
-				.eq('id', user.id)
-				.maybeSingle();
-
-			const tierConfig = getTierConfig(profile?.tier || 'bronze');
+			const tierConfig = getBreweryTierConfig(breweryTier as any);
 			const { count } = await supabase
 				.from('brews')
 				.select('*', { count: 'exact', head: true })
 				.eq('brewery_id', breweryId);
 
 			if ((count || 0) >= tierConfig.limits.maxBrews) {
-				setMessage(`Limit erreicht: ${tierConfig.displayName} erlaubt ${tierConfig.limits.maxBrews} Rezepte.`);
+				setMessage(`Brauerei-Limit erreicht: ${tierConfig.displayName} erlaubt ${tierConfig.limits.maxBrews} Rezepte.`);
 				setSaving(false);
 				return;
 			}
@@ -265,9 +268,14 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 				return;
 			}
 
+			// Feed Post
+			addToFeed(breweryId, user, 'BREW_CREATED', {
+				brew_id: data.id,
+				brew_name: data.name
+			});
+
 			setBrew({ ...data, data: data.data || {} });
 			setSaving(false);
-            // Replace logic for new URL
 			router.replace(`/team/${breweryId}/brews/${data.id}/edit`);
 			await loadRatings(data.id);
 			
@@ -291,7 +299,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 				data: brew.data || {},
 			})
 			.eq('id', id)
-            .eq('brewery_id', breweryId) // Ensure we only update if brewery matches
+            .eq('brewery_id', breweryId)
 			.select()
 			.single();
 
@@ -300,6 +308,19 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 		} else {
 			setBrew({ ...data, data: data.data || {} });
 			setMessage('Gespeichert.');
+			// Feed Post for Update (optional, maybe check if name changed or meaningful update?)
+			// For now let's just log major updates or leave it to manual posts to reduce noise
+			// If name changed:
+			/* 
+			if (brew.name !== data.name) {
+				addToFeed(breweryId, user, 'BREW_UPDATED', {
+					brew_id: data.id,
+					brew_name: data.name,
+					message: 'hat den Namen des Rezepts geändert'
+				});
+			}
+			*/
+
 			if (data.id) await loadRatings(data.id);
 			
 			checkAndGrantAchievements(user.id).then(newAchievements => {
@@ -342,7 +363,6 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 
 	async function removeRating(ratingId: string) {
 		setRatingsMessage(null);
-		const { data: { user } } = await supabase.auth.getUser();
 		if (!user || !brew.id) return;
 		try {
 			const { error } = await supabase
@@ -683,7 +703,6 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 
 			if (!imageUrl) throw new Error('Keine URL erhalten');
 
-			const { data: { user } } = await supabase.auth.getUser();
 			if (!user) throw new Error('Nicht authentifiziert');
 
 			const { data, error } = await supabase
@@ -796,9 +815,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                 {/* Header Back Link */}
                 <div className="flex items-center gap-4 text-zinc-500 hover:text-white transition-colors">
                     <button onClick={() => router.push(`/team/${breweryId}/brews`)} className="flex items-center gap-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-                        </svg>
+                        <ArrowLeftIcon className="w-5 h-5" />
                         <span>Zurück zur Übersicht</span>
                     </button>
                 </div>
@@ -880,8 +897,6 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 					})()}
 				</div>
 
-                {/* Rest of the Tabs content is indentical to previous */}
-                {/* Editor Tab */}
 				{activeTab === 'editor' && (
 				<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 					<div className="space-y-5 bg-zinc-950 border border-zinc-800 rounded-2xl p-5">
@@ -1154,23 +1169,41 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 								</div>
 							</div>
 						)}
-                        
-                        {/* More types omitted for brevity if needed, but I should include them if possible. 
-                            I will include Cider/Mead/Softdrink as they were in the original file. 
-                        */}
-                        {brew.brew_type === 'cider' && (
+
+						{brew.brew_type === 'cider' && (
 							<div className="mt-8 space-y-10">
+								{/* Section: Messwerte */}
 								<div>
 									<h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
 										<div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm border border-zinc-700">📊</div>
 										Messwerte
 									</h3>
 									<div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-										<NumberInput label="ABV (%)" value={brew.data?.abv || ''} onChange={(val) => updateData('abv', val)} placeholder="6.2" step={0.1} />
-										<NumberInput label="Kohlensäure (g/l)" value={brew.data?.carbonation_g_l || ''} onChange={(val) => updateData('carbonation_g_l', val)} placeholder="6" step={0.1} />
-										<NumberInput label="pH-Wert" value={brew.data?.pH || ''} onChange={(val) => updateData('pH', val)} placeholder="3.5" step={0.1} />
+										<NumberInput 
+											label="ABV (%)" 
+											value={brew.data?.abv || ''} 
+											onChange={(val) => updateData('abv', val)} 
+											placeholder="6.2" 
+											step={0.1} 
+										/>
+										<NumberInput 
+											label="Kohlensäure (g/l)" 
+											value={brew.data?.carbonation_g_l || ''} 
+											onChange={(val) => updateData('carbonation_g_l', val)} 
+											placeholder="6" 
+											step={0.1} 
+										/>
+										<NumberInput 
+											label="pH-Wert" 
+											value={brew.data?.pH || ''} 
+											onChange={(val) => updateData('pH', val)} 
+											placeholder="3.5" 
+											step={0.1} 
+										/>
 									</div>
 								</div>
+
+								{/* Section: Zutaten */}
 								<div>
 									<h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
 										<div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm border border-zinc-700">🍏</div>
@@ -1179,18 +1212,199 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 									<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 										<div>
 											<label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 block">Apfelsorten</label>
-											<input className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-600" value={brew.data?.apples || ''} onChange={(e) => updateData('apples', e.target.value)} placeholder="z.B. Boskoop, Elstar..." />
+											<input 
+												className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-600" 
+												value={brew.data?.apples || ''} 
+												onChange={(e) => updateData('apples', e.target.value)} 
+												placeholder="z.B. Boskoop, Elstar..." 
+											/>
 										</div>
 										<div>
 											<label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 block">Hefe</label>
-											<input className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-600" value={brew.data?.yeast || ''} onChange={(e) => updateData('yeast', e.target.value)} placeholder="z.B. Cider Yeast" />
+											<input 
+												className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-600" 
+												value={brew.data?.yeast || ''} 
+												onChange={(e) => updateData('yeast', e.target.value)} 
+												placeholder="z.B. Cider Yeast" 
+											/>
+										</div>
+									</div>
+								</div>
+
+								{/* Section: Prozess */}
+								<div>
+									<h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
+										<div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm border border-zinc-700">⚙️</div>
+										Verarbeitung
+									</h3>
+									<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+										<div>
+											<label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 block">Gärung</label>
+											<select 
+												className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none appearance-none" 
+												value={brew.data?.fermentation || ''} 
+												onChange={(e) => updateData('fermentation', e.target.value)}
+											>
+												<option value="">– bitte wählen –</option>
+												<option value="wild">Wild (Spontan)</option>
+												<option value="cultured">Reinzucht (Kulturhefe)</option>
+											</select>
+										</div>
+										<div>
+											<label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 block">Süßegrad</label>
+											<select 
+												className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none appearance-none" 
+												value={brew.data?.sweetness || ''} 
+												onChange={(e) => updateData('sweetness', e.target.value)}
+											>
+												<option value="dry">Trocken</option>
+												<option value="semi">Halbtrocken</option>
+												<option value="sweet">Süß</option>
+											</select>
 										</div>
 									</div>
 								</div>
 							</div>
 						)}
 
-						<div className="relative mt-8">
+						{brew.brew_type === 'mead' && (
+							<div className="mt-8 space-y-10">
+								{/* Section: Messwerte */}
+								<div>
+									<h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
+										<div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm border border-zinc-700">📊</div>
+										Messwerte
+									</h3>
+									<div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+										<NumberInput 
+											label="ABV (%)" 
+											value={brew.data?.abv || ''} 
+											onChange={(val) => updateData('abv', val)} 
+											placeholder="14.0" 
+											step={0.1} 
+										/>
+										<NumberInput 
+											label="Final Gravity" 
+											value={brew.data?.final_gravity || ''} 
+											onChange={(val) => updateData('final_gravity', val)} 
+											placeholder="1.010" 
+											step={0.001} 
+										/>
+										<NumberInput 
+										 label="Reifezeit (Monate)" 
+										 value={brew.data?.aging_months || ''} 
+										 onChange={(val) => updateData('aging_months', val)} 
+										 placeholder="6" 
+										/>
+									</div>
+								</div>
+
+								{/* Section: Zutaten */}
+								<div>
+									<h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
+										<div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm border border-zinc-700">🍯</div>
+										Zutaten
+									</h3>
+									<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+										<div>
+											<label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 block">Honigsorte(n)</label>
+											<input 
+												className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-600" 
+												value={brew.data?.honey || ''} 
+												onChange={(e) => updateData('honey', e.target.value)} 
+												placeholder="z.B. Akazie, Waldhonig..." 
+											/>
+										</div>
+										<div>
+											<label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 block">Hefe</label>
+											<input 
+												className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-600" 
+												value={brew.data?.yeast || ''} 
+												onChange={(e) => updateData('yeast', e.target.value)} 
+												placeholder="z.B. Lalvin D-47, QA23" 
+											/>
+										</div>
+										<div className="md:col-span-2">
+											<label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 block">Zusätze (Früchte / Gewürze)</label>
+											<input 
+												className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-600" 
+												value={brew.data?.adjuncts || ''} 
+												onChange={(e) => updateData('adjuncts', e.target.value)} 
+												placeholder="z.B. Himbeeren, Zimt, Vanille..." 
+											/>
+										</div>
+									</div>
+								</div>
+							</div>
+						)}
+
+						{brew.brew_type === 'softdrink' && (
+							<div className="mt-8 space-y-10">
+								{/* Section: Messwerte */}
+								<div>
+									<h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
+										<div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm border border-zinc-700">📊</div>
+										Messwerte
+									</h3>
+									<div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+										<NumberInput 
+											label="Zucker (g/l)" 
+											value={brew.data?.sugar_g_l || ''} 
+											onChange={(val) => updateData('sugar_g_l', val)} 
+											placeholder="40" 
+											step={1} 
+										/>
+										<NumberInput 
+											label="Säure (pH)" 
+											value={brew.data?.acidity_ph || ''} 
+											onChange={(val) => updateData('acidity_ph', val)} 
+											placeholder="3.2" 
+											step={0.1} 
+										/>
+										<NumberInput 
+											label="Kohlensäure (g/l)" 
+											value={brew.data?.carbonation_g_l || ''} 
+											onChange={(val) => updateData('carbonation_g_l', val)} 
+											placeholder="5" 
+											step={0.1} 
+										/>
+									</div>
+								</div>
+
+								{/* Section: Zutaten */}
+								<div>
+									<h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
+										<div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm border border-zinc-700">🍋</div>
+										Inhalt
+									</h3>
+									<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+										<div className="md:col-span-2">
+											<label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 block">Basis / Geschmack</label>
+											<input 
+												className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-600" 
+												value={brew.data?.base || ''} 
+												onChange={(e) => updateData('base', e.target.value)} 
+												placeholder="z.B. Zitrone-Ingwer, Cola..." 
+											/>
+										</div>
+										<div className="flex flex-col gap-4">
+											<Toggle 
+												label="Natürliche Aromen" 
+												checked={!!brew.data?.natural_flavors} 
+												onChange={(val) => updateData('natural_flavors', val)} 
+											/>
+											<Toggle 
+												label="Farbstoff verwendet" 
+												checked={!!brew.data?.coloring} 
+												onChange={(val) => updateData('coloring', val)} 
+											/>
+										</div>
+									</div>
+								</div>
+							</div>
+						)}
+
+						<div className="relative">
 							<label className="text-xs uppercase font-bold text-cyan-400 mb-2 block">Beschreibung</label>
 							<div className="relative flex flex-col w-full bg-zinc-900 border border-zinc-800 rounded-xl transition focus-within:border-purple-500 focus-within:ring-2 focus-within:ring-purple-500/20 overflow-hidden">
 								<textarea
@@ -1212,10 +1426,52 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 							</div>
 						</div>
 					</div>
+
+					<div className="space-y-4 bg-zinc-950 border border-zinc-800 rounded-2xl p-5">
+						<div className="flex items-center justify-between">
+							<div>
+								<p className="text-xs uppercase tracking-[0.2em] text-blue-400 font-bold">KI-Assistent</p>
+								<p className="text-lg font-bold">Rezept-Optimierung</p>
+							</div>
+							<button
+								onClick={handleOptimizeRecipe}
+								disabled={analyzingRecipe || !brew.name || !brew.style}
+								className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold px-4 py-2 rounded-xl transition disabled:opacity-50 text-sm"
+							>
+								{analyzingRecipe ? '🔍 Analysiere...' : '🔬 Rezept analysieren'}
+							</button>
+						</div>
+
+						<p className="text-sm text-zinc-400">
+							Lass die KI dein Rezept analysieren und erhalte Verbesserungsvorschläge für Balance, Stil-Konformität und Zutaten.
+						</p>
+
+						{optimizationSuggestions.length > 0 && (
+							<div className="space-y-3">
+								<p className="text-xs uppercase tracking-[0.2em] text-blue-300 font-bold">Vorschläge</p>
+								{optimizationSuggestions.map((suggestion, idx) => (
+									<div
+										key={idx}
+										className="bg-zinc-900 border border-blue-500/20 rounded-xl p-4 flex gap-3"
+									>
+										<span className="text-blue-400 text-xl flex-shrink-0">💡</span>
+										<p className="text-sm text-zinc-300 leading-relaxed">{suggestion}</p>
+									</div>
+								))}
+							</div>
+						)}
+
+						{optimizationSuggestions.length === 0 && !analyzingRecipe && (
+							<div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 text-center">
+								<div className="text-4xl mb-3">🔬</div>
+								<p className="text-sm text-zinc-500">Noch keine Analyse durchgeführt</p>
+							</div>
+						)}
+					</div>
 				</div>
+
 				)}
 
-                {/* LABEL TAB */}
 				{activeTab === 'label' && (
 					<div className="max-w-2xl mx-auto space-y-6">
 						{!brew.id && (
@@ -1311,9 +1567,215 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 					</div>
 				)}
 
-                {/* Other tabs follow same pattern, omitting for space if needed but user asked to build pages. I will trust I can fit it if I truncate repetitive parts of the big form */}
+				{activeTab === 'badges' && (
+					<div className="max-w-2xl mx-auto space-y-6 text-center text-white">
+						<div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-8 space-y-8 shadow-2xl relative overflow-hidden">
+							{/* Background Decoration */}
+							<div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 blur-3xl -mr-16 -mt-16 rounded-full" />
+							
+							<div className="relative z-10">
+								<p className="text-xs uppercase tracking-[0.2em] text-cyan-400 font-bold mb-2">Digitale Abzeichen</p>
+								<h2 className="text-3xl font-black tracking-tight">Kronkorken-Designer</h2>
+								<p className="text-zinc-500 text-sm mt-3 max-w-md mx-auto leading-relaxed">
+									Wähle ein Symbol für dein digitales Sammlerstück. Dieses Abzeichen wird an User vergeben, die deine Flaschen scannen.
+								</p>
+							</div>
+
+							<div className="flex justify-center py-6">
+								<CrownCap 
+									content={brew.cap_url} 
+									tier="gold" 
+									size="lg"
+									className="hover:scale-105 transition-transform duration-500 cursor-pointer"
+								/>
+							</div>
+
+							<div className="space-y-8 relative z-10">
+								<div>
+									<p className="text-[10px] uppercase font-black text-zinc-500 tracking-widest mb-4">Standard Symbole</p>
+									<div className="grid grid-cols-4 sm:grid-cols-8 gap-3">
+										{CAP_ICONS.map(icon => (
+											<button
+												key={icon}
+												onClick={() => setBrew(prev => ({ ...prev, cap_url: icon }))
+												}
+												className={`h-12 w-12 flex items-center justify-center rounded-2xl transition-all duration-300 ${
+													brew.cap_url === icon 
+														? 'bg-cyan-500 text-black scale-110 shadow-lg shadow-cyan-500/20' 
+														: 'bg-zinc-900 border border-zinc-800 text-zinc-500 hover:border-zinc-600 hover:text-zinc-300'
+												}`}
+											>
+												<span className="text-xl">{icon}</span>
+											</button>
+										))}
+									</div>
+								</div>
+								
+								<div className="pt-8 border-t border-zinc-900 grid grid-cols-1 gap-4">
+									<button 
+										className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold px-6 py-4 rounded-xl hover:shadow-lg hover:shadow-purple-500/30 transition disabled:opacity-60 flex items-center justify-center gap-3 min-h-[60px]"
+										onClick={handleGenerateCap}
+										disabled={generatingCap || uploadingCap}
+									>
+										{generatingCap ? (
+											<>
+												<span className="animate-spin text-xl">🧪</span>
+												<span className="uppercase text-xs font-black tracking-widest">Generiere...</span>
+											</>
+										) : (
+											<>
+												<span className="text-xl">✨</span>
+												<div className="text-left">
+													<span className="text-xs font-black uppercase block tracking-wider">KI Design generieren</span>
+													<span className="text-[10px] opacity-70 font-medium">Einzigartiges Symbol via Gemini</span>
+												</div>
+											</>
+										)}
+									</button>
+									
+									<button 
+										className="bg-zinc-900 border border-zinc-800 hover:border-zinc-700 p-4 rounded-xl transition-all group flex items-center justify-center gap-3 text-zinc-400 hover:text-white disabled:opacity-50"
+										onClick={() => fileInputCapRef.current?.click()}
+										disabled={generatingCap || uploadingCap}
+									>
+										{uploadingCap ? (
+											<span className="animate-spin text-xl">⏳</span>
+										) : (
+											<>
+												<span className="text-xl">📂</span>
+												<span className="text-xs font-bold uppercase tracking-wider text-inherit">Eigener Icon-Upload</span>
+											</>
+										)}
+									</button>
+									<input
+										ref={fileInputCapRef}
+										type="file"
+										accept="image/*"
+										className="hidden"
+										onChange={handleCapUpload}
+									/>
+								</div>
+							</div>
+						</div>
+					</div>
+				)}
+
+				{activeTab === 'ratings' && (
+					<div className="max-w-2xl mx-auto space-y-6">
+						<div className="space-y-4 bg-zinc-950/60 border border-zinc-900 rounded-2xl p-5">
+							<div className="flex items-center justify-between">
+								<div>
+									<p className="text-xs uppercase tracking-[0.2em] text-green-400 font-bold">Bewertungen</p>
+									<p className="text-lg font-bold">Verwalten & Moderieren</p>
+								</div>
+								<button
+									onClick={() => loadRatings(brew.id!)}
+									disabled={ratingsLoading}
+									className="h-10 w-10 sm:w-auto sm:px-4 flex items-center justify-center gap-2 bg-zinc-900 border border-zinc-800 rounded-xl hover:bg-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-white transition disabled:opacity-50"
+									title="Bewertungen aktualisieren"
+								>
+									<span className={`text-lg ${ratingsLoading ? 'animate-spin' : ''}`}>🔄</span>
+									<span className="hidden sm:inline text-xs font-bold uppercase tracking-wider">Aktualisieren</span>
+								</button>
+							</div>
+
+							{ratingsMessage && (
+								<div className="bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-zinc-200">
+									{ratingsMessage}
+								</div>
+							)}
+
+							{ratingsLoading ? (
+								<div className="text-zinc-500">Lade Bewertungen…</div>
+							) : ratings.length === 0 ? (
+								<div className="text-zinc-500">Noch keine Bewertungen vorhanden.</div>
+							) : (
+								<div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
+									{ratings.map((r) => (
+										<div key={r.id} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+											<div className="flex items-start justify-between">
+												<div className="flex items-center gap-3">
+													<div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center text-white font-bold">
+														{((r.author_name || r.name || 'A') as string)[0].toUpperCase()}
+													</div>
+													<div>
+														<p className="font-bold text-white text-sm">{r.author_name || r.name || 'Anonym'}</p>
+														<p className="text-[11px] text-zinc-500">
+															{new Date(r.created_at).toLocaleDateString('de-DE')}
+														</p>
+													</div>
+												</div>
+												<div className="flex items-center gap-2">
+													<div className="flex text-yellow-500">
+														{[1,2,3,4,5].map(s => (
+															<span key={s} className={r.rating >= s ? 'opacity-100' : 'opacity-30'}>★</span>
+														))}
+													</div>
+													<span className="text-sm font-bold text-white">{r.rating}</span>
+												</div>
+											</div>
+
+											{r.comment && (
+												<p className="text-zinc-300 leading-relaxed mt-3">{r.comment}</p>
+											)}
+
+											<div className="flex flex-col sm:flex-row sm:items-center justify-between mt-6 gap-4 pt-4 border-t border-zinc-800/50">
+												<div className="flex items-center gap-2">
+													<div className={`w-2 h-2 rounded-full ${
+														r.moderation_status === 'auto_approved' || r.moderation_status === 'approved' 
+															? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' 
+															: r.moderation_status === 'rejected'
+															? 'bg-red-500'
+															: 'bg-amber-500 animate-pulse'
+													}`} />
+													<span className="text-[10px] uppercase font-black tracking-widest text-zinc-500">
+														{r.moderation_status || 'pending'}
+													</span>
+												</div>
+												<div className="grid grid-cols-3 sm:flex items-stretch gap-2 w-full sm:w-auto">
+													<button
+														onClick={() => moderateRating(r.id, 'approved')}
+														className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all duration-300 border ${
+															r.moderation_status === 'approved' || r.moderation_status === 'auto_approved'
+																? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30'
+																: 'bg-zinc-900/50 text-zinc-500 border-zinc-800 hover:border-emerald-500/50 hover:text-emerald-400'
+														}`}
+													>
+														<span className="text-sm">✓</span>
+														<span>Freigeben</span>
+													</button>
+													<button
+														onClick={() => moderateRating(r.id, 'rejected')}
+														className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all duration-300 border ${
+															r.moderation_status === 'rejected'
+																? 'bg-zinc-800 text-red-400 border-red-500/50'
+																: 'bg-zinc-900/50 text-zinc-500 border-zinc-800 hover:border-red-500/50 hover:text-red-400'
+														}`}
+													>
+														<span className="text-sm">✕</span>
+														<span>Ablehnen</span>
+													</button>
+													<button
+														onClick={() => {
+															if(confirm('Möchtest du diese Bewertung wirklich permanent löschen?')) removeRating(r.id);
+														}}
+														className="flex-1 flex flex-col sm:flex-row items-center justify-center gap-2 px-3 py-2.5 bg-zinc-900/50 text-zinc-600 border border-zinc-800 rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-red-950/20 hover:text-red-500 hover:border-red-900/50 transition-all duration-300"
+													>
+														<span className="text-sm">🗑️</span>
+														<span>Löschen</span>
+													</button>
+												</div>
+											</div>
+										</div>
+									))}
+								</div>
+							)}
+						</div>
+					</div>
+				)}
 			</div>
-			
+
+			{/* Sticky Action Bar for Mobile */}
 			<div className="fixed bottom-0 left-0 right-0 bg-zinc-950 border-t border-zinc-800 p-4 md:hidden z-50 flex items-center gap-3">
 				<button
 					onClick={() => router.push(`/team/${breweryId}/brews`)}

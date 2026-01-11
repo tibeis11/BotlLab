@@ -3,17 +3,15 @@
 import { useEffect } from 'react';
 import { supabase, getActiveBrewery } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/app/context/AuthContext';
 
 export default function TeamRedirect() {
+  const { user, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     async function redirect() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push('/login');
-        return;
-      }
+      if (!user) return;
 
       const brewery = await getActiveBrewery(user.id);
       if (brewery) {
@@ -25,8 +23,14 @@ export default function TeamRedirect() {
       }
     }
     
-    redirect();
-  }, []);
+    if (!loading) {
+       if (!user) {
+         router.push('/login');
+       } else {
+         redirect();
+       }
+    }
+  }, [user, loading, router]);
 
   return (
     <div className="flex items-center justify-center min-h-[50vh]">
