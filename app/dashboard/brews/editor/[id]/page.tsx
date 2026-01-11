@@ -1451,9 +1451,12 @@ export default function BrewEditorPage() {
 								</div>
 								<button
 									onClick={() => loadRatings(brew.id!)}
-									className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-sm text-zinc-300 hover:border-zinc-700"
+									disabled={ratingsLoading}
+									className="h-10 w-10 sm:w-auto sm:px-4 flex items-center justify-center gap-2 bg-zinc-900 border border-zinc-800 rounded-xl hover:bg-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-white transition disabled:opacity-50"
+									title="Bewertungen aktualisieren"
 								>
-									Aktualisieren
+									<span className={`text-lg ${ratingsLoading ? 'animate-spin' : ''}`}>🔄</span>
+									<span className="hidden sm:inline text-xs font-bold uppercase tracking-wider">Aktualisieren</span>
 								</button>
 							</div>
 
@@ -1497,26 +1500,50 @@ export default function BrewEditorPage() {
 												<p className="text-zinc-300 leading-relaxed mt-3">{r.comment}</p>
 											)}
 
-											<div className="flex items-center justify-between mt-4">
-												<span className="text-[11px] uppercase tracking-widest text-zinc-500">Status: {r.moderation_status || 'pending'}</span>
-												<div className="flex gap-2">
+											<div className="flex flex-col sm:flex-row sm:items-center justify-between mt-6 gap-4 pt-4 border-t border-zinc-800/50">
+												<div className="flex items-center gap-2">
+													<div className={`w-2 h-2 rounded-full ${
+														r.moderation_status === 'auto_approved' || r.moderation_status === 'approved' 
+															? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' 
+															: r.moderation_status === 'rejected'
+															? 'bg-red-500'
+															: 'bg-amber-500 animate-pulse'
+													}`} />
+													<span className="text-[10px] uppercase font-black tracking-widest text-zinc-500">
+														{r.moderation_status || 'pending'}
+													</span>
+												</div>
+												<div className="grid grid-cols-3 sm:flex items-stretch gap-2 w-full sm:w-auto">
 													<button
-														onClick={() => moderateRating(r.id, 'auto_approved')}
-														className="px-3 py-1.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded text-xs font-bold hover:bg-emerald-500/30"
+														onClick={() => moderateRating(r.id, 'approved')}
+														className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all duration-300 border ${
+															r.moderation_status === 'approved' || r.moderation_status === 'auto_approved'
+																? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30'
+																: 'bg-zinc-900/50 text-zinc-500 border-zinc-800 hover:border-emerald-500/50 hover:text-emerald-400'
+														}`}
 													>
-														Freigeben
+														<span className="text-sm">✓</span>
+														<span>Freigeben</span>
 													</button>
 													<button
 														onClick={() => moderateRating(r.id, 'rejected')}
-														className="px-3 py-1.5 bg-red-500/20 text-red-300 border border-red-500/30 rounded text-xs font-bold hover:bg-red-500/30"
+														className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all duration-300 border ${
+															r.moderation_status === 'rejected'
+																? 'bg-zinc-800 text-red-400 border-red-500/50'
+																: 'bg-zinc-900/50 text-zinc-500 border-zinc-800 hover:border-red-500/50 hover:text-red-400'
+														}`}
 													>
-														Ablehnen
+														<span className="text-sm">✕</span>
+														<span>Ablehnen</span>
 													</button>
 													<button
-														onClick={() => removeRating(r.id)}
-														className="px-3 py-1.5 bg-zinc-800 text-zinc-300 border border-zinc-700 rounded text-xs font-bold hover:bg-zinc-700"
+														onClick={() => {
+															if(confirm('Möchtest du diese Bewertung wirklich permanent löschen?')) removeRating(r.id);
+														}}
+														className="flex-1 flex flex-col sm:flex-row items-center justify-center gap-2 px-3 py-2.5 bg-zinc-900/50 text-zinc-600 border border-zinc-800 rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-red-950/20 hover:text-red-500 hover:border-red-900/50 transition-all duration-300"
 													>
-														Löschen
+														<span className="text-sm">🗑️</span>
+														<span>Löschen</span>
 													</button>
 												</div>
 											</div>
