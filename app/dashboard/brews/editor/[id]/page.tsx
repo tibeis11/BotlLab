@@ -730,48 +730,45 @@ export default function BrewEditorPage() {
 					</div>
 				)}
 
-				<div className="flex gap-2 border-b border-zinc-800 mb-6 overflow-x-auto">
-					<button
-						onClick={() => setActiveTab('editor')}
-						className={`px-4 py-3 font-semibold text-sm transition relative whitespace-nowrap ${
-							activeTab === 'editor' 
-								? 'text-cyan-400' 
-								: 'text-zinc-500 hover:text-zinc-300'
-						}`}
-					>
-						⚗️ Eingabe & Analyse
-						{activeTab === 'editor' && (
-							<div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-cyan-500 to-blue-600"></div>
-						)}
-					</button>
-					<button
-						onClick={() => setActiveTab('label')}
-						className={`px-4 py-3 font-semibold text-sm transition relative whitespace-nowrap ${
-							activeTab === 'label' 
-								? 'text-cyan-400' 
-								: 'text-zinc-500 hover:text-zinc-300'
-						}`}
-					>
-						🏷️ Label
-						{activeTab === 'label' && (
-							<div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-cyan-500 to-blue-600"></div>
-						)}
-					</button>
-					{id !== 'new' && (
-						<button
-							onClick={() => setActiveTab('ratings')}
-							className={`px-4 py-3 font-semibold text-sm transition relative whitespace-nowrap ${
-								activeTab === 'ratings' 
-									? 'text-cyan-400' 
-									: 'text-zinc-500 hover:text-zinc-300'
-							}`}
-						>
-							⭐ Bewertungen (Mods)
-							{activeTab === 'ratings' && (
-								<div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-cyan-500 to-blue-600"></div>
-							)}
-						</button>
-					)}
+				{/* Modern Tab Switcher */}
+				<div className="bg-zinc-900/50 p-1.5 rounded-2xl border border-zinc-800 flex items-center mb-8 relative">
+					{(() => {
+						const tabs = [
+							{ id: 'editor', label: 'Eingabe', icon: '⚗️' },
+							{ id: 'label', label: 'Label', icon: '🏷️' },
+							{ id: 'ratings', label: 'Bewertungen', icon: '⭐', hidden: id === 'new' }
+						].filter(t => !t.hidden);
+						
+						const activeIndex = tabs.findIndex(t => t.id === activeTab);
+						const tabWidth = 100 / tabs.length;
+
+						return (
+							<>
+								<div 
+									className="absolute top-1.5 bottom-1.5 bg-zinc-800 rounded-xl transition-all duration-300 ease-[cubic-bezier(0.34,1.25,0.64,1)] shadow-sm"
+									style={{
+										left: `calc(${activeIndex * tabWidth}% + ${activeIndex === 0 ? '6px' : '2px'})`,
+										width: `calc(${tabWidth}% - ${activeIndex === 0 || activeIndex === tabs.length - 1 ? '8px' : '4px'})`,
+									}}
+								/>
+								{tabs.map((tab) => (
+									<button
+										key={tab.id}
+										onClick={() => setActiveTab(tab.id as any)}
+										className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl transition-all duration-300 relative z-10 ${
+											activeTab === tab.id ? 'text-cyan-400' : 'text-zinc-500 hover:text-zinc-300'
+										}`}
+									>
+										<span className="text-lg">{tab.icon}</span>
+										<span className="text-xs font-black uppercase tracking-widest hidden sm:inline">{tab.label}</span>
+										<span className="text-[10px] font-black uppercase tracking-tighter sm:hidden">
+											{tab.id === 'editor' ? 'Rezept' : tab.label}
+										</span>
+									</button>
+								))}
+							</>
+						);
+					})()}
 				</div>
 
 				{activeTab === 'editor' && (
