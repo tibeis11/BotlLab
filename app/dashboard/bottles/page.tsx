@@ -694,8 +694,8 @@ async function renumberBottles() {
 														onChange={toggleAll}
 														className="peer sr-only"
 													/>
-													<div className="w-5 h-5 rounded-full border-2 border-zinc-600 bg-transparent peer-checked:bg-zinc-400 peer-checked:border-zinc-400 transition-all duration-200 flex items-center justify-center group-hover:border-zinc-500">
-														<svg className="w-3.5 h-3.5 text-black opacity-0 peer-checked:opacity-100 transition-opacity duration-200 transform scale-0 peer-checked:scale-100" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+													<div className="w-5 h-5 rounded-full border-2 border-zinc-600 bg-transparent peer-checked:bg-zinc-500 peer-checked:border-zinc-500 transition-all duration-200 flex items-center justify-center group-hover:border-zinc-500">
+														<svg className="w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
 															<path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
 														</svg>
 													</div>
@@ -718,8 +718,8 @@ async function renumberBottles() {
 															onChange={() => toggleSelection(bottle.id)}
 															className="peer sr-only"
 														/>
-														<div className="w-5 h-5 rounded-full border-2 border-zinc-600 bg-transparent peer-checked:bg-zinc-400 peer-checked:border-zinc-400 transition-all duration-200 flex items-center justify-center hover:border-zinc-500">
-															<svg className="w-3.5 h-3.5 text-black opacity-0 peer-checked:opacity-100 transition-opacity duration-200 transform scale-0 peer-checked:scale-100" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+														<div className="w-5 h-5 rounded-full border-2 border-zinc-600 bg-transparent peer-checked:bg-zinc-500 peer-checked:border-zinc-500 transition-all duration-200 flex items-center justify-center hover:border-zinc-500">
+															<svg className="w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
 																<path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
 															</svg>
 														</div>
