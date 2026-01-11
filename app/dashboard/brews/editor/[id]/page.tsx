@@ -786,9 +786,10 @@ export default function BrewEditorPage() {
 								<button
 									onClick={handleGenerateName}
 									disabled={generatingName}
-									className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg transition disabled:opacity-50 flex items-center gap-1 whitespace-nowrap"
+									className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-sm font-bold w-9 h-9 rounded-lg transition disabled:opacity-50 flex items-center justify-center whitespace-nowrap"
+									title={generatingName ? 'Wird generiert...' : 'KI-Name generieren'}
 								>
-									{generatingName ? '⚡ Generiert...' : '✨ KI-Name'}
+									{generatingName ? '⚡' : '✨'}
 								</button>
 							</div>
 						</div>
@@ -1290,9 +1291,10 @@ export default function BrewEditorPage() {
 									<button
 										onClick={handleGenerateDescription}
 										disabled={generatingDescription}
-										className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg transition disabled:opacity-50 flex items-center gap-1 shadow-lg"
+										className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white text-sm font-bold w-9 h-9 rounded-lg transition disabled:opacity-50 flex items-center justify-center shadow-lg"
+										title={generatingDescription ? 'Wird generiert...' : 'KI-Beschreibung generieren'}
 									>
-										{generatingDescription ? '⚡ Generiert...' : '✨ KI-Text generieren'}
+										{generatingDescription ? '⚡' : '✨'}
 									</button>
 								</div>
 							</div>
