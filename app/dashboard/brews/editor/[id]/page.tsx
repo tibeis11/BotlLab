@@ -707,25 +707,26 @@ export default function BrewEditorPage() {
 							/>
 						</div>
 						<div>
-							<label className="text-xs uppercase font-bold text-cyan-400 mb-2 block">Getränkeart</label>
-							<div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+							<label className="text-xs uppercase font-bold text-zinc-500 mb-3 block">Getränke-Typ</label>
+							<div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
 								{[
-									{ key: 'beer', label: '🍺 Bier' },
-									{ key: 'wine', label: '🍷 Wein' },
-									{ key: 'cider', label: '🍎 Cider' },
-									{ key: 'mead', label: '🍯 Met' },
-									{ key: 'softdrink', label: '🥤 Softdrink' },
+									{ key: 'beer', label: 'Bier', icon: '🍺' },
+									{ key: 'wine', label: 'Wein', icon: '🍷' },
+									{ key: 'cider', label: 'Cider', icon: '🍎' },
+									{ key: 'mead', label: 'Met', icon: '🍯' },
+									{ key: 'softdrink', label: 'Limo', icon: '🥤' },
 								].map((opt) => (
 									<button
 										key={opt.key}
 										onClick={() => handleField('brew_type', opt.key)}
-										className={`px-3 py-2 rounded-xl border text-sm font-bold transition text-left ${
+										className={`flex flex-col items-center justify-center p-4 rounded-2xl border transition-all duration-200 active:scale-95 ${
 											brew.brew_type === opt.key 
-												? 'border-cyan-500 bg-cyan-500/10 text-white' 
-												: 'border-zinc-800 text-zinc-400 hover:border-cyan-500/50'
+												? 'bg-cyan-500/10 border-cyan-500 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.15)] ring-1 ring-cyan-500' 
+												: 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300'
 										}`}
 									>
-										{opt.label}
+										<span className="text-3xl mb-2 filter drop-shadow-md">{opt.icon}</span>
+										<span className="text-xs font-bold uppercase tracking-wider">{opt.label}</span>
 									</button>
 								))}
 							</div>
@@ -1177,6 +1178,23 @@ export default function BrewEditorPage() {
 						</div>
 					</div>
 				)}
+			</div>
+
+			{/* Sticky Action Bar for Mobile */}
+			<div className="fixed bottom-0 left-0 right-0 bg-zinc-950 border-t border-zinc-800 p-4 md:hidden z-50 flex items-center gap-3">
+				<button
+					onClick={() => router.push('/dashboard/brews')}
+					className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white"
+				>
+					❌
+				</button>
+				<button
+					onClick={handleSave}
+					disabled={saving}
+					className="flex-1 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold rounded-xl shadow-lg active:scale-95 transition disabled:opacity-60"
+				>
+					{saving ? 'Speichere...' : 'Speichern'}
+				</button>
 			</div>
 		</div>
 	);
