@@ -298,7 +298,7 @@ export default function BrewEditorPage() {
 		setSaving(false);
 	}
 
-	async function moderateRating(ratingId: string, status: 'auto_approved' | 'rejected') {
+	async function moderateRating(ratingId: string, status: 'approved' | 'auto_approved' | 'rejected') {
 		setRatingsMessage(null);
 		const { data: { session } } = await supabase.auth.getSession();
 		if (!session || !brew.id) {
@@ -322,7 +322,7 @@ export default function BrewEditorPage() {
 				return;
 			}
 
-			setRatingsMessage(status === 'auto_approved' ? 'Bewertung freigegeben.' : 'Bewertung abgelehnt.');
+			setRatingsMessage(status === 'approved' || status === 'auto_approved' ? 'Bewertung freigegeben.' : 'Bewertung abgelehnt.');
 			await loadRatings(brew.id!);
 		} catch (err: any) {
 			setRatingsMessage(err?.message || 'Aktion fehlgeschlagen');

@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
 			return NextResponse.json({ error: 'ratingId und brewId sind erforderlich' }, { status: 400 });
 		}
 
-		if (!['auto_approved', 'rejected'].includes(status)) {
+		if (!['approved', 'auto_approved', 'rejected'].includes(status)) {
 			return NextResponse.json({ error: 'Ungültiger Status' }, { status: 400 });
 		}
 
