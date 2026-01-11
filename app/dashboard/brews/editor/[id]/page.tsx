@@ -49,10 +49,10 @@ function NumberInput({
   return (
     <div className="w-full">
       {label && <label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 block">{label}</label>}
-      <div className="relative w-full group">
+      <div className="flex items-center w-full bg-zinc-900 border border-zinc-800 rounded-xl transition focus-within:border-cyan-500 focus-within:ring-2 focus-within:ring-cyan-500/20 overflow-hidden">
         <button 
           onClick={() => update(val - step)}
-          className="absolute left-0 top-0 bottom-0 z-10 w-12 flex items-center justify-center text-zinc-500 hover:text-white hover:bg-zinc-800 rounded-l-xl transition active:scale-90"
+          className="w-12 h-12 flex items-center justify-center text-zinc-500 hover:text-white hover:bg-zinc-800 transition active:scale-90 flex-shrink-0"
           type="button"
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
@@ -62,14 +62,14 @@ function NumberInput({
         <input 
           type="number"
           step={step}
-          className="w-full bg-zinc-900 border border-zinc-800 text-center text-white font-bold text-lg rounded-xl h-12 px-12 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none placeholder:font-normal placeholder:text-zinc-700 appearance-none min-w-0" 
+          className="flex-1 bg-transparent border-none text-center text-white font-bold text-lg h-12 focus:ring-0 outline-none placeholder:font-normal placeholder:text-zinc-700 appearance-none min-w-0" 
           value={value || ''} 
           onChange={(e) => onChange(e.target.value)} 
           placeholder={placeholder} 
         />
         <button 
           onClick={() => update(val + step)}
-          className="absolute right-0 top-0 bottom-0 z-10 w-12 flex items-center justify-center text-zinc-500 hover:text-white hover:bg-zinc-800 rounded-r-xl transition active:scale-90"
+          className="w-12 h-12 flex items-center justify-center text-zinc-500 hover:text-white hover:bg-zinc-800 transition active:scale-90 flex-shrink-0"
           type="button"
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
@@ -78,6 +78,29 @@ function NumberInput({
         </button>
       </div>
     </div>
+  );
+}
+
+function Toggle({ 
+  checked, 
+  onChange, 
+  label 
+}: { 
+  checked: boolean; 
+  onChange: (checked: boolean) => void; 
+  label: string; 
+}) {
+  return (
+    <button
+      onClick={() => onChange(!checked)}
+      className="flex items-center gap-3 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 cursor-pointer hover:border-zinc-700 transition group select-none outline-none w-full justify-start"
+      type="button"
+    >
+      <div className={`relative w-10 h-6 rounded-full transition-colors duration-300 ease-in-out border border-transparent flex-shrink-0 ${checked ? 'bg-cyan-500' : 'bg-zinc-800 border-zinc-600'}`}>
+        <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform duration-300 ease-in-out ${checked ? 'translate-x-4' : 'translate-x-0'}`} />
+      </div>
+      <span className={`text-sm font-bold transition-colors ${checked ? 'text-white' : 'text-zinc-500 group-hover:text-zinc-300'}`}>{label}</span>
+    </button>
   );
 }
 
@@ -655,7 +678,7 @@ export default function BrewEditorPage() {
 	}
 
 	return (
-		<div className="min-h-screen text-white py-8">
+		<div className="min-h-screen text-white pt-8 pb-32 md:py-8">
 			<div className="max-w-6xl mx-auto px-4 space-y-8">
 				<div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
 					<div>
@@ -667,15 +690,15 @@ export default function BrewEditorPage() {
 						<p className="text-zinc-400 mt-1">Hier entstehen deine Brau-Kreationen</p>
 					</div>
 					<div className="flex items-center gap-3 w-full md:w-auto">
-						<label className="flex-1 md:flex-none justify-center flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm cursor-pointer hover:border-cyan-500/50 transition">
-							<input
-								type="checkbox"
-								checked={brew.is_public}
-								onChange={(e) => setBrew(prev => ({ ...prev, is_public: e.target.checked }))}
-								className="h-5 w-5 rounded-lg border border-zinc-800 bg-zinc-900 accent-cyan-500 focus:ring-2 focus:ring-cyan-500/30"
-							/>
-							<span>Öffentlich</span>
-						</label>
+						<button
+							onClick={() => setBrew(prev => ({ ...prev, is_public: !prev.is_public }))}
+							className="flex-1 md:flex-none flex items-center gap-3 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 cursor-pointer hover:border-zinc-700 transition group select-none outline-none"
+						>
+							<div className={`relative w-10 h-6 rounded-full transition-colors duration-300 ease-in-out border border-transparent ${brew.is_public ? 'bg-cyan-500' : 'bg-zinc-800 border-zinc-600'}`}>
+								<div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform duration-300 ease-in-out ${brew.is_public ? 'translate-x-4' : 'translate-x-0'}`} />
+							</div>
+							<span className={`text-sm font-bold transition-colors ${brew.is_public ? 'text-white' : 'text-zinc-500 group-hover:text-zinc-300'}`}>Öffentlich</span>
+						</button>
 						<button
 							onClick={handleSave}
 							disabled={saving}
@@ -909,163 +932,335 @@ export default function BrewEditorPage() {
 						)}
 
 						{brew.brew_type === 'wine' && (
-							<div className="space-y-4">
-								<p className="text-xs uppercase font-bold text-zinc-500">Wein Details</p>
-								<div className="grid grid-cols-2 gap-3">
-									<div>
-										<label className="text-xs uppercase font-bold text-zinc-500">ABV (%)</label>
-										<input className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white" value={brew.data?.abv || ''} onChange={(e) => updateData('abv', e.target.value)} placeholder="z.B. 12.5" />
-									</div>
-									<div>
-										<label className="text-xs uppercase font-bold text-zinc-500">Rebsorte(n)</label>
-										<input className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white" value={brew.data?.grapes || ''} onChange={(e) => updateData('grapes', e.target.value)} placeholder="z.B. Riesling, Merlot" />
-									</div>
-									<div>
-										<label className="text-xs uppercase font-bold text-zinc-500">Jahrgang</label>
-										<input type="number" className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white" value={brew.data?.vintage ?? ''} onChange={(e) => updateData('vintage', e.target.value)} placeholder="z.B. 2024" />
-									</div>
-									<div>
-										<label className="text-xs uppercase font-bold text-zinc-500">Region</label>
-										<input className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white" value={brew.data?.region || ''} onChange={(e) => updateData('region', e.target.value)} placeholder="z.B. Pfalz" />
-									</div>
-									<div className="flex items-center gap-2 mt-6">
-										<input type="checkbox" checked={!!brew.data?.oak_aged} onChange={(e) => updateData('oak_aged', e.target.checked)} className="h-5 w-5 rounded-lg border border-zinc-800 bg-zinc-900 accent-cyan-700 focus:ring-2 focus:ring-cyan-600/30" />
-										<span className="text-sm text-zinc-300">Barrique (Holzfass)</span>
+							<div className="mt-8 space-y-10">
+								{/* Section: Messwerte */}
+								<div>
+									<h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
+										<div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm border border-zinc-700">📊</div>
+										Messwerte
+									</h3>
+									<div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+										<NumberInput 
+											label="ABV (%)" 
+											value={brew.data?.abv || ''} 
+											onChange={(val) => updateData('abv', val)} 
+											placeholder="12.5" 
+											step={0.1} 
+										/>
+										<NumberInput 
+											label="Restzucker (g/l)" 
+											value={brew.data?.residual_sugar_g_l || ''} 
+											onChange={(val) => updateData('residual_sugar_g_l', val)} 
+											placeholder="6.5" 
+											step={0.1} 
+										/>
+										<NumberInput 
+											label="Säure (g/l)" 
+											value={brew.data?.acidity_g_l || ''} 
+											onChange={(val) => updateData('acidity_g_l', val)} 
+											placeholder="5.8" 
+											step={0.1} 
+										/>
+										<NumberInput 
+											label="Jahrgang" 
+											value={brew.data?.vintage || ''} 
+											onChange={(val) => updateData('vintage', val)} 
+											placeholder="2024" 
+											step={1} 
+										/>
 									</div>
 								</div>
-								<div className="grid grid-cols-3 gap-3">
-									<div>
-										<label className="text-xs uppercase font-bold text-zinc-500">Fasslager (Monate)</label>
-										<input type="number" className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white" value={brew.data?.oak_months ?? ''} onChange={(e) => updateData('oak_months', e.target.value)} placeholder="z.B. 6" />
-									</div>
-									<div>
-										<label className="text-xs uppercase font-bold text-zinc-500">Restzucker (g/l)</label>
-										<input className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white" value={brew.data?.residual_sugar_g_l || ''} onChange={(e) => updateData('residual_sugar_g_l', e.target.value)} placeholder="z.B. 6.5" />
-									</div>
-									<div>
-										<label className="text-xs uppercase font-bold text-zinc-500">Säure (g/l)</label>
-										<input className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white" value={brew.data?.acidity_g_l || ''} onChange={(e) => updateData('acidity_g_l', e.target.value)} placeholder="z.B. 5.8" />
+
+								{/* Section: Zutaten & Herkunft */}
+								<div>
+									<h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
+										<div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm border border-zinc-700">🍇</div>
+										Reben & Herkunft
+									</h3>
+									<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+										<div>
+											<label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 block">Rebsorte(n)</label>
+											<input 
+												className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-600" 
+												value={brew.data?.grapes || ''} 
+												onChange={(e) => updateData('grapes', e.target.value)} 
+												placeholder="z.B. Riesling, Merlot..." 
+											/>
+										</div>
+										<div>
+											<label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 block">Region / Lage</label>
+											<input 
+												className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-600" 
+												value={brew.data?.region || ''} 
+												onChange={(e) => updateData('region', e.target.value)} 
+												placeholder="z.B. Pfalz, Mosel..." 
+											/>
+										</div>
 									</div>
 								</div>
-								<div className="flex items-center gap-2">
-									<input type="checkbox" checked={!!brew.data?.sulfites} onChange={(e) => updateData('sulfites', e.target.checked)} className="h-5 w-5 rounded-lg border border-zinc-800 bg-zinc-900 accent-cyan-700 focus:ring-2 focus:ring-cyan-600/30" />
-									<span className="text-sm text-zinc-300">Enthält Sulfite</span>
+
+								{/* Section: Ausbau */}
+								<div>
+									<h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
+										<div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm border border-zinc-700">🍷</div>
+										Ausbau
+									</h3>
+									<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+										<div className="md:col-span-1">
+											<NumberInput 
+												label="Fasslager (Monate)" 
+												value={brew.data?.oak_months || ''} 
+												onChange={(val) => updateData('oak_months', val)} 
+												placeholder="0" 
+											/>
+										</div>
+										<div className="flex flex-col gap-4 justify-end md:col-span-2">
+											<Toggle 
+												label="Barrique (Holzfass)" 
+												checked={!!brew.data?.oak_aged} 
+												onChange={(val) => updateData('oak_aged', val)} 
+											/>
+											<Toggle 
+												label="Enthält Sulfite" 
+												checked={!!brew.data?.sulfites} 
+												onChange={(val) => updateData('sulfites', val)} 
+											/>
+										</div>
+									</div>
 								</div>
 							</div>
 						)}
 
 						{brew.brew_type === 'cider' && (
-							<div className="space-y-4">
-								<p className="text-xs uppercase font-bold text-zinc-500">Cider Details</p>
-								<div className="grid grid-cols-3 gap-3">
-									<div>
-										<label className="text-xs uppercase font-bold text-zinc-500">ABV (%)</label>
-										<input className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white" value={brew.data?.abv || ''} onChange={(e) => updateData('abv', e.target.value)} placeholder="z.B. 6.2" />
-									</div>
-									<div>
-										<label className="text-xs uppercase font-bold text-zinc-500">Apfelsorten</label>
-										<input className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white" value={brew.data?.apples || ''} onChange={(e) => updateData('apples', e.target.value)} placeholder="z.B. Boskoop, Elstar" />
-									</div>
-									<div>
-										<label className="text-xs uppercase font-bold text-zinc-500">Hefe</label>
-										<input className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white" value={brew.data?.yeast || ''} onChange={(e) => updateData('yeast', e.target.value)} placeholder="z.B. Cider Yeast" />
-									</div>
-								</div>
-								<div className="grid grid-cols-3 gap-3">
-									<div>
-										<label className="text-xs uppercase font-bold text-zinc-500">Gärung</label>
-										<select className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white" value={brew.data?.fermentation || ''} onChange={(e) => updateData('fermentation', e.target.value)}>
-											<option value="">– bitte wählen –</option>
-											<option value="wild">Wild</option>
-											<option value="cultured">Reinzucht</option>
-										</select>
-									</div>
-									<div>
-										<label className="text-xs uppercase font-bold text-zinc-500">Süßegrad</label>
-										<select className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white" value={brew.data?.sweetness || ''} onChange={(e) => updateData('sweetness', e.target.value)}>
-											<option value="dry">Trocken</option>
-											<option value="semi">Halbtrocken</option>
-											<option value="sweet">Süß</option>
-										</select>
-									</div>
-									<div>
-										<label className="text-xs uppercase font-bold text-zinc-500">Kohlensäure (g/l)</label>
-										<input className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white" value={brew.data?.carbonation_g_l || ''} onChange={(e) => updateData('carbonation_g_l', e.target.value)} placeholder="z.B. 6" />
+							<div className="mt-8 space-y-10">
+								{/* Section: Messwerte */}
+								<div>
+									<h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
+										<div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm border border-zinc-700">📊</div>
+										Messwerte
+									</h3>
+									<div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+										<NumberInput 
+											label="ABV (%)" 
+											value={brew.data?.abv || ''} 
+											onChange={(val) => updateData('abv', val)} 
+											placeholder="6.2" 
+											step={0.1} 
+										/>
+										<NumberInput 
+											label="Kohlensäure (g/l)" 
+											value={brew.data?.carbonation_g_l || ''} 
+											onChange={(val) => updateData('carbonation_g_l', val)} 
+											placeholder="6" 
+											step={0.1} 
+										/>
+										<NumberInput 
+											label="pH-Wert" 
+											value={brew.data?.pH || ''} 
+											onChange={(val) => updateData('pH', val)} 
+											placeholder="3.5" 
+											step={0.1} 
+										/>
 									</div>
 								</div>
-								<div className="grid grid-cols-2 gap-3">
-									<div>
-										<label className="text-xs uppercase font-bold text-zinc-500">pH</label>
-										<input className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white" value={brew.data?.pH || ''} onChange={(e) => updateData('pH', e.target.value)} placeholder="z.B. 3.5" />
+
+								{/* Section: Zutaten */}
+								<div>
+									<h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
+										<div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm border border-zinc-700">🍏</div>
+										Zutaten
+									</h3>
+									<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+										<div>
+											<label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 block">Apfelsorten</label>
+											<input 
+												className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-600" 
+												value={brew.data?.apples || ''} 
+												onChange={(e) => updateData('apples', e.target.value)} 
+												placeholder="z.B. Boskoop, Elstar..." 
+											/>
+										</div>
+										<div>
+											<label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 block">Hefe</label>
+											<input 
+												className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-600" 
+												value={brew.data?.yeast || ''} 
+												onChange={(e) => updateData('yeast', e.target.value)} 
+												placeholder="z.B. Cider Yeast" 
+											/>
+										</div>
+									</div>
+								</div>
+
+								{/* Section: Prozess */}
+								<div>
+									<h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
+										<div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm border border-zinc-700">⚙️</div>
+										Verarbeitung
+									</h3>
+									<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+										<div>
+											<label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 block">Gärung</label>
+											<select 
+												className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none appearance-none" 
+												value={brew.data?.fermentation || ''} 
+												onChange={(e) => updateData('fermentation', e.target.value)}
+											>
+												<option value="">– bitte wählen –</option>
+												<option value="wild">Wild (Spontan)</option>
+												<option value="cultured">Reinzucht (Kulturhefe)</option>
+											</select>
+										</div>
+										<div>
+											<label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 block">Süßegrad</label>
+											<select 
+												className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none appearance-none" 
+												value={brew.data?.sweetness || ''} 
+												onChange={(e) => updateData('sweetness', e.target.value)}
+											>
+												<option value="dry">Trocken</option>
+												<option value="semi">Halbtrocken</option>
+												<option value="sweet">Süß</option>
+											</select>
+										</div>
 									</div>
 								</div>
 							</div>
 						)}
 
 						{brew.brew_type === 'mead' && (
-							<div className="space-y-4">
-								<p className="text-xs uppercase font-bold text-zinc-500">Met Details</p>
-								<div className="grid grid-cols-3 gap-3">
-									<div>
-										<label className="text-xs uppercase font-bold text-zinc-500">ABV (%)</label>
-										<input className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white" value={brew.data?.abv || ''} onChange={(e) => updateData('abv', e.target.value)} placeholder="z.B. 12.0" />
-									</div>
-									<div>
-										<label className="text-xs uppercase font-bold text-zinc-500">Honigsorten</label>
-										<input className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white" value={brew.data?.honey || ''} onChange={(e) => updateData('honey', e.target.value)} placeholder="z.B. Akazie, Waldhonig" />
-									</div>
-									<div>
-										<label className="text-xs uppercase font-bold text-zinc-500">Hefe</label>
-										<input className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white" value={brew.data?.yeast || ''} onChange={(e) => updateData('yeast', e.target.value)} placeholder="z.B. QA23" />
+							<div className="mt-8 space-y-10">
+								{/* Section: Messwerte */}
+								<div>
+									<h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
+										<div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm border border-zinc-700">📊</div>
+										Messwerte
+									</h3>
+									<div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+										<NumberInput 
+											label="ABV (%)" 
+											value={brew.data?.abv || ''} 
+											onChange={(val) => updateData('abv', val)} 
+											placeholder="14.0" 
+											step={0.1} 
+										/>
+										<NumberInput 
+											label="Final Gravity" 
+											value={brew.data?.final_gravity || ''} 
+											onChange={(val) => updateData('final_gravity', val)} 
+											placeholder="1.010" 
+											step={0.001} 
+										/>
+										<NumberInput 
+											label="Reifezeit (Monate)" 
+											value={brew.data?.aging_months || ''} 
+											onChange={(val) => updateData('aging_months', val)} 
+											placeholder="6" 
+										/>
 									</div>
 								</div>
-								<div className="grid grid-cols-3 gap-3">
-									<div>
-										<label className="text-xs uppercase font-bold text-zinc-500">Zutaten (Frucht/Gewürz)</label>
-										<input className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white" value={brew.data?.adjuncts || ''} onChange={(e) => updateData('adjuncts', e.target.value)} placeholder="z.B. Zimt, Himbeere" />
-									</div>
-									<div>
-										<label className="text-xs uppercase font-bold text-zinc-500">Aging (Monate)</label>
-										<input type="number" className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white" value={brew.data?.aging_months ?? ''} onChange={(e) => updateData('aging_months', e.target.value)} placeholder="z.B. 9" />
-									</div>
-									<div>
-										<label className="text-xs uppercase font-bold text-zinc-500">Final Gravity</label>
-										<input className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white" value={brew.data?.final_gravity || ''} onChange={(e) => updateData('final_gravity', e.target.value)} placeholder="z.B. 1.010" />
+
+								{/* Section: Zutaten */}
+								<div>
+									<h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
+										<div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm border border-zinc-700">🍯</div>
+										Zutaten
+									</h3>
+									<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+										<div>
+											<label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 block">Honigsorte(n)</label>
+											<input 
+												className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-600" 
+												value={brew.data?.honey || ''} 
+												onChange={(e) => updateData('honey', e.target.value)} 
+												placeholder="z.B. Akazie, Waldhonig..." 
+											/>
+										</div>
+										<div>
+											<label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 block">Hefe</label>
+											<input 
+												className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-600" 
+												value={brew.data?.yeast || ''} 
+												onChange={(e) => updateData('yeast', e.target.value)} 
+												placeholder="z.B. Lalvin D-47, QA23" 
+											/>
+										</div>
+										<div className="md:col-span-2">
+											<label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 block">Zusätze (Früchte / Gewürze)</label>
+											<input 
+												className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-600" 
+												value={brew.data?.adjuncts || ''} 
+												onChange={(e) => updateData('adjuncts', e.target.value)} 
+												placeholder="z.B. Himbeeren, Zimt, Vanille..." 
+											/>
+										</div>
 									</div>
 								</div>
 							</div>
 						)}
 
 						{brew.brew_type === 'softdrink' && (
-							<div className="space-y-4">
-								<p className="text-xs uppercase font-bold text-zinc-500">Softdrink Details</p>
-								<div className="grid grid-cols-2 gap-3">
-									<div>
-										<label className="text-xs uppercase font-bold text-zinc-500">Basis / Geschmack</label>
-										<input className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white" value={brew.data?.base || ''} onChange={(e) => updateData('base', e.target.value)} placeholder="z.B. Zitrone & Ingwer" />
-									</div>
-									<div>
-										<label className="text-xs uppercase font-bold text-zinc-500">Kohlensäure (g/l)</label>
-										<input className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white" value={brew.data?.carbonation_g_l || ''} onChange={(e) => updateData('carbonation_g_l', e.target.value)} placeholder="z.B. 5" />
+							<div className="mt-8 space-y-10">
+								{/* Section: Messwerte */}
+								<div>
+									<h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
+										<div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm border border-zinc-700">📊</div>
+										Messwerte
+									</h3>
+									<div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+										<NumberInput 
+											label="Zucker (g/l)" 
+											value={brew.data?.sugar_g_l || ''} 
+											onChange={(val) => updateData('sugar_g_l', val)} 
+											placeholder="40" 
+											step={1} 
+										/>
+										<NumberInput 
+											label="Säure (pH)" 
+											value={brew.data?.acidity_ph || ''} 
+											onChange={(val) => updateData('acidity_ph', val)} 
+											placeholder="3.2" 
+											step={0.1} 
+										/>
+										<NumberInput 
+											label="Kohlensäure (g/l)" 
+											value={brew.data?.carbonation_g_l || ''} 
+											onChange={(val) => updateData('carbonation_g_l', val)} 
+											placeholder="5" 
+											step={0.1} 
+										/>
 									</div>
 								</div>
-								<div className="grid grid-cols-3 gap-3">
-									<div>
-										<label className="text-xs uppercase font-bold text-zinc-500">Zucker (g/l)</label>
-										<input className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white" value={brew.data?.sugar_g_l || ''} onChange={(e) => updateData('sugar_g_l', e.target.value)} placeholder="z.B. 40" />
+
+								{/* Section: Zutaten */}
+								<div>
+									<h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
+										<div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm border border-zinc-700">🍋</div>
+										Inhalt
+									</h3>
+									<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+										<div className="md:col-span-2">
+											<label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 block">Basis / Geschmack</label>
+											<input 
+												className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-600" 
+												value={brew.data?.base || ''} 
+												onChange={(e) => updateData('base', e.target.value)} 
+												placeholder="z.B. Zitrone-Ingwer, Cola..." 
+											/>
+										</div>
+										<div className="flex flex-col gap-4">
+											<Toggle 
+												label="Natürliche Aromen" 
+												checked={!!brew.data?.natural_flavors} 
+												onChange={(val) => updateData('natural_flavors', val)} 
+											/>
+											<Toggle 
+												label="Farbstoff verwendet" 
+												checked={!!brew.data?.coloring} 
+												onChange={(val) => updateData('coloring', val)} 
+											/>
+										</div>
 									</div>
-									<div>
-										<label className="text-xs uppercase font-bold text-zinc-500">Säure (pH)</label>
-										<input className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white" value={brew.data?.acidity_ph || ''} onChange={(e) => updateData('acidity_ph', e.target.value)} placeholder="z.B. 3.2" />
-									</div>
-									<div className="flex items-center gap-2 mt-6">
-										<input type="checkbox" checked={!!brew.data?.natural_flavors} onChange={(e) => updateData('natural_flavors', e.target.checked)} className="h-5 w-5 rounded-lg border border-zinc-800 bg-zinc-900 accent-cyan-700 focus:ring-2 focus:ring-cyan-600/30" />
-										<span className="text-sm text-zinc-300">Natürliche Aromen</span>
-									</div>
-								</div>
-								<div className="flex items-center gap-2">
-									<input type="checkbox" checked={!!brew.data?.coloring} onChange={(e) => updateData('coloring', e.target.checked)} className="h-5 w-5 rounded-lg border border-zinc-800 bg-zinc-900 accent-cyan-700 focus:ring-2 focus:ring-cyan-600/30" />
-									<span className="text-sm text-zinc-300">Farbstoff verwendet</span>
 								</div>
 							</div>
 						)}
@@ -1145,14 +1340,20 @@ export default function BrewEditorPage() {
 						)}
 						
 						<div className={`space-y-4 bg-zinc-950 border border-zinc-800 rounded-2xl p-5 ${!brew.id ? 'opacity-50 pointer-events-none' : ''}`}>
-							<div className="flex items-center justify-between">
+							<div className="flex items-center justify-between gap-4">
 								<div>
 									<p className="text-xs uppercase tracking-[0.2em] text-purple-400 font-bold">Label Design</p>
 									<p className="text-lg font-bold">Vorschau & Generator</p>
 								</div>
 								{brew.id && (
-									<Link href={`/brew/${brew.id}`} className="text-sm text-cyan-400 hover:text-cyan-300 transition">
-										Öffentlich ansehen
+									<Link 
+										href={`/brew/${brew.id}`} 
+										target="_blank"
+										className="h-10 w-10 sm:w-auto sm:px-4 flex items-center justify-center gap-2 bg-zinc-900 border border-zinc-800 rounded-xl hover:bg-zinc-800 hover:border-zinc-700 hover:text-white text-zinc-400 transition flex-shrink-0"
+										title="Öffentlich ansehen"
+									>
+										<span>🌍</span>
+										<span className="hidden sm:inline text-sm font-bold">Ansehen</span>
 									</Link>
 								)}
 							</div>
@@ -1176,21 +1377,41 @@ export default function BrewEditorPage() {
 									className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white min-h-[80px] focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition"
 									placeholder="z.B. Illustrativer Retro-Stil, satten Farben, florale Ornamente"
 								/>
-								<div className="flex gap-2">
+								<div className="flex flex-col sm:flex-row gap-3 pt-2">
 									<button
 										onClick={handleGenerate}
 										disabled={generating || uploading}
-										className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold px-4 py-2 rounded-xl hover:shadow-lg hover:shadow-purple-500/30 transition disabled:opacity-60"
+										className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold px-6 py-3 rounded-xl hover:shadow-lg hover:shadow-purple-500/30 transition disabled:opacity-60 flex items-center justify-center gap-2 min-h-[50px]"
 									>
-										{generating ? 'Label wird generiert...' : 'KI-Label generieren'}
+										{generating ? (
+											<>
+												<span className="animate-spin">⏳</span>
+												<span>Wird generiert...</span>
+											</>
+										) : (
+											<>
+												<span>✨</span>
+												<span>KI-Label generieren</span>
+											</>
+										)}
 									</button>
-									<button
-										onClick={() => fileInputRef.current?.click()}
-										disabled={uploading || generating}
-										className="px-4 py-2 bg-zinc-800 border border-zinc-700 text-white rounded-xl text-sm font-bold hover:bg-zinc-700 transition disabled:opacity-60"
-									>
-										{uploading ? 'Upload...' : '📂 Eigenes hochladen'}
-									</button>
+									<div className="grid grid-cols-2 sm:flex gap-3 w-full sm:w-auto">
+										<button
+											onClick={() => fileInputRef.current?.click()}
+											disabled={uploading || generating}
+											className="px-4 py-3 bg-zinc-800 border border-zinc-700 text-white rounded-xl text-sm font-bold hover:bg-zinc-700 transition disabled:opacity-60 flex items-center justify-center gap-2 min-h-[50px] whitespace-nowrap"
+										>
+											{uploading ? 'Upload...' : '📂 Upload'}
+										</button>
+										<button
+											onClick={() => setBrew(prev => ({ ...prev, image_url: null }))}
+											disabled={uploading || generating || !brew.image_url}
+											className="px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-sm text-zinc-400 hover:text-red-400 hover:border-red-900/50 transition disabled:opacity-50 flex items-center justify-center gap-2 min-h-[50px]"
+											title="Label entfernen"
+										>
+											🗑️ <span className="sm:hidden lg:inline">Reset</span>
+										</button>
+									</div>
 									<input
 										ref={fileInputRef}
 										type="file"
@@ -1198,13 +1419,6 @@ export default function BrewEditorPage() {
 										className="hidden"
 										onChange={handleFileUpload}
 									/>
-									<button
-										onClick={() => setBrew(prev => ({ ...prev, image_url: null }))}
-										disabled={uploading || generating}
-										className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-sm text-zinc-300 hover:border-zinc-700 disabled:opacity-60"
-									>
-										Reset
-									</button>
 								</div>
 							</div>
 						</div>
