@@ -274,6 +274,35 @@ export default function BottlesPage() {
 		}
 	};
 
+	
+
+async function renumberBottles() {
+		const { data: { user } } = await supabase.auth.getUser();
+		if (!user) return;
+
+		// 1. Alle Flaschen holen, sortiert nach aktueller Nummer
+		const { data: allBottles } = await supabase
+			.from('bottles')
+			.select('id')
+			.eq('user_id', user.id)
+			.order('bottle_number', { ascending: true });
+
+		if (!allBottles) return;
+
+		// 2. Updates vorbereiten
+		const updates = allBottles.map((b, index) => ({
+			id: b.id,
+			bottle_number: index + 1,
+			user_id: user.id
+		}));
+
+		const { error } = await supabase
+			.from('bottles')
+			.upsert(updates, { onConflict: 'id' });
+
+		if (error) console.error("Renumber Error", error);
+	}
+
 	async function handleBulkDelete() {
 		if (!confirm(`${selectedBottles.size} Flaschen wirklich löschen?`)) return;
 		setIsWorking(true);
@@ -531,7 +560,7 @@ export default function BottlesPage() {
 									 </div>
 								 ) : (
 									 <p className="text-zinc-500 text-sm">
-										 Verwende die Kamera deines Geräts, um Flaschencodes blitzschnell zu scannen und einem Rezept zuzuweisen.
+										 Verwende die Kamera deines Geräts, um Flaschencodes blitzschnell zu scannen und einem Rezept zuzuordnen.
 									 </p>
 								 )}
 							</div>
@@ -812,37 +841,3 @@ export default function BottlesPage() {
 		</div>
 	);
 }
-
-async function renumberBottles() {
-		const { data: { user } } = await supabase.auth.getUser();
-		if (!user) return;
-
-		// 1. Alle Flaschen holen, sortiert nach aktueller Nummer (oder Erstellung)
-		const { data: allBottles } = await supabase
-			.from('bottles')
-			.select('id')
-			.eq('user_id', user.id)
-			.order('bottle_number', { ascending: true });
-
-		if (!allBottles) return;
-
-		// 2. Updates vorbereiten
-		const updates = allBottles.map((b, index) => ({
-			id: b.id,
-			bottle_number: index + 1,
-			user_id: user.id // Upsert requires all columns usually or it might fail if partial? No, upsert updates specified columns. But let's be safe or just update. 
-            // Actually upsert works best if we provide all required fields or rely on defaults. 
-            // But upsert is 'insert or update'. To update we need primary key match.
-		}));
-
-        // Upsert can be tricky if not all required fields are present. 
-        // A safer way for renumbering might be to update one by one or use a specific upsert strategy.
-        // However, Supabase upsert updates rows if primary key matches.
-        // Let's stick to the implementation I proposed earlier.
-
-		const { error } = await supabase
-			.from('bottles')
-			.upsert(updates, { onConflict: 'id' });
-
-		if (error) console.error("Renumber Error", error);
-	}
