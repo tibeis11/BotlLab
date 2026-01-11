@@ -687,12 +687,19 @@ async function renumberBottles() {
 									<thead className="bg-black/20 text-zinc-500 text-[10px] uppercase font-bold tracking-widest border-b border-border">
 										<tr>
 											<th className="p-5 w-10">
-												<input 
-													type="checkbox" 
-													checked={filteredBottles.length > 0 && selectedBottles.size === filteredBottles.length}
-													onChange={toggleAll}
-													className="rounded border-zinc-700 bg-zinc-900 text-brand focus:ring-brand"
-												/>
+												<label className="relative flex items-center justify-center cursor-pointer group">
+													<input 
+														type="checkbox" 
+														checked={filteredBottles.length > 0 && selectedBottles.size === filteredBottles.length}
+														onChange={toggleAll}
+														className="peer sr-only"
+													/>
+													<div className="w-5 h-5 rounded-full border-2 border-zinc-700 bg-transparent peer-checked:bg-brand peer-checked:border-brand transition-all duration-200 flex items-center justify-center group-hover:border-zinc-500">
+														<svg className="w-3 h-3 text-black opacity-0 peer-checked:opacity-100 transition-opacity duration-200 transform scale-0 peer-checked:scale-100" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+															<path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+														</svg>
+													</div>
+												</label>
 											</th>
 											<th className="p-5 w-24">Nr.</th>
 											<th className="p-5">Inhalt / Status</th>
@@ -704,12 +711,19 @@ async function renumberBottles() {
 										{filteredBottles.map((bottle) => (
 											<tr key={bottle.id} className={`group transition-colors ${selectedBottles.has(bottle.id) ? 'bg-brand/5' : 'hover:bg-surface-hover/30'}`}>
 												<td className="p-5">
-													<input 
-														type="checkbox" 
-														checked={selectedBottles.has(bottle.id)}
-														onChange={() => toggleSelection(bottle.id)}
-														className="rounded border-zinc-700 bg-zinc-900 text-brand focus:ring-brand"
-													/>
+													<label className="relative flex items-center justify-center cursor-pointer">
+														<input 
+															type="checkbox" 
+															checked={selectedBottles.has(bottle.id)}
+															onChange={() => toggleSelection(bottle.id)}
+															className="peer sr-only"
+														/>
+														<div className="w-5 h-5 rounded-full border-2 border-zinc-700 bg-transparent peer-checked:bg-brand peer-checked:border-brand transition-all duration-200 flex items-center justify-center hover:border-zinc-500">
+															<svg className="w-3 h-3 text-black opacity-0 peer-checked:opacity-100 transition-opacity duration-200 transform scale-0 peer-checked:scale-100" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+																<path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+															</svg>
+														</div>
+													</label>
 												</td>
 												<td className="p-5 font-black text-brand text-lg">
 													 #{bottle.bottle_number}
