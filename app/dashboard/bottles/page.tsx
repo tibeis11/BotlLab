@@ -22,6 +22,8 @@ export default function BottlesPage() {
 	const [showScanner, setShowScanner] = useState(false);
 	const [scanBrewId, setScanBrewId] = useState<string>(""); 
 	const [scanFeedback, setScanFeedback] = useState<{type: 'success' | 'error', msg: string} | null>(null);
+	const [isProcessingScan, setIsProcessingScan] = useState(false);
+	const [lastScannedId, setLastScannedId] = useState<string | null>(null);
 
 	const [viewQr, setViewQr] = useState<{ url: string, bottleNumber: number, id: string } | null>(null);
 
@@ -356,27 +358,36 @@ async function renumberBottles() {
 	}
 
 	async function handleScan(decodedText: string) {
-		if (scanFeedback?.type === 'success' && scanFeedback.msg.includes("Flasche identifiziert")) {
+		if (isProcessingScan) return;
+
+		const idMatch = decodedText.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+		
+		if (!idMatch) {
+			// Nur Fehler anzeigen, wenn wir nicht gerade eh schon erfolgreich waren
+			if (scanFeedback?.type !== 'success') {
+				setScanFeedback({ type: 'error', msg: "❌ Kein gültiger Flaschen-QR erkannt." });
+			}
+			return;
 		}
 
+		const bottleId = idMatch[0];
+
+		// Verhindere Dauerfeuer auf dieselbe Flasche
+		if (bottleId === lastScannedId) return;
+
 		if (!scanBrewId) {
-			// Neue Logik: Wenn leerer String gewählt ist, behandeln wir das als "Leeren"-Aktion?
-			// Aktuell prüfen wir explizit auf !scanBrewId als Fehler. 
-			// Wir ändern das: Leerer String = Fehler, "EMPTY" = Leeren.
 			if (scanBrewId !== "EMPTY_ACTION") {
 				setScanFeedback({ type: 'error', msg: "⚠️ Bitte wähle eine Aktion (Rezept oder Leeren)!" });
 				return;
 			}
 		}
 
-		const idMatch = decodedText.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
-    
-		if (idMatch) {
-			const bottleId = idMatch[0];
-			
+		setIsProcessingScan(true);
+		
+		try {
 			// User holen für Besitzübernahme
 			const { data: { user } } = await supabase.auth.getUser();
-			if (!user) return;
+			if (!user) throw new Error("Nicht eingeloggt");
 
 			// Neue Nummer berechnen (max + 1), damit sie sauber ins Inventar passt
 			// 1. Höchste Nummer des Users holen
@@ -393,24 +404,44 @@ async function renumberBottles() {
 			// Bestimme brew_id: null wenn "EMPTY_ACTION", sonst die ID
 			const newBrewId = scanBrewId === "EMPTY_ACTION" ? null : scanBrewId;
 
+			// Prüfen ob die Flasche schon mir gehört, um unnötige Nummer-Updates zu vermeiden?
+			// Nein, wir machen einfach Update. Wenn sie mir schon gehört, ändert sich die user_id nicht, 
+			// aber die bottle_number würde hochzählen. 
+			// FIX: Wir sollten bottle_number NUR aktualisieren, wenn user_id SICH ÄNDERT.
+			
+			const { data: existingBottle } = await supabase
+				.from('bottles')
+				.select('user_id, bottle_number')
+				.eq('id', bottleId)
+				.single();
+
+			let updatePayload: any = { 
+				brew_id: newBrewId,
+				user_id: user.id
+			};
+
+			// Nur wenn die Flasche NICHT mir gehört, setze ich eine neue Nummer.
+			// Sonst behält sie ihre alte Nummer.
+			if (existingBottle && existingBottle.user_id !== user.id) {
+				updatePayload.bottle_number = nextNumber;
+			}
+
 			const { error } = await supabase
 				.from('bottles')
-				.update({ 
-					brew_id: newBrewId,
-					user_id: user.id, // Besitzerwechsel
-					bottle_number: nextNumber // Nummer anpassen
-				})
+				.update(updatePayload)
 				.eq('id', bottleId);
 
 			if (error) {
 				console.error(error);
 				setScanFeedback({ type: 'error', msg: "Fehler (gehört evtl. jmd anderem?): " + error.message });
 			} else {
+				setLastScannedId(bottleId); // Merken, damit wir nicht sofort wieder scannen
+				
 				if (newBrewId === null) {
-					setScanFeedback({ type: 'success', msg: `✅ Flasche übernommen & geleert` });
+					setScanFeedback({ type: 'success', msg: `✅ Flasche geleert` });
 				} else {
 					const bName = brews.find(b => b.id === newBrewId)?.name || 'Bier';
-					setScanFeedback({ type: 'success', msg: `✅ Flasche übernommen -> ${bName}` });
+					setScanFeedback({ type: 'success', msg: `✅ Flasche zugewiesen -> ${bName}` });
 				}
 				
 				loadData();
@@ -421,9 +452,16 @@ async function renumberBottles() {
 						newAchievements.forEach(achievement => showAchievement(achievement));
 					}).catch(console.error);
 				}
+
+				// Kurze Pause, bevor wir die nächste Flasche akzeptieren (verhindert Doppelklicks)
+				setTimeout(() => setLastScannedId(null), 3000); 
 			}
-		} else {
-			setScanFeedback({ type: 'error', msg: "❌ Kein gültiger Flaschen-QR erkannt." });
+		} catch (e: any) {
+			console.error(e);
+			setScanFeedback({ type: 'error', msg: "Fehler: " + e.message });
+		} finally {
+			// Kurze Verzögerung beim Freigeben des Scanners, damit UI nachkommt
+			setTimeout(() => setIsProcessingScan(false), 1000);
 		}
 	}
 
