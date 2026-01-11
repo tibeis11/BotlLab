@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Logo from '../../components/Logo';
@@ -34,10 +34,8 @@ export default function PublicScanPage() {
   const [honeypot, setHoneypot] = useState('');
   const [formStartTime, setFormStartTime] = useState<number>(0);
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  // Supabase singleton imported
+
 
   useEffect(() => {
     async function fetchBottleInfo() {

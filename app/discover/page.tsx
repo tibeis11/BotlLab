@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import Header from '../components/Header';
 
@@ -20,11 +20,7 @@ type Brew = {
 };
 
 export default function DiscoverPage() {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-
+  // Singleton imported
   const [brews, setBrews] = useState<Brew[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');

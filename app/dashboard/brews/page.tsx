@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import BottlesModal from './components/BottlesModal';
@@ -16,11 +16,6 @@ export default function BrewsListPage() {
 	const [selectedBrew, setSelectedBrew] = useState<{ id: string; name: string } | null>(null);
 
 	const router = useRouter();
-
-	const supabase = createClient(
-		process.env.NEXT_PUBLIC_SUPABASE_URL!,
-		process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-	);
 
 	useEffect(() => {
 		checkAuth();

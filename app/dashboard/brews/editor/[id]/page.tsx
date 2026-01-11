@@ -4,7 +4,7 @@
 import { useEffect, useState, useRef, type ChangeEvent } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 import { getTierConfig } from '@/lib/tier-system';
 import { checkAndGrantAchievements } from '@/lib/achievements';
 import { useAchievementNotification } from '@/app/context/AchievementNotificationContext';
@@ -27,10 +27,8 @@ export default function BrewEditorPage() {
 	const id = params.id as string;
 	const { showAchievement } = useAchievementNotification();
 
-	const supabase = createClient(
-		process.env.NEXT_PUBLIC_SUPABASE_URL!,
-		process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-	);
+	// Supabase singleton imported
+
 
 	const [loading, setLoading] = useState(true);
 	const [saving, setSaving] = useState(false);
