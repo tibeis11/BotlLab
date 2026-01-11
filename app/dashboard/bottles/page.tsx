@@ -454,14 +454,13 @@ async function renumberBottles() {
 				}
 
 				// Kurze Pause, bevor wir die nächste Flasche akzeptieren (verhindert Doppelklicks)
-				setTimeout(() => setLastScannedId(null), 3000); 
+				setTimeout(() => setLastScannedId(null), 1000); 
 			}
 		} catch (e: any) {
 			console.error(e);
 			setScanFeedback({ type: 'error', msg: "Fehler: " + e.message });
 		} finally {
-			// Kurze Verzögerung beim Freigeben des Scanners, damit UI nachkommt
-			setTimeout(() => setIsProcessingScan(false), 1000);
+			setIsProcessingScan(false);
 		}
 	}
 
