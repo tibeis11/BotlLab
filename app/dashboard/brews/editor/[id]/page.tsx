@@ -21,6 +21,66 @@ interface BrewForm {
 	remix_parent_id?: string | null;
 }
 
+function NumberInput({ 
+  value, 
+  onChange, 
+  step = 1, 
+  min = 0, 
+  placeholder, 
+  label 
+}: { 
+  value: any, 
+  onChange: (val: string) => void, 
+  step?: number, 
+  min?: number, 
+  placeholder?: string,
+  label?: string
+}) {
+  const val = parseFloat(value) || 0;
+
+  const update = (newVal: number) => {
+    if (newVal < min) newVal = min;
+    // Runden auf sinnvolle Dezimalstellen basierend auf Step
+    const precision = step.toString().split('.')[1]?.length || 0;
+    // Vermeide Floating Point Errors wie 5.6000000001
+    onChange(newVal.toFixed(precision));
+  };
+
+  return (
+    <div className="w-full">
+      {label && <label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 block">{label}</label>}
+      <div className="relative w-full group">
+        <button 
+          onClick={() => update(val - step)}
+          className="absolute left-0 top-0 bottom-0 z-10 w-12 flex items-center justify-center text-zinc-500 hover:text-white hover:bg-zinc-800 rounded-l-xl transition active:scale-90"
+          type="button"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+            <path fillRule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clipRule="evenodd" />
+          </svg>
+        </button>
+        <input 
+          type="number"
+          step={step}
+          className="w-full bg-zinc-900 border border-zinc-800 text-center text-white font-bold text-lg rounded-xl h-12 px-12 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none placeholder:font-normal placeholder:text-zinc-700 appearance-none min-w-0" 
+          value={value || ''} 
+          onChange={(e) => onChange(e.target.value)} 
+          placeholder={placeholder} 
+        />
+        <button 
+          onClick={() => update(val + step)}
+          className="absolute right-0 top-0 bottom-0 z-10 w-12 flex items-center justify-center text-zinc-500 hover:text-white hover:bg-zinc-800 rounded-r-xl transition active:scale-90"
+          type="button"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+            <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function BrewEditorPage() {
 	const params = useParams();
 	const router = useRouter();
@@ -732,58 +792,117 @@ export default function BrewEditorPage() {
 							</div>
 						</div>
 						{brew.brew_type === 'beer' && (
-							<div className="space-y-4">
-								<p className="text-xs uppercase font-bold text-zinc-400">Bier Details</p>
-								<div className="grid grid-cols-2 gap-3">
-									<div>
-										<label className="text-xs uppercase font-bold text-zinc-500">ABV (%)</label>
-										<input className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white" value={brew.data?.abv || ''} onChange={(e) => updateData('abv', e.target.value)} placeholder="z.B. 5.6" />
-									</div>
-									<div>
-										<label className="text-xs uppercase font-bold text-zinc-500">IBU</label>
-										<input className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white" value={brew.data?.ibu || ''} onChange={(e) => updateData('ibu', e.target.value)} placeholder="z.B. 35" />
+							<div className="mt-8 space-y-10">
+								{/* Section: Messwerte */}
+								<div>
+									<h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
+										<div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm border border-zinc-700">📊</div>
+										Messwerte
+									</h3>
+									<div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+										<NumberInput 
+											label="ABV (%)" 
+											value={brew.data?.abv || ''} 
+											onChange={(val) => updateData('abv', val)} 
+											placeholder="0.0" 
+											step={0.1} 
+										/>
+										<NumberInput 
+											label="IBU" 
+											value={brew.data?.ibu || ''} 
+											onChange={(val) => updateData('ibu', val)} 
+											placeholder="0" 
+										/>
+										<NumberInput 
+											label="Stammwürze (°P)" 
+											value={brew.data?.og || ''} 
+											onChange={(val) => updateData('og', val)} 
+											placeholder="12.0" 
+											step={0.1}
+										/>
+										<NumberInput 
+											label="Restextrakt (°P)" 
+											value={brew.data?.fg || ''} 
+											onChange={(val) => updateData('fg', val)} 
+											placeholder="3.0" 
+											step={0.1}
+										/>
+										<NumberInput 
+											label="Farbe (EBC)" 
+											value={brew.data?.color || ''} 
+											onChange={(val) => updateData('color', val)} 
+											placeholder="10" 
+										/>
 									</div>
 								</div>
-								<div className="grid grid-cols-2 gap-3">
-									<div>
-										<label className="text-xs uppercase font-bold text-zinc-500">Original Gravity</label>
-										<input className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white" value={brew.data?.og || ''} onChange={(e) => updateData('og', e.target.value)} placeholder="z.B. 1.056" />
-									</div>
-									<div>
-										<label className="text-xs uppercase font-bold text-zinc-500">Final Gravity</label>
-										<input className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white" value={brew.data?.fg || ''} onChange={(e) => updateData('fg', e.target.value)} placeholder="z.B. 1.012" />
-									</div>
-									<div>
-										<label className="text-xs uppercase font-bold text-zinc-500">Farbe (SRM)</label>
-										<input className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white" value={brew.data?.srm || ''} onChange={(e) => updateData('srm', e.target.value)} placeholder="z.B. 8" />
-									</div>
-									<div>
-										<label className="text-xs uppercase font-bold text-zinc-500">Hefe</label>
-										<input className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white" value={brew.data?.yeast || ''} onChange={(e) => updateData('yeast', e.target.value)} placeholder="z.B. US-05" />
-									</div>
-								</div>
-								<div className="grid grid-cols-2 gap-3">
-									<div>
-										<label className="text-xs uppercase font-bold text-zinc-500">Malzarten</label>
-										<input className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white" value={brew.data?.malts || ''} onChange={(e) => updateData('malts', e.target.value)} placeholder="z.B. Pilsner, Cara" />
-									</div>
-									<div>
-										<label className="text-xs uppercase font-bold text-zinc-500">Hopfenarten</label>
-										<input className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white" value={brew.data?.hops || ''} onChange={(e) => updateData('hops', e.target.value)} placeholder="z.B. Citra, Mosaic" />
+
+								{/* Section: Brauprozess */}
+								<div>
+									<h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
+										<div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm border border-zinc-700">🌡️</div>
+										Brauprozess
+									</h3>
+									<div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+										<NumberInput 
+											label="Kochzeit (min)" 
+											value={brew.data?.boil_time || ''} 
+											onChange={(val) => updateData('boil_time', val)} 
+											placeholder="60" 
+										/>
+										<NumberInput 
+											label="Maischetemp. (°C)" 
+											value={brew.data?.mash_temp || ''} 
+											onChange={(val) => updateData('mash_temp', val)} 
+											placeholder="67" 
+										/>
 									</div>
 								</div>
-								<div className="grid grid-cols-3 gap-3">
-									<div>
-										<label className="text-xs uppercase font-bold text-zinc-500">Dry Hop (g)</label>
-										<input className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white" value={brew.data?.dry_hop_g || ''} onChange={(e) => updateData('dry_hop_g', e.target.value)} placeholder="z.B. 120" />
-									</div>
-									<div>
-										<label className="text-xs uppercase font-bold text-zinc-500">Kochzeit (min)</label>
-										<input className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white" value={brew.data?.boil_minutes || ''} onChange={(e) => updateData('boil_minutes', e.target.value)} placeholder="z.B. 60" />
-									</div>
-									<div>
-										<label className="text-xs uppercase font-bold text-zinc-500">Maischetemp (°C)</label>
-										<input className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white" value={brew.data?.mash_temp_c || ''} onChange={(e) => updateData('mash_temp_c', e.target.value)} placeholder="z.B. 66" />
+
+								{/* Section: Zutaten */}
+								<div>
+									<h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
+										<div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm border border-zinc-700">🌾</div>
+										Zutaten
+									</h3>
+									<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+										<div>
+											<label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 block">Malz</label>
+											<input 
+												className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-600" 
+												value={brew.data?.malts || ''} 
+												onChange={(e) => updateData('malts', e.target.value)} 
+												placeholder="z.B. Pilsner, Münchner..." 
+											/>
+										</div>
+										<div>
+											<label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 block">Hefe</label>
+											<input 
+												className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-600" 
+												value={brew.data?.yeast || ''} 
+												onChange={(e) => updateData('yeast', e.target.value)} 
+												placeholder="z.B. Fermentis US-05" 
+											/>
+										</div>
+										<div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+											<div>
+												<label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 block">Hopfen</label>
+												<input 
+													className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-600" 
+													value={brew.data?.hops || ''} 
+													onChange={(e) => updateData('hops', e.target.value)} 
+													placeholder="z.B. Citra, Mosaic, Galaxy..." 
+												/>
+												<p className="text-[10px] text-zinc-600 mt-1.5 ml-1">Mehrere Sorten mit Komma trennen</p>
+											</div>
+											<div>
+												<NumberInput 
+													label="Dry Hop (g)" 
+													value={brew.data?.dry_hop_g || ''} 
+													onChange={(val) => updateData('dry_hop_g', val)} 
+													placeholder="0" 
+												/>
+											</div>
+										</div>
 									</div>
 								</div>
 							</div>
