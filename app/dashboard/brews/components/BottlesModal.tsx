@@ -35,7 +35,7 @@ export default function BottlesModal({ brewId, brewName, isOpen, onClose }: Bott
       .from('bottles')
       .select('*')
       .eq('brew_id', brewId)
-      .eq('user_id', user.id)
+      //.eq('user_id', user.id) // Removed for Team view
       .order('bottle_number', { ascending: true });
 
     if (!error && data) {

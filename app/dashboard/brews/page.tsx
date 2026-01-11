@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase, getActiveBrewery } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import BottlesModal from './components/BottlesModal';
@@ -14,6 +14,7 @@ export default function BrewsListPage() {
 	const [brewRatings, setBrewRatings] = useState<{ [key: string]: { avg: number; count: number } }>({});
 	const [bottlesModalOpen, setBottlesModalOpen] = useState(false);
 	const [selectedBrew, setSelectedBrew] = useState<{ id: string; name: string } | null>(null);
+	const [activeBrewery, setActiveBrewery] = useState<any>(null);
 
 	const router = useRouter();
 
@@ -29,30 +30,32 @@ export default function BrewsListPage() {
 			router.push('/login');
 			return;
 		}
-		fetchBrews();
+		
+		// Load Brewery Context first
+		const brewery = await getActiveBrewery(user.id);
+		setActiveBrewery(brewery);
+		
+		if (brewery) {
+			fetchBrews(brewery.id, user.id);
+		} else {
+			// Fallback (selten, da Onboarding jetzt Pflicht ist)
+			setLoading(false);
+		}
 	}
 
-	async function fetchBrews() {
+	async function fetchBrews(breweryId: string, userId: string) {
 		setLoading(true);
-		const {
-			data: { user },
-		} = await supabase.auth.getUser();
-
-		if (!user) {
-			setLoading(false);
-			return;
-		}
 
 		const { data, error } = await supabase
 			.from('brews')
 			.select('*, is_public')
-			.eq('user_id', user.id)
+			.eq('brewery_id', breweryId) // Filter by Team
 			.order('created_at', { ascending: false });
 		
 		const { data: profile } = await supabase
 			.from('profiles')
 			.select('tier')
-			.eq('id', user.id)
+			.eq('id', userId)
 			.maybeSingle();
 		
 		if (profile) {

@@ -14,6 +14,8 @@ export default function PublicScanPage() {
   
   const [data, setData] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
+  const [brewery, setBrewery] = useState<any>(null);
+  const [team, setTeam] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -97,6 +99,7 @@ export default function PublicScanPage() {
           image_url,
           created_at,
           user_id,
+          brewery_id,
           description,
           brew_type,
           data,
@@ -112,6 +115,22 @@ export default function PublicScanPage() {
 
       console.log("Brew loaded:", brew);
       setData(bottle ? { ...bottle, brews: brew } : null);
+
+      // Brauerei und Team laden
+      if (brew?.brewery_id) {
+        const { data: breweryData } = await supabase
+          .from('breweries')
+          .select('*')
+          .eq('id', brew.brewery_id)
+          .single();
+        setBrewery(breweryData);
+
+        const { data: memberData } = await supabase
+          .from('brewery_members')
+          .select('role, profiles:user_id(display_name, brewery_name, logo_url)')
+          .eq('brewery_id', brew.brewery_id);
+        setTeam(memberData || []);
+      }
 
       // Falls wir einen User (Brauer) haben, laden wir dessen Profil
       if (brew?.user_id) {
@@ -873,29 +892,53 @@ export default function PublicScanPage() {
             </div>
           )}
         </div>        
-        {/* --- Link zur Brauerei --- */}
-        {profile && (
-          <Link 
-            href={`/brewery/${brew.user_id}`}
-            className="block group bg-zinc-900 border border-zinc-800 rounded-2xl p-6 hover:bg-zinc-800 transition shadow-lg mt-8"
-          >
-             <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-zinc-800 border-2 border-zinc-700 overflow-hidden shrink-0">
-                  {profile.logo_url ? (
-                    <img src={profile.logo_url} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-2xl">🏰</div>
-                  )}
-                </div>
-                <div className="text-left flex-1 min-w-0">
-                   <p className="text-[10px] text-zinc-400 uppercase font-bold tracking-widest mb-1">Gebraut von</p>
-                   <h3 className="font-bold text-xl text-white truncate group-hover:text-cyan-400 transition">
-                      {profile.brewery_name || "Unbekannte Brauerei"} ↗
-                   </h3>
-                   {profile.location && <p className="text-xs text-zinc-500 mt-1">📍 {profile.location}</p>}
-                </div>
-             </div>
-          </Link>
+        {/* --- Link zur Brauerei & Team --- */}
+        {brewery && (
+          <div className="space-y-4 mt-8">
+            <Link 
+              href={`/team/${brewery.id}/brews`}
+              className="block group bg-zinc-900 border border-zinc-800 rounded-2xl p-6 hover:bg-zinc-800 transition shadow-lg"
+            >
+               <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-full bg-zinc-800 border-2 border-zinc-700 overflow-hidden shrink-0">
+                    {brewery.logo_url ? (
+                      <img src={brewery.logo_url} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-2xl">🏰</div>
+                    )}
+                  </div>
+                  <div className="text-left flex-1 min-w-0">
+                     <p className="text-[10px] text-zinc-400 uppercase font-bold tracking-widest mb-1">Brauerei</p>
+                     <h3 className="font-bold text-xl text-white truncate group-hover:text-cyan-400 transition">
+                        {brewery.name} ↗
+                     </h3>
+                     {brewery.location && <p className="text-xs text-zinc-500 mt-1">📍 {brewery.location}</p>}
+                  </div>
+               </div>
+            </Link>
+
+            {/* Team Avatars */}
+            {team.length > 0 && (
+              <div className="flex flex-col items-center gap-3 py-2">
+                 <p className="text-[9px] uppercase font-black tracking-[0.2em] text-zinc-600">Das Brau-Team</p>
+                 <div className="flex -space-x-2">
+                    {team.map((m, i) => (
+                      <div 
+                        key={i} 
+                        className="w-8 h-8 rounded-full border-2 border-black bg-zinc-800 flex items-center justify-center overflow-hidden"
+                        title={m.profiles?.display_name || m.profiles?.brewery_name}
+                      >
+                        {m.profiles?.logo_url ? (
+                          <img src={m.profiles.logo_url} className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-[10px]">👤</span>
+                        )}
+                      </div>
+                    ))}
+                 </div>
+              </div>
+            )}
+          </div>
         )}
 
         <footer className="pt-12 pb-6 text-center opacity-40 hover:opacity-100 transition-opacity duration-500 flex flex-col items-center">

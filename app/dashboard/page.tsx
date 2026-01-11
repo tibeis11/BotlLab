@@ -6,7 +6,7 @@ import Link from 'next/link';
 import TierProgressWidget from './components/TierProgressWidget';
 import ProfileCompletionRing from './components/ProfileCompletionRing';
 import { useAchievementNotification } from '../context/AchievementNotificationContext';
-import { supabase } from '@/lib/supabase';
+import { supabase, getActiveBrewery } from '@/lib/supabase';
 
 export default function DashboardPage() {
 	const [loading, setLoading] = useState(true);
@@ -17,6 +17,7 @@ export default function DashboardPage() {
 		collectionCount: 0
 	});
 	const [recentBrews, setRecentBrews] = useState<any[]>([]);
+	const [activeBrewery, setActiveBrewery] = useState<any>(null);
 	const [brewRatings, setBrewRatings] = useState<{[key: string]: {avg: number, count: number}}>({});
 	const [globalRatingStats, setGlobalRatingStats] = useState({
 		avg: 0,
@@ -36,6 +37,13 @@ export default function DashboardPage() {
 	});
 	const { showAchievement } = useAchievementNotification();
 	const router = useRouter();
+    
+    // State for Onboarding
+    const [isCreatingBrewery, setIsCreatingBrewery] = useState(false);
+    const [isJoiningBrewery, setIsJoiningBrewery] = useState(false);
+    const [newBreweryName, setNewBreweryName] = useState("");
+    const [joinCode, setJoinCode] = useState("");
+    const [onboardingError, setOnboardingError] = useState<string | null>(null);
 
 	useEffect(() => {
 		checkAuth();
@@ -57,109 +65,100 @@ export default function DashboardPage() {
 			if (!user) return; 
 			setUserId(user.id);
 
-			const { data: profile } = await supabase
-				.from('profiles')
-				.select('brewery_name,founded_year,logo_url,banner_url,location,website,bio')
-				.eq('id', user.id)
-				.single();
-			if (profile?.brewery_name) setBreweryName(profile.brewery_name);
-			if (profile) {
+			// 1. Kontext: In welcher Brauerei bin ich gerade?
+			const brewery = await getActiveBrewery(user.id);
+			setActiveBrewery(brewery);
+
+			if (brewery) {
+				setBreweryName(brewery.name);
 				setProfileInfo({
-					brewery_name: profile.brewery_name || '',
-					founded_year: profile.founded_year ? String(profile.founded_year) : '',
-					logo_url: profile.logo_url || '',
-					banner_url: profile.banner_url || '',
-					location: profile.location || '',
-					website: profile.website || '',
-					bio: profile.bio || ''
+					brewery_name: brewery.name || '',
+					founded_year: brewery.founded_year ? String(brewery.founded_year) : '',
+					logo_url: brewery.logo_url || '',
+					banner_url: brewery.banner_url || '',
+					location: brewery.location || '',
+					website: brewery.website || '',
+					bio: brewery.description || ''
 				});
-			}
 
-			const { count: brewCount } = await supabase
-				.from('brews')
-				.select('*', { count: 'exact', head: true })
-				.eq('user_id', user.id);
-        
-			const { count: bottleCount } = await supabase
-				.from('bottles')
-				.select('*', { count: 'exact', head: true })
-				.eq('user_id', user.id);
-        
-			const { count: filledCount } = await supabase
-				.from('bottles')
-				.select('*', { count: 'exact', head: true })
-				.eq('user_id', user.id)
-				.not('brew_id', 'is', null);
+				// 2. Stats für die Brauerei laden (Squad-Fokus)
+				const { count: brewCount } = await supabase
+					.from('brews')
+					.select('*', { count: 'exact', head: true })
+					.eq('brewery_id', brewery.id);
+					
+				const { count: bottleCount } = await supabase
+					.from('bottles')
+					.select('*', { count: 'exact', head: true })
+					.eq('brewery_id', brewery.id);
+					
+				const { count: filledCount } = await supabase
+					.from('bottles')
+					.select('*', { count: 'exact', head: true })
+					.eq('brewery_id', brewery.id)
+					.not('brew_id', 'is', null);
 
-			const { count: collectionCount } = await supabase
-				.from('collected_caps')
-				.select('*', { count: 'exact', head: true })
-				.eq('user_id', user.id);
+				const { count: collectionCount } = await supabase
+					.from('collected_caps')
+					.select('*', { count: 'exact', head: true })
+					.eq('user_id', user.id); // Sammlung bleibt persönlich!
 
-			setStats({
-				brewCount: brewCount || 0,
-				bottleCount: bottleCount || 0,
-				filledCount: filledCount || 0,
-				collectionCount: collectionCount || 0
-			});
+				setStats({
+					brewCount: brewCount || 0,
+					bottleCount: bottleCount || 0,
+					filledCount: filledCount || 0,
+					collectionCount: collectionCount || 0
+				});
 
-			const { data: allBrews } = await supabase
-				.from('brews')
-				.select('id')
-				.eq('user_id', user.id);
-      
-			if (allBrews && allBrews.length > 0) {
-				const brewIds = allBrews.map(b => b.id);
-				const { data: allRatings } = await supabase
-					.from('ratings')
-					.select('rating')
-					.in('brew_id', brewIds)
-					.eq('moderation_status', 'auto_approved');
-
-				if (allRatings && allRatings.length > 0) {
-					 const count = allRatings.length;
-					 const sum = allRatings.reduce((acc, r) => acc + r.rating, 0);
-					 const avg = Math.round((sum / count) * 10) / 10;
-					 const dist = [0,0,0,0,0];
-					 allRatings.forEach(r => {
-						 if (r.rating >= 1 && r.rating <= 5) {
-							 dist[r.rating - 1]++;
-						 }
-					 });
-					 setGlobalRatingStats({
-						 avg,
-						 total: count,
-						 distribution: dist
-					 });
-				}
-			}
-
-			const { data: recents } = await supabase
-				.from('brews')
-				.select('*')
-				.eq('user_id', user.id)
-				.order('created_at', { ascending: false })
-				.limit(3);
-      
-			if (recents) {
-				setRecentBrews(recents);
-				const ratingsMap: {[key: string]: {avg: number, count: number}} = {};
-				for (const brew of recents) {
-					const { data: ratings } = await supabase
+				// 3. Rezepte der Brauerei für Ratings & Recent List
+				const { data: allBrews } = await supabase
+					.from('brews')
+					.select('id')
+					.eq('brewery_id', brewery.id);
+				
+				if (allBrews && allBrews.length > 0) {
+					const brewIds = allBrews.map(b => b.id);
+					const { data: allRatings } = await supabase
 						.from('ratings')
 						.select('rating')
-						.eq('brew_id', brew.id)
+						.in('brew_id', brewIds)
 						.eq('moderation_status', 'auto_approved');
-          
-					if (ratings && ratings.length > 0) {
-						const avg = ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length;
-						ratingsMap[brew.id] = {
-							avg: Math.round(avg * 10) / 10,
-							count: ratings.length
-						};
+
+					if (allRatings && allRatings.length > 0) {
+						const count = allRatings.length;
+						const sum = allRatings.reduce((acc, r) => acc + r.rating, 0);
+						const avg = Math.round((sum / count) * 10) / 10;
+						const dist = [0,0,0,0,0];
+						allRatings.forEach(r => {
+							if (r.rating >= 1 && r.rating <= 5) dist[r.rating - 1]++;
+						});
+						setGlobalRatingStats({ avg, total: count, distribution: dist });
 					}
 				}
-				setBrewRatings(ratingsMap);
+
+				const { data: recents } = await supabase
+					.from('brews')
+					.select('*')
+					.eq('brewery_id', brewery.id)
+					.order('created_at', { ascending: false })
+					.limit(3);
+				
+				if (recents) {
+					setRecentBrews(recents);
+					const ratingsMap: {[key: string]: {avg: number, count: number}} = {};
+					for (const b of recents) {
+						const { data: ratings } = await supabase
+							.from('ratings')
+							.select('rating')
+							.eq('brew_id', b.id)
+							.eq('moderation_status', 'auto_approved');
+						if (ratings && ratings.length > 0) {
+							const avg = ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length;
+							ratingsMap[b.id] = { avg: Math.round(avg * 10) / 10, count: ratings.length };
+						}
+					}
+					setBrewRatings(ratingsMap);
+				}
 			}
 
 		} catch (e) {
@@ -202,6 +201,161 @@ export default function DashboardPage() {
 			}
 		}
 	}, [profileInfo, userId, showAchievement]);
+
+    async function handleCreateBrewery(e: React.FormEvent) {
+        e.preventDefault();
+        if(!newBreweryName.trim()) return;
+        setLoading(true);
+        setOnboardingError(null);
+
+        try {
+            // 1. Create Brewery
+            const { data: brewery, error: createError } = await supabase
+                .from('breweries')
+                .insert({ name: newBreweryName.trim() + "'s Squad" })
+                .select()
+                .single();
+
+            if (createError) throw createError;
+
+            // 2. Add Member as Owner
+            const { error: memberError } = await supabase
+                .from('brewery_members')
+                .insert({
+                    brewery_id: brewery.id,
+                    user_id: userId,
+                    role: 'owner'
+                });
+
+            if (memberError) throw memberError;
+
+            // Reload to enter dashboard
+            window.location.reload();
+
+        } catch (err: any) {
+            console.error(err);
+            setOnboardingError(err.message || "Fehler beim Erstellen der Brauerei.");
+            setLoading(false);
+        }
+    }
+
+    async function handleJoinBrewery(e: React.FormEvent) {
+        e.preventDefault();
+        if(!joinCode.trim()) return;
+        setLoading(true);
+        setOnboardingError(null);
+
+        try {
+             // 1. Check if brewery exists
+             const { data: brewery, error: fetchError } = await supabase
+                 .from('breweries')
+                 .select('id')
+                 .eq('id', joinCode.trim())
+                 .single();
+            
+             if (fetchError || !brewery) throw new Error("Brauerei nicht gefunden. ID prüfen.");
+
+             // 2. Join as Member (default role)
+             const { error: joinError } = await supabase
+                .from('brewery_members')
+                .insert({
+                    brewery_id: brewery.id,
+                    user_id: userId,
+                    role: 'member'
+                });
+            
+             if (joinError) {
+                 if (joinError.code === '23505') throw new Error("Du bist bereits Mitglied in diesem Team.");
+                 throw joinError;
+             }
+
+             window.location.reload();
+
+        } catch (err: any) {
+            console.error(err);
+            setOnboardingError(err.message || "Fehler beim Beitreten.");
+            setLoading(false);
+        }
+    }
+
+    // --- Onboarding View for Squadless Users ---
+    if (!loading && !activeBrewery) {
+        return (
+            <div className="min-h-[60vh] flex flex-col items-center justify-center p-4">
+                <div className="max-w-md w-full space-y-8 text-center">
+                    <div>
+                        <div className="text-6xl mb-4">🍻</div>
+                        <h2 className="text-3xl font-black text-white">Willkommen im BotlLab!</h2>
+                        <p className="text-zinc-400 mt-2">
+                            Du bist noch keinem Brauerei-Squad zugeordnet. Gründe dein eigenes Team oder tritt einem bestehenden bei.
+                        </p>
+                    </div>
+
+                    {!isCreatingBrewery && !isJoiningBrewery && (
+                        <div className="grid grid-cols-1 gap-4">
+                            <button 
+                                onClick={() => setIsCreatingBrewery(true)}
+                                className="bg-brand text-black font-black py-4 px-6 rounded-2xl hover:bg-cyan-400 transition flex items-center justify-center gap-3 text-lg"
+                            >
+                                <span>🏰</span>
+                                Brauerei gründen
+                            </button>
+                            <button 
+                                onClick={() => setIsJoiningBrewery(true)}
+                                className="bg-zinc-800 text-white font-bold py-4 px-6 rounded-2xl hover:bg-zinc-700 transition flex items-center justify-center gap-3"
+                            >
+                                <span>📩</span>
+                                Einladungscode eingeben
+                            </button>
+                        </div>
+                    )}
+
+                    {isCreatingBrewery && (
+                        <form onSubmit={handleCreateBrewery} className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl space-y-4 animate-in fade-in slide-in-from-bottom-4">
+                            <h3 className="text-xl font-bold text-white">Dein Brauerei-Name</h3>
+                            <input 
+                                type="text"
+                                placeholder="z.B. Hopfenrebellen"
+                                className="w-full bg-zinc-950 border border-zinc-800 p-4 rounded-xl outline-none focus:border-brand transition text-center font-bold text-lg"
+                                autoFocus
+                                value={newBreweryName}
+                                onChange={e => setNewBreweryName(e.target.value)}
+                            />
+                            <div className="flex gap-2">
+                                <button type="button" onClick={() => setIsCreatingBrewery(false)} className="flex-1 py-3 rounded-xl hover:bg-zinc-800 font-bold text-zinc-400">Zurück</button>
+                                <button className="flex-1 bg-brand text-black font-bold py-3 rounded-xl hover:bg-cyan-400">Los geht's 🚀</button>
+                            </div>
+                        </form>
+                    )}
+
+                    {isJoiningBrewery && (
+                        <form onSubmit={handleJoinBrewery} className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl space-y-4 animate-in fade-in slide-in-from-bottom-4">
+                            <h3 className="text-xl font-bold text-white">Squad ID eingeben</h3>
+                            <p className="text-xs text-zinc-500">Frage deinen Squad-Leader nach der Brauerei-ID (in den Teameinstellungen zu finden).</p>
+                            <input 
+                                type="text"
+                                placeholder="UUID Code..."
+                                className="w-full bg-zinc-950 border border-zinc-800 p-4 rounded-xl outline-none focus:border-brand transition text-center font-mono text-sm"
+                                autoFocus
+                                value={joinCode}
+                                onChange={e => setJoinCode(e.target.value)}
+                            />
+                            <div className="flex gap-2">
+                                <button type="button" onClick={() => setIsJoiningBrewery(false)} className="flex-1 py-3 rounded-xl hover:bg-zinc-800 font-bold text-zinc-400">Zurück</button>
+                                <button className="flex-1 bg-zinc-100 text-black font-bold py-3 rounded-xl hover:bg-white">Beitreten 🤝</button>
+                            </div>
+                        </form>
+                    )}
+
+                    {onboardingError && (
+                        <div className="bg-red-500/10 text-red-400 p-4 rounded-xl text-sm font-bold animate-in shake">
+                            {onboardingError}
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    }
 
 	return (
 		<div className="space-y-10 py-8">

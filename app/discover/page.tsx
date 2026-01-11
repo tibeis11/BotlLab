@@ -15,7 +15,7 @@ type Brew = {
   brew_type?: string | null;
   data?: any;
   remix_parent_id?: string | null;
-  profiles?: { brewery_name?: string | null; logo_url?: string | null } | null;
+  breweries?: any; // Handling Supabase's tendency to return arrays for joins
   ratings?: { rating: number }[] | null;
 };
 
@@ -35,7 +35,7 @@ export default function DiscoverPage() {
     setLoading(true);
     const { data } = await supabase
       .from('brews')
-      .select('id,name,style,image_url,created_at,user_id,brew_type,data,remix_parent_id,profiles(brewery_name,logo_url),ratings(rating)')
+      .select('id,name,style,image_url,created_at,user_id,brew_type,data,remix_parent_id,breweries(name,logo_url),ratings(rating)')
       .eq('is_public', true)
       .order('created_at', { ascending: false });
     setBrews((data || []) as Brew[]);
@@ -149,15 +149,22 @@ export default function DiscoverPage() {
                 </div>
                 <div className="p-4">
                   <div className="flex items-center gap-3 mb-2">
-                    {brew.profiles?.logo_url ? (
-                      <img src={brew.profiles.logo_url} className="w-8 h-8 rounded-full object-cover" />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm">🏭</div>
-                    )}
-                    <div className="flex-1 truncate">
-                      <p className="text-xs text-zinc-500 uppercase tracking-widest">{brew.profiles?.brewery_name || 'Unbekannte Brauerei'}</p>
-                      <h3 className="font-bold text-white truncate">{brew.name}</h3>
-                    </div>
+                    {(() => {
+                      const brewery = Array.isArray(brew.breweries) ? brew.breweries[0] : brew.breweries;
+                      return (
+                        <>
+                          {brewery?.logo_url ? (
+                            <img src={brewery.logo_url} className="w-8 h-8 rounded-full object-cover" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm">🏭</div>
+                          )}
+                          <div className="flex-1 truncate">
+                            <p className="text-xs text-zinc-500 uppercase tracking-widest">{brewery?.name || 'Unbekannte Brauerei'}</p>
+                            <h3 className="font-bold text-white truncate">{brew.name}</h3>
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
                   <div className="flex items-center justify-between text-sm text-zinc-400">
                     <span>{brew.style || '—'}</span>

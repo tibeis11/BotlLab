@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase, getActiveBrewery } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import ProfileCompletionRing from "../components/ProfileCompletionRing";
@@ -24,6 +24,7 @@ export default function ProfilePage() {
 
 	const [uploadingLogo, setUploadingLogo] = useState(false);
 	const [uploadingBanner, setUploadingBanner] = useState(false);
+	const [activeBrewery, setActiveBrewery] = useState<any>(null);
 	const router = useRouter();
 
 	useEffect(() => {
@@ -38,6 +39,10 @@ export default function ProfilePage() {
 		}
 		setUser(currentUser);
 		loadProfile(currentUser.id);
+
+		// Brauerei laden für den Link
+		const brewery = await getActiveBrewery(currentUser.id);
+		if (brewery) setActiveBrewery(brewery);
 	}
 
 	async function loadProfile(userId: string) {
@@ -157,22 +162,22 @@ export default function ProfilePage() {
 	if (loading) return <div className="p-10 text-center animate-pulse">Lade Profil...</div>;
 
 	return (
-		<div className="max-w-3xl mx-auto space-y-8">
+		<div className="max-w-3xl mx-auto space-y-8 animate-in fade-in duration-500">
 			<div>
-				<h2 className="text-3xl font-bold tracking-tight">Deine Brauerei 🏰</h2>
-				<p className="text-zinc-400">Hier verwaltest du die Identität deiner Heimbrauerei.</p>
+				<h2 className="text-3xl font-bold tracking-tight text-white">Dein Community Profil 🌍</h2>
+				<p className="text-zinc-400">Hier verwaltest du wie dich andere in der Community sehen.</p>
 			</div>
 
 			{/* Profil-Vervollständigungsstatus */}
 			{(() => {
 				const fields: Array<{ key: keyof typeof profile; label: string; isDone?: (v: any) => boolean }> = [
-					{ key: 'brewery_name', label: 'Name' },
-					{ key: 'founded_year', label: 'Gründungsjahr', isDone: (v) => !!(v && String(v).trim().length > 0) },
+					{ key: 'brewery_name', label: 'Anzeigename' },
+					{ key: 'founded_year', label: 'Dabei seit', isDone: (v) => !!(v && String(v).trim().length > 0) },
 					{ key: 'logo_url', label: 'Profilbild' },
 					{ key: 'banner_url', label: 'Banner' },
 					{ key: 'location', label: 'Standort' },
 					{ key: 'website', label: 'Webseite' },
-					{ key: 'bio', label: 'Über uns' },
+					{ key: 'bio', label: 'Über mich' },
 				];
 				const isFilled = (key: keyof typeof profile, custom?: (v: any) => boolean) => {
 					const val = profile[key];
@@ -202,7 +207,7 @@ export default function ProfilePage() {
 					)}
 
 					<label className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition">
-						<span className="bg-black/70 px-4 py-2 rounded-lg text-sm font-bold border border-white/20">
+						<span className="bg-black/70 px-4 py-2 rounded-lg text-sm font-bold border border-white/20 text-white">
 							{uploadingBanner ? 'Lade hoch...' : '📷 Banner ändern'}
 						</span>
 						<input
@@ -266,17 +271,17 @@ export default function ProfilePage() {
 
 					<div className="mt-12 mb-8 border-b border-zinc-800 pb-8">
 						<h3 className="text-2xl font-bold text-white">{profile.brewery_name || user?.email}</h3>
-						<p className="text-sm text-zinc-500">Braumeister seit {new Date(user?.created_at).getFullYear()}</p>
+						<p className="text-sm text-zinc-500">Community Mitglied seit {new Date(user?.created_at).getFullYear()}</p>
 					</div>
 
 					<div className="space-y-6">
 						<div className="bg-gradient-to-r from-zinc-800 to-zinc-900 border border-zinc-700 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
 							<div>
-								<h4 className="text-sm font-bold text-white mb-1">🌍 Dein öffentliches Profil</h4>
+								<h4 className="text-sm font-bold text-white mb-1">🌍 Dein öffentliches Community Profil</h4>
 								<p className="text-xs text-zinc-400">Teile diesen Link mit Freunden.</p>
 							</div>
 							<Link
-								href={`/brewery/${user?.id}`}
+								href={`/brewer/${user?.id}`}
 								target="_blank"
 								className="bg-zinc-950 hover:bg-black text-cyan-400 border border-zinc-700 px-3 py-2 rounded-lg text-sm font-bold transition flex items-center justify-center gap-2 w-full sm:w-auto"
 								aria-label="Öffentliches Profil ansehen (öffnet in neuem Tab)"
@@ -287,36 +292,36 @@ export default function ProfilePage() {
 
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 							<div>
-								<label className="block text-xs font-bold uppercase text-zinc-500 mb-2">Name der Brauerei</label>
+								<label className="block text-xs font-bold uppercase text-zinc-500 mb-2">Anzeigename</label>
 								<input
 									type="text"
 									value={profile.brewery_name}
 									onChange={(e) => setProfile({ ...profile, brewery_name: e.target.value })}
-									placeholder="z.B. Kellerbräu 3000"
-									className="w-full bg-zinc-800 border-zinc-700 rounded-xl p-3 focus:ring-2 focus:ring-cyan-500 outline-none transition"
+									placeholder="Dein Name in der Community"
+									className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 focus:ring-2 focus:ring-cyan-500 outline-none transition text-white placeholder-zinc-700"
 								/>
 							</div>
 							<div>
-								<label className="block text-xs font-bold uppercase text-zinc-500 mb-2">Gründungsjahr</label>
+								<label className="block text-xs font-bold uppercase text-zinc-500 mb-2">Dabei seit</label>
 								<input
 									type="number"
 									value={profile.founded_year}
 									onChange={(e) => setProfile({ ...profile, founded_year: e.target.value })}
 									placeholder="2024"
-									className="w-full bg-zinc-800 border-zinc-700 rounded-xl p-3 focus:ring-2 focus:ring-cyan-500 outline-none transition"
+									className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 focus:ring-2 focus:ring-cyan-500 outline-none transition text-white placeholder-zinc-700"
 								/>
 							</div>
 						</div>
 
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 							<div>
-								<label className="block text-xs font-bold uppercase text-zinc-500 mb-2">Standort / Stadt</label>
+								<label className="block text-xs font-bold uppercase text-zinc-500 mb-2">Standort / Homebase</label>
 								<input
 									type="text"
 									value={profile.location}
 									onChange={(e) => setProfile({ ...profile, location: e.target.value })}
-									placeholder="z.B. München, Giesing"
-									className="w-full bg-zinc-800 border-zinc-700 rounded-xl p-3 focus:ring-2 focus:ring-cyan-500 outline-none transition"
+									placeholder="z.B. München"
+									className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 focus:ring-2 focus:ring-cyan-500 outline-none transition text-white placeholder-zinc-700"
 								/>
 							</div>
 							<div>
@@ -326,18 +331,18 @@ export default function ProfilePage() {
 									value={profile.website}
 									onChange={(e) => setProfile({ ...profile, website: e.target.value })}
 									placeholder="https://instagram.com/..."
-									className="w-full bg-zinc-800 border-zinc-700 rounded-xl p-3 focus:ring-2 focus:ring-cyan-500 outline-none transition"
+									className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 focus:ring-2 focus:ring-cyan-500 outline-none transition text-white placeholder-zinc-700"
 								/>
 							</div>
 						</div>
 
 						<div>
-							<label className="block text-xs font-bold uppercase text-zinc-500 mb-2">Über uns (Bio)</label>
+							<label className="block text-xs font-bold uppercase text-zinc-500 mb-2">Über mich (Bio)</label>
 							<textarea
 								value={profile.bio}
 								onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
-								placeholder="Erzähle etwas über deine Brau-Philosophie..."
-								className="w-full h-32 bg-zinc-800 border-zinc-700 rounded-xl p-3 focus:ring-2 focus:ring-cyan-500 outline-none transition"
+								placeholder="Erzähle etwas über dich..."
+								className="w-full h-32 bg-zinc-950 border border-zinc-800 rounded-xl p-3 focus:ring-2 focus:ring-cyan-500 outline-none transition text-white placeholder-zinc-700"
 							/>
 						</div>
 
@@ -346,7 +351,7 @@ export default function ProfilePage() {
 								id="saveBtn"
 								onClick={saveProfile}
 								disabled={saving}
-								className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-8 rounded-xl transition shadow-lg shadow-cyan-900/20 disabled:opacity-50"
+								className="bg-white hover:bg-gray-200 text-black font-black py-3 px-8 rounded-xl transition disabled:opacity-50"
 							>
 								{saving ? 'Speichere...' : 'Profil Speichern'}
 							</button>
@@ -355,14 +360,14 @@ export default function ProfilePage() {
 				</div>
 			</div>
 
-			<div className="bg-red-900/10 p-6 rounded-xl border border-red-900/30 flex justify-between items-center">
+			<div className="bg-red-500/5 p-6 rounded-xl border border-red-500/10 flex justify-between items-center">
 				<div>
-					<h4 className="font-bold text-zinc-400">Account</h4>
-					<p className="text-xs text-zinc-600">Du kannst dich jederzeit abmelden.</p>
+					<h4 className="font-bold text-zinc-400">Abmelden</h4>
+					<p className="text-xs text-zinc-600">Sitzung beenden.</p>
 				</div>
 				<button
 					onClick={() => supabase.auth.signOut().then(() => (window.location.href = '/login'))}
-					className="text-red-400 hover:bg-red-900/20 px-4 py-2 rounded-lg text-sm font-bold transition"
+					className="text-red-400 hover:bg-red-950/30 px-4 py-2 rounded-lg text-sm font-bold transition border border-transparent hover:border-red-900"
 				>
 					Abmelden
 				</button>

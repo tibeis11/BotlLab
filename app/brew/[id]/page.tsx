@@ -111,13 +111,32 @@ export default function BrewDetailPage() {
 
         setBrew(brewData);
 
-        // Profile laden
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('id, brewery_name, location, bio, logo_url, tier')
-          .eq('id', brewData.user_id)
-          .maybeSingle();
-        setProfile(profileData);
+        // Logic Switch: Team vs Personal
+        if (brewData.brewery_id) {
+             const { data: breweryData } = await supabase
+              .from('breweries')
+              .select('id, name, description, logo_url') 
+              .eq('id', brewData.brewery_id)
+              .maybeSingle();
+
+             if (breweryData) {
+                 setProfile({
+                     id: breweryData.id,
+                     brewery_name: breweryData.name,
+                     logo_url: breweryData.logo_url,
+                     bio: breweryData.description,
+                     location: null
+                 });
+             }
+        } else {
+            // Profile laden (Personal)
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('id, brewery_name, location, bio, logo_url, tier')
+              .eq('id', brewData.user_id)
+              .maybeSingle();
+            setProfile(profileData);
+        }
 
         // Parent laden (wenn Remix)
         if (brewData.remix_parent_id) {
@@ -349,7 +368,7 @@ export default function BrewDetailPage() {
               ♻️ Basiert auf
               <Link href={`/brew/${parent.id}`} className="text-cyan-400 font-bold ml-1 hover:underline">{parent.name}</Link>
               {parent.profiles?.brewery_name && (
-                <> von <Link href={`/brewery/${parent.user_id}`} className="text-cyan-400 font-bold hover:underline">{parent.profiles.brewery_name}</Link></>
+                <> von <Link href={`/brewer/${parent.user_id}`} className="text-cyan-400 font-bold hover:underline">{parent.profiles.brewery_name}</Link></>
               )}
             </p>
           </div>

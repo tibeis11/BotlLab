@@ -1,16 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { supabase, getActiveBrewery } from '@/lib/supabase';
+import { useEffect, useState, use } from 'react';
+import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import QRCode from 'qrcode'; 
 import { jsPDF } from 'jspdf'; 
-import Scanner from '../components/Scanner';
+import Scanner from '@/app/dashboard/components/Scanner';
 import { getTierConfig, type TierName } from '@/lib/tier-system';
 import { checkAndGrantAchievements } from '@/lib/achievements';
 import { useAchievementNotification } from '@/app/context/AchievementNotificationContext';
 
-export default function BottlesPage() {
+export default function TeamInventoryPage({ params }: { params: Promise<{ breweryId: string }> }) {
+	const { breweryId } = use(params);
 	const [bottles, setBottles] = useState<any[]>([]);
 	const [brews, setBrews] = useState<any[]>([]);
 	const [amount, setAmount] = useState(10);
@@ -42,12 +43,12 @@ export default function BottlesPage() {
 	useEffect(() => {
 		setIsMounted(true);
 		checkAuth();
-	}, []);
+	}, [breweryId]);
 
 	async function checkAuth() {
 		const { data: { user } } = await supabase.auth.getUser();
 		if (!user) {
-			router.push('/login');
+			router.push(`/login?next=/team/${breweryId}/inventory`);
 			return;
 		}
 		loadData();
@@ -57,11 +58,24 @@ export default function BottlesPage() {
 		const { data: { user } } = await supabase.auth.getUser();
 		if (!user) return;
 
-		// 1. Brauerei-Kontext laden
-		const brewery = await getActiveBrewery(user.id);
+		// 1. Validate Brewery Access
+		const { data: brewery, error } = await supabase
+			.from('breweries')
+			.select('*, brewery_members!inner(user_id)')
+			.eq('id', breweryId)
+			.eq('brewery_members.user_id', user.id)
+			.single();
+
+		if (error || !brewery) {
+			console.error("Access denied or brewery not found");
+			router.push('/dashboard'); // or /team selection
+			return;
+		}
+
 		setActiveBrewery(brewery);
 
 		if (brewery) {
+			// TODO: Verify if we should use the Team Owner's tier instead of the current user's tier
 			const { data: profile } = await supabase
 				.from('profiles')
 				.select('tier')
@@ -127,7 +141,7 @@ export default function BottlesPage() {
 			ctx.lineTo(boxX + boxSize, boxY + boxSize - cornerRadius);
 			ctx.quadraticCurveTo(boxX + boxSize, boxY + boxSize, boxX + boxSize - cornerRadius, boxY + boxSize);
 			ctx.lineTo(boxX + cornerRadius, boxY + boxSize);
-			ctx.quadraticCurveTo(boxX, boxY + boxSize, boxX, boxY + boxSize - cornerRadius);
+			ctx.quadraticCurveTo(boxX, boxY, boxX, boxY + boxSize - cornerRadius);
 			ctx.lineTo(boxX, boxY + cornerRadius);
 			ctx.quadraticCurveTo(boxX, boxY, boxX + cornerRadius, boxY);
 			ctx.closePath();
@@ -208,7 +222,7 @@ export default function BottlesPage() {
 				`🔒 Limit erreicht!\n\n` +
 				`Dein Tier "${tierConfig.displayName}" erlaubt maximal ${tierConfig.limits.maxBottles} Flaschen.\n` +
 				`Du hast aktuell ${bottles.length} Flaschen. Du kannst nur noch ${tierConfig.limits.maxBottles - bottles.length} erstellen.\n\n` +
-				`Lösche alte Flaschen oder steige auf, um mehr zu erstellen.`
+				`Lösche alte Flaschen, um mehr zu erstellen.`
 			);
 			return;
 		}
@@ -264,51 +278,6 @@ export default function BottlesPage() {
 		}
 	}
 
-	async function generateBottles() {
-		if (isWorking || !activeBrewery) return;
-		setIsWorking(true);
-
-		const { data: { user } } = await supabase.auth.getUser();
-		if (!user) return;
-
-		// Limit check
-		const tierConfig = getTierConfig(userTier);
-		if (bottles.length + amount > tierConfig.limits.maxBottles) {
-			alert(`Limit erreicht! Dein Paket erlaubt max. ${tierConfig.limits.maxBottles} Flaschen.`);
-			setIsWorking(false);
-			return;
-		}
-
-		try {
-			const startNumber = bottles.length > 0 ? Math.max(...bottles.map(b => b.bottle_number)) + 1 : 1;
-			const newBottles = [];
-			for (let i = 0; i < amount; i++) {
-				newBottles.push({
-					user_id: user.id,
-					brewery_id: activeBrewery.id,
-					bottle_number: startNumber + i,
-					status: 'empty'
-				});
-			}
-
-			const { data: createdBottles, error } = await supabase
-				.from('bottles')
-				.insert(newBottles)
-				.select();
-
-			if (error) throw error;
-
-			await generatePdfForBottles(createdBottles, "BotlLab QR-Code Batch");
-      
-			await loadData();
-		} catch (err: any) {
-			console.error(err);
-			alert("Fehler: " + err.message);
-		} finally {
-			setIsWorking(false);
-		}
-	}
-
 	// Bulk Actions Logic
 	const toggleSelection = (id: string) => {
 		const newSelection = new Set(selectedBottles);
@@ -325,9 +294,7 @@ export default function BottlesPage() {
 		}
 	};
 
-	
-
-async function renumberBottles() {
+	async function renumberBottles() {
 		const { data: { user } } = await supabase.auth.getUser();
 		if (!user || !activeBrewery) return;
 
@@ -349,7 +316,7 @@ async function renumberBottles() {
 
 		const { error } = await supabase
 			.from('bottles')
-			.upsert(updates, { onConflict: 'id' });
+			.upsert(updates, { onConflict: 'id' as never }); 
 
 		if (error) console.error("Renumber Error", error);
 	}
@@ -412,7 +379,6 @@ async function renumberBottles() {
 		const idMatch = decodedText.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
 		
 		if (!idMatch) {
-			// Nur Fehler anzeigen, wenn wir nicht gerade eh schon erfolgreich waren
 			if (scanFeedback?.type !== 'success') {
 				setScanFeedback({ type: 'error', msg: "❌ Kein gültiger Flaschen-QR erkannt." });
 			}
@@ -434,12 +400,10 @@ async function renumberBottles() {
 		setIsProcessingScan(true);
 		
 		try {
-			// User holen für Besitzübernahme
 			const { data: { user } } = await supabase.auth.getUser();
 			if (!user) throw new Error("Nicht eingeloggt");
 
 			// Neue Nummer berechnen (max + 1), damit sie sauber ins Inventar passt
-			// 1. Höchste Nummer der Brauerei holen
 			const { data: maxResult } = await supabase
 				.from('bottles')
 				.select('bottle_number')
@@ -450,14 +414,10 @@ async function renumberBottles() {
 			
 			const nextNumber = (maxResult?.bottle_number || 0) + 1;
 
-			// Bestimme brew_id: null wenn "EMPTY_ACTION", sonst die ID
+			// Bestimme brew_id
 			const newBrewId = scanBrewId === "EMPTY_ACTION" ? null : scanBrewId;
 
-			// Prüfen ob die Flasche schon mir gehört, um unnötige Nummer-Updates zu vermeiden?
-			// Nein, wir machen einfach Update. Wenn sie mir schon gehört, ändert sich die user_id nicht, 
-			// aber die bottle_number würde hochzählen. 
-			// FIX: Wir sollten bottle_number NUR aktualisieren, wenn user_id SICH ÄNDERT.
-			
+			// Check bottle existing state
 			const { data: existingBottle } = await supabase
 				.from('bottles')
 				.select('brewery_id, bottle_number')
@@ -469,8 +429,7 @@ async function renumberBottles() {
 				brewery_id: activeBrewery.id
 			};
 
-			// Nur wenn die Flasche NICHT mir gehört, setze ich eine neue Nummer.
-			// Sonst behält sie ihre alte Nummer.
+			// If bottle was from another brewery, assign new number
 			if (existingBottle && existingBottle.brewery_id !== activeBrewery.id) {
 				updatePayload.bottle_number = nextNumber;
 			}
@@ -482,9 +441,9 @@ async function renumberBottles() {
 
 			if (error) {
 				console.error(error);
-				setScanFeedback({ type: 'error', msg: "Fehler (gehört evtl. jmd anderem?): " + error.message });
+				setScanFeedback({ type: 'error', msg: "Fehler: " + error.message });
 			} else {
-				setLastScannedId(bottleId); // Merken, damit wir nicht sofort wieder scannen
+				setLastScannedId(bottleId);
 				
 				if (newBrewId === null) {
 					setScanFeedback({ type: 'success', msg: `✅ Flasche geleert` });
@@ -495,14 +454,12 @@ async function renumberBottles() {
 				
 				loadData();
 				
-				// Achievements im Hintergrund prüfen
 				if (newBrewId) {
 					checkAndGrantAchievements(user.id).then(newAchievements => {
 						newAchievements.forEach(achievement => showAchievement(achievement));
 					}).catch(console.error);
 				}
 
-				// Kurze Pause, bevor wir die nächste Flasche akzeptieren (verhindert Doppelklicks)
 				setTimeout(() => setLastScannedId(null), 1000); 
 			}
 		} catch (e: any) {
@@ -568,8 +525,10 @@ async function renumberBottles() {
 		empty: bottles.filter(b => !b.brew_id).length
 	};
 
+	if (!isMounted) return null;
+
 	return (
-		<div className="space-y-8 pb-20">
+		<div className="space-y-8 pb-20 p-6 sm:p-8 animate-fade-in">
       
 			<div className="flex flex-col xl:flex-row xl:items-end justify-between gap-6">
 				<div>
@@ -941,3 +900,4 @@ async function renumberBottles() {
 		</div>
 	);
 }
+
