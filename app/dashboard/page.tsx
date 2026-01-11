@@ -13,7 +13,8 @@ export default function DashboardPage() {
 	const [stats, setStats] = useState({
 		brewCount: 0,
 		bottleCount: 0,
-		filledCount: 0
+		filledCount: 0,
+		collectionCount: 0
 	});
 	const [recentBrews, setRecentBrews] = useState<any[]>([]);
 	const [brewRatings, setBrewRatings] = useState<{[key: string]: {avg: number, count: number}}>({});
@@ -90,10 +91,16 @@ export default function DashboardPage() {
 				.eq('user_id', user.id)
 				.not('brew_id', 'is', null);
 
+			const { count: collectionCount } = await supabase
+				.from('collected_caps')
+				.select('*', { count: 'exact', head: true })
+				.eq('user_id', user.id);
+
 			setStats({
 				brewCount: brewCount || 0,
 				bottleCount: bottleCount || 0,
-				filledCount: filledCount || 0
+				filledCount: filledCount || 0,
+				collectionCount: collectionCount || 0
 			});
 
 			const { data: allBrews } = await supabase
@@ -276,14 +283,14 @@ export default function DashboardPage() {
 							</div>
 					</div>
 
-					<div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-2xl relative overflow-hidden group">
-							<div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition text-6xl rotate-12">⭐</div>
-							<p className="text-sm text-zinc-500 uppercase font-bold tracking-widest">Qualität</p>
-							<p className="text-4xl font-black text-white mt-1">{loading ? '-' : (globalRatingStats.total > 0 ? globalRatingStats.avg : '-')}</p>
+					<Link href="/dashboard/collection" className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-2xl relative overflow-hidden group hover:border-zinc-600 transition">
+							<div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition text-6xl rotate-12">🟡</div>
+							<p className="text-sm text-zinc-500 uppercase font-bold tracking-widest">Sammlung</p>
+							<p className="text-4xl font-black text-white mt-1">{loading ? '-' : stats.collectionCount}</p>
 							<div className="mt-4 pt-4 border-t border-zinc-800/50 flex items-center gap-2 text-xs text-zinc-400">
-									<span className="text-yellow-500 font-bold">{globalRatingStats.total}</span> Bewertungen gesamt
+									<span className="text-cyan-500 font-bold">Badge</span> Sammlerstücke gesamt
 							</div>
-					</div>
+					</Link>
 			</div>
 
 			<div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
