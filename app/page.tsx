@@ -49,17 +49,71 @@ export default function Home() {
               </a>
             </div>
 
-            <div className="pt-12 flex justify-center gap-8 opacity-60 grayscale hover:grayscale-0 transition duration-500">
-               <span className="text-zinc-500 font-bold">🍺 Craft Beer</span>
-               <span className="text-zinc-500 font-bold">🍷 Wein</span>
-               <span className="text-zinc-500 font-bold">🥤 Limo</span>
-               <span className="text-zinc-500 font-bold">🍎 Cider</span>
+            <div className="pt-12 flex flex-wrap justify-center gap-8 opacity-60 grayscale hover:grayscale-0 transition duration-500">
+               <span className="text-zinc-500 font-bold flex items-center gap-2">🍺 Craft Beer</span>
+               <span className="text-zinc-500 font-bold flex items-center gap-2">🍷 Wein</span>
+               <span className="text-zinc-500 font-bold flex items-center gap-2">🥤 Limo</span>
+               <span className="text-zinc-500 font-bold flex items-center gap-2">👯‍♀️ Teams</span>
+               <span className="text-zinc-500 font-bold flex items-center gap-2">🏆 Achievements</span>
             </div>
           </div>
         </section>
 
+        {/* --- SOCIAL PROOF & SQUAD SECTION (NEW) --- */}
+        <section className="py-24 bg-zinc-950 border-y border-white/5 relative overflow-hidden">
+             
+           <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-16 items-center">
+               <div className="relative order-2 lg:order-1">
+                  {/* Abstract Squad Visual */}
+                  <div className="relative bg-zinc-900 border border-zinc-800 p-8 rounded-3xl shadow-2xl space-y-4 max-w-sm mx-auto lg:ml-auto transform -rotate-2 hover:rotate-0 transition duration-500">
+                      <div className="flex items-center justify-between border-b border-zinc-800 pb-4 mb-4">
+                          <h3 className="font-bold text-white">Hopfenrebellen Squad</h3>
+                          <span className="text-xs bg-cyan-900/30 text-cyan-400 px-2 py-1 rounded border border-cyan-800">3 Mitglieder</span>
+                      </div>
+                      <div className="space-y-3">
+                          <div className="flex items-center gap-3 p-2 bg-zinc-950/50 rounded-xl border border-zinc-800/50">
+                              <div className="w-8 h-8 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center border border-purple-500/30 text-xs">👨‍🍳</div>
+                              <div className="flex-1">
+                                  <div className="h-2 bg-zinc-800 rounded w-20 mb-1"></div>
+                                  <div className="h-1.5 bg-zinc-800/50 rounded w-12"></div>
+                              </div>
+                              <span className="text-[10px] text-zinc-500">Meister</span>
+                          </div>
+                           <div className="flex items-center gap-3 p-2 bg-zinc-950/50 rounded-xl border border-zinc-800/50">
+                              <div className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30 text-xs">🎓</div>
+                              <div className="flex-1">
+                                  <div className="h-2 bg-zinc-800 rounded w-24 mb-1"></div>
+                                  <div className="h-1.5 bg-zinc-800/50 rounded w-16"></div>
+                              </div>
+                              <span className="text-[10px] text-zinc-500">Geselle</span>
+                          </div>
+                      </div>
+                      <div className="mt-4 pt-4 border-t border-zinc-800 text-center">
+                          <span className="text-xs text-zinc-400">Neues Achievement freigeschaltet: <strong>Team Brewer</strong> 🏆</span>
+                      </div>
+                  </div>
+               </div>
+               
+               <div className="order-1 lg:order-2">
+                   <span className="text-cyan-400 font-bold tracking-widest uppercase text-xs mb-2 block">Neu: Squads & Teams</span>
+                   <h2 className="text-4xl md:text-5xl font-black mb-6 leading-tight text-white">
+                      Brauen ist <span className="text-cyan-400">Teamsport</span>.
+                   </h2>
+                   <p className="text-lg text-zinc-400 mb-8 leading-relaxed">
+                      Egal ob WG-Brauerei, Verein oder einfach Freunde: Gründe dein eigenes <strong>Squad</strong>. 
+                      Verwaltet zusammen Rezepte, teilt euch das Inventar und feiert gemeinsame Erfolge im Feed.
+                   </p>
+                   <ul className="space-y-4 text-zinc-300 font-medium">
+                      <li className="flex items-center gap-3"><span className="text-xl">🤝</span> Gemeinsames Dashboard</li>
+                      <li className="flex items-center gap-3"><span className="text-xl">📢</span> Team-Newsfeed</li>
+                      <li className="flex items-center gap-3"><span className="text-xl">🏆</span> Squad-Achievements sammeln</li>
+                   </ul>
+               </div>
+           </div>
+        </section>
+
         {/* --- PROBLEM / SOLUTION --- */}
-        <section className="py-32 bg-zinc-950 border-y border-white/5">
+        <section className="py-24 bg-zinc-950">
            <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-16 items-center">
               <div>
                  <h2 className="text-4xl md:text-5xl font-black mb-6 leading-tight">
@@ -92,7 +146,7 @@ export default function Home() {
                          <div className="h-4 bg-zinc-800 rounded w-3/4 animate-pulse"></div>
                          <div className="h-4 bg-zinc-800 rounded w-1/2 animate-pulse"></div>
                          <div className="p-4 bg-zinc-950/50 rounded-xl border border-zinc-800/50 text-sm text-zinc-400 mt-4">
-                            "BotlLab löst das Problem dauerhaft. Ein Sticker. Kein Kratzen mehr."
+                            &quot;BotlLab löst das Problem dauerhaft. Ein Sticker. Kein Kratzen mehr.&quot;
                          </div>
                       </div>
                   </div>
@@ -142,7 +196,7 @@ export default function Home() {
                     </p>
                  </div>
                  
-                 {/* Feature 4: Feedback & Ratings (NEU) */}
+                 {/* Feature 4: Feedback & Ratings */}
                  <div className="bg-zinc-900/30 border border-zinc-800 p-8 rounded-3xl hover:bg-zinc-900 hover:border-cyan-900/50 transition group">
                     <div className="w-12 h-12 bg-zinc-800 rounded-xl flex items-center justify-center text-2xl mb-6 group-hover:bg-cyan-500 group-hover:text-black transition">
                       ⭐
@@ -150,6 +204,28 @@ export default function Home() {
                     <h3 className="font-bold text-2xl mb-4">Feedback Loop</h3>
                     <p className="text-zinc-400 leading-relaxed">
                        Sammle ehrliches Feedback. Deine Taster können Bier direkt am Glas bewerten (1-5 Sterne). Sehe sofort, welches Rezept der Renner ist.
+                    </p>
+                 </div>
+
+                 {/* Feature 5: Squads (NEU) */}
+                 <div className="bg-zinc-900/30 border border-zinc-800 p-8 rounded-3xl hover:bg-zinc-900 hover:border-purple-900/50 transition group">
+                    <div className="w-12 h-12 bg-zinc-800 rounded-xl flex items-center justify-center text-2xl mb-6 group-hover:bg-purple-500 group-hover:text-black transition">
+                      👯‍♀️
+                    </div>
+                    <h3 className="font-bold text-2xl mb-4">Squad Management</h3>
+                    <p className="text-zinc-400 leading-relaxed">
+                       Braue nicht allein. Lade Freunde in dein Team ein, teilt euch Rezepte und verwaltet gemeinsam das Inventar. Perfekt für WGs und Vereine.
+                    </p>
+                 </div>
+
+                 {/* Feature 6: Gamification (NEU) */}
+                 <div className="bg-zinc-900/30 border border-zinc-800 p-8 rounded-3xl hover:bg-zinc-900 hover:border-amber-900/50 transition group">
+                    <div className="w-12 h-12 bg-zinc-800 rounded-xl flex items-center justify-center text-2xl mb-6 group-hover:bg-amber-500 group-hover:text-black transition">
+                      🏆
+                    </div>
+                    <h3 className="font-bold text-2xl mb-4">Achievements</h3>
+                    <p className="text-zinc-400 leading-relaxed">
+                       Werde zur Legende. Sammle Badges für jeden Sud, jeden Meilenstein und jedes neue Mitglied. Steige im Level auf und schalte Features frei.
                     </p>
                  </div>
               </div>

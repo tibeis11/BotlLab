@@ -29,7 +29,7 @@ export async function checkAndGrantAchievements(userId: string) {
   // Stats des Users laden
   const { data: brews } = await supabase
     .from('brews')
-    .select('id, is_public, remix_parent_id')
+    .select('id, is_public, remix_parent_id, brewery_id')
     .eq('user_id', userId);
 
   const { data: bottles } = await supabase
@@ -42,11 +42,28 @@ export async function checkAndGrantAchievements(userId: string) {
     .select('rating, brew_id, brews!inner(user_id)')
     .eq('brews.user_id', userId);
 
+  const { data: squadMemberships } = await supabase
+    .from('brewery_members')
+    .select('brewery_id, role')
+    .eq('user_id', userId);
+
   const brewCount = brews?.length || 0;
   const publicBrewCount = brews?.filter(b => b.is_public).length || 0;
   const remixCount = brews?.filter(b => b.remix_parent_id).length || 0;
+  const teamBrewCount = brews?.filter(b => !!b.brewery_id).length || 0;
   const bottleCount = bottles?.length || 0;
   const ratingCount = ratings?.length || 0;
+  const squadCount = squadMemberships?.length || 0;
+
+  let maxSquadSize = 0;
+  if(squadMemberships && squadMemberships.length > 0) {
+      const breweryIds = squadMemberships.map(m => m.brewery_id);
+      // Helper to find max squad size
+      for (const bId of breweryIds) {
+          const { count } = await supabase.from('brewery_members').select('*', { count: 'exact', head: true }).eq('brewery_id', bId);
+          if (count && count > maxSquadSize) maxSquadSize = count;
+      }
+  }
 
   // Höchste Bewertung berechnen
   const brewRatings: { [key: string]: number[] } = {};
@@ -83,6 +100,14 @@ export async function checkAndGrantAchievements(userId: string) {
   // Social Achievements
   if (ratingCount >= 50) toGrant.push('popular_50');
   if (ratingCount >= 100) toGrant.push('popular_100');
+
+  // New Squad Achievements
+  if (squadMemberships) {
+      if (squadMemberships.length > 0) toGrant.push('team_player');
+      if (squadMemberships.some(m => m.role === 'owner')) toGrant.push('squad_founder');
+  }
+  if (teamBrewCount >= 1) toGrant.push('team_brewer');
+  if (maxSquadSize >= 3) toGrant.push('squad_growth');
 
   // Bereits freigeschaltete Achievements laden
   const { data: existing } = await supabase
