@@ -93,13 +93,28 @@ function Toggle({
   return (
     <button
       onClick={() => onChange(!checked)}
-      className="flex items-center gap-3 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 cursor-pointer hover:border-zinc-700 transition group select-none outline-none w-full justify-start"
+      className="flex items-center justify-between gap-4 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 cursor-pointer hover:bg-zinc-900 hover:border-zinc-700 transition-all duration-200 group select-none outline-none w-full"
       type="button"
     >
-      <div className={`relative w-10 h-6 rounded-full transition-colors duration-300 ease-in-out border border-transparent flex-shrink-0 ${checked ? 'bg-cyan-500' : 'bg-zinc-800 border-zinc-600'}`}>
-        <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform duration-300 ease-in-out ${checked ? 'translate-x-4' : 'translate-x-0'}`} />
+      <span className={`text-[10px] sm:text-xs font-bold uppercase tracking-widest transition-colors duration-200 ${checked ? 'text-zinc-200' : 'text-zinc-500 group-hover:text-zinc-400'}`}>
+        {label}
+      </span>
+      
+      <div className={`relative w-11 h-6 rounded-full transition-all duration-300 ease-in-out p-1 ${
+        checked 
+          ? 'bg-cyan-950/40 border-cyan-500/30 shadow-[0_0_10px_rgba(6,182,212,0.1)]' 
+          : 'bg-zinc-950 border-zinc-800 shadow-inner'
+      } border flex-shrink-0`}>
+        {/* The Thumb */}
+        <div className={`h-full aspect-square rounded-full transition-all duration-300 shadow-sm flex items-center justify-center ${
+          checked 
+            ? 'translate-x-5 bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.6)]' 
+            : 'translate-x-0 bg-zinc-700'
+        }`} style={{ transitionTimingFunction: 'cubic-bezier(0.34, 1.25, 0.64, 1)' }}>
+          {/* Internal detail */}
+          <div className={`w-0.5 h-1.5 rounded-full transition-colors ${checked ? 'bg-white/50' : 'bg-zinc-800'}`} />
+        </div>
       </div>
-      <span className={`text-sm font-bold transition-colors ${checked ? 'text-white' : 'text-zinc-500 group-hover:text-zinc-300'}`}>{label}</span>
     </button>
   );
 }
