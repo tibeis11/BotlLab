@@ -126,7 +126,7 @@ export default function PublicBrewerPage() {
            {/* --- LEFT COLUMN: Profile Image & Basic Stats (4 cols) --- */}
           <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-8">
              {/* Profile Image (Smaller) */}
-             <div className="relative w-48 h-48 mx-auto lg:mx-0 shadow-2xl rounded-full overflow-hidden border border-zinc-800 bg-zinc-900">
+             <div className="relative w-48 h-48 mx-auto shadow-2xl rounded-full overflow-hidden border border-zinc-800 bg-zinc-900">
                 {profile.logo_url ? (
                   <img src={profile.logo_url} className="w-full h-full object-cover" alt={profile.display_name} />
                 ) : (
@@ -164,10 +164,16 @@ export default function PublicBrewerPage() {
                      <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest mb-3">Mitglied bei</p>
                      <div className="space-y-2">
                         {teams.map((team: any) => (
-                            <Link key={team.id} href={`/team/${team.id}/brews`} className="block group">
+                            <Link key={team.id} href={`/brewery/${team.id}`} className="block group">
                                 <div className="flex items-center gap-3 p-2 rounded-xl hover:bg-zinc-800/50 transition border border-transparent hover:border-cyan-500/20">
-                                    <span className="text-xl group-hover:scale-110 transition">🏰</span>
-                                    <span className="font-bold text-white group-hover:text-cyan-400 transition">{team.name}</span>
+                                    <div className="w-8 h-8 rounded-full bg-zinc-800 overflow-hidden shrink-0 border border-zinc-700">
+                                        {team.logo_url ? (
+                                            <img src={team.logo_url} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-xs">🏰</div>
+                                        )}
+                                    </div>
+                                    <span className="font-bold text-white group-hover:text-cyan-400 transition text-sm">{team.name}</span>
                                 </div>
                             </Link>
                         ))}

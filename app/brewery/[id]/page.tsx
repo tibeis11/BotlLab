@@ -134,7 +134,7 @@ export default function PublicBreweryPage({ params }: { params: Promise<{ id: st
            {/* --- LEFT COLUMN: Profile Image & Basic Stats (4 cols) --- */}
           <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-8">
              {/* Profile Image (Smaller) */}
-             <div className="relative w-48 h-48 mx-auto lg:mx-0 shadow-2xl rounded-full overflow-hidden border border-zinc-800 bg-zinc-900">
+             <div className="relative w-48 h-48 mx-auto shadow-2xl rounded-full overflow-hidden border border-zinc-800 bg-zinc-900">
                 {brewery.logo_url ? (
                   <img src={brewery.logo_url} className="w-full h-full object-cover" alt={brewery.name} />
                 ) : (

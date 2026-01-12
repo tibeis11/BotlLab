@@ -299,7 +299,7 @@ export default function BrewDetailPage() {
                       )}
                     </div>
                     <div className="min-w-0">
-                      <h3 className="text-base font-bold text-white truncate group-hover:text-cyan-400 transition-colors">{profile.display_name || 'Brauerei'} ↗</h3>
+                      <h3 className="text-base font-bold text-white truncate group-hover:text-cyan-400 transition-colors">{profile.display_name || 'Brauerei'}</h3>
                       {profile.location && (
                         <p className="text-xs text-zinc-400 mt-0.5 truncate">📍 {profile.location}</p>
                       )}
