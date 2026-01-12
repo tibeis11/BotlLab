@@ -100,7 +100,7 @@ export async function getBreweryMembers(breweryId: string) {
     .select(`
       role,
       user_id,
-      profiles!brewery_members_user_id_fkey (id, display_name, brewery_name, logo_url)
+      profiles!brewery_members_user_id_fkey (id, display_name, brewery_name, logo_url, tier)
     `)
     .eq('brewery_id', breweryId);
 

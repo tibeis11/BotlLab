@@ -25,32 +25,38 @@ export default function JoinBreweryPage({ params }: { params: Promise<{ breweryI
   async function loadInfo() {
     setLoading(true);
     
-    // 1. Get Brewery
+    // 1. Get Brewery by Invite Code (parameter "breweryId" contains the code now)
     const { data, error } = await supabase
         .from('breweries')
         .select('*')
-        .eq('id', breweryId)
-        .single();
+        .eq('invite_code', breweryId)
+        .maybeSingle();
         
     if (error || !data) {
-        setError("Brauerei nicht gefunden oder Link ungültig.");
+        // Fallback for old links (Support transition phase) -> check if it's a UUID
+        // But for security, we might want to disable ID lookup eventually.
+        // For now, strict mode: Code only.
+        setError("Einladung ungültig oder abgelaufen (Code nicht gefunden).");
         setLoading(false);
         return;
     }
     setBrewery(data);
+    
+    // Real ID is data.id
+    const realBreweryId = data.id;
 
     // 2. Check if already member
     if (user) {
         const { data: member } = await supabase
             .from('brewery_members')
             .select('role')
-            .eq('brewery_id', breweryId)
+            .eq('brewery_id', realBreweryId)
             .eq('user_id', user.id)
             .maybeSingle();
 
         if (member) {
             // Already member -> redirect
-            router.replace(`/team/${breweryId}`);
+            router.replace(`/team/${realBreweryId}`);
             return;
         }
     }
@@ -67,7 +73,7 @@ export default function JoinBreweryPage({ params }: { params: Promise<{ breweryI
         const { error: joinError } = await supabase
             .from('brewery_members')
             .insert({
-                brewery_id: breweryId,
+                brewery_id: brewery.id,
                 user_id: user.id,
                 role: 'brewer' // Default role
             });
@@ -75,12 +81,12 @@ export default function JoinBreweryPage({ params }: { params: Promise<{ breweryI
         if (joinError) throw joinError;
 
         // Feed Update
-        await addToFeed(breweryId, user, 'MEMBER_JOINED', {
-            member_name: 'Ein neuer Brauer' // Name is resolved via JOIN in feed usually, but we can put text here too
+        await addToFeed(brewery.id, user, 'MEMBER_JOINED', {
+            member_name: 'Ein neuer Brauer'
         });
 
         // Redirect
-        router.push(`/team/${breweryId}`);
+        router.push(`/team/${brewery.id}`);
 
     } catch (err: any) {
         setError(err.message);
@@ -105,7 +111,7 @@ export default function JoinBreweryPage({ params }: { params: Promise<{ breweryI
             {brewery.logo_url ? <img src={brewery.logo_url} className="w-full h-full object-cover" /> : '🍻'}
          </div>
 
-         <h1 className="text-2xl font-black mb-2">Einladung zu "{brewery.name}"</h1>
+         <h1 className="text-2xl font-black mb-2">Einladung zu &quot;{brewery.name}&quot;</h1>
          <p className="text-zinc-400 mb-8">
             Du wurdest eingeladen, diesem Brau-Team beizutreten. Du erhältst Zugriff auf alle Rezepte und das Inventar.
          </p>

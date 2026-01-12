@@ -10,6 +10,7 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
   const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [brewery, setBrewery] = useState<any>(null);
+  const [canEdit, setCanEdit] = useState(false);
   
   // Form state
   const [breweryName, setBreweryName] = useState("");
@@ -63,8 +64,10 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
         .single();
         
       if (!membership || !['owner', 'admin'].includes(membership.role)) {
-         setMessage({ type: 'error', msg: 'Du hast keine Berechtigung, diese Einstellungen zu bearbeiten.' });
-         // In a real app, maybe redirect or hide form
+         setCanEdit(false);
+         setMessage({ type: 'error', msg: 'Nur Admins können Team-Einstellungen ändern.' });
+      } else {
+         setCanEdit(true);
       }
 
       setBrewery(breweryData);
@@ -177,8 +180,9 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
             <input 
               type="text"
               value={breweryName}
+              disabled={!canEdit}
               onChange={e => setBreweryName(e.target.value)}
-              className="w-full bg-zinc-950 border border-zinc-800 p-3 rounded-xl outline-none focus:border-cyan-500 transition text-white placeholder-zinc-600"
+              className="w-full bg-zinc-950 border border-zinc-800 p-3 rounded-xl outline-none focus:border-cyan-500 transition text-white placeholder-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed"
               placeholder="z.B. Hopfenrebellen Crew"
             />
           </div>
@@ -195,13 +199,18 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
                 )}
               </div>
               <div className="flex-1">
-                <input 
-                  type="file" 
-                  accept="image/*"
-                  onChange={handleLogoChange}
-                  className="w-full text-sm text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-cyan-900 file:text-cyan-400 hover:file:bg-cyan-800 file:cursor-pointer transition-colors"
-                />
-                <p className="text-xs text-zinc-600 mt-2">JPG, PNG oder GIF. Max. 2 MB.</p>
+                {canEdit && (
+                    <>
+                    <input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={handleLogoChange}
+                    className="w-full text-sm text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-cyan-900 file:text-cyan-400 hover:file:bg-cyan-800 file:cursor-pointer transition-colors"
+                    />
+                    <p className="text-xs text-zinc-600 mt-2">JPG, PNG oder GIF. Max. 2 MB.</p>
+                    </>
+                )}
+                {!canEdit && <p className="text-zinc-500 text-sm italic">Änderungen nur durch Admin möglich.</p>}
               </div>
             </div>
           </div>
@@ -215,23 +224,29 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
                   <img src={headerPreview} className="w-full h-full object-cover" alt="Header" />
                 </div>
               )}
-              <input 
-                type="file" 
-                accept="image/*"
-                onChange={handleHeaderChange}
-                className="w-full text-sm text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-cyan-900 file:text-cyan-400 hover:file:bg-cyan-800 file:cursor-pointer transition-colors"
-              />
-              <p className="text-xs text-zinc-600">Empfohlen: 1200x300px. JPG oder PNG. Max. 5 MB.</p>
+              {canEdit && (
+                <>
+                <input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={handleHeaderChange}
+                    className="w-full text-sm text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-cyan-900 file:text-cyan-400 hover:file:bg-cyan-800 file:cursor-pointer transition-colors"
+                />
+                <p className="text-xs text-zinc-600">Empfohlen: 1200x300px. JPG oder PNG. Max. 5 MB.</p>
+                </>
+              )}
             </div>
           </div>
 
           <div className="pt-4">
-            <button 
-                disabled={isSaving}
-                className="w-full bg-white text-black font-black py-3 rounded-xl hover:bg-cyan-400 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:hover:scale-100"
-            >
-                {isSaving ? 'Speichern...' : 'Änderungen speichern'}
-            </button>
+            {canEdit && (
+                <button 
+                    disabled={isSaving}
+                    className="w-full bg-white text-black font-black py-3 rounded-xl hover:bg-cyan-400 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:hover:scale-100"
+                >
+                    {isSaving ? 'Speichern...' : 'Änderungen speichern'}
+                </button>
+            )}
           </div>
 
           {message && (
