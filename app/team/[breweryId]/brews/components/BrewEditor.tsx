@@ -381,6 +381,42 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 		}
 	}
 
+	async function deleteBrew() {
+		if (!user || !brew.id) return;
+		if (!confirm("Möchtest du dieses Rezept wirklich unwiderruflich löschen? \n\nHINWEIS: Alle befüllten Flaschen werden zurückgesetzt (auf 'Leer' gesetzt).")) return;
+
+		setSaving(true);
+		
+		// Unlink bottles
+		const { error: bottlesError } = await supabase
+			.from('bottles')
+			.update({ brew_id: null })
+			.eq('brew_id', brew.id);
+		
+		if (bottlesError) console.error('Fehler beim Zurücksetzen der Flaschen:', bottlesError);
+
+		// Remove Image if exists
+		if (brew.image_url) {
+			try {
+				const url = new URL(brew.image_url);
+				const fileName = url.pathname.split('/').pop();
+				if (fileName) await supabase.storage.from('labels').remove([fileName]);
+			} catch (e) {
+				console.warn('Konnte Bild-URL nicht parsen:', e);
+			}
+		}
+
+		// Delete Brew
+		const { error } = await supabase.from('brews').delete().eq('id', brew.id);
+		
+		if (!error) {
+			router.replace(`/team/${breweryId}/brews`);
+		} else {
+			setMessage('Fehler beim Löschen: ' + error.message);
+			setSaving(false);
+		}
+	}
+
 	async function handleGenerate() {
 		if (!brew.id) {
 			setMessage('Bitte zuerst speichern, bevor du ein Label generierst.');
@@ -1488,6 +1524,28 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 							</div>
 						)}
 					</div>
+
+					{/* Danger Zone */}
+					{brew.id && (
+						<div className="mt-8 pt-8 border-t border-zinc-800">
+							<div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-red-950/10 border border-red-900/20 rounded-2xl p-6">
+								<div>
+									<h3 className="text-lg font-bold text-red-500">Rezept löschen</h3>
+									<p className="text-sm text-zinc-400 mt-1">
+										Diese Aktion kann nicht rückgängig gemacht werden. Alle verknüpften Flaschen werden zurückgesetzt.
+									</p>
+								</div>
+								<button 
+									onClick={deleteBrew}
+									disabled={saving}
+									className="px-6 py-3 bg-red-950/30 border border-red-900/50 hover:bg-red-900/30 text-red-500 rounded-xl text-sm font-bold transition flex items-center gap-2 whitespace-nowrap w-full md:w-auto justify-center"
+								>
+									<span>🗑️</span>
+									<span>Löschen</span>
+								</button>
+							</div>
+						</div>
+					)}
 				</div>
 
 				)}

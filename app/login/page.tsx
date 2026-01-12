@@ -53,23 +53,10 @@ export default function LoginPage() {
         if (error) {
             setMessage(error.message);
         } else if (data.user) {
-            // Profil Eintrag erstellen
-            const { error: profileError } = await supabase.from('profiles').insert([{
-                id: data.user.id,
-                display_name: breweryName,
-                founded_year: new Date().getFullYear(),
-                logo_url: '/tiers/lehrling.png', // Start-Avatar aus dem Tier-System
-                tier: 'lehrling'
-            }]);
-
-            if (profileError) {
-                console.error("Profil konnte nicht angelegt werden:", profileError);
-                setMessage("Account erstellt, aber Profil-Fehler: " + profileError.message);
-            } else {
-                setMessage("✅ Brauerei gegründet! Bestätige deine E-Mail-Adresse über den Link in deinem Postfach.");
-                setAwaitingConfirmation(true);
-                setIsRegister(false);
-            }
+            // Profil wird automatisch per Datenbank-Trigger erstellt
+            setMessage("✅ Brauerei gegründet! Bestätige deine E-Mail-Adresse über den Link in deinem Postfach.");
+            setAwaitingConfirmation(true);
+            setIsRegister(false);
         }
     } else {
         // --- LOGIN ---

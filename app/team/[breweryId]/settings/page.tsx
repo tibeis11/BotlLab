@@ -132,9 +132,7 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
 function GeneralSettings({ brewery, onUpdate }: { brewery: any, onUpdate: () => void }) {
   const [breweryName, setBreweryName] = useState(brewery.name || "");
   const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [headerFile, setHeaderFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(brewery.logo_url);
-  const [headerPreview, setHeaderPreview] = useState<string | null>(brewery.header_url);
   
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{type: 'success' | 'error', msg: string} | null>(null);
@@ -147,14 +145,6 @@ function GeneralSettings({ brewery, onUpdate }: { brewery: any, onUpdate: () => 
     }
   }
 
-  function handleHeaderChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (file) {
-      setHeaderFile(file);
-      setHeaderPreview(URL.createObjectURL(file));
-    }
-  }
-
   async function handleSaveSettings(e: React.FormEvent) {
     e.preventDefault();
     setIsSaving(true);
@@ -162,7 +152,6 @@ function GeneralSettings({ brewery, onUpdate }: { brewery: any, onUpdate: () => 
 
     try {
       let logoUrl = brewery.logo_url;
-      let headerUrl = brewery.header_url;
 
       // Upload logo if changed
       if (logoFile) {
@@ -173,22 +162,12 @@ function GeneralSettings({ brewery, onUpdate }: { brewery: any, onUpdate: () => 
         logoUrl = publicUrl;
       }
 
-      // Upload header if changed
-      if (headerFile) {
-        const fileName = `${brewery.id}/header_${Date.now()}.${headerFile.name.split('.').pop()}`;
-        const { error: uploadError } = await supabase.storage.from('brewery-assets').upload(fileName, headerFile, { upsert: true });
-        if (uploadError) throw uploadError;
-        const { data: { publicUrl } } = supabase.storage.from('brewery-assets').getPublicUrl(fileName);
-        headerUrl = publicUrl;
-      }
-
       // Update brewery
       const { error } = await supabase
         .from('breweries')
         .update({
           name: breweryName,
           logo_url: logoUrl,
-          header_url: headerUrl,
         })
         .eq('id', brewery.id);
 
@@ -212,70 +191,79 @@ function GeneralSettings({ brewery, onUpdate }: { brewery: any, onUpdate: () => 
             <p className="text-zinc-500 text-sm">Verwalte die öffentlichen Details deines Squads.</p>
         </div>
         
-        <form onSubmit={handleSaveSettings} className="space-y-6">
-          <div>
-            <label className="block text-sm font-bold mb-2 text-zinc-400">Brauerei-Name</label>
-            <input 
-              type="text"
-              value={breweryName}
-              onChange={e => setBreweryName(e.target.value)}
-              className="w-full bg-zinc-950 border border-zinc-800 p-3 rounded-xl outline-none focus:border-cyan-500 transition text-white placeholder-zinc-600"
-              placeholder="z.B. Hopfenrebellen Crew"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-bold mb-2 text-zinc-400">Profilbild / Logo</label>
-            <div className="flex items-center gap-4">
-              <div className="w-20 h-20 rounded-full bg-zinc-950 border border-zinc-800 flex items-center justify-center overflow-hidden shrink-0">
-                {logoPreview ? (
-                  <img src={logoPreview} className="w-full h-full object-cover" alt="Logo" />
-                ) : (
-                  <span className="text-2xl">🏰</span>
-                )}
-              </div>
-              <div className="flex-1">
-                <input 
-                    type="file" 
-                    accept="image/*"
-                    onChange={handleLogoChange}
-                    className="w-full text-sm text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-cyan-900 file:text-cyan-400 hover:file:bg-cyan-800 file:cursor-pointer transition-colors"
-                />
-                <p className="text-xs text-zinc-600 mt-2">JPG, PNG oder GIF. Max. 2 MB.</p>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-bold mb-2 text-zinc-400">Header-Bild</label>
-            <div className="space-y-3">
-              {headerPreview && (
-                <div className="w-full h-32 rounded-2xl bg-zinc-950 border border-zinc-800 overflow-hidden">
-                  <img src={headerPreview} className="w-full h-full object-cover" alt="Header" />
+        <form onSubmit={handleSaveSettings} className="space-y-6 max-w-2xl">
+          <div className="bg-zinc-950/50 p-6 rounded-2xl border border-zinc-800 space-y-6">
+              
+              {/* Logo Selection */}
+              <div className="flex flex-col sm:flex-row items-center gap-6">
+                <div className="relative group cursor-pointer" onClick={() => document.getElementById('logo-upload')?.click()}>
+                    <div className={`w-28 h-28 rounded-full border-2 border-dashed flex items-center justify-center overflow-hidden transition-all ${logoPreview ? 'border-zinc-700 bg-zinc-900' : 'border-zinc-700 bg-zinc-900 group-hover:border-cyan-500 group-hover:bg-zinc-800'}`}>
+                        {logoPreview ? (
+                        <img src={logoPreview} className="w-full h-full object-cover" alt="Logo" />
+                        ) : (
+                        <span className="text-3xl">🏰</span>
+                        )}
+                        
+                        {/* Overlay on hover */}
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex items-center justify-center rounded-full">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-white">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                            </svg>
+                        </div>
+                    </div>
                 </div>
-              )}
-              <input 
-                  type="file" 
-                  accept="image/*"
-                  onChange={handleHeaderChange}
-                  className="w-full text-sm text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-cyan-900 file:text-cyan-400 hover:file:bg-cyan-800 file:cursor-pointer transition-colors"
-              />
-              <p className="text-xs text-zinc-600">Empfohlen: 1200x300px. JPG oder PNG. Max. 5 MB.</p>
-            </div>
+                
+                <div className="flex-1 text-center sm:text-left">
+                    <h3 className="font-bold text-white mb-1">Brauerei Logo</h3>
+                    <p className="text-xs text-zinc-500 mb-3">Empfohlen: Quadratisch, mind. 500x500px.</p>
+                    <input 
+                        id="logo-upload"
+                        type="file" 
+                        accept="image/*"
+                        onChange={handleLogoChange}
+                        className="hidden"
+                    />
+                    <button 
+                        type="button" 
+                        onClick={() => document.getElementById('logo-upload')?.click()}
+                        className="px-4 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-xs font-bold text-zinc-400 hover:text-white hover:border-zinc-600 transition"
+                    >
+                        Bild auswählen
+                    </button>
+                </div>
+              </div>
+
+              <div className="h-px bg-zinc-800/50" />
+
+              {/* Name Input */}
+              <div className="space-y-2">
+                <label className="block text-sm font-bold text-zinc-400">Brauerei-Name</label>
+                <div className="flex items-center gap-3 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 focus-within:ring-2 focus-within:ring-cyan-900/50 focus-within:border-cyan-500/50 transition duration-300">
+                    <span className="text-zinc-500">🏷️</span>
+                    <input 
+                    type="text"
+                    value={breweryName}
+                    onChange={e => setBreweryName(e.target.value)}
+                    className="bg-transparent border-none outline-none text-white w-full font-bold placeholder-zinc-700"
+                    placeholder="Name eingeben..."
+                    />
+                </div>
+              </div>
+
           </div>
 
-          <div className="pt-4 border-t border-zinc-800">
-            <button 
-                disabled={isSaving}
-                className="bg-white text-black font-black py-3 px-8 rounded-xl hover:bg-cyan-400 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-                {isSaving ? 'Speichern...' : 'Speichern'}
-            </button>
-            {message && (
-                <span className={`ml-4 text-sm font-bold ${message.type === 'success' ? 'text-emerald-400' : 'text-red-400'}`}>
+          <div className="pt-2 flex items-center justify-end gap-4">
+             {message && (
+                <span className={`text-sm font-bold ${message.type === 'success' ? 'text-emerald-400' : 'text-red-400'} animate-in fade-in`}>
                     {message.msg}
                 </span>
             )}
+            <button 
+                disabled={isSaving}
+                className="bg-cyan-500 text-black font-black py-3 px-8 rounded-xl hover:bg-cyan-400 hover:shadow-lg hover:shadow-cyan-500/20 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+                {isSaving ? 'Speichern...' : 'Speichern'}
+            </button>
           </div>
         </form>
     </div>

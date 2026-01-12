@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { getTierConfig } from '@/lib/tier-system';
+import Logo from '@/app/components/Logo';
 
 export default function PublicBrewerPage() {
   const params = useParams();
@@ -11,7 +13,7 @@ export default function PublicBrewerPage() {
   
   const [profile, setProfile] = useState<any>(null);
   const [brews, setBrews] = useState<any[]>([]);
-  const [team, setTeam] = useState<any | null>(null);
+  const [teams, setTeams] = useState<any[]>([]);
   const [brewRatings, setBrewRatings] = useState<{[key: string]: {avg: number, count: number}}>({});
   const [loading, setLoading] = useState(true);
 
@@ -37,16 +39,17 @@ export default function PublicBrewerPage() {
     if (profileData) {
        setProfile(profileData);
        
-        // 1b. Team laden (via brewery_members)
-        const { data: memberData } = await supabase
+        // 1b. Teams laden (via brewery_members)
+        const { data: membersData } = await supabase
             .from('brewery_members')
             .select('role, breweries(id, name, logo_url)')
-            .eq('user_id', id) // Check memberships for this user
-            .maybeSingle();
+            .eq('user_id', id); // Fetch ALL memberships
         
-        if (memberData && memberData.breweries) {
-            // @ts-ignore
-            setTeam(memberData.breweries);
+        if (membersData) {
+            const loadedTeams = membersData
+                .map((m: any) => m.breweries)
+                .filter(Boolean); // Filter out nulls
+            setTeams(loadedTeams);
         }
 
        // 2. Sude laden (nur wenn Profil gefunden wurde)
@@ -87,14 +90,14 @@ export default function PublicBrewerPage() {
   }
 
   if (loading) {
-     return (
-        <div className="min-h-screen bg-gradient-to-b from-zinc-950 via-zinc-900 to-black text-cyan-500 flex items-center justify-center">
-            <div className="text-center">
-              <div className="animate-spin text-6xl mb-4">�</div>
-              <p className="text-zinc-400">Lade Brauer-Profil...</p>
-            </div>
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4">👤</div>
+          <p className="text-zinc-500">Lade Brauer-Profil...</p>
         </div>
-     );
+      </div>
+    );
   }
 
   if (!profile) {
@@ -112,151 +115,185 @@ export default function PublicBrewerPage() {
     ? (Object.values(brewRatings).reduce((sum, r) => sum + r.avg * r.count, 0) / totalRatings).toFixed(1)
     : null;
 
+  const tierConfig = profile ? getTierConfig(profile.tier) : null;
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-zinc-950 via-zinc-900 to-black text-white">
+    <div className="min-h-screen bg-black text-white pb-24">
       
-      {/* Hero Section - 2 Column Layout */}
-      <div className="max-w-6xl mx-auto px-6 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
           
-          {/* Left: Logo & Brauer Info */}
-          <div className="md:col-span-1 space-y-6">
-            
-            {/* Logo / Avatar */}
-            <div className="relative w-full aspect-square rounded-full overflow-hidden shadow-2xl border-4 border-cyan-500/20 max-w-[200px] mx-auto md:max-w-none">
-              {profile.logo_url ? (
-                <img src={profile.logo_url} className="w-full h-full object-cover" alt={profile.display_name} />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-br from-cyan-900 to-blue-900 flex items-center justify-center text-6xl">
-                  👤
+           {/* --- LEFT COLUMN: Profile Image & Basic Stats (4 cols) --- */}
+          <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-8">
+             {/* Profile Image (Smaller) */}
+             <div className="relative w-48 h-48 mx-auto lg:mx-0 shadow-2xl rounded-full overflow-hidden border border-zinc-800 bg-zinc-900">
+                {profile.logo_url ? (
+                  <img src={profile.logo_url} className="w-full h-full object-cover" alt={profile.display_name} />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-zinc-900 to-zinc-800 flex items-center justify-center text-6xl">
+                    👤
+                  </div>
+                )}
+             </div>
+
+             {/* Bio Card */}
+              <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-5 hover:border-zinc-700 transition">
+                <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest mb-3">Über</p>
+                <div className="space-y-4">
+                     {profile.location && (
+                      <p className="text-sm text-white flex items-center gap-2">
+                        📍 {profile.location}
+                      </p>
+                    )}
+                    {profile.website && (
+                      <a href={profile.website.includes('http') ? profile.website : `https://${profile.website}`} target="_blank" className="text-sm text-cyan-400 hover:text-cyan-300 block truncate">
+                        🌐 {profile.website.replace('https://', '')}
+                      </a>
+                    )}
+                     {profile.bio && (
+                      <p className="text-sm text-zinc-400 leading-relaxed pt-2 border-t border-zinc-800/50">
+                        {profile.bio}
+                      </p>
+                    )}
                 </div>
-              )}
-            </div>
-
-            {/* Brauer Header */}
-            <div className="space-y-3 text-center md:text-left">
-              <h1 className="text-3xl font-black text-white leading-tight">
-                {profile.display_name || 'Brauer'}
-              </h1>
-              
-              {team && (
-                 <Link href={`/team/${team.id}/brews`} className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-900 border border-zinc-800 rounded-full hover:bg-zinc-800 hover:border-cyan-500/50 transition group">
-                    <span className="text-xl">🏰</span>
-                    <div className="text-left">
-                        <span className="text-[10px] uppercase font-bold text-zinc-500 block leading-none">Mitglied bei</span>
-                        <span className="text-sm font-bold text-white group-hover:text-cyan-400 transition">{team.name}</span>
-                    </div>
-                 </Link>
-              )}
-              
-              {profile.location && (
-                <p className="text-sm text-zinc-400 flex items-center justify-center md:justify-start gap-2">
-                  📍 {profile.location}
-                </p>
-              )}
-              
-              {profile.founded_year && (
-                 <p className="text-xs font-bold uppercase tracking-widest text-zinc-600">
-                    Dabei seit {profile.founded_year}
-                 </p>
-              )}
-            </div>
-
-            {/* Bio */}
-            {profile.bio && (
-              <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
-                <p className="text-sm text-zinc-300 leading-relaxed">
-                  {profile.bio}
-                </p>
-              </div>
-            )}
-
-            {/* Stats Grid */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 text-center">
-                <p className="text-[9px] text-cyan-400 uppercase font-bold mb-2 tracking-wider">Erstellt</p>
-                <p className="text-3xl font-black text-white">{brews.length}</p>
               </div>
               
-              <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 text-center">
-                 <p className="text-[9px] text-yellow-500 uppercase font-bold mb-2 tracking-wider">Bewertung</p>
-                 <p className="text-3xl font-black text-white">{avgOverallRating || '-'}</p>
-              </div>
-            </div>
-
-            {/* Website Button */}
-            {profile.website && (
-              <a
-                href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full bg-cyan-950 hover:bg-cyan-900 text-cyan-400 border border-cyan-900 py-3 rounded-xl font-bold transition shadow-lg block text-center text-sm"
-              >
-                🌐 Webseite
-              </a>
-            )}
-
+              {/* Team Membership */}
+               {teams.length > 0 && (
+                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
+                     <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest mb-3">Mitglied bei</p>
+                     <div className="space-y-2">
+                        {teams.map((team: any) => (
+                            <Link key={team.id} href={`/team/${team.id}/brews`} className="block group">
+                                <div className="flex items-center gap-3 p-2 rounded-xl hover:bg-zinc-800/50 transition border border-transparent hover:border-cyan-500/20">
+                                    <span className="text-xl group-hover:scale-110 transition">🏰</span>
+                                    <span className="font-bold text-white group-hover:text-cyan-400 transition">{team.name}</span>
+                                </div>
+                            </Link>
+                        ))}
+                     </div>
+                 </div>
+              )}
           </div>
 
-          {/* Right: Recent Brews Grid */}
-          <div className="md:col-span-2 space-y-6">
+          {/* --- RIGHT COLUMN: Content (8 cols) --- */}
+          <div className="lg:col-span-8 space-y-10">
             
-            <div>
-              <h2 className="text-xs font-black uppercase tracking-[0.3em] text-cyan-400 mb-6">
-                 Erstellte Rezepte ({brews.length})
-              </h2>
+            {/* Header */}
+            <div className="text-center lg:text-left space-y-4">
+                <div className="flex flex-wrap gap-2 items-center justify-center lg:justify-start">
+                    <span 
+                        className="text-xs font-black uppercase tracking-widest px-3 py-1 rounded-lg bg-zinc-900 border shadow-sm"
+                        style={{
+                            borderColor: tierConfig?.color ? `${tierConfig.color}40` : '#3f3f46',
+                            color: tierConfig?.color || '#a1a1aa',
+                            backgroundColor: tierConfig?.color ? `${tierConfig.color}10` : undefined
+                        }}
+                    >
+                        {tierConfig?.displayName || 'Brauer'}
+                    </span>
+                </div>
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-none tracking-tight">{profile.display_name}</h1>
+            </div>
 
+            {/* KPI Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                 {/* Total Brews */}
+                 <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 flex flex-col justify-center min-h-[100px]">
+                    <div className="text-cyan-500 text-[10px] uppercase font-bold mb-1 tracking-wider">Rezepte</div>
+                    <div className="font-black text-3xl text-white">{brews.length}</div>
+                 </div>
+
+                 {/* Average Rating */}
+                 <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 flex flex-col justify-center min-h-[100px]">
+                    <div className="text-amber-500 text-[10px] uppercase font-bold mb-1 tracking-wider">Ø Bewertung</div>
+                    <div className="font-black text-3xl text-white">
+                        {avgOverallRating || '-'} <span className="text-xs text-zinc-600 font-bold align-top">({totalRatings})</span>
+                    </div>
+                 </div>
+                 
+                 {/* User Tier (Placeholder if we had tier logic here) */}
+                 <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 flex flex-col justify-center min-h-[100px]">
+                     <div className="text-zinc-500 text-[10px] uppercase font-bold mb-1 tracking-wider">Aktiv seit</div>
+                     <div className="font-black text-3xl text-white">{profile.founded_year || new Date(profile.created_at || Date.now()).getFullYear()}</div>
+                 </div>
+            </div>
+
+            {/* Recipes Grid */}
+            <div className="pt-8 border-t border-zinc-800/50">
+               <h3 className="text-xs font-black uppercase tracking-[0.3em] text-zinc-500 mb-8">Öffentliche Rezepte</h3>
+               
               {brews.length === 0 ? (
                 <div className="bg-zinc-900/30 border border-dashed border-zinc-800 rounded-2xl p-12 text-center">
-                  <p className="text-zinc-500 text-lg">Keine öffentlichen Rezepte.</p>
+                  <p className="text-zinc-500">Dieser Brauer hat noch keine öffentlichen Rezepte.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {brews.map(brew => (
                     <Link
                       key={brew.id}
-                      href={`/b/${brew.id}`} 
-                      className="group relative bg-zinc-900 rounded-xl overflow-hidden border border-zinc-800 hover:border-cyan-500/50 transition-all duration-300"
+                      href={`/brew/${brew.id}`} 
+                      className="group bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden shadow-lg hover:border-zinc-600 transition flex flex-col h-full"
                     >
-                      <div className="aspect-square bg-zinc-800 overflow-hidden relative">
+                      {/* Image Area */}
+                      <div className="aspect-video relative bg-zinc-950 overflow-hidden">
                         {brew.image_url ? (
                           <img
                             src={brew.image_url}
                             alt={brew.name}
-                            className="w-full h-full object-cover group-hover:scale-110 transition duration-500"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                           />
                         ) : (
-                          <div className="flex items-center justify-center h-full text-zinc-700 text-3xl">
-                            🍺
+                          <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-950/50">
+                             <span className="text-3xl mb-2 grayscale opacity-30">🍺</span>
                           </div>
                         )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60" />
-
-                        {/* Remix/Original Badge */}
-                        <div className="absolute top-2 right-2">
-                          {brew.remix_parent_id ? (
-                            <span className="inline-block text-amber-300 text-[10px] font-black uppercase px-2 py-1 rounded bg-amber-900/80 backdrop-blur tracking-wide">
-                              ♻️ Remix
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60" />
+                        
+                        {/* Badges - Simplified */}
+                        <div className="absolute top-3 left-3 flex flex-col gap-1.5 items-start z-10">
+                            <span className="bg-black/80 backdrop-blur-md text-[10px] px-2.5 py-1 rounded-lg uppercase tracking-wider border border-white/5 font-bold text-white shadow-sm">
+                                {brew.style || 'Standard'}
                             </span>
-                          ) : (
-                            <span className="inline-block text-emerald-300 text-[10px] font-black uppercase px-2 py-1 rounded bg-emerald-900/80 backdrop-blur tracking-wide">
-                              ✓ Original
-                            </span>
-                          )}
                         </div>
-
-                      </div>
-                        {/* Static Bottom Info */}
-                        <div className="p-3 bg-zinc-950 border-t border-zinc-800">
-                          <p className="font-bold text-white text-sm truncate">{brew.name}</p>
-                           <p className="text-xs text-zinc-500 uppercase font-bold tracking-wider mt-1">{brew.style}</p>
-                          {brewRatings[brew.id] && (
-                            <div className="flex items-center gap-1 mt-2">
-                              <span className="text-yellow-400 text-xs">★</span>
-                              <span className="text-cyan-200 text-xs font-bold">{brewRatings[brew.id].avg}</span>
-                              <span className="text-zinc-500 text-xs">({brewRatings[brew.id].count})</span>
+                        {/* Top Right: Remix Badge */}
+                        {brew.remix_parent_id && (
+                            <div className="absolute top-3 right-3 z-10">
+                                <span className="bg-black/60 backdrop-blur-md text-[10px] px-2.5 py-1 rounded-lg uppercase tracking-wider border border-purple-500/30 font-bold text-purple-400 shadow-sm">
+                                    Remix
+                                </span>
                             </div>
-                          )}
+                        )}
+
+                        {/* Bottom Right: Rating Badge */}
+                        {brewRatings[brew.id] && (
+                            <div className="absolute bottom-3 right-3 pointer-events-none z-10">
+                                <div className="bg-black/80 backdrop-blur-md text-amber-400 font-black px-2.5 py-1.5 rounded-xl text-xs flex items-center gap-1.5 border border-white/5 shadow-lg">
+                                    <span>⭐</span>
+                                    <span className="text-white">{brewRatings[brew.id].avg}</span>
+                                    <span className="text-zinc-500 font-normal">({brewRatings[brew.id].count})</span>
+                                </div>
+                            </div>
+                        )}
+                      </div>
+
+                       {/* Content Section */}
+                        <div className="p-5 flex flex-col flex-1 gap-4">
+                            <div>
+                                <h3 className="font-black text-xl leading-tight text-white group-hover:text-cyan-400 transition line-clamp-2 mb-2">
+                                    {brew.name}
+                                </h3>
+                                <div className="flex items-center gap-2">
+                                    {profile?.logo_url ? (
+                                        <img src={profile.logo_url} className="w-5 h-5 rounded-full object-cover border border-zinc-800" />
+                                    ) : (
+                                        <div className="w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center text-[10px] border border-zinc-700">🏭</div>
+                                    )}
+                                    <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider truncate">
+                                        {profile?.display_name || 'Unbekannt'}
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                     </Link>
                   ))}
@@ -264,20 +301,31 @@ export default function PublicBrewerPage() {
               )}
             </div>
 
-          </div>
+            {/* Forum Posts Section */}
+            <div className="pt-8 border-t border-zinc-800/50">
+               <h3 className="text-xs font-black uppercase tracking-[0.3em] text-zinc-500 mb-8">Forumsbeiträge (0)</h3>
+               
+               <div className="bg-zinc-900/30 border border-dashed border-zinc-800 rounded-2xl p-12 text-center">
+                  <p className="text-zinc-500">Keine öffentlichen Beiträge.</p>
+               </div>
+            </div>
 
+          </div>
         </div>
       </div>
 
-      {/* Back Button */}
-      <div className="max-w-6xl mx-auto px-6 py-12 border-t border-zinc-800 text-center">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-zinc-500 hover:text-white transition"
-        >
-          ← Zurück zur Startseite
-        </Link>
-      </div>
+      <footer className="pt-12 pb-6 text-center opacity-40 hover:opacity-100 transition-opacity duration-500 flex flex-col items-center">
+        <div className="mb-2">
+            <Logo className="w-5 h-5" textSize="text-xs" />
+        </div>
+        <p className="text-[9px] text-zinc-700 font-medium">Digital Brew Lab</p>
+        <div className="mt-4">
+            <Link href="/impressum" className="text-[10px] text-zinc-600 hover:text-zinc-400 hover:underline transition">
+              Impressum
+            </Link>
+        </div>
+        <p className="text-[8px] text-zinc-800 mt-2 font-mono">{id}</p>
+      </footer>
 
     </div>
   );

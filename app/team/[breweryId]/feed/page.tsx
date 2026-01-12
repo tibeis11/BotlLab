@@ -138,23 +138,28 @@ export default function TeamFeedPage({ params }: { params: Promise<{ breweryId: 
   }
 
   return (
-    <div className="w-full max-w-3xl mx-auto pb-20 pt-8">
+    <div className="w-full max-w-5xl mx-auto pb-20 space-y-12">
       {/* Header Area */}
-        <div className="mb-10">
-            <div className="flex items-center gap-3 mb-2">
-                <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs">Squad Feed</p>
-                <span className="text-[10px] font-black px-2 py-0.5 rounded uppercase border border-cyan-500/50 text-cyan-500 bg-cyan-500/10">
-                    LIVE
-                </span>
-            </div>
-            <h2 className="text-4xl font-bold text-white mb-2">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-end">
+        <div>
+           <div className="flex items-center gap-2 mb-4">
+              <span className="text-cyan-400 text-xs font-black uppercase tracking-widest px-3 py-1 rounded-lg bg-cyan-950/30 border border-cyan-500/20 shadow-sm shadow-cyan-900/20">
+                  Squad Feed
+              </span>
+              <span className="text-[10px] font-black px-2 py-1 rounded-lg uppercase border border-cyan-500/30 text-cyan-400 bg-cyan-500/10 tracking-wider shadow-[0_0_10px_rgba(34,211,238,0.2)] animate-pulse">
+                LIVE
+              </span>
+           </div>
+           <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight mb-4">
                 {breweryName || 'Lade Team...'}
-            </h2>
-            <p className="text-zinc-400 max-w-lg">
-                Der Stammtisch für deinen Squad. Diskutiere Rezepte, teile Erfolge oder schnack einfach.
-            </p>
+           </h1>
+           <p className="text-zinc-400 text-lg leading-relaxed max-w-xl">
+             Der Stammtisch für deinen Squad. Diskutiere Rezepte, teile Erfolge oder schnack einfach.
+           </p>
         </div>
+      </div>
 
+      <div className="max-w-3xl mx-auto">
       {/* Input Area */}
       <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl mb-10 shadow-xl relative overflow-hidden">
          <form onSubmit={handlePost} className="relative z-10">
@@ -208,6 +213,7 @@ export default function TeamFeedPage({ params }: { params: Promise<{ breweryId: 
              feed.map(renderFeedItem)
          )}
       </div>
+     </div>
     </div>
   );
 }

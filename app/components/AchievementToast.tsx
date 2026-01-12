@@ -35,10 +35,10 @@ export default function AchievementToast({ achievement, onClose }: AchievementTo
 
   return (
     <div
-      className={`fixed top-4 right-4 z-50 transition-all duration-500 transform ${
+      className={`pointer-events-auto transition-all duration-500 transform ${
         isVisible && !isLeaving
           ? 'translate-x-0 opacity-100'
-          : 'translate-x-full opacity-0'
+          : 'translate-x-[20%] opacity-0'
       }`}
     >
       <div className="bg-gradient-to-br from-zinc-900 to-black border-2 border-cyan-500 rounded-2xl p-4 shadow-2xl shadow-cyan-500/50 min-w-[320px] max-w-[400px]">

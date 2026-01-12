@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import Link from 'next/link';
 import { getTierConfig, getBreweryTierConfig } from '@/lib/tier-system';
+import Logo from '@/app/components/Logo';
 
 export default function BrewDetailPage() {
   const params = useParams();
@@ -106,27 +107,46 @@ export default function BrewDetailPage() {
   useEffect(() => {
     async function fetchBrewInfo() {
       try {
-        // Auth holen (um eigene private Brews sehen zu können)
+        // Auth holen
         const { data: { user } } = await supabase.auth.getUser();
 
-        // Rezept laden: öffentlich ODER eigenes privates
-        let brewQuery = supabase
+        // Rezept laden (RLS kümmert sich um harte DB-Security, hier prüfen wir Logik)
+        const { data: brewData, error: brewError } = await supabase
           .from('brews')
           .select('*')
-          .eq('id', id);
-
-        if (user?.id) {
-          brewQuery = brewQuery.or(`is_public.eq.true,user_id.eq.${user.id}`);
-        } else {
-          brewQuery = brewQuery.eq('is_public', true);
-        }
-
-        const { data: brewData, error: brewError } = await brewQuery.maybeSingle();
+          .eq('id', id)
+          .maybeSingle();
 
         if (brewError || !brewData) {
           setErrorMsg("Rezept nicht gefunden");
           setLoading(false);
           return;
+        }
+
+        // Access Control Logic
+        // 1. Öffentlich? -> OK
+        // 2. Ersteller? -> OK
+        // 3. Brauerei-Mitglied? -> OK (bei Team-Brews)
+        let hasAccess = brewData.is_public;
+        
+        if (!hasAccess) {
+             if (user && brewData.user_id === user.id) {
+                 hasAccess = true;
+             } else if (user && brewData.brewery_id) {
+                 const { data: member } = await supabase
+                    .from('brewery_members')
+                    .select('id')
+                    .eq('brewery_id', brewData.brewery_id)
+                    .eq('user_id', user.id)
+                    .maybeSingle();
+                 if (member) hasAccess = true;
+             }
+        }
+
+        if (!hasAccess) {
+            setErrorMsg("Dieses Rezept ist privat und nur für Team-Mitglieder sichtbar.");
+            setLoading(false);
+            return;
         }
 
         setBrew(brewData);
@@ -223,16 +243,15 @@ export default function BrewDetailPage() {
     : null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-zinc-950 via-zinc-900 to-black text-white">
+    <div className="min-h-screen bg-black text-white pb-24">
       
-      {/* Hero Section - Profil Layout */}
-      <div className="max-w-6xl mx-auto px-6 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
           
-          {/* Left: Label Image */}
-          <div className="md:col-span-2">
-            <div className="relative w-full shadow-2xl rounded-2xl overflow-hidden">
-              <div className="aspect-square w-full">
+          {/* --- LEFT COLUMN: Image & Actions (4 cols) --- */}
+          <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-8">
+             {/* Image Card */}
+             <div className="relative w-full shadow-2xl rounded-3xl overflow-hidden border border-zinc-800 bg-zinc-900 aspect-square">
                 {brew.image_url ? (
                   <img 
                     src={brew.image_url} 
@@ -241,53 +260,45 @@ export default function BrewDetailPage() {
                   />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-zinc-900 to-zinc-950 flex items-center justify-center">
-                    <span className="text-9xl opacity-20">🍺</span>
+                    <span className="text-8xl opacity-20">🍺</span>
                   </div>
                 )}
-              </div>
-              
-              {/* Typ-Badge & Original-Badge */}
-              <div className="absolute top-6 left-6 flex flex-col gap-2 items-start">
-                <span className="bg-black/60 backdrop-blur-md border border-white/10 px-4 py-2 rounded-full text-white text-xs font-bold uppercase tracking-widest shadow-xl inline-flex items-center gap-2">
-                  {brew.brew_type === 'beer' ? '🍺 Bier' : 
-                   brew.brew_type === 'wine' ? '🍷 Wein' : 
-                   brew.brew_type === 'cider' ? '🍎 Cider' :
-                   brew.brew_type === 'mead' ? '🍯 Met' :
-                   brew.brew_type === 'softdrink' ? '🥤 Softdrink' : '🍺'}
-                </span>
+                
+                {/* Badges Overlay */}
+             </div>
 
-                {brew.remix_parent_id ? (
-                    <span className="bg-black/60 backdrop-blur-md border border-white/10 px-4 py-2 rounded-full text-amber-500 text-xs font-bold uppercase tracking-widest shadow-xl inline-flex items-center gap-2">
-                       ♻️ Remix
-                    </span>
-                ) : (
-                    <span className="bg-black/60 backdrop-blur-md border border-white/10 px-4 py-2 rounded-full text-emerald-500 text-xs font-bold uppercase tracking-widest shadow-xl inline-flex items-center gap-2">
-                       ✓ Original
-                    </span>
-                )}
+             {/* Action Button */}
+             <button
+              onClick={handleRemix}
+              disabled={remixLoading}
+              className="group w-full relative overflow-hidden rounded-2xl bg-gradient-to-br from-cyan-500 via-blue-600 to-purple-600 p-[1px] shadow-lg shadow-cyan-500/20 transition-all hover:shadow-cyan-500/40 hover:scale-[1.01] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
+            >
+              <div className="relative h-full w-full bg-zinc-950/40 group-hover:bg-transparent transition-colors rounded-2xl py-4 flex items-center justify-center gap-3 backdrop-blur-sm">
+                 <span className="font-black text-white uppercase tracking-widest text-sm drop-shadow-md">
+                    {remixLoading ? 'Wird kopiert...' : 'Rezept remixen'}
+                 </span>
               </div>
-            </div>
-          </div>
+            </button>
+            {remixMessage && (
+              <p className="text-xs text-red-400 text-center bg-red-950/20 border border-red-900/30 p-3 rounded-xl">{remixMessage}</p>
+            )}
 
-          {/* Right: Profil Sidebar */}
-          <div className="space-y-6">
-            
-            {/* Brewer Card */}
-            {profile && (
-              <div className="bg-gradient-to-br from-zinc-900 to-zinc-950 border border-cyan-500/20 rounded-2xl p-6">
-                <p className="text-xs text-cyan-400 uppercase font-black tracking-widest mb-4">Gebraut von</p>
+             {/* Brewer Card */}
+             {profile && (
+              <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-5 hover:border-zinc-700 transition">
+                <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest mb-3">Gebraut von</p>
                 <div className="flex items-center gap-4">
                   <div className="flex-shrink-0">
                     {profile.logo_url ? (
-                      <img src={profile.logo_url} className="w-16 h-16 rounded-full object-cover border-2 border-cyan-500/30" />
+                      <img src={profile.logo_url} className="w-12 h-12 rounded-full object-cover border border-zinc-700" />
                     ) : (
-                      <div className="w-16 h-16 rounded-full bg-zinc-800 flex items-center justify-center text-2xl border-2 border-zinc-700">
+                      <div className="w-12 h-12 rounded-full bg-zinc-800 flex items-center justify-center text-xl border border-zinc-700">
                         🏭
                       </div>
                     )}
                   </div>
                   <div className="min-w-0">
-                    <h3 className="text-lg font-black text-white truncate">{profile.display_name || 'Brauerei'}</h3>
+                    <h3 className="text-base font-bold text-white truncate">{profile.display_name || 'Brauerei'}</h3>
                     {profile.location && (
                       <p className="text-xs text-zinc-400 mt-0.5 truncate">📍 {profile.location}</p>
                     )}
@@ -298,388 +309,204 @@ export default function BrewDetailPage() {
                 )}
               </div>
             )}
-
-            {/* Recipe Title & Rating */}
-            <div className="space-y-3">
-              <div>
-                <h1 className="text-3xl font-black text-white leading-tight mb-2">{brew.name}</h1>
-                <div className="flex gap-2 items-center flex-wrap">
-                  <span className="inline-block text-cyan-400 text-xs font-black uppercase tracking-[0.2em] px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20">
-                    {brew.style || 'Handcrafted'}
-                  </span>
-                </div>
-              </div>
-              
-              {avgRating && (
-                <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex text-yellow-500 text-2xl">
-                      {[1,2,3,4,5].map(s => (
-                        <span key={s} className={parseFloat(avgRating) >= s ? 'opacity-100' : 'opacity-30'}>★</span>
-                      ))}
-                    </div>
-                    <div>
-                      <p className="text-2xl font-black text-white">{avgRating}</p>
-                      <p className="text-xs text-zinc-400">{ratings.length} {ratings.length === 1 ? 'Bewertung' : 'Bewertungen'}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Stats Grid */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-gradient-to-br from-zinc-900 to-zinc-950 p-4 rounded-xl border border-zinc-800">
-                <p className="text-[9px] text-cyan-400 uppercase font-bold mb-2 tracking-wider">Alkohol</p>
-                <p className="font-black text-2xl text-white">{brew.data?.abv ? brew.data.abv + '%' : '-'}</p>
-              </div>
-              
-              <div className="bg-gradient-to-br from-zinc-900 to-zinc-950 p-4 rounded-xl border border-zinc-800">
-                {(!brew.brew_type || brew.brew_type === 'beer') ? (
-                  <>
-                    <p className="text-[9px] text-amber-400 uppercase font-bold mb-2 tracking-wider">IBU</p>
-                    <p className="font-black text-2xl text-white">{brew.data?.ibu || '-'}</p>
-                  </>
-                ) : brew.brew_type === 'wine' ? (
-                  <>
-                    <p className="text-[9px] text-purple-400 uppercase font-bold mb-2 tracking-wider">Säure</p>
-                    <p className="font-black text-2xl text-white">{brew.data?.acidity_g_l || '-'}</p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-[9px] text-pink-400 uppercase font-bold mb-2 tracking-wider">Zucker</p>
-                    <p className="font-black text-2xl text-white">{brew.data?.sugar_g_l || '-'}</p>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Action Button */}
-            <button
-              onClick={handleRemix}
-              disabled={remixLoading}
-              className="w-full bg-cyan-500 hover:bg-cyan-400 text-black py-3 rounded-xl font-bold transition disabled:opacity-60 shadow-lg"
-            >
-              {remixLoading ? 'Wird kopiert...' : '♻️ Als Remix übernehmen'}
-            </button>
-            {remixMessage && (
-              <p className="text-xs text-zinc-400 text-center bg-zinc-900/50 p-3 rounded-lg">{remixMessage}</p>
-            )}
-
           </div>
-        </div>
-      </div>
 
-      {/* Content Section */}
-      <div className="max-w-6xl mx-auto px-6 py-12">
-        
-        {/* Description */}
-        {brew.description && (
-          <div className="mb-12 pb-8 border-b border-zinc-800">
-            <h2 className="text-xs font-black uppercase tracking-[0.3em] text-cyan-400 mb-4">Beschreibung</h2>
-            <p className="text-zinc-300 leading-relaxed whitespace-pre-wrap max-w-3xl">{brew.description}</p>
-          </div>
-        )}
-
-        {/* Remix Credits */}
-        {parent && (
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 mb-12">
-            <p className="text-sm text-zinc-400">
-              ♻️ Basiert auf
-              <Link href={`/brew/${parent.id}`} className="text-cyan-400 font-bold ml-1 hover:underline">{parent.name}</Link>
-              {parent.profiles?.display_name && (
-                <> von <Link href={`/brewer/${parent.user_id}`} className="text-cyan-400 font-bold hover:underline">{parent.profiles.display_name}</Link></>
-              )}
-            </p>
-          </div>
-        )}
-
-        {/* Detailed Recipe Info - TYPE SPECIFIC */}
-        {brew.data && (
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6 mb-12 space-y-4">
-            <h2 className="text-xs uppercase font-black tracking-[0.3em] text-cyan-400 mb-4">Rezept Details</h2>
+          {/* --- RIGHT COLUMN: Content (8 cols) --- */}
+          <div className="lg:col-span-8 space-y-10">
             
-            {/* BEER Details */}
-            {(!brew.brew_type || brew.brew_type === 'beer') && (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                {brew.data.og && (
-                  <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Original Gravity</p>
-                    <p className="text-white font-mono">{brew.data.og}</p>
-                  </div>
-                )}
-                {brew.data.fg && (
-                  <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Final Gravity</p>
-                    <p className="text-white font-mono">{brew.data.fg}</p>
-                  </div>
-                )}
-                {brew.data.srm && (
-                  <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Farbe (SRM)</p>
-                    <p className="text-white font-mono">{brew.data.srm}</p>
-                  </div>
-                )}
-                {brew.data.yeast && (
-                  <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Hefe</p>
-                    <p className="text-white">{brew.data.yeast}</p>
-                  </div>
-                )}
-                {brew.data.malts && (
-                  <div className="space-y-1 col-span-2 md:col-span-3">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Malzarten</p>
-                    <p className="text-white">{brew.data.malts}</p>
-                  </div>
-                )}
-                {brew.data.hops && (
-                  <div className="space-y-1 col-span-2 md:col-span-3">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Hopfen</p>
-                    <p className="text-white">{brew.data.hops}</p>
-                  </div>
-                )}
-                {brew.data.dry_hop_g && (
-                  <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Dry Hop</p>
-                    <p className="text-white">{brew.data.dry_hop_g} g</p>
-                  </div>
-                )}
-                {brew.data.boil_minutes && (
-                  <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Kochzeit</p>
-                    <p className="text-white">{brew.data.boil_minutes} min</p>
-                  </div>
-                )}
-                {brew.data.mash_temp_c && (
-                  <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Maischetemp.</p>
-                    <p className="text-white">{brew.data.mash_temp_c} °C</p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* WINE Details */}
-            {brew.brew_type === 'wine' && (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                {brew.data.grapes && (
-                  <div className="space-y-1 col-span-2 md:col-span-3">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Rebsorten</p>
-                    <p className="text-white">{brew.data.grapes}</p>
-                  </div>
-                )}
-                {brew.data.region && (
-                  <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Region</p>
-                    <p className="text-white">{brew.data.region}</p>
-                  </div>
-                )}
-                {brew.data.vintage && (
-                  <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Jahrgang</p>
-                    <p className="text-white">{brew.data.vintage}</p>
-                  </div>
-                )}
-                {brew.data.oak_aged && (
-                  <div className="space-y-1 col-span-2 md:col-span-3">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Barrique</p>
-                    <p className="text-white">
-                      {brew.data.oak_months ? `${brew.data.oak_months} Monate im Holzfass` : 'Im Holzfass gereift'}
-                    </p>
-                  </div>
-                )}
-                {brew.data.residual_sugar_g_l && (
-                  <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Restzucker</p>
-                    <p className="text-white">{brew.data.residual_sugar_g_l} g/L</p>
-                  </div>
-                )}
-                {brew.data.sulfites && (
-                  <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Hinweis</p>
-                    <p className="text-white">Enthält Sulfite</p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* CIDER Details */}
-            {brew.brew_type === 'cider' && (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                {brew.data.apples && (
-                  <div className="space-y-1 col-span-2 md:col-span-3">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Apfelsorten</p>
-                    <p className="text-white">{brew.data.apples}</p>
-                  </div>
-                )}
-                {brew.data.yeast && (
-                  <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Hefe</p>
-                    <p className="text-white">{brew.data.yeast}</p>
-                  </div>
-                )}
-                {brew.data.fermentation && (
-                  <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Gärung</p>
-                    <p className="text-white capitalize">{brew.data.fermentation === 'wild' ? 'Wild' : 'Reinzucht'}</p>
-                  </div>
-                )}
-                {brew.data.sweetness && (
-                  <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Süßegrad</p>
-                    <p className="text-white capitalize">
-                      {brew.data.sweetness === 'dry' ? 'Trocken' : brew.data.sweetness === 'semi' ? 'Halbtrocken' : 'Süß'}
-                    </p>
-                  </div>
-                )}
-                {brew.data.carbonation_g_l && (
-                  <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Kohlensäure</p>
-                    <p className="text-white">{brew.data.carbonation_g_l} g/L</p>
-                  </div>
-                )}
-                {brew.data.pH && (
-                  <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">pH-Wert</p>
-                    <p className="text-white">{brew.data.pH}</p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* MEAD Details */}
-            {brew.brew_type === 'mead' && (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                {brew.data.honey && (
-                  <div className="space-y-1 col-span-2 md:col-span-3">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Honigsorten</p>
-                    <p className="text-white">{brew.data.honey}</p>
-                  </div>
-                )}
-                {brew.data.yeast && (
-                  <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Hefe</p>
-                    <p className="text-white">{brew.data.yeast}</p>
-                  </div>
-                )}
-                {brew.data.adjuncts && (
-                  <div className="space-y-1 col-span-2 md:col-span-3">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Zutaten</p>
-                    <p className="text-white">{brew.data.adjuncts}</p>
-                  </div>
-                )}
-                {brew.data.aging_months && (
-                  <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Reifung</p>
-                    <p className="text-white">{brew.data.aging_months} Monate</p>
-                  </div>
-                )}
-                {brew.data.final_gravity && (
-                  <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Final Gravity</p>
-                    <p className="text-white font-mono">{brew.data.final_gravity}</p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* SOFTDRINK Details */}
-            {brew.brew_type === 'softdrink' && (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                {brew.data.base && (
-                  <div className="space-y-1 col-span-2 md:col-span-3">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Basis / Geschmack</p>
-                    <p className="text-white">{brew.data.base}</p>
-                  </div>
-                )}
-                {brew.data.carbonation_g_l && (
-                  <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Kohlensäure</p>
-                    <p className="text-white">{brew.data.carbonation_g_l} g/L</p>
-                  </div>
-                )}
-                {brew.data.acidity_ph && (
-                  <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">pH-Wert</p>
-                    <p className="text-white">{brew.data.acidity_ph}</p>
-                  </div>
-                )}
-                {brew.data.natural_flavors && (
-                  <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Aromen</p>
-                    <p className="text-white">Natürliche Aromen</p>
-                  </div>
-                )}
-                {brew.data.coloring && (
-                  <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Hinweis</p>
-                    <p className="text-white">Mit Farbstoff</p>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Ratings */}
-        <div>
-          <h2 className="text-xs font-black uppercase tracking-[0.3em] text-cyan-400 mb-4">Bewertungen ({ratings.length})</h2>
-          
-          {ratings.length === 0 ? (
-            <div className="text-center p-12 bg-zinc-900/30 rounded-2xl border border-dashed border-zinc-800">
-              <p className="text-zinc-500 text-lg">Noch keine Bewertungen vorhanden.</p>
-              <p className="text-sm text-zinc-600 mt-2">Sei der Erste, der dieses Rezept bewertet!</p>
-            </div>
-          ) : (
+            {/* Header */}
             <div className="space-y-4">
-              {ratings.map((rating) => (
-                <div key={rating.id} className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center text-white font-bold">
-                        {(rating.author_name || rating.name) ? (rating.author_name || rating.name)[0].toUpperCase() : '?'}
-                      </div>
-                      <div>
-                        <p className="font-bold text-white">{rating.author_name || rating.name || 'Anonym'}</p>
-                        <p className="text-xs text-zinc-500">
-                          {new Date(rating.created_at).toLocaleDateString('de-DE', { 
-                            day: '2-digit', 
-                            month: 'short', 
-                            year: 'numeric' 
-                          })}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="flex text-yellow-500">
-                        {[1,2,3,4,5].map(s => (
-                          <span key={s} className={rating.rating >= s ? 'opacity-100' : 'opacity-30'}>★</span>
-                        ))}
-                      </div>
-                      <span className="text-xl font-bold text-white">{rating.rating}</span>
-                    </div>
-                  </div>
-                  
-                  {rating.comment && (
-                    <p className="text-zinc-300 leading-relaxed">{rating.comment}</p>
-                  )}
+                <div className="flex flex-wrap gap-2 items-center">
+                    <span className="text-zinc-400 text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center gap-2 shadow-sm">
+                        {brew.brew_type === 'beer' ? 'Bier' : 
+                         brew.brew_type === 'wine' ? 'Wein' : 
+                         brew.brew_type === 'cider' ? 'Cider' :
+                         brew.brew_type === 'mead' ? 'Met' :
+                         brew.brew_type === 'softdrink' ? 'Softdrink' : 'Bier'}
+                    </span>
+                    {brew.remix_parent_id && (
+                        <span className="text-purple-400 text-xs font-black uppercase tracking-widest px-3 py-1 rounded-lg bg-purple-950/30 border border-purple-500/20 shadow-sm shadow-purple-900/20 flex items-center gap-2">
+                            Remix
+                        </span>
+                    )}
+                    <span className="text-cyan-400 text-xs font-black uppercase tracking-widest px-3 py-1 rounded-lg bg-cyan-950/30 border border-cyan-500/20 shadow-sm shadow-cyan-900/20">
+                        {brew.style || 'Handcrafted'}
+                    </span>
+                    <span className="text-zinc-600 text-xs font-bold px-2 py-1 ml-auto md:ml-0 rounded-lg bg-zinc-900/0 border border-transparent">
+                        {new Date(brew.created_at).toLocaleDateString()}
+                    </span>
                 </div>
-              ))}
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-none tracking-tight">{brew.name}</h1>
             </div>
-          )}
-        </div>
 
-        {/* Back Button */}
-        <div className="text-center pt-8 mt-12 border-t border-zinc-800">
-          <Link 
-            href="/"
-            className="inline-flex items-center gap-2 text-zinc-500 hover:text-white transition mt-8"
-          >
-            ← Zurück zur Startseite
-          </Link>
-        </div>
+            {/* KPI Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                 {/* Rating */}
+                 <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 flex flex-col justify-center min-h-[100px]">
+                    <div className="text-amber-500 text-[10px] uppercase font-bold mb-1 tracking-wider">Bewertung</div>
+                    <div className="font-black text-3xl text-white flex items-baseline gap-1">
+                        {avgRating || '-'} <span className="text-xs text-zinc-600 font-bold self-end mb-1">({ratings.length})</span>
+                    </div>
+                 </div>
 
+                 {/* ABV */}
+                 <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 flex flex-col justify-center min-h-[100px]">
+                    <div className="text-cyan-500 text-[10px] uppercase font-bold mb-1 tracking-wider">Alkohol</div>
+                    <div className="font-black text-3xl text-white">{brew.data?.abv ? brew.data.abv + '%' : '-'}</div>
+                 </div>
+                 
+                 {/* Type Specific KPI 1 */}
+                 <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 flex flex-col justify-center min-h-[100px]">
+                     {(!brew.brew_type || brew.brew_type === 'beer') ? (
+                         <>
+                            <div className="text-emerald-500 text-[10px] uppercase font-bold mb-1 tracking-wider">IBU</div>
+                            <div className="font-black text-3xl text-white">{brew.data?.ibu || '-'}</div>
+                         </>
+                     ) : brew.brew_type === 'wine' ? (
+                        <>
+                            <div className="text-purple-500 text-[10px] uppercase font-bold mb-1 tracking-wider">Säure</div>
+                            <div className="font-black text-3xl text-white">{brew.data?.acidity_g_l || '-'}</div>
+                        </>
+                     ) : (
+                         <>
+                             <div className="text-pink-500 text-[10px] uppercase font-bold mb-1 tracking-wider">Zucker</div>
+                             <div className="font-black text-3xl text-white">{brew.data?.sugar_g_l || '-'}</div>
+                         </>
+                     )}
+                 </div>
+
+                 {/* Type Specific KPI 2 (Default Gravity or Other) */}
+                  <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 flex flex-col justify-center min-h-[100px]">
+                     {(!brew.brew_type || brew.brew_type === 'beer') ? (
+                         <>
+                            <div className="text-zinc-500 text-[10px] uppercase font-bold mb-1 tracking-wider">Farbe (SRM)</div>
+                            <div className="font-black text-3xl text-white">{brew.data?.srm || '-'}</div>
+                         </>
+                     ) : (
+                        <>
+                            <div className="text-zinc-500 text-[10px] uppercase font-bold mb-1 tracking-wider">Jahrgang</div>
+                            <div className="font-black text-xl text-white truncate text-ellipsis overflow-hidden">
+                                {brew.data?.vintage || '-'}
+                            </div>
+                        </>
+                     )}
+                 </div>
+            </div>
+
+            {/* Description */}
+            {brew.description && (
+                <div className="prose prose-invert prose-lg max-w-none">
+                    <p className="text-zinc-400 leading-relaxed whitespace-pre-wrap font-medium">{brew.description}</p>
+                </div>
+            )}
+            
+            {/* Remix Source */}
+            {parent && (
+              <div className="bg-zinc-900/30 border border-purple-900/30 rounded-2xl p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center text-xl">♻️</div>
+                <div className="text-sm text-zinc-400">
+                  <p className="font-bold text-zinc-300">Remix Abstammung</p>
+                  <p>
+                    Basiert auf <Link href={`/brew/${parent.id}`} className="text-purple-400 hover:text-purple-300 transition underline decoration-purple-400/30">{parent.name}</Link>
+                    {parent.profiles?.display_name && (
+                        <> von <Link href={`/brewer/${parent.user_id}`} className="text-zinc-300 hover:underline">{parent.profiles.display_name}</Link></>
+                    )}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Technical Specs */}
+             {brew.data && (
+                <div className="py-8 border-t border-zinc-800/50">
+                    <h3 className="text-xs font-black uppercase tracking-[0.3em] text-zinc-500 mb-6">Technische Details</h3>
+                    {/* Reuse existing blocks but with adjusted styling if needed. Keeping original logic structure */}
+                    
+                    {/* BEER Details */}
+                    {(!brew.brew_type || brew.brew_type === 'beer') && (
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-y-6 gap-x-4">
+                        {brew.data.og && (<div><p className="text-zinc-600 text-[10px] uppercase font-bold mb-1">Stammwürze (OG)</p><p className="text-white font-mono">{brew.data.og}</p></div>)}
+                        {brew.data.fg && (<div><p className="text-zinc-600 text-[10px] uppercase font-bold mb-1">Restextrakt (FG)</p><p className="text-white font-mono">{brew.data.fg}</p></div>)}
+                        {brew.data.est_abv && (<div><p className="text-zinc-600 text-[10px] uppercase font-bold mb-1">Est. ABV</p><p className="text-white font-mono">{brew.data.est_abv}%</p></div>)}
+                        {brew.data.yeast && (<div><p className="text-zinc-600 text-[10px] uppercase font-bold mb-1">Hefe</p><p className="text-white">{brew.data.yeast}</p></div>)}
+                        {brew.data.boil_minutes && (<div><p className="text-zinc-600 text-[10px] uppercase font-bold mb-1">Kochzeit</p><p className="text-white">{brew.data.boil_minutes} min</p></div>)}
+                        {brew.data.mash_temp_c && (<div><p className="text-zinc-600 text-[10px] uppercase font-bold mb-1">Maische</p><p className="text-white">{brew.data.mash_temp_c} °C</p></div>)}
+                        
+                        {brew.data.malts && (<div className="col-span-2 md:col-span-3 pt-4 border-t border-zinc-800/50"><p className="text-zinc-600 text-[10px] uppercase font-bold mb-1">Malz & Getreide</p><p className="text-zinc-300">{brew.data.malts}</p></div>)}
+                        {brew.data.hops && (<div className="col-span-2 md:col-span-3"><p className="text-zinc-600 text-[10px] uppercase font-bold mb-1">Hopfen</p><p className="text-zinc-300">{brew.data.hops}</p></div>)}
+                      </div>
+                    )}
+                    
+                    {/* Other types logic (simplified for brevity using same pattern) */}
+                    {brew.brew_type !== 'beer' && (
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-y-6 gap-x-4">
+                            {Object.entries(brew.data).map(([k, v]) => {
+                                if (['abv', 'ibu', 'name'].includes(k) || !v) return null;
+                                let label = k.replace(/_/g, ' ');
+                                if (k === 'vintage') label = 'Jahrgang';
+                                if (k === 'varietal') label = 'Rebsorte';
+                                if (k === 'sugar_g_l') label = 'Restsüße';
+                                if (k === 'acidity_g_l') label = 'Säure';
+
+                                return (
+                                    <div key={k} className="overflow-hidden">
+                                        <p className="text-zinc-600 text-[10px] uppercase font-bold mb-1 truncate">{label}</p>
+                                        <p className="text-white truncate">{String(v)}</p>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Ratings Section */}
+            <div className="py-8 border-t border-zinc-800/50">
+              <h3 className="text-xs font-black uppercase tracking-[0.3em] text-zinc-500 mb-6">Community Feedback ({ratings.length})</h3>
+              
+              {ratings.length === 0 ? (
+                <div className="bg-zinc-900/30 rounded-2xl p-8 border border-dashed border-zinc-800 text-center">
+                  <p className="text-zinc-500">Bisher keine Bewertungen.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {ratings.map((rating) => (
+                    <div key={rating.id} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex items-center gap-3">
+                           <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center font-bold text-xs">{(rating.author_name || '?')[0]}</div>
+                           <div>
+                                <p className="font-bold text-sm text-white">{rating.author_name || 'Gast'}</p>
+                                <p className="text-[10px] text-zinc-500">{new Date(rating.created_at).toLocaleDateString()}</p>
+                           </div>
+                        </div>
+                        <div className="flex text-amber-500 text-xs gap-0.5">
+                            {[1,2,3,4,5].map(s => <span key={s} className={rating.rating >= s ? 'opacity-100' : 'opacity-20 '}>★</span>)}
+                        </div>
+                      </div>
+                      {rating.comment && <p className="text-zinc-400 text-sm pl-11">{rating.comment}</p>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          
+          </div>
+        </div>
       </div>
+
+      <footer className="pt-12 pb-6 text-center opacity-40 hover:opacity-100 transition-opacity duration-500 flex flex-col items-center">
+        <div className="mb-2">
+            <Logo className="w-5 h-5" textSize="text-xs" />
+        </div>
+        <p className="text-[9px] text-zinc-700 font-medium">Digital Brew Lab</p>
+        <div className="mt-4">
+            <Link href="/impressum" className="text-[10px] text-zinc-600 hover:text-zinc-400 hover:underline transition">
+              Impressum
+            </Link>
+        </div>
+        <p className="text-[8px] text-zinc-800 mt-2 font-mono">{id}</p>
+      </footer>
     </div>
   );
 }

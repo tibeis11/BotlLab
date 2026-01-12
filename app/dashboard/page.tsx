@@ -250,36 +250,43 @@ function DashboardContent() {
     async function handleCreateBrewery(e: React.FormEvent) {
         e.preventDefault();
         if(!newBreweryName.trim()) return;
+        
+        if (!userId) {
+            console.error("User ID fehlt!");
+            setOnboardingError("Benutzer nicht geladen. Bitte Seite neu laden.");
+            return;
+        }
+
         setLoading(true);
         setOnboardingError(null);
 
         try {
-            // 1. Create Brewery
-            const { data: brewery, error: createError } = await supabase
-                .from('breweries')
-                .insert({ name: newBreweryName.trim() + "'s Squad" })
-                .select()
-                .single();
-
-            if (createError) throw createError;
-
-            // 2. Add Member as Owner
-            const { error: memberError } = await supabase
-                .from('brewery_members')
-                .insert({
-                    brewery_id: brewery.id,
-                    user_id: userId,
-                    role: 'owner'
+            console.log("Erstelle Brauerei via RPC:", newBreweryName);
+            
+            // Verwende die sichere RPC Funktion statt manuellem Insert
+            const { data: brewery, error: rpcError } = await supabase
+                .rpc('create_own_squad', { 
+                    name_input: newBreweryName.trim() + "'s Squad" 
                 });
 
-            if (memberError) throw memberError;
+            if (rpcError) {
+                console.error("RPC Fehler:", rpcError);
+                throw rpcError;
+            }
 
+            console.log("Brauerei erstellt:", brewery);
+            
             // Reload to enter dashboard
             window.location.reload();
 
         } catch (err: any) {
-            console.error(err);
-            setOnboardingError(err.message || "Fehler beim Erstellen der Brauerei.");
+             console.error("Catch Error Details:", JSON.stringify(err, null, 2));
+             // Falls die RPC Funktion noch nicht existiert (SQL nicht ausgeführt)
+             if (err?.message?.includes('function create_own_squad') || err?.code === '42883') {
+                 setOnboardingError("Bitte führe zuerst die Migration 'add_create_squad_rpc.sql' in Supabase aus!");
+             } else {
+                 setOnboardingError(err.message || "Fehler beim Erstellen der Brauerei.");
+             }
             setLoading(false);
         }
     }
@@ -327,26 +334,28 @@ function DashboardContent() {
 
 
 	return (
-		<div className="space-y-10 py-8">
-			<header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-				<div>
-					 <div className="flex items-center gap-3 mb-2">
-                        <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs">Dashboard</p>
+		<div className="space-y-12">
+			{/* Header */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-end">
+                <div>
+                    <div className="flex items-center gap-2 mb-4">
+                        <span className="text-cyan-400 text-xs font-black uppercase tracking-widest px-3 py-1 rounded-lg bg-cyan-950/30 border border-cyan-500/20 shadow-sm shadow-cyan-900/20">
+                            Dashboard
+                        </span>
                         {userTitle && (
-                            <span className="text-[10px] font-black px-2 py-0.5 rounded uppercase border" style={{ borderColor: `${titleColor}50`, color: titleColor, backgroundColor: `${titleColor}10` }}>
+                             <span className="text-[10px] font-black px-2 py-1 rounded-lg uppercase border border-white/5 tracking-wider" style={{ borderColor: `${titleColor}50`, color: titleColor, backgroundColor: `${titleColor}10` }}>
                                 {userTitle}
                             </span>
                         )}
-                     </div>
-					 <h2 className="text-4xl font-bold text-white">
-						 {loading ? 'Lade Daten...' : `Moin, ${userName || 'Braumeister'}! 👋`}
-					 </h2>
-					 <p className="text-zinc-400 mt-2 max-w-lg">
-						 Alles unter Kontrolle im Labor. Hier ist der aktuelle Status deiner digitalen Brauerei.
-					 </p>
-				</div>
-			</header>
-
+                    </div>
+                    <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight mb-4">
+                        {loading ? 'Lade Daten...' : `Moin, ${userName || 'Braumeister'}! 👋`}
+                    </h1>
+                    <p className="text-zinc-400 text-lg leading-relaxed max-w-xl">
+                        Alles unter Kontrolle im Labor. Hier ist der aktuelle Status deiner digitalen Brauerei.
+                    </p>
+                </div>
+            </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Left Column: Feeds */}

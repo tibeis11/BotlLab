@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
 interface BottlesModalProps {
@@ -11,75 +11,127 @@ interface BottlesModalProps {
 }
 
 export default function BottlesModal({ isOpen, onClose, brewId, brewName }: BottlesModalProps) {
-  const [loading, setLoading] = useState(false);
-  const [count, setCount] = useState(1);
-  const [size, setSize] = useState('0.33');
+  const [loading, setLoading] = useState(true);
+  const [bottles, setBottles] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen && brewId) {
+        loadBottles();
+    }
+  }, [isOpen, brewId]);
+
+  async function loadBottles() {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const { data, error: fetchError } = await supabase
+            .from('bottles')
+            .select('id, bottle_number, created_at')
+            .eq('brew_id', brewId)
+            .order('bottle_number', { ascending: true });
+        
+        if (fetchError) {
+            console.error('Error fetching bottles:', fetchError, JSON.stringify(fetchError));
+            setError(fetchError.message || JSON.stringify(fetchError));
+        } else {
+            setBottles(data || []);
+        }
+      } catch (e: any) {
+          console.error('Exception fetching bottles:', e);
+          setError(e.message || 'Unbekannter Fehler');
+      } finally {
+          setLoading(false);
+      }
+  }
 
   if (!isOpen) return null;
 
-  async function handleFill() {
-    setLoading(true);
-    // Placeholder logic - we need to know the correct table structure
-    // Assuming 'bottles' table exists and links to brew_id
-    /*
-    const { error } = await supabase.from('bottles').insert({
-        brew_id: brewId,
-        size_l: parseFloat(size),
-        count: count,
-        status: 'filled'
-    });
-    */
-   
-    // Simulating success for now until we restore full logic
-    setTimeout(() => {
-        setLoading(false);
-        onClose();
-        alert(`🚧 Feature wird gewartet: ${count}x ${size}l für "${brewName}" (Simuliert)`);
-    }, 500);
-  }
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-zinc-900 border border-zinc-800 rounded-3xl w-full max-w-md p-6 relative shadow-2xl">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-3xl w-full max-w-md p-6 relative shadow-2xl flex flex-col max-h-[80vh]">
         <button 
           onClick={onClose}
-          className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-zinc-800 rounded-full text-zinc-400 hover:text-white transition"
+          className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-zinc-800 rounded-full text-zinc-400 hover:text-white transition z-10"
         >
           ✕
         </button>
 
-        <h3 className="text-2xl font-black text-white mb-1">Abfüllen 🍾</h3>
-        <p className="text-zinc-500 text-sm mb-6">Fülle <span className="text-cyan-400 font-bold">{brewName}</span> in Flaschen ab.</p>
-
-        <div className="space-y-4">
-             <div>
-                <label className="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">Größe (Liter)</label>
-                <div className="grid grid-cols-3 gap-2">
-                    {['0.33', '0.5', '0.75'].map(s => (
-                        <button key={s} onClick={() => setSize(s)} className={`py-2 rounded-xl border font-bold text-sm transition ${size === s ? 'bg-white text-black border-white' : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:border-zinc-600'}`}>
-                            {s}l
-                        </button>
-                    ))}
-                </div>
-             </div>
-
-             <div>
-                <label className="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">Anzahl</label>
-                <div className="flex items-center gap-4 bg-zinc-950 border border-zinc-800 rounded-xl p-2">
-                    <button onClick={() => setCount(Math.max(1, count - 1))} className="w-10 h-10 flex items-center justify-center bg-zinc-900 rounded-lg text-white hover:bg-zinc-800 font-bold">-</button>
-                    <div className="flex-1 text-center font-mono text-2xl font-bold">{count}</div>
-                    <button onClick={() => setCount(count + 1)} className="w-10 h-10 flex items-center justify-center bg-zinc-900 rounded-lg text-white hover:bg-zinc-800 font-bold">+</button>
-                </div>
-             </div>
-
-             <button 
-                onClick={handleFill} 
-                disabled={loading}
-                className="w-full bg-cyan-500 hover:bg-cyan-400 text-black font-black py-4 rounded-xl transition flex items-center justify-center gap-2 mt-4 disabled:opacity-50 disabled:cursor-wait"
-            >
-                {loading ? 'Fülle ab...' : 'Flaschen ins Inventar 📦'}
-             </button>
+        <div className="mb-6 pr-8">
+            <h3 className="text-xl font-black text-white flex items-center gap-2">
+                <span>🍾</span> Inventar
+            </h3>
+            <p className="text-zinc-500 text-sm truncate">
+                Inhalt: <span className="text-cyan-400 font-bold">{brewName}</span>
+            </p>
         </div>
+
+        {error ? (
+            <div className="py-8 text-center px-4">
+                <div className="text-red-500 mb-2 font-bold">Fehler beim Laden</div>
+                <div className="text-xs text-zinc-500 bg-black/30 p-2 rounded border border-red-500/20 mb-4 font-mono break-all">
+                    {error}
+                </div>
+                <button 
+                    onClick={() => loadBottles()}
+                    className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm text-white font-medium transition"
+                >
+                    Erneut versuchen
+                </button>
+            </div>
+        ) : loading ? (
+            <div className="py-12 text-center text-zinc-500 animate-pulse flex flex-col items-center gap-3">
+                <div className="w-6 h-6 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin" />
+                <p>Lade Flaschen...</p>
+            </div>
+        ) : (
+            <>
+                <div className="flex-1 overflow-y-auto min-h-[200px] space-y-2 pr-2 custom-scrollbar">
+                    {bottles.length === 0 ? (
+                        <div className="text-center py-12 border border-dashed border-zinc-800 rounded-xl bg-zinc-950/50 flex flex-col items-center gap-2">
+                            <span className="text-3xl opacity-50">🏷️</span>
+                            <div className="text-zinc-500 font-medium">Keine Flaschen gefunden.</div>
+                            <p className="text-xs text-zinc-600 max-w-[200px]">
+                                Scanne einen QR-Code auf einer Flasche, um sie diesem Sud zuzuordnen.
+                            </p>
+                            <button 
+                                onClick={() => loadBottles()}
+                                className="mt-2 text-xs text-cyan-500 hover:text-cyan-400 underline"
+                            >
+                                Aktualisieren
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 gap-2">
+                            {bottles.map((bottle) => (
+                                <div key={bottle.id} className="bg-zinc-950/50 border border-zinc-800/50 hover:border-zinc-700 p-3 rounded-xl flex items-center justify-between group transition">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-zinc-800 rounded-lg flex items-center justify-center font-black text-white shadow-inner">
+                                            {bottle.bottle_number}
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-white text-sm">Flasche #{bottle.bottle_number}</p>
+                                            <div className="flex items-center gap-2 text-xs text-zinc-500">
+                                                <span>Erstellt: {new Date(bottle.created_at).toLocaleDateString()}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                        {/* Future actions */}
+                                    </div>
+                                </div> 
+                            ))}
+                        </div>
+                    )}
+                </div>
+                
+                <div className="mt-4 pt-4 border-t border-zinc-800 flex justify-between items-center text-sm">
+                    <span className="text-zinc-500">Gesamt</span>
+                    <span className="font-black text-white text-lg tabular-nums">{bottles.length}</span>
+                </div>
+            </>
+        )}
       </div>
     </div>
   );

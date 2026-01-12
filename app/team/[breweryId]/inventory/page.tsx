@@ -488,9 +488,15 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 			return matchesSearch && matchesStatus;
 		})
 		.sort((a, b) => {
-			if (sortOption === "newest") return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-			if (sortOption === "number_desc") return b.bottle_number - a.bottle_number;
-			if (sortOption === "number_asc") return a.bottle_number - b.bottle_number;
+			if (sortOption === "newest") {
+				return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+			}
+			if (sortOption === "number_desc") {
+				return Number(b.bottle_number) - Number(a.bottle_number);
+			}
+			if (sortOption === "number_asc") {
+				return Number(a.bottle_number) - Number(b.bottle_number);
+			}
 			return 0;
 		});
 
@@ -501,173 +507,234 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 	};
 
 	return (
-		<div className="space-y-8 pb-32">
+		<div className="space-y-12 pb-32">
       
-			<div className="flex flex-col xl:flex-row xl:items-end justify-between gap-6">
-				<div>
-					<h2 className="text-4xl font-black text-foreground tracking-tight">Inventar</h2>
-					<p className="text-zinc-400 mt-2 max-w-lg">
-						Verwalte deine Mehrwegflaschen im Team. Generiere Codes für neue Flaschen oder scanne bestehende, um sie einem Rezept zuzuordnen.
-					</p>
-				</div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-end">
+        <div>
+           <div className="flex items-center gap-2 mb-4">
+              <span className="text-cyan-400 text-xs font-black uppercase tracking-widest px-3 py-1 rounded-lg bg-cyan-950/30 border border-cyan-500/20 shadow-sm shadow-cyan-900/20">
+                  Inventar
+              </span>
+           </div>
+           <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight mb-4">Flaschen & QR-Codes</h1>
+           <p className="text-zinc-400 text-lg leading-relaxed max-w-xl">
+             Verwalte deine Mehrwegflaschen im Team. Generiere Codes für neue Flaschen oder scanne bestehende, um sie einem Rezept zuzuordnen.
+           </p>
+        </div>
         
-					<div className="flex gap-4">
-						<div className="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl w-32 shadow-lg">
-							<div className="text-xs font-bold uppercase text-zinc-500 tracking-wider mb-1">Gesamt</div>
-							<div className="text-3xl font-black text-cyan-500">{stats.total}</div>
-						</div>
-						<div className="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl w-32 shadow-lg">
-							<div className="text-xs font-bold uppercase text-zinc-500 tracking-wider mb-1">Gefüllt</div>
-							<div className="text-3xl font-black text-emerald-300">{stats.full}</div>
-						</div>
-						<div className="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl w-32 shadow-lg">
-							<div className="text-xs font-bold uppercase text-zinc-500 tracking-wider mb-1">Leer</div>
-							<div className="text-3xl font-black text-amber-200">{stats.empty}</div>
-						</div>
-					</div>
-			</div>
+        <div className="lg:justify-self-end flex flex-wrap gap-4">
+            <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-2xl flex flex-col min-w-[120px] flex-1 lg:flex-none shadow-lg">
+                <span className="text-xs uppercase font-bold text-zinc-500 tracking-widest mb-1">Gesamt</span>
+                <span className="text-4xl font-black text-cyan-500">{stats.total}</span>
+            </div>
+             <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-2xl flex flex-col min-w-[120px] flex-1 lg:flex-none shadow-lg">
+                <span className="text-xs uppercase font-bold text-zinc-500 tracking-widest mb-1">Gefüllt</span>
+                <span className="text-4xl font-black text-emerald-400">{stats.full}</span>
+            </div>
+             <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-2xl flex flex-col min-w-[120px] flex-1 lg:flex-none shadow-lg">
+                <span className="text-xs uppercase font-bold text-zinc-500 tracking-widest mb-1">Leer</span>
+                <span className="text-4xl font-black text-amber-200">{stats.empty}</span>
+            </div>
+        </div>
+      </div>
 
 			<div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
 				<div className="lg:col-span-4 space-y-6">
            
-					 <div className={`bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden transition-all duration-300 shadow-xl ${showScanner ? 'ring-2 ring-cyan-500/50' : ''}`}>
-							<div className="p-6">
-								 <div className="flex justify-between items-center mb-4">
-										<h3 className="text-lg font-bold flex items-center gap-2">📷 &nbsp;Scanner</h3>
+					 <div className={`relative group bg-zinc-900/50 border border-zinc-800/80 backdrop-blur-sm rounded-3xl overflow-hidden transition-all duration-300 hover:border-cyan-500/30 hover:shadow-lg hover:shadow-cyan-900/10 ${showScanner ? 'ring-1 ring-cyan-500/50 border-cyan-500/30' : ''}`}>
+                            {/* Decorative gradient */}
+                            <div className="absolute top-0 right-0 p-20 bg-cyan-500/5 blur-[80px] rounded-full pointer-events-none -mt-10 -mr-10"></div>
+
+							<div className="p-6 relative z-10">
+								 <div className="flex justify-between items-center mb-6">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-center shadow-inner">
+                                                <span className="text-xl">📷</span>
+                                            </div>
+										    <h3 className="text-lg font-black text-white tracking-tight">Scanner</h3>
+                                        </div>
 										<button 
 											onClick={() => setShowScanner(!showScanner)} 
-											className={`text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide border transition ${showScanner ? 'bg-red-500/10 text-red-500 border-red-500/30' : 'bg-zinc-800 text-zinc-400 border-zinc-700'}`}
+											className={`text-[10px] font-black px-4 py-2 rounded-xl uppercase tracking-widest border transition-all ${showScanner ? 'bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20' : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border-zinc-700 hover:border-zinc-600'}`}
 										>
 											{showScanner ? 'Schließen' : 'Starten'}
 										</button>
 								 </div>
                  
 								 {showScanner ? (
-									 <div className="space-y-4 animate-in fade-in">
+									 <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
 											<div>
-												<label className="text-[10px] font-bold uppercase text-zinc-500 tracking-widest block mb-2">Rezept füllen / Leeren</label>
-												<select 
-													 value={scanBrewId}
-													 onChange={(e) => setScanBrewId(e.target.value)}
-													suppressHydrationWarning
-													className="w-full bg-black border border-zinc-700 rounded-xl p-3 text-sm focus:border-cyan-500 outline-none"
-												>
-													<option value="">-- Aktion wählen --</option>
-													<option value="EMPTY_ACTION">🗑️ Flasche leeren</option>
-													<optgroup label="Rezepte zuweisen">
-														{brews.map(b => (
-															<option key={b.id} value={b.id}>{b.name}</option>
-														))}
-													</optgroup>
-												</select>
+												<label className="text-[10px] font-bold uppercase text-cyan-500 tracking-widest block mb-2 px-1">Aktion wählen</label>
+												<div className="relative">
+                                                    <select 
+                                                        value={scanBrewId}
+                                                        onChange={(e) => setScanBrewId(e.target.value)}
+                                                        suppressHydrationWarning
+                                                        className="w-full appearance-none bg-zinc-950 border-2 border-zinc-800 rounded-xl p-3 pl-4 pr-10 text-sm font-bold focus:border-cyan-500 outline-none transition-colors"
+                                                    >
+                                                        <option value="">-- Bitte wählen --</option>
+                                                        <option value="EMPTY_ACTION">🗑️ Flasche leeren</option>
+                                                        <optgroup label="Rezept zuweisen">
+                                                            {brews.map(b => (
+                                                                <option key={b.id} value={b.id}>🍺 {b.name}</option>
+                                                            ))}
+                                                        </optgroup>
+                                                    </select>
+                                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-zinc-500">
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                                                    </div>
+                                                </div>
 											</div>
 
-											<div className="rounded-xl overflow-hidden border border-zinc-700 relative bg-black aspect-square">
+											<div className="rounded-2xl overflow-hidden border-2 border-zinc-800 relative bg-black aspect-square shadow-inner">
 												 <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-														<span className="text-zinc-800 text-4xl">📷</span>
+                                                        <div className="flex flex-col items-center gap-2 opacity-30">
+														    <span className="text-4xl animate-pulse">📷</span>
+                                                            <span className="text-xs font-mono">Camera inactive</span>
+                                                        </div>
 												 </div>
 												 <Scanner onScanSuccess={handleScan} />
+                                                 {/* Overlay Scanner Frame */}
+                                                 <div className="absolute inset-0 border-[40px] border-black/50 pointer-events-none z-10">
+                                                     <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-cyan-500 rounded-tl-xl -mt-1 -ml-1"></div>
+                                                     <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-cyan-500 rounded-tr-xl -mt-1 -mr-1"></div>
+                                                     <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-cyan-500 rounded-bl-xl -mb-1 -ml-1"></div>
+                                                     <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-cyan-500 rounded-br-xl -mb-1 -mr-1"></div>
+                                                 </div>
 											</div>
 
 											{scanFeedback && (
-												<div className={`p-3 rounded-lg text-xs font-bold text-center border ${scanFeedback.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-red-500/10 text-red-400 border-red-500/30'}`}>
+												<div className={`p-4 rounded-xl text-xs font-bold text-center border shadow-lg ${scanFeedback.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-emerald-900/20' : 'bg-red-500/10 text-red-400 border-red-500/20 shadow-red-900/20'}`}>
 													 {scanFeedback.msg}
 												</div>
 											)}
 									 </div>
 								 ) : (
-									 <p className="text-zinc-500 text-sm">
+									 <p className="text-zinc-500 text-sm leading-relaxed px-1">
 										 Verwende die Kamera deines Geräts, um Flaschencodes blitzschnell zu scannen und einem Rezept zuzuordnen.
 									 </p>
 								 )}
 							</div>
 					 </div>
 
-					 <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-xl">
-							<h3 className="text-lg font-bold mb-4 flex items-center gap-2">📦 &nbsp;Neue Flaschen</h3>
-							<div className="space-y-4">
-								 <div>
-										<label className="text-[10px] font-bold uppercase text-zinc-500 tracking-widest block mb-2">Anzahl</label>
-										<input 
-											suppressHydrationWarning
-											type="number" 
-											min="1"
-											max="100"
-											value={amount} 
-											onChange={(e) => setAmount(parseInt(e.target.value))}
-											className="w-full bg-black border border-zinc-700 rounded-xl p-3 text-lg font-bold focus:border-cyan-500 outline-none"
-										/>
-								 </div>
-								 <button 
-									 onClick={createBatchAndDownloadPDF}
-									 disabled={isWorking}
-									 className="w-full py-4 bg-cyan-500 hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed text-black font-bold rounded-xl transition flex items-center justify-center gap-2"
-								 >
-									 {isWorking ? <span className="animate-pulse">Erstelle...</span> : <span>Generieren & Drucken</span>}
-								 </button>
-								 <p className="text-xs text-zinc-600 text-center leading-relaxed">
-									 Erstellt neue QR-Codes und lädt ein PDF zum Ausdrucken herunter.
-								 </p>
-							</div>
+					 <div className="relative group bg-zinc-900/50 border border-zinc-800/80 backdrop-blur-sm rounded-3xl p-6 shadow-xl hover:border-cyan-500/30 transition-all duration-300">
+                             {/* Decorative gradient */}
+                            <div className="absolute bottom-0 left-0 p-24 bg-cyan-500/5 blur-[80px] rounded-full pointer-events-none -mb-10 -ml-10"></div>
+                            
+                            <div className="relative z-10">
+                                <div className="flex items-center gap-3 mb-6">
+                                    <div className="w-10 h-10 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-center shadow-inner">
+                                        <span className="text-xl">📦</span>
+                                    </div>
+							        <h3 className="text-lg font-black text-white tracking-tight">Neue Flaschen</h3>
+                                </div>
+
+                                <div className="space-y-6">
+                                    <div>
+                                            <div className="flex justify-between items-center mb-2 px-1">
+                                                <label className="text-[10px] font-bold uppercase text-cyan-500 tracking-widest">Anzahl</label>
+                                                <span className="text-[10px] font-mono text-zinc-600">MAX 100</span>
+                                            </div>
+                                            <div className="relative">
+                                                <input 
+                                                    suppressHydrationWarning
+                                                    type="number" 
+                                                    min="1"
+                                                    max="100"
+                                                    value={amount} 
+                                                    onChange={(e) => setAmount(parseInt(e.target.value))}
+                                                    className="w-full bg-zinc-950 border-2 border-zinc-800 rounded-2xl p-4 text-2xl font-black text-center focus:border-cyan-500 outline-none transition-all shadow-inner"
+                                                />
+                                            </div>
+                                    </div>
+                                    
+                                    <button 
+                                        onClick={createBatchAndDownloadPDF}
+                                        disabled={isWorking}
+                                        className="relative overflow-hidden w-full py-4 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed text-black font-black uppercase tracking-wide rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20 group-hover:shadow-cyan-500/30"
+                                    >
+                                        <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 pointer-events-none"></div>
+                                        {isWorking ? (
+                                            <>
+                                                <svg className="animate-spin h-5 w-5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                                <span>Erstelle...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <span>Generieren & Drucken</span>
+                                                <svg className="w-5 h-5 -mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                                            </>
+                                        )}
+                                    </button>
+                                    
+                                    <p className="text-xs text-zinc-500 text-center leading-relaxed px-4">
+                                        Erstellt neue QR-Codes und lädt automatisch ein PDF zum direkten Ausdrucken herunter.
+                                    </p>
+                                </div>
+                            </div>
 					 </div>
 				</div>
 
 				<div className="lg:col-span-8 flex flex-col gap-6">
            
-					 <div className="bg-zinc-900 border border-zinc-800 p-2 rounded-2xl flex flex-col sm:flex-row gap-2 shadow-lg">
-							<div className="flex-1 relative">
-								 <span className="absolute left-4 top-3.5 text-zinc-500">🔍</span>
-								 <input 
-									 type="text" 
-									 placeholder="Suchen..." 
-									 value={filterText}
-									 onChange={e => setFilterText(e.target.value)}
-									 suppressHydrationWarning
-									 className="w-full bg-transparent pl-10 pr-4 py-3 text-sm font-bold text-white outline-none placeholder:font-normal placeholder:text-zinc-600"
-								 />
-							</div>
-							<div className="flex gap-2">
-								<div className="relative">
-									<select 
-										value={filterStatus}
-										onChange={(e) => setFilterStatus(e.target.value as any)}
-										suppressHydrationWarning
-										className="appearance-none bg-zinc-800 text-white text-xs font-bold pl-4 pr-8 py-3 rounded-xl outline-none hover:bg-zinc-700 focus:ring-2 focus:ring-cyan-500 transition cursor-pointer border border-zinc-700"
-									>
-										<option value="all" className="bg-zinc-900">Alle Flaschen</option>
-										<option value="filled" className="bg-zinc-900">Nur Gefüllte</option>
-										<option value="empty" className="bg-zinc-900">Nur Leere</option>
-									</select>
-									<div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-zinc-400">
-										<svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
-									</div>
-								</div>
+					{/* Search & Filter Bar */}
+                    <div className="bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 p-3 rounded-3xl flex flex-col xl:flex-row gap-3 shadow-xl">
+                        {/* Search Input */}
+                        <div className="flex-1 relative group">
+                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <svg className="h-5 w-5 text-zinc-500 group-focus-within:text-cyan-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                            </div>
+                            <input 
+                                type="text" 
+                                placeholder="Flaschen suchen (Nr, Inhalt)..." 
+                                value={filterText}
+                                onChange={e => setFilterText(e.target.value)}
+                                suppressHydrationWarning
+                                className="block w-full pl-11 pr-4 py-3 bg-zinc-950 border-2 border-transparent focus:border-cyan-500 rounded-2xl text-sm font-bold text-white placeholder-zinc-600 focus:ring-0 transition-all outline-none"
+                            />
+                        </div>
+                        
+                        {/* Filters */}
+                        <div className="flex gap-2">
+                            <div className="relative group">
+                                <select 
+                                    value={filterStatus}
+                                    onChange={(e) => setFilterStatus(e.target.value as any)}
+                                    className="appearance-none bg-zinc-950 text-white text-xs font-bold pl-4 pr-10 py-3.5 rounded-2xl border-2 border-zinc-800 hover:border-zinc-700 focus:border-cyan-500 focus:ring-0 outline-none transition-all cursor-pointer min-w-[140px]"
+                                >
+                                    <option value="all">Alle Flaschen</option>
+                                    <option value="filled">🟢 Gefüllt</option>
+                                    <option value="empty">⚫ Leer</option>
+                                </select>
+                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-zinc-500 group-hover:text-cyan-500 transition-colors">
+                                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" /></svg>
+                                </div>
+                            </div>
 
-								<div className="relative">
-									<select 
-										value={sortOption}
-										onChange={(e) => setSortOption(e.target.value as any)}
-										suppressHydrationWarning
-										className="appearance-none bg-zinc-800 text-white text-xs font-bold pl-4 pr-8 py-3 rounded-xl outline-none hover:bg-zinc-700 focus:ring-2 focus:ring-cyan-500 transition cursor-pointer border border-zinc-700"
-									>
-										<option value="number_asc" className="bg-zinc-900">Nr. Aufsteigend</option>
-										<option value="number_desc" className="bg-zinc-900">Nr. Absteigend</option>
-										<option value="newest" className="bg-zinc-900">Neueste zuerst</option>
-									</select>
-									<div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-zinc-400">
-										<svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
-									</div>
-								</div>
-							</div>
-					 </div>
+                            <div className="relative group">
+                                <select 
+                                    value={sortOption}
+                                    onChange={(e) => setSortOption(e.target.value as any)}
+                                    className="appearance-none bg-zinc-950 text-white text-xs font-bold pl-4 pr-10 py-3.5 rounded-2xl border-2 border-zinc-800 hover:border-zinc-700 focus:border-cyan-500 focus:ring-0 outline-none transition-all cursor-pointer min-w-[140px]"
+                                >
+                                    <option value="number_asc">Nr. ⬆️ (1-9)</option>
+                                    <option value="number_desc">Nr. ⬇️ (9-1)</option>
+                                    <option value="newest">🕒 Neueste</option>
+                                </select>
+                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-zinc-500 group-hover:text-cyan-500 transition-colors">
+                                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" /></svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
            
 					 <div className="bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden flex-1 min-h-[500px] shadow-xl">
 							<div className="overflow-x-auto">
 								<table className="w-full text-left">
-									<thead className="bg-black/20 text-zinc-500 text-[10px] uppercase font-bold tracking-widest border-b border-zinc-800">
+									<thead className="bg-zinc-950 text-zinc-500 text-[10px] uppercase font-bold tracking-widest border-b border-zinc-800">
 										<tr>
-											<th className="p-5 w-10">
+											<th className="p-5 w-16">
 												<label className="relative flex items-center justify-center cursor-pointer group">
 													<input 
 														type="checkbox" 
@@ -675,8 +742,8 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 														onChange={toggleAll}
 														className="peer sr-only"
 													/>
-													<div className="w-5 h-5 rounded-full border-2 border-zinc-600 bg-transparent peer-checked:bg-zinc-500 peer-checked:border-zinc-500 transition-all duration-200 flex items-center justify-center group-hover:border-zinc-500">
-														<svg className="w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+													<div className="w-5 h-5 rounded-md border-2 border-zinc-700 bg-zinc-900 peer-checked:bg-cyan-500 peer-checked:border-cyan-500 transition-all duration-200 flex items-center justify-center group-hover:border-zinc-500">
+														<svg className="w-3.5 h-3.5 text-black opacity-0 peer-checked:opacity-100 transition-opacity duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
 															<path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
 														</svg>
 													</div>
@@ -690,7 +757,7 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 									</thead>
 									<tbody className="divide-y divide-zinc-800">
 										{filteredBottles.map((bottle) => (
-											<tr key={bottle.id} className={`group transition-colors ${selectedBottles.has(bottle.id) ? 'bg-zinc-500/10' : 'hover:bg-zinc-800/30'}`}>
+											<tr key={bottle.id} className={`group transition-colors ${selectedBottles.has(bottle.id) ? 'bg-cyan-900/10 hover:bg-cyan-900/20' : 'hover:bg-zinc-800/30'}`}>
 												<td className="p-5">
 													<label className="relative flex items-center justify-center cursor-pointer">
 														<input 
@@ -699,15 +766,15 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 															onChange={() => toggleSelection(bottle.id)}
 															className="peer sr-only"
 														/>
-														<div className="w-5 h-5 rounded-full border-2 border-zinc-600 bg-transparent peer-checked:bg-zinc-500 peer-checked:border-zinc-500 transition-all duration-200 flex items-center justify-center hover:border-zinc-500">
-															<svg className="w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+														<div className="w-5 h-5 rounded-md border-2 border-zinc-700 bg-zinc-900 peer-checked:bg-cyan-500 peer-checked:border-cyan-500 transition-all duration-200 flex items-center justify-center hover:border-zinc-500">
+															<svg className="w-3.5 h-3.5 text-black opacity-0 peer-checked:opacity-100 transition-opacity duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
 																<path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
 															</svg>
 														</div>
 													</label>
 												</td>
-												<td className="p-5 font-black text-cyan-500 text-lg">
-													 #{bottle.bottle_number}
+												<td className="p-5 font-black text-white text-xl tabular-nums tracking-tight">
+													 <span className="text-zinc-600 mr-0.5">#</span>{bottle.bottle_number}
 												</td>
 												<td className="p-5">
 													 {bottle.brews?.name ? (
@@ -715,7 +782,7 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 																<div className="font-bold text-white text-base truncate max-w-[120px] sm:max-w-none">{bottle.brews.name}</div>
 																{/* Desktop Badge */}
 																<span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-wide">
-																	<span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+																	<span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
 																	Gefüllt
 																</span>
 																{/* Mobile Dot */}
@@ -741,24 +808,34 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 													 )}
 												</td>
 												<td className="p-5 hidden sm:table-cell">
-													 <select 
-														value={bottle.brew_id || ""}
-														onChange={(e) => updateBottleBrew(bottle.id, e.target.value)}
-													 suppressHydrationWarning
-													 className="w-full appearance-none bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/50 hover:border-cyan-500/40 transition shadow-sm"
-													 >
-															<option value="">(Leer)</option>
-															{brews.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-													 </select>
+                                                    <div className="relative group/select">
+                                                        <select 
+                                                            value={bottle.brew_id || ""}
+                                                            onChange={(e) => updateBottleBrew(bottle.id, e.target.value)}
+                                                            suppressHydrationWarning
+                                                            className="w-full appearance-none bg-zinc-950/50 border border-zinc-700 rounded-xl pl-3 pr-8 py-2.5 text-sm text-zinc-300 font-medium outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 focus:text-white hover:border-zinc-500 transition-all opacity-70 group-hover:opacity-100"
+                                                        >
+                                                            <option value="">(Leer)</option>
+                                                            {brews.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                                                        </select>
+                                                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-zinc-500">
+                                                            <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                                                        </div>
+                                                    </div>
 												</td>
 												<td className="p-5 text-right">
 													 <div className="flex justify-end gap-2 opacity-50 group-hover:opacity-100 transition-opacity">
 															<button 
 																onClick={() => showQrModal(bottle)}
-																className="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white transition"
-																title="QR Code"
+																className="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white transition hover:text-cyan-400 group-hover:bg-zinc-950 shadow-md border border-transparent hover:border-zinc-700"
+																title="QR Code anzeigen"
 															>
-																📱
+																<svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                                                    <path d="M3 3h6v6H3V3zm2 2v2h2V5H5zm8-2h6v6h-6V3zm2 2v2h2V5h-2zM3 11h6v6H3v-6zm2 2v2h2v-2H5zm13-2h2v2h-2v-2zm-2 2h2v2h-2v-2zm2 2h2v2h-2v-2zm-2 2h2v2h-2v-2zm3-2h2v2h-2v-2zm-2 2h2v2h-2v-2zm-3-5h-3v3h3v-3zm3 3v3h-3v-3h3zm-3-3v3h-3v-3h3z" />
+                                                                    <path d="M15 11h2v.01h-2v-.01zm2 2h2v.01h-2v-.01zm-2 2h2v.01h-2v-.01zm2 2h2v.01h-2v-.01z" fill="none"/>
+                                                                    <rect x="15" y="11" width="6" height="6" fill="currentColor"/> 
+                                                                    {/* Simplified QR Icon Look */}
+                                                                </svg>
 															</button>
 													 </div>
 												</td>
@@ -767,10 +844,25 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
                     
 										{filteredBottles.length === 0 && (
 											<tr>
-												<td colSpan={4} className="p-12 text-center">
-													 <div className="text-4xl mb-4">🫙</div>
-													 <h3 className="text-white font-bold mb-2">Keine Flaschen gefunden</h3>
-													 <p className="text-zinc-500 text-sm">Passe deine Filter an oder erstelle neue Flaschen.</p>
+												<td colSpan={5} className="p-16 text-center">
+													 <div className="flex flex-col items-center justify-center animate-in zoom-in-95 duration-500">
+                                                        <div className="w-24 h-24 bg-zinc-900 rounded-full flex items-center justify-center mb-6 shadow-md border border-zinc-800">
+                                                            <span className="text-4xl opacity-50 grayscale">🍶</span>
+                                                        </div>
+                                                        <h3 className="text-2xl font-black text-white mb-2">Keine Flaschen gefunden</h3>
+                                                        <p className="text-zinc-500 text-base max-w-sm mx-auto mb-8">
+                                                            Wir konnten keine Flaschen finden, die deinen aktuellen Filtern entsprechen.
+                                                        </p>
+                                                        <button 
+                                                            onClick={() => {
+                                                                setAmount(10);
+                                                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                                                            }}
+                                                            className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl transition flex items-center gap-2 border border-zinc-700 hover:border-zinc-600"
+                                                        >
+                                                            <span>📦</span> Neue Flaschen erstellen
+                                                        </button>
+                                                    </div>
 												</td>
 											</tr>
 										)}

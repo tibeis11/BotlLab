@@ -235,7 +235,7 @@ export default function TeamLayout({
                                         href="/dashboard"
                                         className="block w-full px-4 py-3 text-zinc-300 hover:text-white hover:bg-zinc-900 transition text-sm font-medium flex items-center gap-2 text-left"
                                     >
-                                        � Mein Profil
+                                        👤 Mein Profil
                                     </Link>
 
                                     <button

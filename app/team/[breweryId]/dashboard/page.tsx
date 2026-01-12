@@ -45,10 +45,21 @@ export default function TeamDashboardPage({ params }: { params: Promise<{ brewer
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="space-y-12 animate-in fade-in duration-500">
       
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-bold text-white">Dashboard</h2>
+      {/* Header */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-end">
+        <div>
+           <div className="flex items-center gap-2 mb-4">
+              <span className="text-cyan-400 text-xs font-black uppercase tracking-widest px-3 py-1 rounded-lg bg-cyan-950/30 border border-cyan-500/20 shadow-sm shadow-cyan-900/20">
+                  Team Dashboard
+              </span>
+           </div>
+           <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight mb-4">Brauerei-Zentrale</h1>
+           <p className="text-zinc-400 text-lg leading-relaxed max-w-xl">
+             Verwalte deine Rezepte, analysiere das Feedback der Community und steuere deine Brauerei.
+           </p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
