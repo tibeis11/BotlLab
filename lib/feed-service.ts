@@ -70,5 +70,12 @@ export async function getBreweryFeed(breweryId: string) {
     return [];
   }
 
-  return data as FeedItem[];
+  // Robustheit: Supabase gibt bei Joins manchmal Arrays zurück, auch bei 1:1 Beziehungen.
+  // Wir stellen sicher, dass profiles immer ein einzelnes Objekt oder null ist.
+  const formattedData = data.map((item: any) => ({
+    ...item,
+    profiles: Array.isArray(item.profiles) ? item.profiles[0] : item.profiles
+  }));
+
+  return formattedData as FeedItem[];
 }
