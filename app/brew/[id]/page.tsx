@@ -285,29 +285,31 @@ export default function BrewDetailPage() {
 
              {/* Brewer Card */}
              {profile && (
-              <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-5 hover:border-zinc-700 transition">
-                <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest mb-3">Gebraut von</p>
-                <div className="flex items-center gap-4">
-                  <div className="flex-shrink-0">
-                    {profile.logo_url ? (
-                      <img src={profile.logo_url} className="w-12 h-12 rounded-full object-cover border border-zinc-700" />
-                    ) : (
-                      <div className="w-12 h-12 rounded-full bg-zinc-800 flex items-center justify-center text-xl border border-zinc-700">
-                        🏭
-                      </div>
-                    )}
+              <Link href={brew.brewery_id ? `/brewery/${brew.brewery_id}` : `/brewer/${brew.user_id}`}  className="block">
+                <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-5 hover:border-zinc-700 transition group hover:bg-zinc-900 cursor-pointer">
+                  <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest mb-3 group-hover:text-cyan-400 transition-colors">Gebraut von</p>
+                  <div className="flex items-center gap-4">
+                    <div className="flex-shrink-0">
+                      {profile.logo_url ? (
+                        <img src={profile.logo_url} className="w-12 h-12 rounded-full object-cover border border-zinc-700" />
+                      ) : (
+                        <div className="w-12 h-12 rounded-full bg-zinc-800 flex items-center justify-center text-xl border border-zinc-700">
+                          {brew.brewery_id ? '🏰' : '👤'}
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="text-base font-bold text-white truncate group-hover:text-cyan-400 transition-colors">{profile.display_name || 'Brauerei'} ↗</h3>
+                      {profile.location && (
+                        <p className="text-xs text-zinc-400 mt-0.5 truncate">📍 {profile.location}</p>
+                      )}
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <h3 className="text-base font-bold text-white truncate">{profile.display_name || 'Brauerei'}</h3>
-                    {profile.location && (
-                      <p className="text-xs text-zinc-400 mt-0.5 truncate">📍 {profile.location}</p>
-                    )}
-                  </div>
+                  {profile.bio && (
+                    <p className="text-xs text-zinc-400 leading-relaxed mt-4 line-clamp-3">{profile.bio}</p>
+                  )}
                 </div>
-                {profile.bio && (
-                  <p className="text-xs text-zinc-400 leading-relaxed mt-4 line-clamp-3">{profile.bio}</p>
-                )}
-              </div>
+              </Link>
             )}
           </div>
 

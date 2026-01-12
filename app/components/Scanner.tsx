@@ -65,8 +65,7 @@ export default function Scanner({ onScanSuccess }: ScannerProps) {
                 { facingMode: "environment" }, 
                 {
                     fps: 10,
-                    qrbox: { width: 250, height: 250 },
-                    aspectRatio: 1.0
+                    // qrbox removed to disable default grey overlay -> we use custom UI
                 },
                 (decodedText) => {
                     onScanSuccess(decodedText);

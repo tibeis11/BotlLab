@@ -917,7 +917,7 @@ export default function PublicScanPage() {
         {brewery && (
           <div className="space-y-4 mt-8">
             <Link 
-              href={`/team/${brewery.id}/brews`}
+              href={`/brewery/${brewery.id}`}
               className="block group bg-zinc-900 border border-zinc-800 rounded-2xl p-6 hover:bg-zinc-800 transition shadow-lg"
             >
                <div className="flex items-center gap-4">
