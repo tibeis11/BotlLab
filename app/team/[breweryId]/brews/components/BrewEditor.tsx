@@ -855,8 +855,31 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 					</div>
 				)}
 
-				{/* Modern Tab Switcher */}
-				<div className="bg-zinc-900/50 p-1.5 rounded-2xl border border-zinc-800 flex items-center mb-8 relative">
+				{/* Mobile Tabs (Scrollable & Clear) */}
+				<div className="md:hidden flex overflow-x-auto gap-2 mb-8 pb-1 scrollbar-hide -mx-4 px-4">
+					{[
+						{ id: 'editor', label: 'Rezept', icon: '📋' },
+						{ id: 'label', label: 'Label', icon: '🏷️' },
+						{ id: 'badges', label: 'Kronkorken', icon: '🟡' },
+						{ id: 'ratings', label: 'Bewertungen', icon: '⭐', hidden: id === 'new' }
+					].filter(t => !t.hidden).map((tab) => (
+						<button
+							key={tab.id}
+							onClick={() => setActiveTab(tab.id as any)}
+							className={`flex items-center gap-2 px-4 py-2.5 rounded-full whitespace-nowrap text-xs font-black uppercase tracking-wider transition-all border flex-shrink-0 ${
+								activeTab === tab.id 
+								? 'bg-cyan-500 border-cyan-400 text-black shadow-lg shadow-cyan-500/20' 
+								: 'bg-zinc-900 border-zinc-800 text-zinc-500'
+							}`}
+						>
+							<span className="text-base">{tab.icon}</span>
+							<span>{tab.label}</span>
+						</button>
+					))}
+				</div>
+
+				{/* Desktop Tabs (Slider) */}
+				<div className="hidden md:flex bg-zinc-900/50 p-1.5 rounded-2xl border border-zinc-800 items-center mb-8 relative">
 					{(() => {
 						const tabs = [
 							{ id: 'editor', label: 'Eingabe', icon: '📋' },
@@ -886,10 +909,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 										}`}
 									>
 										<span className="text-lg">{tab.icon}</span>
-										<span className="text-xs font-black uppercase tracking-widest hidden sm:inline">{tab.label}</span>
-										<span className="text-[10px] font-black uppercase tracking-tighter sm:hidden">
-											{tab.id === 'editor' ? 'Rezept' : tab.label}
-										</span>
+										<span className="text-xs font-black uppercase tracking-widest">{tab.label}</span>
 									</button>
 								))}
 							</>
