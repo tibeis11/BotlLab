@@ -5,6 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { getTierConfig } from '@/lib/tier-system';
+import Header from '@/app/components/Header';
 import Logo from '@/app/components/Logo';
 
 export default function PublicBrewerPage() {
@@ -120,7 +121,9 @@ export default function PublicBrewerPage() {
   return (
     <div className="min-h-screen bg-black text-white pb-24">
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
+      <Header />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 pt-24">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
           
            {/* --- LEFT COLUMN: Profile Image & Basic Stats (4 cols) --- */}
