@@ -56,7 +56,7 @@ export async function getBreweryFeed(breweryId: string) {
     .from('brewery_feed')
     .select(`
       *,
-      profiles (
+      profiles:user_id (
         display_name,
         logo_url
       )
@@ -66,16 +66,22 @@ export async function getBreweryFeed(breweryId: string) {
     .limit(50);
 
   if (error) {
-    console.error("Error fetching feed:", JSON.stringify(error, null, 2));
+    console.error("Error fetching feed:", error);
     return [];
   }
+  
+  // Debug Log
+  console.log("Feed Data:", data);
 
-  // Robustheit: Supabase gibt bei Joins manchmal Arrays zurück, auch bei 1:1 Beziehungen.
-  // Wir stellen sicher, dass profiles immer ein einzelnes Objekt oder null ist.
-  const formattedData = data.map((item: any) => ({
-    ...item,
-    profiles: Array.isArray(item.profiles) ? item.profiles[0] : item.profiles
-  }));
+  // Robustheit: Supabase gibt bei Joins manchmal Arrays zurück
+  const formattedData = data.map((item: any) => {
+    // Falls profiles:user_id genutzt wurde, landet das Ergebnis oft im Key "profiles" (wegen Alias)
+    const profileData = item.profiles;
+    return {
+      ...item,
+      profiles: Array.isArray(profileData) ? profileData[0] : profileData
+    };
+  });
 
   return formattedData as FeedItem[];
 }
