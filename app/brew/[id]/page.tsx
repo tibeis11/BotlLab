@@ -276,26 +276,26 @@ export default function BrewDetailPage() {
             {profile && (
               <div className="bg-gradient-to-br from-zinc-900 to-zinc-950 border border-cyan-500/20 rounded-2xl p-6">
                 <p className="text-xs text-cyan-400 uppercase font-black tracking-widest mb-4">Gebraut von</p>
-                <div className="space-y-4">
-                  <div>
+                <div className="flex items-center gap-4">
+                  <div className="flex-shrink-0">
                     {profile.logo_url ? (
-                      <img src={profile.logo_url} className="w-full aspect-square rounded-lg object-cover border-2 border-cyan-500/30 mb-4" />
+                      <img src={profile.logo_url} className="w-16 h-16 rounded-full object-cover border-2 border-cyan-500/30" />
                     ) : (
-                      <div className="w-full aspect-square rounded-lg bg-zinc-800 flex items-center justify-center text-4xl mb-4">
+                      <div className="w-16 h-16 rounded-full bg-zinc-800 flex items-center justify-center text-2xl border-2 border-zinc-700">
                         🏭
                       </div>
                     )}
                   </div>
-                  <div>
-                    <h3 className="text-lg font-black text-white">{profile.brewery_name || 'Brauerei'}</h3>
+                  <div className="min-w-0">
+                    <h3 className="text-lg font-black text-white truncate">{profile.brewery_name || 'Brauerei'}</h3>
                     {profile.location && (
-                      <p className="text-xs text-zinc-400 mt-1">📍 {profile.location}</p>
+                      <p className="text-xs text-zinc-400 mt-0.5 truncate">📍 {profile.location}</p>
                     )}
                   </div>
-                  {profile.bio && (
-                    <p className="text-xs text-zinc-400 leading-relaxed line-clamp-3">{profile.bio}</p>
-                  )}
                 </div>
+                {profile.bio && (
+                  <p className="text-xs text-zinc-400 leading-relaxed mt-4 line-clamp-3">{profile.bio}</p>
+                )}
               </div>
             )}
 
