@@ -277,61 +277,98 @@ export default function AdminHeader() {
 
       {/* Mobile Navigation */}
       {isMobileMenuOpen && (
-        <div className="md:hidden pt-4 pb-2 animate-in slide-in-from-top-5 fade-in duration-200">
-          <div className="flex flex-col gap-2 p-2">
-            <Link href="/dashboard" className="p-3 rounded-lg hover:bg-zinc-900 transition flex items-center gap-3 text-sm font-medium">
-              📊 Dashboard
-            </Link>
-            <Link href="/dashboard/collection" className="p-3 rounded-lg hover:bg-zinc-900 transition flex items-center gap-3 text-sm font-medium">
-              🟡 Sammlung
-            </Link>
-            <Link href="/dashboard/achievements" className="p-3 rounded-lg hover:bg-zinc-900 transition flex items-center gap-3 text-sm font-medium">
-              🏆 Achievements
-            </Link>
-            
+        <div className="md:hidden absolute w-full bg-zinc-950 border-b border-zinc-800 animate-in slide-in-from-top-2 fade-in duration-200 shadow-2xl z-40 max-h-[90vh] overflow-y-auto left-0 top-full">
+            <div className="p-4 space-y-2">
+            <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest px-2 mb-2">Persönlicher Bereich</p>
+            {tabs.map(tab => {
+                const isActive = pathname === tab.path;
+                return (
+                    <Link 
+                        key={tab.path} 
+                        href={tab.path}
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className={`p-3 rounded-xl text-sm font-bold transition-all flex items-center gap-3 ${isActive ? 'bg-cyan-950/50 text-cyan-400 border border-cyan-900/50' : 'text-zinc-400 border border-transparent hover:bg-zinc-900'}`}
+                    >
+                        <span>{tab.icon}</span>
+                        <span>{tab.name}</span>
+                    </Link>
+                );
+            })}
+
             <div className="h-px bg-zinc-800 my-2"></div>
             
-            {userBreweries.length > 0 && (
-                <div className="mb-2">
-                    <p className="px-3 text-[10px] uppercase text-zinc-500 font-bold mb-2">Aktives Team: <span className="text-white">{activeBreweryName}</span></p>
-                    <Link href={`/team/${breweryId}`} className="p-3 rounded-lg bg-zinc-900/50 hover:bg-zinc-900 transition flex items-center gap-3 text-sm font-medium text-cyan-400 mb-2 border border-zinc-800">
-                        🏭 Team-Dashboard öffnen
+            <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest px-2 mb-2">Team Bereich</p>
+            
+            {userBreweries.length > 0 ? (
+                <>
+                    <Link 
+                        href={`/team/${breweryId}`}
+                        onClick={() => setIsMobileMenuOpen(false)} 
+                        className="p-3 rounded-xl text-sm font-bold bg-zinc-900/50 hover:bg-zinc-900 transition flex items-center justify-between gap-3 text-cyan-400 border border-zinc-800 mb-2"
+                    >
+                        <div className="flex items-center gap-3">
+                            <span>🏭</span>
+                            <span>{activeBreweryName}</span>
+                        </div>
+                        <span className="text-xs opacity-50">Öffnen →</span>
                     </Link>
                     
                     {userBreweries.length > 1 && (
-                        <>
-                             <p className="px-3 text-[10px] uppercase text-zinc-600 font-bold mb-1 mt-3">Wechseln zu:</p>
-                             {userBreweries.filter(b => b.id !== breweryId).map(b => (
+                            <div className="pl-4 border-l border-zinc-800 ml-2 space-y-1 mt-2">
+                                <p className="text-[10px] uppercase text-zinc-600 font-bold mb-1 pl-2">Wechseln zu:</p>
+                                {userBreweries.filter(b => b.id !== breweryId).map(b => (
                                 <button
                                     key={b.id}
                                     onClick={() => handleSwitchBrewery(b.id)}
-                                    className="w-full text-left p-3 rounded-lg hover:bg-zinc-900 transition flex items-center gap-3 text-sm font-medium text-zinc-400"
+                                    className="w-full text-left p-2 rounded-lg hover:bg-zinc-900 transition flex items-center gap-2 text-sm font-medium text-zinc-500 hover:text-white"
                                 >
-                                    Login als {b.name}
+                                    <span>↳</span> {b.name}
                                 </button>
-                             ))}
-                        </>
+                                ))}
+                            </div>
                     )}
-                </div>
+                </>
+            ) : (
+                    <p className="px-3 text-xs text-zinc-600 italic">Kein Team vorhanden.</p>
             )}
             
-            <Link href="/discover" className="p-3 rounded-lg hover:bg-zinc-900 transition flex items-center gap-3 text-sm font-medium">
-              🌍 Entdecken
-            </Link>
             <div className="h-px bg-zinc-800 my-2"></div>
-            <Link href="/dashboard/profile" className="p-3 rounded-lg hover:bg-zinc-900 transition flex items-center gap-3 text-sm font-medium">
-              ✏️ Profil
-            </Link>
-            <Link href="/dashboard/account" className="p-3 rounded-lg hover:bg-zinc-900 transition flex items-center gap-3 text-sm font-medium">
-              🔐 Einstellungen
-            </Link>
-            <button
-              onClick={handleLogout}
-              className="p-3 rounded-lg hover:bg-zinc-900 transition flex items-center gap-3 text-sm font-medium text-red-400 w-full text-left"
+
+            {tierData && (
+                <div className="flex items-center gap-3 p-3 bg-zinc-900/50 rounded-xl mb-2">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs overflow-hidden relative border border-zinc-700">
+                        <div className="absolute inset-0 border-2 rounded-full opacity-50" style={{ borderColor: tierData.color }}></div>
+                        <img src={tierData.path} alt="Avatar" className="w-full h-full object-cover" />
+                    </div>
+                    <div>
+                        <p className="text-sm font-bold text-white">{userName}</p>
+                        <p className="text-[10px] uppercase font-black" style={{ color: tierData.color }}>{tierData.name}</p>
+                    </div>
+                </div>
+            )}
+
+            <Link 
+                href="/dashboard/profile" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="p-3 rounded-xl text-sm font-bold text-zinc-400 hover:text-white hover:bg-zinc-900 transition flex items-center gap-3"
             >
-              🚪 Abmelden
-            </button>
-          </div>
+                <span>✏️</span> Profil bearbeiten
+            </Link>
+            <Link 
+                href="/dashboard/account" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="p-3 rounded-xl text-sm font-bold text-zinc-400 hover:text-white hover:bg-zinc-900 transition flex items-center gap-3"
+            >
+                <span>🔐</span> Account & Einstellungen
+            </Link>
+                
+                <button
+                onClick={() => { handleLogout(); setIsMobileMenuOpen(false); }}
+                className="w-full text-left p-3 rounded-xl text-sm font-bold text-red-400 hover:bg-red-500/10 transition flex items-center gap-3"
+                >
+                <span>🚪</span> Abmelden
+                </button>
+            </div>
         </div>
       )}
     </nav>

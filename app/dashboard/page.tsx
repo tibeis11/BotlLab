@@ -436,9 +436,6 @@ function DashboardContent() {
                                     <span>📢</span>
                                     Was ist neu im Team?
                                 </h3>
-                                <Link href={`/team/${activeBrewery.id}/feed`} className="text-xs font-bold text-zinc-500 hover:text-cyan-400 transition uppercase tracking-widest">
-                                    Alle anzeigen →
-                                </Link>
                             </div>
 
                             <div className="space-y-3">

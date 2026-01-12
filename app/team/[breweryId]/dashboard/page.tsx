@@ -49,12 +49,6 @@ export default function TeamDashboardPage({ params }: { params: Promise<{ brewer
       
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-2xl font-bold text-white">Dashboard</h2>
-        <Link 
-            href={`/team/${breweryId}/settings`}
-            className="text-xs text-zinc-500 hover:text-white transition"
-        >
-            ⚙️ Einstellungen
-        </Link>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

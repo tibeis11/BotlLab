@@ -165,70 +165,82 @@ export default function Header() {
 
       {/* Mobile Navigation */}
       {isMobileMenuOpen && (
-        <div className="md:hidden bg-zinc-950/95 border-b border-zinc-800 animate-in slide-in-from-top-5 fade-in duration-200">
-          <div className="px-6 py-4 flex flex-col space-y-4">
+        <div className="md:hidden absolute w-full bg-zinc-950 border-b border-zinc-800 animate-in slide-in-from-top-2 fade-in duration-200 shadow-2xl z-40 max-h-[90vh] overflow-y-auto left-0 top-full">
+            <div className="p-4 space-y-2">
+            
+            <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest px-2 mb-2">Menu</p>
+
             {pathname === '/discover' ? (
               <Link 
                 href="/" 
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="text-lg font-bold text-zinc-400 hover:text-white transition"
+                className="p-3 rounded-xl text-sm font-bold text-zinc-400 hover:text-white hover:bg-zinc-900 transition flex items-center gap-3"
               >
-                Startseite
+                <span>🏠</span> Startseite
               </Link>
             ) : (
               <Link 
                 href="/discover" 
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="text-lg font-bold text-zinc-400 hover:text-white transition"
+                className="p-3 rounded-xl text-sm font-bold text-zinc-400 hover:text-white hover:bg-zinc-900 transition flex items-center gap-3"
               >
-                Entdecken
+                <span>🌍</span> Entdecken
               </Link>
             )}
 
             <div className="h-px bg-zinc-800 my-2"></div>
 
             {loading ? (
-              <div className="py-2 text-zinc-500">Lade...</div>
+              <div className="py-2 px-3 text-zinc-500 text-sm">Lade...</div>
             ) : user ? (
               <>
-                 <div className="flex items-center gap-3 mb-2">
-                    {profile?.logo_url ? (
-                      <img src={profile.logo_url} alt="Profile" className="w-10 h-10 rounded-full object-cover" />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center text-white font-bold">
-                        {profile?.display_name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || '?'}
-                      </div>
-                    )}
-                    <span className="font-bold text-white">
-                      {profile?.display_name || 'Mein Profil'}
-                    </span>
+                 <div className="flex items-center gap-3 p-3 bg-zinc-900/50 rounded-xl mb-2">
+                    <div className="w-10 h-10 rounded-full bg-zinc-800 border-2 border-zinc-700 flex items-center justify-center text-white font-bold overflow-hidden relative">
+                        {profile?.logo_url ? (
+                          <img src={profile.logo_url} alt="Profile" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center">
+                            {profile?.display_name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || '?'}
+                          </div>
+                        )}
+                        <div className="absolute inset-0 border-2 rounded-full opacity-50" style={{ borderColor: tierConfig.color }}></div>
+                    </div>
+                    <div>
+                        <span className="block font-bold text-white text-sm">
+                          {profile?.display_name || 'Mein Profil'}
+                        </span>
+                        <span className="text-[10px] font-black uppercase tracking-wider" style={{ color: tierConfig.color }}>
+                            {tierConfig.displayName}
+                        </span>
+                    </div>
                  </div>
                  
-                 <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)} className="text-zinc-400 hover:text-white transition py-1 flex items-center gap-2">
+                 <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)} className="p-3 rounded-xl text-sm font-bold text-zinc-400 hover:text-white hover:bg-zinc-900 transition flex items-center gap-3">
                    <span>📊</span> Dashboard
                  </Link>
-                 <Link href="/dashboard/profile" onClick={() => setIsMobileMenuOpen(false)} className="text-zinc-400 hover:text-white transition py-1 flex items-center gap-2">
+                 <Link href="/dashboard/profile" onClick={() => setIsMobileMenuOpen(false)} className="p-3 rounded-xl text-sm font-bold text-zinc-400 hover:text-white hover:bg-zinc-900 transition flex items-center gap-3">
                    <span>⚙️</span> Einstellungen
                  </Link>
-                 <button onClick={handleLogout} className="text-red-500 hover:text-red-400 transition py-1 text-left flex items-center gap-2">
+                 <button onClick={handleLogout} className="w-full text-left p-3 rounded-xl text-sm font-bold text-red-400 hover:bg-red-500/10 transition flex items-center gap-3">
                    <span>🚪</span> Abmelden
                  </button>
               </>
             ) : (
-              <div className="flex flex-col gap-3">
+              <div className="space-y-2 mt-2">
+                 <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest px-2 mb-2">Mitglied werden</p>
                  <Link 
                    href="/login"
                    onClick={() => setIsMobileMenuOpen(false)} 
-                   className="text-center w-full py-3 bg-zinc-800 rounded-full text-zinc-200 font-bold hover:bg-zinc-700 transition"
+                   className="flex items-center justify-center w-full py-4 bg-zinc-900 border border-zinc-800 rounded-xl text-zinc-300 font-bold hover:bg-zinc-800 hover:text-white transition"
                  >
                    Login
                  </Link>
                  <Link 
                    href="/login"
                    onClick={() => setIsMobileMenuOpen(false)} 
-                   className="text-center w-full py-3 bg-white text-black rounded-full font-bold hover:bg-cyan-400 transition"
+                   className="flex items-center justify-center w-full py-4 bg-white text-black rounded-xl font-black hover:bg-cyan-400 transition shadow-lg"
                  >
-                   Jetzt Starten
+                   🚀 Jetzt Starten
                  </Link>
               </div>
             )}

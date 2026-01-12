@@ -199,18 +199,25 @@ export default function LoginPage() {
             {isRegister && (
               <div className="animate-in fade-in slide-in-from-top-3 duration-300">
                 <label className="block text-xs font-bold uppercase tracking-widest text-cyan-500 mb-2">
-                  Wie heißt du?
+                  Dein Brauer-Name
                 </label>
-                <input 
-                  type="text" 
-                  placeholder="z.B. Tims Craft Lab" 
-                  required
-                  value={breweryName}
-                  className="w-full bg-cyan-950/20 border border-cyan-800/50 p-4 rounded-xl focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 outline-none transition text-white placeholder:text-cyan-700 font-medium"
-                  onChange={(e) => setBreweryName(e.target.value)}
-                />
+                <div className="relative">
+                  <input 
+                    type="text" 
+                    placeholder="z.B. Tims Craft Lab" 
+                    required
+                    value={breweryName}
+                    className="w-full bg-cyan-950/10 border border-cyan-500/30 p-4 pl-12 rounded-xl focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 outline-none transition text-white placeholder:text-zinc-600 font-medium"
+                    onChange={(e) => setBreweryName(e.target.value)}
+                  />
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-cyan-500 pointer-events-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                      <path fillRule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                </div>
                 <p className="text-[10px] text-zinc-500 mt-2 px-1">
-                  Dieser Name erscheint auf deinen Labels und öffentlichen Seiten.
+                  So wirst du in der Community und auf deinen Labels genannt.
                 </p>
               </div>
             )}
