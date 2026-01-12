@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { checkTierUpgrade, getDaysActive } from './tier-system';
+import { checkTierUpgrade, getDaysActive, getTierConfig } from './tier-system';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -43,12 +43,17 @@ export async function updateUserTier(userId: string): Promise<void> {
 
     // Update if changed
     if (newTier && newTier !== profile.tier) {
+      const newConfig = getTierConfig(newTier);
+      
       await supabase
         .from('profiles')
-        .update({ tier: newTier })
+        .update({ 
+            tier: newTier,
+            logo_url: newConfig.avatarPath
+        })
         .eq('id', userId);
 
-      console.log(`🎉 User ${userId} upgraded to ${newTier}!`);
+      console.log(`🎉 User ${userId} upgraded to ${newTier}! New Avatar: ${newConfig.avatarPath}`);
     }
   } catch (e) {
     console.error('Tier update failed:', e);
