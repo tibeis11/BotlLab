@@ -637,10 +637,10 @@ export default function BrewDetailPage() {
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center text-white font-bold">
-                        {rating.name ? rating.name[0].toUpperCase() : '?'}
+                        {(rating.author_name || rating.name) ? (rating.author_name || rating.name)[0].toUpperCase() : '?'}
                       </div>
                       <div>
-                        <p className="font-bold text-white">{rating.name || 'Anonym'}</p>
+                        <p className="font-bold text-white">{rating.author_name || rating.name || 'Anonym'}</p>
                         <p className="text-xs text-zinc-500">
                           {new Date(rating.created_at).toLocaleDateString('de-DE', { 
                             day: '2-digit', 
