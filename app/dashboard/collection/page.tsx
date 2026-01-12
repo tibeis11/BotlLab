@@ -121,13 +121,6 @@ export default function CollectionPage() {
                      size="md"
                      className="drop-shadow-2xl"
                    />
-
-                   {/* Remix Badge (Floating near cap) */}
-                   {brew.remix_parent_id && (
-                     <div className="absolute -top-2 -right-2 bg-purple-500/90 backdrop-blur-sm text-white text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border border-purple-400/50 shadow-lg transform rotate-12">
-                        Remix
-                     </div>
-                   )}
                 </div>
 
                 {/* Content Section */}

@@ -233,7 +233,7 @@ function DashboardContent() {
 		const completed = fields.reduce((acc, f) => acc + (isFilled(f.key, f.isDone) ? 1 : 0), 0);
 		if (completed < total) {
 			const key = `toast-profile-${userId}`;
-			if (typeof window !== 'undefined' && !sessionStorage.getItem(key)) {
+			if (typeof window !== 'undefined' && !localStorage.getItem(key)) {
 				showAchievement({
 					id: key,
 					name: 'Profil fast fertig',
@@ -242,7 +242,7 @@ function DashboardContent() {
 					tier: 'bronze',
 					points: 0,
 				});
-				sessionStorage.setItem(key, '1');
+				localStorage.setItem(key, '1');
 			}
 		}
 	}, [profileInfo, userId, showAchievement]);
@@ -266,7 +266,7 @@ function DashboardContent() {
             // Verwende die sichere RPC Funktion statt manuellem Insert
             const { data: brewery, error: rpcError } = await supabase
                 .rpc('create_own_squad', { 
-                    name_input: newBreweryName.trim() + "'s Squad" 
+                    name_input: newBreweryName.trim() 
                 });
 
             if (rpcError) {

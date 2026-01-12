@@ -28,10 +28,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-             // Handle "Refresh Token Not Found" or similar errors by clearing session
+             // Handle "Refresh Token Not Found" or similar errors.
+             // Warning: Do NOT immediately signOut() here as it might be a race condition 
+             // with another tab that just refreshed the token.
              if (error.message.includes('Refresh Token') || error.message.includes('refresh_token')) {
-                 console.warn("Session expired or invalid, clearing auth...", error.message);
-                 await supabase.auth.signOut();
+                 console.warn("Session error (potential tab race condition):", error.message);
+                 // We just clear local state. If the session is truly dead, onAuthStateChange 
+                 // will eventually catch a SIGNED_OUT event or subsequent requests will fail.
                  if (mounted) {
                     setSession(null);
                     setUser(null);

@@ -75,7 +75,7 @@ export default function TeamFeedPage({ params }: { params: Promise<{ breweryId: 
             case 'BREW_CREATED':
                 content = (
                     <span>
-                        hat ein neues Rezept <Link href={`/team/${breweryId}/brews/editor/${item.content.brew_id}`} className="font-bold underline text-cyan-400 hover:text-cyan-300 transition">{item.content.brew_name}</Link> entworfen.
+                        hat ein neues Rezept <Link href={`/team/${breweryId}/brews/editor/${item.content.brew_id}`} className="text-cyan-400 hover:text-cyan-300 transition">{item.content.brew_name}</Link> entworfen.
                     </span>
                 );
                 break;
@@ -84,6 +84,13 @@ export default function TeamFeedPage({ params }: { params: Promise<{ breweryId: 
                 break;
              case 'ACHIEVEMENT':
                 content = <span className="text-purple-400 font-bold">hat einen Erfolg freigeschaltet: {item.content.title}</span>;
+                break;
+            case 'BREW_RATED':
+                content = (
+                    <span>
+                        hat das Rezept <Link href={`/team/${breweryId}/brews/${item.content.brew_id}`} className="text-cyan-400 hover:text-cyan-300 transition">{item.content.brew_name}</Link> mit <span className="text-amber-400 font-bold">{item.content.rating} Sternen</span> bewertet.
+                    </span>
+                );
                 break;
             default:
                 content = <span className="text-zinc-400">{item.content.message}</span>;
@@ -95,7 +102,7 @@ export default function TeamFeedPage({ params }: { params: Promise<{ breweryId: 
                     <div className="w-5 h-5 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center overflow-hidden flex-shrink-0">
                         {item.profiles?.logo_url ? <img src={item.profiles.logo_url} className="w-full h-full object-cover" alt="" /> : '👤'}
                     </div>
-                    <span className="font-bold text-white">{item.profiles?.display_name || 'Botschafter'}</span>
+                    <span className="font-bold text-white">{item.profiles?.display_name || item.content.author || 'Botschafter'}</span>
                     {content}
                     <span className="text-[10px] text-zinc-600 border-l border-zinc-700 pl-2 ml-1">{timeString}</span>
                  </div>
@@ -161,13 +168,15 @@ export default function TeamFeedPage({ params }: { params: Promise<{ breweryId: 
 
       <div className="max-w-3xl mx-auto">
       {/* Input Area */}
-      <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl mb-10 shadow-xl relative overflow-hidden">
+      <div className="bg-zinc-900/30 backdrop-blur-md border border-zinc-800/60 p-6 rounded-3xl mb-12 shadow-2xl relative overflow-hidden group focus-within:ring-2 focus-within:ring-cyan-500/20 transition-all">
+         <div className="absolute top-0 right-0 p-32 bg-cyan-500/5 blur-[100px] rounded-full pointer-events-none -mt-10 -mr-10 transition-opacity opacity-50 group-hover:opacity-100"></div>
+         
          <form onSubmit={handlePost} className="relative z-10">
             <textarea
                 value={newPost}
                 onChange={(e) => setNewPost(e.target.value)}
                 placeholder={`Was gibt's Neues, ${user?.user_metadata?.display_name || 'Braumeister'}?`}
-                className="w-full bg-zinc-950/50 border border-zinc-800/50 focus:border-cyan-500/50 p-4 rounded-xl text-white placeholder-zinc-600 resize-none focus:outline-none min-h-[100px] text-base mb-4 transition-colors"
+                className="w-full bg-zinc-950/40 border border-zinc-800/50 focus:border-cyan-500/50 p-5 rounded-2xl text-white placeholder-zinc-500 resize-none focus:outline-none min-h-[120px] text-base mb-4 transition-all"
                 onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
@@ -175,15 +184,18 @@ export default function TeamFeedPage({ params }: { params: Promise<{ breweryId: 
                     }
                 }}
             />
-            <div className="flex justify-between items-center">
-                <div className="text-xs text-zinc-500 font-medium">Enter zum Senden</div>
+            <div className="flex justify-between items-center pl-2">
+                <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse"></span>
+                    Enter zum Senden
+                </div>
                 <button 
                     type="submit" 
                     disabled={!newPost.trim() || isPosting}
-                    className="bg-brand text-black hover:bg-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed font-black px-6 py-3 rounded-2xl text-sm transition-all shadow-lg shadow-cyan-900/20 flex items-center gap-2 transform active:scale-95"
+                    className="bg-cyan-500 text-black hover:bg-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed font-black px-8 py-3 rounded-xl text-sm transition-all shadow-lg hover:shadow-cyan-500/20 flex items-center gap-2 transform active:scale-95 uppercase tracking-wide"
                 >
                     {isPosting ? 'Sende...' : (
-                        <>Posten <span className="text-black/50">➤</span></>
+                        <>Posten <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4"><path d="M3.105 2.289a.75.75 0 00-.826.95l1.414 4.925A1.5 1.5 0 005.135 9.25h6.115a.75.75 0 010 1.5H5.135a1.5 1.5 0 00-1.442 1.086l-1.414 4.926a.75.75 0 00.826.95 28.896 28.896 0 0015.293-7.154.75.75 0 000-1.115A28.897 28.897 0 003.105 2.289z" /></svg></>
                     )}
                 </button>
             </div>
@@ -191,22 +203,30 @@ export default function TeamFeedPage({ params }: { params: Promise<{ breweryId: 
       </div>
 
       {/* Feed List */}
-      <div className="space-y-2">
+      <div className="space-y-4">
          {loading ? (
-             <div className="bg-zinc-900/20 border border-zinc-800/50 rounded-3xl p-10 animate-pulse text-center space-y-4">
-                <div className="w-16 h-16 bg-zinc-800 rounded-full mx-auto"></div>
-                <div className="h-4 bg-zinc-800 rounded w-1/3 mx-auto"></div>
-                <div className="h-4 bg-zinc-800/50 rounded w-1/4 mx-auto"></div>
+             <div className="flex flex-col items-center justify-center py-20 space-y-4 opacity-50">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500"></div>
+                <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Lade Nachrichten...</p>
              </div>
          ) : feed.length === 0 ? (
-             <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-12 text-center relative overflow-hidden">
-                 <div className="absolute top-0 right-0 p-8 opacity-5 text-9xl pointer-events-none grayscale">📣</div>
-                 <div className="relative z-10">
-                    <span className="text-4xl mb-6 block grayscale opacity-50">🦗</span>
+             <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-3xl p-16 text-center relative overflow-hidden">
+                 <div className="relative z-10 flex flex-col items-center">
+                    <div className="w-20 h-20 bg-zinc-900 rounded-full flex items-center justify-center mb-6 shadow-inner border border-zinc-800">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-zinc-600">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+                        </svg>
+                    </div>
                     <h3 className="text-2xl font-black text-white mb-2">Totenstille.</h3>
-                    <p className="text-zinc-400 max-w-sm mx-auto mb-6">
+                    <p className="text-zinc-500 max-w-sm mx-auto mb-8 font-medium">
                         Noch hat niemand was gesagt. Sei der Erste und breche das Eis!
                     </p>
+                    <button 
+                        onClick={() => document.querySelector('textarea')?.focus()} 
+                        className="text-cyan-400 hover:text-cyan-300 text-sm font-bold uppercase tracking-wide border-b-2 border-cyan-500/20 hover:border-cyan-500 transition-all pb-1"
+                    >
+                        Jetzt Nachricht schreiben
+                    </button>
                  </div>
              </div>
          ) : (

@@ -13,7 +13,7 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
   const [userRole, setUserRole] = useState<string>('member');
   
   // Tab State
-  const [activeTab, setActiveTab] = useState<'general' | 'notifications'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'notifications' | 'membership'>('general');
 
   const router = useRouter();
 
@@ -74,7 +74,8 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
 
   const menuItems = [
     { id: 'general', label: 'Allgemein', icon: '⚙️', requiredRole: ['owner', 'admin'] },
-    { id: 'notifications', label: 'Benachrichtigungen', icon: '🔔', requiredRole: ['owner', 'admin', 'member', 'moderator'] }
+    { id: 'notifications', label: 'Benachrichtigungen', icon: '🔔', requiredRole: ['owner', 'admin', 'member', 'moderator'] },
+    { id: 'membership', label: 'Mitgliedschaft', icon: '👤', requiredRole: ['owner', 'admin', 'member', 'moderator'] }
   ];
 
   return (
@@ -83,11 +84,15 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
           
           {/* Sidebar Menu */}
           <div className="w-full md:w-64 flex-shrink-0 mb-8 md:mb-0">
-             <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl overflow-hidden sticky top-24">
-                <div className="p-4 border-b border-zinc-800">
-                    <h3 className="text-zinc-400 font-bold text-xs uppercase tracking-widest">Einstellungen</h3>
+             <div className="bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 rounded-3xl overflow-hidden sticky top-24 shadow-xl">
+                 {/* Header Style Match */}
+                <div className="p-6 border-b border-zinc-800 bg-zinc-900/30">
+                     <span className="text-cyan-400 text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md bg-cyan-950/30 border border-cyan-500/10 mb-2 inline-block">
+                        Konfiguration
+                     </span>
+                    <h3 className="text-white font-black text-xl tracking-tight">Settings</h3>
                 </div>
-                <div className="p-2 space-y-1">
+                <div className="p-3 space-y-1">
                     {menuItems.map(item => {
                         const isAllowed = item.requiredRole.includes(userRole);
                         if (!isAllowed) return null;
@@ -97,13 +102,13 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
                             <button
                                 key={item.id}
                                 onClick={() => setActiveTab(item.id as any)}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${
+                                className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-bold transition-all duration-200 border ${
                                     isActive 
-                                    ? 'bg-cyan-950/50 text-cyan-400 shadow-inner' 
-                                    : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                                    ? 'bg-zinc-800 text-white shadow-md border-zinc-700' 
+                                    : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/50 border-transparent'
                                 }`}
                             >
-                                <span>{item.icon}</span>
+                                <span className={`text-lg ${isActive ? 'scale-110' : 'grayscale opacity-70'} transition-transform`}>{item.icon}</span>
                                 {item.label}
                             </button>
                         );
@@ -113,14 +118,24 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
           </div>
 
           {/* Content Area */}
-          <div className="flex-1 bg-zinc-900/20 border border-zinc-800/50 rounded-3xl p-6 md:p-8 min-h-[500px]">
-              {activeTab === 'general' && isAdmin ? (
-                  <GeneralSettings brewery={brewery} onUpdate={() => { loadData(); router.refresh(); }} />
-              ) : activeTab === 'notifications' ? (
-                  <NotificationSettings breweryId={brewery.id} />
-              ) : (
-                  <div className="text-zinc-500 text-center py-20">Zugriff verweigert</div>
-              )}
+          <div className="flex-1 bg-zinc-900/30 backdrop-blur-md border border-zinc-800/60 rounded-3xl p-6 md:p-10 min-h-[600px] shadow-2xl relative overflow-hidden">
+               {/* Decorative Gradient */}
+              <div className="absolute top-0 right-0 p-32 bg-cyan-500/5 blur-[100px] rounded-full pointer-events-none -mt-10 -mr-10"></div>
+              
+              <div className="relative z-10">
+                {activeTab === 'general' && isAdmin ? (
+                    <GeneralSettings brewery={brewery} onUpdate={() => { loadData(); router.refresh(); }} />
+                ) : activeTab === 'notifications' ? (
+                    <NotificationSettings breweryId={brewery.id} />
+                ) : activeTab === 'membership' ? (
+                    <MembershipSettings breweryId={brewery.id} userRole={userRole} />
+                ) : (
+                    <div className="flex flex-col items-center justify-center py-20 text-zinc-500 gap-4">
+                        <div className="text-4xl opacity-50">🔒</div>
+                        <div className="font-bold">Zugriff verweigert</div>
+                    </div>
+                )}
+              </div>
           </div>
       </div>
     </div>
@@ -185,28 +200,28 @@ function GeneralSettings({ brewery, onUpdate }: { brewery: any, onUpdate: () => 
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
         <div>
-            <h2 className="text-2xl font-black text-white mb-2">Allgemein</h2>
-            <p className="text-zinc-500 text-sm">Verwalte die öffentlichen Details deines Squads.</p>
+            <h2 className="text-3xl font-black text-white mb-3 tracking-tight">Allgemein</h2>
+            <p className="text-zinc-400 text-base leading-relaxed max-w-xl">Verwalte die öffentlichen Details, wie Name und Logo, deines Squads.</p>
         </div>
         
-        <form onSubmit={handleSaveSettings} className="space-y-6 max-w-2xl">
-          <div className="bg-zinc-950/50 p-6 rounded-2xl border border-zinc-800 space-y-6">
+        <form onSubmit={handleSaveSettings} className="space-y-8 max-w-2xl">
+          <div className="bg-zinc-950/30 p-8 rounded-3xl border border-zinc-800 space-y-8 shadow-inner">
               
               {/* Logo Selection */}
-              <div className="flex flex-col sm:flex-row items-center gap-6">
+              <div className="flex flex-col sm:flex-row items-center gap-8">
                 <div className="relative group cursor-pointer" onClick={() => document.getElementById('logo-upload')?.click()}>
-                    <div className={`w-28 h-28 rounded-full border-2 border-dashed flex items-center justify-center overflow-hidden transition-all ${logoPreview ? 'border-zinc-700 bg-zinc-900' : 'border-zinc-700 bg-zinc-900 group-hover:border-cyan-500 group-hover:bg-zinc-800'}`}>
+                    <div className={`w-32 h-32 rounded-full border-4 flex items-center justify-center overflow-hidden transition-all shadow-xl ${logoPreview ? 'border-zinc-800 bg-black' : 'border-zinc-800 border-dashed bg-zinc-900 group-hover:border-cyan-500 group-hover:bg-zinc-800'}`}>
                         {logoPreview ? (
                         <img src={logoPreview} className="w-full h-full object-cover" alt="Logo" />
                         ) : (
-                        <span className="text-3xl">🏰</span>
+                        <span className="text-4xl opacity-50 grayscale group-hover:grayscale-0 transition-all">🏰</span>
                         )}
                         
                         {/* Overlay on hover */}
-                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex items-center justify-center rounded-full">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-white">
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center rounded-full backdrop-blur-[2px]">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8 text-white scale-75 group-hover:scale-100 transition-transform">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
                             </svg>
                         </div>
@@ -214,8 +229,8 @@ function GeneralSettings({ brewery, onUpdate }: { brewery: any, onUpdate: () => 
                 </div>
                 
                 <div className="flex-1 text-center sm:text-left">
-                    <h3 className="font-bold text-white mb-1">Brauerei Logo</h3>
-                    <p className="text-xs text-zinc-500 mb-3">Empfohlen: Quadratisch, mind. 500x500px.</p>
+                    <h3 className="font-bold text-white mb-1.5 text-lg">Dein Markenzeichen</h3>
+                    <p className="text-xs font-medium text-zinc-500 mb-4 leading-relaxed">Das Logo erscheint auf deinen öffentlichen Rezepten und im Feed. <br/> Empfohlen: 500x500px (JPG/PNG).</p>
                     <input 
                         id="logo-upload"
                         type="file" 
@@ -226,7 +241,7 @@ function GeneralSettings({ brewery, onUpdate }: { brewery: any, onUpdate: () => 
                     <button 
                         type="button" 
                         onClick={() => document.getElementById('logo-upload')?.click()}
-                        className="px-4 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-xs font-bold text-zinc-400 hover:text-white hover:border-zinc-600 transition"
+                        className="px-5 py-2.5 bg-zinc-900 border border-zinc-700 rounded-xl text-xs font-black uppercase tracking-wide text-zinc-300 hover:text-white hover:bg-zinc-800 hover:border-zinc-600 transition-all shadow-sm"
                     >
                         Bild auswählen
                     </button>
@@ -236,16 +251,16 @@ function GeneralSettings({ brewery, onUpdate }: { brewery: any, onUpdate: () => 
               <div className="h-px bg-zinc-800/50" />
 
               {/* Name Input */}
-              <div className="space-y-2">
-                <label className="block text-sm font-bold text-zinc-400">Brauerei-Name</label>
-                <div className="flex items-center gap-3 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 focus-within:ring-2 focus-within:ring-cyan-900/50 focus-within:border-cyan-500/50 transition duration-300">
-                    <span className="text-zinc-500">🏷️</span>
+              <div className="space-y-3">
+                <label className="block text-xs font-bold uppercase tracking-widest text-cyan-500 ml-1">Brauerei-Name</label>
+                <div className="flex items-center gap-4 bg-zinc-950 border-2 border-zinc-800 rounded-2xl px-5 py-4 focus-within:border-cyan-500 focus-within:ring-4 focus-within:ring-cyan-500/10 transition-all duration-300 group">
+                    <span className="text-xl grayscale opacity-50 group-focus-within:grayscale-0 group-focus-within:opacity-100 transition-all">🏷️</span>
                     <input 
                     type="text"
                     value={breweryName}
                     onChange={e => setBreweryName(e.target.value)}
-                    className="bg-transparent border-none outline-none text-white w-full font-bold placeholder-zinc-700"
-                    placeholder="Name eingeben..."
+                    className="bg-transparent border-none outline-none text-white w-full font-bold text-lg placeholder-zinc-700"
+                    placeholder="Wie heißt dein Squad?"
                     />
                 </div>
               </div>
@@ -254,15 +269,15 @@ function GeneralSettings({ brewery, onUpdate }: { brewery: any, onUpdate: () => 
 
           <div className="pt-2 flex items-center justify-end gap-4">
              {message && (
-                <span className={`text-sm font-bold ${message.type === 'success' ? 'text-emerald-400' : 'text-red-400'} animate-in fade-in`}>
-                    {message.msg}
-                </span>
+                <div className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 ${message.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'} animate-in slide-in-from-right-4 fade-in`}>
+                    {message.type === 'success' ? '✅' : '⚠️'} {message.msg}
+                </div>
             )}
             <button 
                 disabled={isSaving}
-                className="bg-cyan-500 text-black font-black py-3 px-8 rounded-xl hover:bg-cyan-400 hover:shadow-lg hover:shadow-cyan-500/20 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-cyan-500 text-black font-black py-4 px-10 rounded-xl hover:bg-cyan-400 hover:shadow-lg hover:shadow-cyan-500/20 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide text-sm"
             >
-                {isSaving ? 'Speichern...' : 'Speichern'}
+                {isSaving ? 'Speichert...' : 'Einstellungen speichern'}
             </button>
           </div>
         </form>
@@ -431,6 +446,79 @@ function NotificationSettings({ breweryId }: { breweryId: string }) {
                     pKey="email_new_message"
                     disabled={true}
                 />
+            </div>
+        </div>
+    );
+}
+
+function MembershipSettings({ breweryId, userRole }: { breweryId: string, userRole: string }) {
+    const { user } = useAuth();
+    const router = useRouter();
+    const [isLeaving, setIsLeaving] = useState(false);
+
+    async function handleLeaveSquad() {
+        if (!user) return;
+        
+        if (userRole === 'owner') {
+             alert("Du bist der Owner dieses Squads. Bitte übertrage zuerst die Eigentumsrechte oder lösche den Squad, um auszutreten.");
+             return;
+        }
+
+        if (!confirm("Bist du sicher, dass du diesen Squad verlassen möchtest? Dein Zugriff auf interne Rezepte und Inhalte geht sofort verloren.")) {
+            return;
+        }
+
+        setIsLeaving(true);
+        try {
+            const { error } = await supabase
+                .from('brewery_members')
+                .delete()
+                .eq('brewery_id', breweryId)
+                .eq('user_id', user.id);
+
+            if (error) throw error;
+            
+            // Success
+            window.location.href = '/dashboard'; 
+        } catch (e: any) {
+            console.error(e);
+            alert("Fehler beim Austreten: " + e.message);
+            setIsLeaving(false);
+        }
+    }
+
+    return (
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
+            <div>
+                <h2 className="text-3xl font-black text-white mb-3 tracking-tight">Mitgliedschaft</h2>
+                <p className="text-zinc-400 text-base leading-relaxed max-w-xl">
+                    Verwalte deine Zugehörigkeit zu diesem Squad.
+                </p>
+            </div>
+
+            <div className="bg-red-950/20 border border-red-500/20 rounded-3xl p-8 space-y-6">
+                <div>
+                    <h3 className="text-red-400 font-bold text-xl mb-2 flex items-center gap-2">
+                        <span>⚠️</span> Zone der Gefahr
+                    </h3>
+                    <p className="text-red-200/70 text-sm leading-relaxed max-w-md">
+                        Wenn du den Squad verlässt, verlierst du Zugriff auf alle nicht-öffentlichen Rezepte, Chatverläufe und interne Bereiche dieser Brauerei.
+                    </p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between p-4 bg-red-950/30 rounded-2xl border border-red-500/10">
+                    <div>
+                         <span className="block text-white font-bold mb-0.5">Austritt</span>
+                         <span className="text-xs text-red-300/50">Diese Aktion kann nicht rückgängig gemacht werden.</span>
+                    </div>
+                    <button 
+                        onClick={handleLeaveSquad}
+                        disabled={isLeaving}
+                        className="bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-lg shadow-red-900/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                    >
+                        {isLeaving ? 'Verlasse...' : 'Squad verlassen'}
+                    </button>
+                </div>
             </div>
         </div>
     );

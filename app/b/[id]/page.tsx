@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import confetti from 'canvas-confetti';
 import Logo from '../../components/Logo';
 import { checkAndGrantAchievements } from '@/lib/achievements';
 import CrownCap from '../../components/CrownCap';
@@ -334,7 +335,26 @@ export default function PublicScanPage() {
       
       if (error) throw error;
       setCapCollected(true);
-      alert("Kronkorken gesammelt! 🎉 Schau in deine Sammlung.");
+      
+      // Effect
+      const duration = 3 * 1000;
+      const animationEnd = Date.now() + duration;
+      const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+      const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+      const interval: any = setInterval(function() {
+        const timeLeft = animationEnd - Date.now();
+
+        if (timeLeft <= 0) {
+          return clearInterval(interval);
+        }
+
+        const particleCount = 50 * (timeLeft / duration);
+        confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+        confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+      }, 250);
+
     } catch (err: any) {
       alert("Fehler beim Sammeln: " + err.message);
     } finally {
@@ -395,20 +415,16 @@ export default function PublicScanPage() {
         {/* Badges */}
         <div className="absolute top-6 left-6 flex flex-col gap-2 items-start">
           <span className="bg-black/60 backdrop-blur-md border border-white/10 px-4 py-2 rounded-full text-white text-xs font-bold uppercase tracking-widest shadow-xl inline-flex items-center gap-2">
-            {brew.brew_type === 'beer' ? '🍺 Bier' : 
-             brew.brew_type === 'wine' ? '🍷 Wein' : 
-             brew.brew_type === 'cider' ? '🍎 Cider' :
-             brew.brew_type === 'mead' ? '🍯 Met' :
-             brew.brew_type === 'softdrink' ? '🥤 Softdrink' : '🍺'}
+            {brew.brew_type === 'beer' ? 'Bier' : 
+             brew.brew_type === 'wine' ? 'Wein' : 
+             brew.brew_type === 'cider' ? 'Cider' :
+             brew.brew_type === 'mead' ? 'Met' :
+             brew.brew_type === 'softdrink' ? 'Softdrink' : 'Bier'}
           </span>
 
-          {brew.remix_parent_id ? (
-              <span className="bg-black/60 backdrop-blur-md border border-white/10 px-4 py-2 rounded-full text-amber-500 text-xs font-bold uppercase tracking-widest shadow-xl inline-flex items-center gap-2">
-                 ♻️ Remix
-              </span>
-          ) : (
-              <span className="bg-black/60 backdrop-blur-md border border-white/10 px-4 py-2 rounded-full text-emerald-500 text-xs font-bold uppercase tracking-widest shadow-xl inline-flex items-center gap-2">
-                 ✓ Original
+          {brew.remix_parent_id && (
+              <span className="bg-black/60 backdrop-blur-md border border-amber-500 px-4 py-2 rounded-full text-amber-500 text-xs font-bold uppercase tracking-widest shadow-xl inline-flex items-center gap-2">
+                 Remix
               </span>
           )}
         </div>
@@ -712,20 +728,20 @@ export default function PublicScanPage() {
           </Link>
           
           {/* Cap Collection Section - Integrated */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 text-center space-y-6 relative overflow-hidden group">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 pt-24 text-center space-y-6 relative overflow-visible group mt-32">
             {/* Background Light */}
             <div className={`absolute -top-12 -left-12 w-32 h-32 blur-3xl transition-opacity duration-1000 ${capCollected ? 'bg-cyan-500/20 opacity-100' : 'bg-zinc-500/10 opacity-50'}`} />
             
-            <div className="flex justify-center -mt-16 mb-2 relative z-10">
+            <div className="absolute left-1/2 -ml-20 -top-20 z-10 w-40 h-40 flex items-center justify-center">
               <CrownCap 
                 content={brew.cap_url} 
                 tier={capCollected ? "gold" : "zinc"} 
-                size="md"
-                className={`transition-all duration-700 ${capCollected ? 'scale-110 drop-shadow-[0_0_15px_rgba(6,182,212,0.4)]' : 'grayscale contrast-75'}`}
+                size="lg"
+                className={`transition-all duration-700 ${capCollected ? 'scale-110 drop-shadow-[0_0_25px_rgba(6,182,212,0.5)]' : 'grayscale contrast-75 drop-shadow-2xl'}`}
               />
             </div>
             
-            <div className="space-y-1 relative z-10">
+            <div className="space-y-1 relative z-10 pt-4">
               <p className="text-[10px] uppercase font-black tracking-[0.3em] text-cyan-500 mb-1">Digitale Sammlung</p>
               <h3 className="text-xl font-black">{capCollected ? 'Abzeichen gesammelt!' : 'Dieses Abzeichen sammeln?'}</h3>
               <p className="text-zinc-500 text-xs max-w-[200px] mx-auto leading-relaxed">
@@ -744,7 +760,7 @@ export default function PublicScanPage() {
                     <span className="animate-spin text-xl">🧪</span>
                   ) : (
                     <>
-                      <span>🟡</span>
+                      <span className="text-xl">🥇</span>
                       <span>Sammeln</span>
                     </>
                   )}

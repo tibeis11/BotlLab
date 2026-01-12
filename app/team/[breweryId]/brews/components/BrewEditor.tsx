@@ -1703,10 +1703,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 										) : (
 											<>
 												<span className="text-xl">✨</span>
-												<div className="text-left">
-													<span className="text-xs font-black uppercase block tracking-wider">KI Design generieren</span>
-													<span className="text-[10px] opacity-70 font-medium">Einzigartiges Symbol via Gemini</span>
-												</div>
+												<span className="text-xs font-black uppercase tracking-wider">mit KI generieren</span>
 											</>
 										)}
 									</button>

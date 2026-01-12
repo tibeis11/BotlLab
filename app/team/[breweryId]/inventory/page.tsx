@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import QRCode from 'qrcode'; 
 import { jsPDF } from 'jspdf'; 
+import JSZip from 'jszip';
 import Scanner from '@/app/components/Scanner';
 import { getBreweryTierConfig, type BreweryTierName } from '@/lib/tier-system';
 import { checkAndGrantAchievements } from '@/lib/achievements';
@@ -19,6 +20,7 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 	const [bottles, setBottles] = useState<any[]>([]);
 	const [brews, setBrews] = useState<any[]>([]);
 	const [amount, setAmount] = useState(10);
+	const [downloadFormat, setDownloadFormat] = useState<'pdf' | 'zip' | 'png'>('pdf');
 	const [isWorking, setIsWorking] = useState(false);
 	const [isMounted, setIsMounted] = useState(false);
 	const [breweryTier, setBreweryTier] = useState<BreweryTierName>('garage');
@@ -39,7 +41,7 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 	const [bulkAssignBrewId, setBulkAssignBrewId] = useState("");
 	
 	const [filterText, setFilterText] = useState("");
-	const [sortOption, setSortOption] = useState<"newest" | "number_asc" | "number_desc">("number_asc");
+	const [sortOption, setSortOption] = useState<"newest" | "oldest" | "number_asc" | "number_desc">("number_asc");
 	const [filterStatus, setFilterStatus] = useState<"all" | "filled" | "empty">("all");
 	const router = useRouter();
 
@@ -137,7 +139,7 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 			ctx.lineTo(boxX + boxSize, boxY + boxSize - cornerRadius);
 			ctx.quadraticCurveTo(boxX + boxSize, boxY + boxSize, boxX + boxSize - cornerRadius, boxY + boxSize);
 			ctx.lineTo(boxX + cornerRadius, boxY + boxSize);
-			ctx.quadraticCurveTo(boxX, boxY, boxX, boxY + boxSize - cornerRadius);
+			ctx.quadraticCurveTo(boxX, boxY + boxSize, boxX, boxY + boxSize - cornerRadius);
 			ctx.lineTo(boxX, boxY + cornerRadius);
 			ctx.quadraticCurveTo(boxX, boxY, boxX + cornerRadius, boxY);
 			ctx.closePath();
@@ -206,6 +208,112 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 		showToast("PDF erstellt", "Deine QR-Codes wurden erfolgreich heruntergeladen.", "success");
 	}
 
+	function downloadBlob(blob: Blob, fileName: string) {
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = fileName;
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+		URL.revokeObjectURL(url);
+	}
+
+	async function generateZipForBottles(bottlesList: any[], title: string) {
+		const zip = new JSZip();
+		const folder = zip.folder(title.replace(/\s+/g, '_')) || zip;
+
+		const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://botllab.vercel.app';
+
+		for (const bottle of bottlesList) {
+			const scanUrl = `${baseUrl}/b/${bottle.id}`;
+			const qrDataUrl = await generateQRWithLogo(scanUrl);
+			// Remove Data-URL prefix
+			const base64Data = qrDataUrl.split(',')[1];
+			
+			folder.file(`Flasche_${bottle.bottle_number}.png`, base64Data, { base64: true });
+		}
+
+		const blob = await zip.generateAsync({ type: 'blob' });
+		downloadBlob(blob, `BotlLab_Codes_${Date.now()}.zip`);
+		showToast("ZIP erstellt", "Deine QR-Codes wurden als ZIP heruntergeladen.", "success");
+	}
+
+	async function generatePngOverviewForBottles(bottlesList: any[]) {
+		const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://botllab.vercel.app';
+		
+		// Config
+		const itemWidth = 500;
+		const itemHeight = 600; // Extra space for text
+		const gap = 40;
+		
+		const count = bottlesList.length;
+		const cols = Math.ceil(Math.sqrt(count));
+		const rows = Math.ceil(count / cols);
+		
+		const canvas = document.createElement('canvas');
+		canvas.width = (cols * itemWidth) + ((cols - 1) * gap) + (gap * 2);
+		canvas.height = (rows * itemHeight) + ((rows - 1) * gap) + (gap * 2);
+		
+		const ctx = canvas.getContext('2d');
+		if (!ctx) return;
+
+		// Background
+		ctx.fillStyle = '#18181b'; // Zinc-950
+		ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+		// Title
+		ctx.font = 'bold 40px sans-serif';
+		ctx.fillStyle = '#ffffff';
+		ctx.fillText(`BotlLab Export - ${new Date().toLocaleDateString()}`, gap, gap + 20);
+
+		let i = 0;
+		for (const bottle of bottlesList) {
+			const c = i % cols;
+			const r = Math.floor(i / cols);
+			
+			const x = gap + (c * (itemWidth + gap));
+			const y = gap + 80 + (r * (itemHeight + gap)); // Offset for title
+
+			const scanUrl = `${baseUrl}/b/${bottle.id}`;
+			const qrDataUrl = await generateQRWithLogo(scanUrl);
+			
+			const img = new Image();
+			await new Promise(resolve => {
+				img.onload = resolve;
+				img.src = qrDataUrl;
+			});
+
+			// Draw White Card Background
+			ctx.fillStyle = '#ffffff';
+			ctx.beginPath();
+			ctx.roundRect(x, y, itemWidth, itemHeight, 20);
+			ctx.fill();
+
+			// Draw QR
+			ctx.drawImage(img, x, y, itemWidth, itemWidth); // Square QR
+
+			// Text
+			ctx.fillStyle = '#000000';
+			ctx.textAlign = 'center';
+			ctx.font = 'bold 32px sans-serif';
+			ctx.fillText(`#${bottle.bottle_number}`, x + (itemWidth / 2), y + itemWidth + 40);
+			
+			ctx.fillStyle = '#52525b'; // Zinc-600
+			ctx.font = '20px monospace';
+			ctx.fillText(bottle.id.split('-')[0], x + (itemWidth / 2), y + itemWidth + 80);
+
+			i++;
+		}
+
+		canvas.toBlob((blob) => {
+			if (blob) {
+				downloadBlob(blob, `BotlLab_Overview_${Date.now()}.png`);
+				showToast("PNG erstellt", "Dein Übersichtsbild wurde erstellt.", "success");
+			}
+		});
+	}
+
 	async function createBatchAndDownloadPDF() {
 		if (amount <= 0 || amount > 100) {
 			alert("Bitte eine Anzahl zwischen 1 und 100 wählen.");
@@ -255,7 +363,13 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 
 			if (error || !createdBottles) throw error;
 
-			await generatePdfForBottles(createdBottles, "BotlLab QR-Code Batch");
+			if (downloadFormat === 'pdf') {
+				await generatePdfForBottles(createdBottles, "BotlLab QR-Code Batch");
+			} else if (downloadFormat === 'zip') {
+				await generateZipForBottles(createdBottles, "BotlLab QR-Codes");
+			} else if (downloadFormat === 'png') {
+				await generatePngOverviewForBottles(createdBottles);
+			}
       
 			await loadData();
 			
@@ -491,6 +605,9 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 			if (sortOption === "newest") {
 				return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
 			}
+			if (sortOption === "oldest") {
+				return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
+			}
 			if (sortOption === "number_desc") {
 				return Number(b.bottle_number) - Number(a.bottle_number);
 			}
@@ -549,9 +666,6 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 							<div className="p-6 relative z-10">
 								 <div className="flex justify-between items-center mb-6">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-center shadow-inner">
-                                                <span className="text-xl">📷</span>
-                                            </div>
 										    <h3 className="text-lg font-black text-white tracking-tight">Scanner</h3>
                                         </div>
 										<button 
@@ -624,9 +738,6 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
                             
                             <div className="relative z-10">
                                 <div className="flex items-center gap-3 mb-6">
-                                    <div className="w-10 h-10 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-center shadow-inner">
-                                        <span className="text-xl">📦</span>
-                                    </div>
 							        <h3 className="text-lg font-black text-white tracking-tight">Neue Flaschen</h3>
                                 </div>
 
@@ -644,9 +755,35 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
                                                     max="100"
                                                     value={amount} 
                                                     onChange={(e) => setAmount(parseInt(e.target.value))}
-                                                    className="w-full bg-zinc-950 border-2 border-zinc-800 rounded-2xl p-4 text-2xl font-black text-center focus:border-cyan-500 outline-none transition-all shadow-inner"
+                                                    className="w-full bg-zinc-950 border-2 border-zinc-800 rounded-2xl py-3 px-4 text-xl font-black text-center focus:border-cyan-500 outline-none transition-all shadow-inner"
                                                 />
                                             </div>
+                                    </div>
+
+                                    {/* Format Dropdown */}
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-bold uppercase tracking-widest text-cyan-500 px-1">
+                                            Format
+                                        </label>
+                                        <div className="relative">
+                                            <select 
+                                                value={downloadFormat}
+                                                onChange={(e) => setDownloadFormat(e.target.value as any)}
+                                                className="w-full appearance-none bg-zinc-950 border-2 border-zinc-800 text-white rounded-2xl py-3 px-4 font-bold focus:outline-none focus:border-cyan-500 transition-colors cursor-pointer"
+                                            >
+                                                <option value="pdf">📄 PDF (Druckoptimiert)</option>
+                                                <option value="zip">📦 ZIP (Einzelne PNGs)</option>
+                                                <option value="png">🖼️ PNG (Ein großes Bild)</option>
+                                            </select>
+                                            <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-zinc-500">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                                            </div>
+                                        </div>
+                                        <p className="text-[10px] text-zinc-500 leading-tight px-1">
+                                            {downloadFormat === 'pdf' && 'Erzeugt ein A4 PDF mit QR-Codes zum direkten Ausdrucken.'}
+                                            {downloadFormat === 'zip' && 'Lädt ein Archiv mit einzelnen Bilddateien für jeden Code herunter.'}
+                                            {downloadFormat === 'png' && 'Erstellt ein Übersichtsbild mit allen Codes.'}
+                                        </p>
                                     </div>
                                     
                                     <button 
@@ -669,7 +806,7 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
                                     </button>
                                     
                                     <p className="text-xs text-zinc-500 text-center leading-relaxed px-4">
-                                        Erstellt neue QR-Codes und lädt automatisch ein PDF zum direkten Ausdrucken herunter.
+                                        Erstellt neue Datenbank-Einträge und generiert die Dateien lokal ({downloadFormat.toUpperCase()}).
                                     </p>
                                 </div>
                             </div>
@@ -704,8 +841,8 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
                                     className="appearance-none bg-zinc-950 text-white text-xs font-bold pl-4 pr-10 py-3.5 rounded-2xl border-2 border-zinc-800 hover:border-zinc-700 focus:border-cyan-500 focus:ring-0 outline-none transition-all cursor-pointer min-w-[140px]"
                                 >
                                     <option value="all">Alle Flaschen</option>
-                                    <option value="filled">🟢 Gefüllt</option>
-                                    <option value="empty">⚫ Leer</option>
+                                    <option value="filled">Gefüllt</option>
+                                    <option value="empty">Leer</option>
                                 </select>
                                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-zinc-500 group-hover:text-cyan-500 transition-colors">
                                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" /></svg>
@@ -718,9 +855,10 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
                                     onChange={(e) => setSortOption(e.target.value as any)}
                                     className="appearance-none bg-zinc-950 text-white text-xs font-bold pl-4 pr-10 py-3.5 rounded-2xl border-2 border-zinc-800 hover:border-zinc-700 focus:border-cyan-500 focus:ring-0 outline-none transition-all cursor-pointer min-w-[140px]"
                                 >
-                                    <option value="number_asc">Nr. ⬆️ (1-9)</option>
-                                    <option value="number_desc">Nr. ⬇️ (9-1)</option>
-                                    <option value="newest">🕒 Neueste</option>
+                                    <option value="number_asc">Aufsteigend</option>
+                                    <option value="number_desc">Absteigend</option>
+                                    <option value="newest">Neueste</option>
+                                    <option value="oldest">Älteste</option>
                                 </select>
                                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-zinc-500 group-hover:text-cyan-500 transition-colors">
                                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" /></svg>
@@ -729,145 +867,122 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
                         </div>
                     </div>
            
-					 <div className="bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden flex-1 min-h-[500px] shadow-xl">
-							<div className="overflow-x-auto">
-								<table className="w-full text-left">
-									<thead className="bg-zinc-950 text-zinc-500 text-[10px] uppercase font-bold tracking-widest border-b border-zinc-800">
-										<tr>
-											<th className="p-5 w-16">
-												<label className="relative flex items-center justify-center cursor-pointer group">
+					 <div className="bg-transparent rounded-3xl overflow-hidden flex-1 min-h-[500px]">
+							<div className="overflow-x-auto p-1">
+								{/* Header */}
+								<div className="flex items-center text-zinc-500 text-xs uppercase font-bold tracking-wider mb-2 min-w-[600px] sm:min-w-0">
+									<div className="w-16 pl-8 pr-5 py-3 shrink-0">
+										<label className="relative flex items-center justify-center cursor-pointer group">
+											<input 
+												type="checkbox" 
+												checked={filteredBottles.length > 0 && selectedBottles.size === filteredBottles.length}
+												onChange={toggleAll}
+												className="peer sr-only"
+											/>
+											<div className="w-5 h-5 rounded-md border-2 border-zinc-700 bg-zinc-900 peer-checked:bg-cyan-500 peer-checked:border-cyan-500 transition-all duration-200 flex items-center justify-center group-hover:border-zinc-500">
+												<svg className="w-3.5 h-3.5 text-black opacity-0 peer-checked:opacity-100 transition-opacity duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+													<path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+												</svg>
+											</div>
+										</label>
+									</div>
+									<div className="w-24 px-5 py-3 shrink-0">Nr.</div>
+									<div className="flex-1 px-5 py-3">Inhalt / Status</div>
+									<div className="hidden sm:block w-48 px-5 py-3 shrink-0">Schnell-Zuweisung</div>
+									<div className="w-24 pr-8 pl-5 py-3 text-right shrink-0"></div>
+								</div>
+
+								{/* Body */}
+								<div className="space-y-2 min-w-[600px] sm:min-w-0">
+									{filteredBottles.map((bottle) => (
+										<div key={bottle.id} className={`flex items-center rounded-2xl transition-all ${selectedBottles.has(bottle.id) ? 'bg-cyan-500/10 shadow-[0_0_0_1px_rgba(6,182,212,0.3)]' : 'bg-zinc-900/40 hover:bg-zinc-900 hover:shadow-lg hover:scale-[1.01]'}`}>
+											<div className="w-16 pl-8 pr-5 py-5 shrink-0">
+												<label className="relative flex items-center justify-center cursor-pointer">
 													<input 
 														type="checkbox" 
-														checked={filteredBottles.length > 0 && selectedBottles.size === filteredBottles.length}
-														onChange={toggleAll}
+														checked={selectedBottles.has(bottle.id)}
+														onChange={() => toggleSelection(bottle.id)}
 														className="peer sr-only"
 													/>
-													<div className="w-5 h-5 rounded-md border-2 border-zinc-700 bg-zinc-900 peer-checked:bg-cyan-500 peer-checked:border-cyan-500 transition-all duration-200 flex items-center justify-center group-hover:border-zinc-500">
+													<div className="w-5 h-5 rounded-md border-2 border-zinc-700 bg-zinc-900 peer-checked:bg-cyan-500 peer-checked:border-cyan-500 transition-all duration-200 flex items-center justify-center hover:border-zinc-500">
 														<svg className="w-3.5 h-3.5 text-black opacity-0 peer-checked:opacity-100 transition-opacity duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
 															<path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
 														</svg>
 													</div>
 												</label>
-											</th>
-											<th className="p-5 w-24">Nr.</th>
-											<th className="p-5">Inhalt / Status</th>
-											<th className="p-5 w-48 hidden sm:table-cell">Schnell-Zuweisung</th>
-											<th className="p-5 w-24 text-right"></th>
-										</tr>
-									</thead>
-									<tbody className="divide-y divide-zinc-800">
-										{filteredBottles.map((bottle) => (
-											<tr key={bottle.id} className={`group transition-colors ${selectedBottles.has(bottle.id) ? 'bg-cyan-900/10 hover:bg-cyan-900/20' : 'hover:bg-zinc-800/30'}`}>
-												<td className="p-5">
-													<label className="relative flex items-center justify-center cursor-pointer">
-														<input 
-															type="checkbox" 
-															checked={selectedBottles.has(bottle.id)}
-															onChange={() => toggleSelection(bottle.id)}
-															className="peer sr-only"
-														/>
-														<div className="w-5 h-5 rounded-md border-2 border-zinc-700 bg-zinc-900 peer-checked:bg-cyan-500 peer-checked:border-cyan-500 transition-all duration-200 flex items-center justify-center hover:border-zinc-500">
-															<svg className="w-3.5 h-3.5 text-black opacity-0 peer-checked:opacity-100 transition-opacity duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-																<path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+											</div>
+											<div className="w-24 px-5 py-5 font-black text-white text-xl tabular-nums tracking-tight shrink-0">
+													<span className="text-zinc-600 mr-0.5">#</span>{bottle.bottle_number}
+											</div>
+											<div className="flex-1 px-5 py-5 min-w-0">
+													{bottle.brews?.name ? (
+														<div className="flex items-center gap-3">
+															<div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)] shrink-0"></div>
+															<div className="font-bold text-white text-base truncate">{bottle.brews.name}</div>
+														</div>
+													) : (
+													<div className="flex items-center gap-3">
+															<div className="w-2.5 h-2.5 rounded-full bg-zinc-700 shrink-0"></div>
+															<div className="font-bold text-zinc-600 text-base">Unbelegt</div>
+													</div>
+													)}
+											</div>
+											<div className="hidden sm:block w-48 px-5 py-5 shrink-0">
+												<div className="relative group/select">
+													<select 
+														value={bottle.brew_id || ""}
+														onChange={(e) => updateBottleBrew(bottle.id, e.target.value)}
+														suppressHydrationWarning
+														className="w-full appearance-none bg-zinc-950 border-2 border-zinc-800 text-white text-xs font-bold rounded-xl pl-3 pr-8 py-2.5 focus:border-cyan-500 focus:outline-none transition-colors cursor-pointer"
+													>
+														<option value="">(Leer)</option>
+														{brews.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+													</select>
+													<div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-zinc-500 group-focus-within/select:text-cyan-500 transition-colors">
+														<svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" /></svg>
+													</div>
+												</div>
+											</div>
+											<div className="w-24 pr-8 pl-5 py-5 text-right shrink-0">
+													<div className="flex justify-end gap-2">
+														<button 
+															onClick={() => showQrModal(bottle)}
+															className="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white transition hover:text-cyan-400 group-hover:bg-zinc-950 shadow-md border border-transparent hover:border-zinc-700"
+															title="QR Code anzeigen"
+														>
+															<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+																<path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 3.75 9.375v-4.5ZM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5ZM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 13.5 9.375v-4.5Z" />
+																<path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75ZM6.75 16.5h.75v.75h-.75v-.75ZM16.5 6.75h.75v.75h-.75v-.75ZM13.5 13.5h.75v.75h-.75v-.75ZM13.5 19.5h.75v.75h-.75v-.75ZM19.5 13.5h.75v.75h-.75v-.75ZM19.5 19.5h.75v.75h-.75v-.75ZM16.5 16.5h.75v.75h-.75v-.75Z" />
 															</svg>
-														</div>
-													</label>
-												</td>
-												<td className="p-5 font-black text-white text-xl tabular-nums tracking-tight">
-													 <span className="text-zinc-600 mr-0.5">#</span>{bottle.bottle_number}
-												</td>
-												<td className="p-5">
-													 {bottle.brews?.name ? (
-														 <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
-																<div className="font-bold text-white text-base truncate max-w-[120px] sm:max-w-none">{bottle.brews.name}</div>
-																{/* Desktop Badge */}
-																<span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-wide">
-																	<span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-																	Gefüllt
-																</span>
-																{/* Mobile Dot */}
-																<span className="sm:hidden inline-flex items-center gap-1 text-[10px] text-emerald-400 font-bold uppercase">
-																	<span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-																	Gefüllt
-																</span>
-														 </div>
-													 ) : (
-														<div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
-																<div className="font-bold text-zinc-600 text-base">Unbelegt</div>
-																{/* Desktop Badge */}
-																<span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-400 text-[10px] font-bold uppercase tracking-wide">
-																	<span className="w-1.5 h-1.5 rounded-full bg-zinc-500"></span>
-																	Leer
-																</span>
-																{/* Mobile Dot */}
-																<span className="sm:hidden inline-flex items-center gap-1 text-[10px] text-zinc-500 font-bold uppercase">
-																	<span className="w-2 h-2 rounded-full bg-zinc-600"></span>
-																	Leer
-																</span>
-														</div>
-													 )}
-												</td>
-												<td className="p-5 hidden sm:table-cell">
-                                                    <div className="relative group/select">
-                                                        <select 
-                                                            value={bottle.brew_id || ""}
-                                                            onChange={(e) => updateBottleBrew(bottle.id, e.target.value)}
-                                                            suppressHydrationWarning
-                                                            className="w-full appearance-none bg-zinc-950/50 border border-zinc-700 rounded-xl pl-3 pr-8 py-2.5 text-sm text-zinc-300 font-medium outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 focus:text-white hover:border-zinc-500 transition-all opacity-70 group-hover:opacity-100"
-                                                        >
-                                                            <option value="">(Leer)</option>
-                                                            {brews.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                                                        </select>
-                                                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-zinc-500">
-                                                            <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
-                                                        </div>
-                                                    </div>
-												</td>
-												<td className="p-5 text-right">
-													 <div className="flex justify-end gap-2 opacity-50 group-hover:opacity-100 transition-opacity">
-															<button 
-																onClick={() => showQrModal(bottle)}
-																className="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white transition hover:text-cyan-400 group-hover:bg-zinc-950 shadow-md border border-transparent hover:border-zinc-700"
-																title="QR Code anzeigen"
-															>
-																<svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                                                                    <path d="M3 3h6v6H3V3zm2 2v2h2V5H5zm8-2h6v6h-6V3zm2 2v2h2V5h-2zM3 11h6v6H3v-6zm2 2v2h2v-2H5zm13-2h2v2h-2v-2zm-2 2h2v2h-2v-2zm2 2h2v2h-2v-2zm-2 2h2v2h-2v-2zm3-2h2v2h-2v-2zm-2 2h2v2h-2v-2zm-3-5h-3v3h3v-3zm3 3v3h-3v-3h3zm-3-3v3h-3v-3h3z" />
-                                                                    <path d="M15 11h2v.01h-2v-.01zm2 2h2v.01h-2v-.01zm-2 2h2v.01h-2v-.01zm2 2h2v.01h-2v-.01z" fill="none"/>
-                                                                    <rect x="15" y="11" width="6" height="6" fill="currentColor"/> 
-                                                                    {/* Simplified QR Icon Look */}
-                                                                </svg>
-															</button>
-													 </div>
-												</td>
-											</tr>
-										))}
-                    
-										{filteredBottles.length === 0 && (
-											<tr>
-												<td colSpan={5} className="p-16 text-center">
-													 <div className="flex flex-col items-center justify-center animate-in zoom-in-95 duration-500">
-                                                        <div className="w-24 h-24 bg-zinc-900 rounded-full flex items-center justify-center mb-6 shadow-md border border-zinc-800">
-                                                            <span className="text-4xl opacity-50 grayscale">🍶</span>
-                                                        </div>
-                                                        <h3 className="text-2xl font-black text-white mb-2">Keine Flaschen gefunden</h3>
-                                                        <p className="text-zinc-500 text-base max-w-sm mx-auto mb-8">
-                                                            Wir konnten keine Flaschen finden, die deinen aktuellen Filtern entsprechen.
-                                                        </p>
-                                                        <button 
-                                                            onClick={() => {
-                                                                setAmount(10);
-                                                                window.scrollTo({ top: 0, behavior: 'smooth' });
-                                                            }}
-                                                            className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl transition flex items-center gap-2 border border-zinc-700 hover:border-zinc-600"
-                                                        >
-                                                            <span>📦</span> Neue Flaschen erstellen
-                                                        </button>
-                                                    </div>
-												</td>
-											</tr>
-										)}
-									</tbody>
-								</table>
+														</button>
+													</div>
+											</div>
+										</div>
+									))}
+			
+									{filteredBottles.length === 0 && (
+										<div className="p-16 text-center">
+												<div className="flex flex-col items-center justify-center animate-in zoom-in-95 duration-500">
+													<div className="w-24 h-24 bg-zinc-900 rounded-full flex items-center justify-center mb-6 shadow-md border border-zinc-800">
+														<span className="text-4xl opacity-50 grayscale">🍶</span>
+													</div>
+													<h3 className="text-2xl font-black text-white mb-2">Keine Flaschen gefunden</h3>
+													<p className="text-zinc-500 text-base max-w-sm mx-auto mb-8">
+														Wir konnten keine Flaschen finden, die deinen aktuellen Filtern entsprechen.
+													</p>
+													<button 
+														onClick={() => {
+															setAmount(10);
+															window.scrollTo({ top: 0, behavior: 'smooth' });
+														}}
+														className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl transition flex items-center gap-2 border border-zinc-700 hover:border-zinc-600"
+													>
+														<span>📦</span> Neue Flaschen erstellen
+													</button>
+												</div>
+										</div>
+									)}
+								</div>
 							</div>
 					 </div>
 
@@ -877,12 +992,13 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 			{viewQr && (
 				<div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setViewQr(null)}>
 					<div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 w-full max-w-md relative" onClick={e => e.stopPropagation()}>
-						<button className="absolute top-3 right-3 text-zinc-500 hover:text-white" onClick={() => setViewQr(null)}>✖</button>
 						<h3 className="text-lg font-bold mb-4">QR-Code für Flasche #{viewQr.bottleNumber}</h3>
 						<div className="bg-white p-4 rounded-xl">
 							<img src={viewQr.url} alt="QR Code" className="w-full" />
 						</div>
-						<p className="text-xs text-zinc-500 mt-3">Link: <span className="text-cyan-400">{window.location.origin}/b/{viewQr.id}</span></p>
+						<p className="text-xs text-zinc-500 mt-3 overflow-hidden text-ellipsis whitespace-nowrap">
+							Link: <a href={`${window.location.origin}/b/${viewQr.id}`} target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline hover:text-cyan-300 transition-colors">{window.location.origin}/b/{viewQr.id}</a>
+						</p>
 					</div>
 				</div>
 			)}
