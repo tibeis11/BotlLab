@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, use } from 'react';
-import { supabase, getBreweryMembers } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
 
@@ -10,18 +10,11 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
   const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [brewery, setBrewery] = useState<any>(null);
-  const [canEdit, setCanEdit] = useState(false);
+  const [userRole, setUserRole] = useState<string>('member');
   
-  // Form state
-  const [breweryName, setBreweryName] = useState("");
-  const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [headerFile, setHeaderFile] = useState<File | null>(null);
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
-  const [headerPreview, setHeaderPreview] = useState<string | null>(null);
-  
-  const [isSaving, setIsSaving] = useState(false);
-  const [message, setMessage] = useState<{type: 'success' | 'error', msg: string} | null>(null);
-  
+  // Tab State
+  const [activeTab, setActiveTab] = useState<'general' | 'notifications'>('general');
+
   const router = useRouter();
 
   useEffect(() => {
@@ -34,12 +27,11 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
     try {
       setLoading(true);
       if (!user) {
-        // Redirection handled by layout or middleware usually, but good fallback by layout or middleware usually, but good fallback
         router.push('/login');
         return;
       }
 
-      // Load specific brewery by ID instead of "active"
+      // Load specific brewery
       const { data: breweryData, error } = await supabase
         .from('breweries')
         .select('*')
@@ -52,10 +44,7 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
         return;
       }
 
-      // Security check: Is user actually a member/admin?
-      // Since specific permissions aren't fully detailed yet, 
-      // we assume if RLS lets us read/update, it's fine. 
-      // Ideally we check the `brewery_members` table here too.
+      // Check role
       const { data: membership } = await supabase
         .from('brewery_members')
         .select('role')
@@ -63,22 +52,92 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
         .eq('user_id', user.id)
         .single();
         
-      if (!membership || !['owner', 'admin'].includes(membership.role)) {
-         setCanEdit(false);
-         setMessage({ type: 'error', msg: 'Nur Admins können Team-Einstellungen ändern.' });
-      } else {
-         setCanEdit(true);
+      if (membership) {
+         setUserRole(membership.role);
+         // If regular member, default to notifications tab since they can't edit general
+         if (!['owner', 'admin'].includes(membership.role)) {
+             setActiveTab('notifications');
+         }
       }
 
       setBrewery(breweryData);
-      setBreweryName(breweryData.name || "");
-      setLogoPreview(breweryData.logo_url || null);
-      setHeaderPreview(breweryData.header_url || null);
 
     } finally {
       setLoading(false);
     }
   }
+
+  if (loading) return <div className="p-20 text-center animate-pulse text-zinc-500">Lade Einstellungen...</div>;
+  if (!brewery) return <div className="p-20 text-center text-red-500">Brauerei nicht gefunden oder Zugriff verweigert.</div>;
+
+  const isAdmin = ['owner', 'admin'].includes(userRole);
+
+  const menuItems = [
+    { id: 'general', label: 'Allgemein', icon: '⚙️', requiredRole: ['owner', 'admin'] },
+    { id: 'notifications', label: 'Benachrichtigungen', icon: '🔔', requiredRole: ['owner', 'admin', 'member', 'moderator'] }
+  ];
+
+  return (
+    <div className="max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="md:flex gap-8 items-start">
+          
+          {/* Sidebar Menu */}
+          <div className="w-full md:w-64 flex-shrink-0 mb-8 md:mb-0">
+             <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl overflow-hidden sticky top-24">
+                <div className="p-4 border-b border-zinc-800">
+                    <h3 className="text-zinc-400 font-bold text-xs uppercase tracking-widest">Einstellungen</h3>
+                </div>
+                <div className="p-2 space-y-1">
+                    {menuItems.map(item => {
+                        const isAllowed = item.requiredRole.includes(userRole);
+                        if (!isAllowed) return null;
+                        
+                        const isActive = activeTab === item.id;
+                        return (
+                            <button
+                                key={item.id}
+                                onClick={() => setActiveTab(item.id as any)}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${
+                                    isActive 
+                                    ? 'bg-cyan-950/50 text-cyan-400 shadow-inner' 
+                                    : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                                }`}
+                            >
+                                <span>{item.icon}</span>
+                                {item.label}
+                            </button>
+                        );
+                    })}
+                </div>
+             </div>
+          </div>
+
+          {/* Content Area */}
+          <div className="flex-1 bg-zinc-900/20 border border-zinc-800/50 rounded-3xl p-6 md:p-8 min-h-[500px]">
+              {activeTab === 'general' && isAdmin ? (
+                  <GeneralSettings brewery={brewery} onUpdate={() => { loadData(); router.refresh(); }} />
+              ) : activeTab === 'notifications' ? (
+                  <NotificationSettings breweryId={brewery.id} />
+              ) : (
+                  <div className="text-zinc-500 text-center py-20">Zugriff verweigert</div>
+              )}
+          </div>
+      </div>
+    </div>
+  );
+}
+
+// --- Sub-Components ---
+
+function GeneralSettings({ brewery, onUpdate }: { brewery: any, onUpdate: () => void }) {
+  const [breweryName, setBreweryName] = useState(brewery.name || "");
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [headerFile, setHeaderFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(brewery.logo_url);
+  const [headerPreview, setHeaderPreview] = useState<string | null>(brewery.header_url);
+  
+  const [isSaving, setIsSaving] = useState(false);
+  const [message, setMessage] = useState<{type: 'success' | 'error', msg: string} | null>(null);
 
   function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -98,8 +157,6 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
 
   async function handleSaveSettings(e: React.FormEvent) {
     e.preventDefault();
-    if (!brewery) return;
-
     setIsSaving(true);
     setMessage(null);
 
@@ -110,32 +167,18 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
       // Upload logo if changed
       if (logoFile) {
         const fileName = `${brewery.id}/logo_${Date.now()}.${logoFile.name.split('.').pop()}`;
-        const { data, error } = await supabase.storage
-          .from('brewery-assets')
-          .upload(fileName, logoFile, { upsert: true });
-        
-        if (error) throw error;
-        
-        const { data: { publicUrl } } = supabase.storage
-          .from('brewery-assets')
-          .getPublicUrl(fileName);
-        
+        const { error: uploadError } = await supabase.storage.from('brewery-assets').upload(fileName, logoFile, { upsert: true });
+        if (uploadError) throw uploadError;
+        const { data: { publicUrl } } = supabase.storage.from('brewery-assets').getPublicUrl(fileName);
         logoUrl = publicUrl;
       }
 
       // Upload header if changed
       if (headerFile) {
         const fileName = `${brewery.id}/header_${Date.now()}.${headerFile.name.split('.').pop()}`;
-        const { data, error } = await supabase.storage
-          .from('brewery-assets')
-          .upload(fileName, headerFile, { upsert: true });
-        
-        if (error) throw error;
-        
-        const { data: { publicUrl } } = supabase.storage
-          .from('brewery-assets')
-          .getPublicUrl(fileName);
-        
+        const { error: uploadError } = await supabase.storage.from('brewery-assets').upload(fileName, headerFile, { upsert: true });
+        if (uploadError) throw uploadError;
+        const { data: { publicUrl } } = supabase.storage.from('brewery-assets').getPublicUrl(fileName);
         headerUrl = publicUrl;
       }
 
@@ -143,7 +186,7 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
       const { error } = await supabase
         .from('breweries')
         .update({
-          name: breweryName, // Note: We might want distinct display_name vs internal name later
+          name: breweryName,
           logo_url: logoUrl,
           header_url: headerUrl,
         })
@@ -152,10 +195,7 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
       if (error) throw error;
 
       setMessage({ type: 'success', msg: 'Einstellungen erfolgreich gespeichert!' });
-      
-      // Reload to ensure sync
-      await loadData();
-      router.refresh(); 
+      onUpdate();
 
     } catch (error: any) {
       console.error(error);
@@ -165,29 +205,25 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
     }
   }
 
-  if (loading) return <div className="p-20 text-center animate-pulse text-zinc-500">Lade Einstellungen...</div>;
-  if (!brewery) return <div className="p-20 text-center text-red-500">Brauerei nicht gefunden oder Zugriff verweigert.</div>;
-
   return (
-    <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="bg-zinc-900/50 border border-zinc-800 p-8 rounded-3xl">
-        <h2 className="text-2xl font-black mb-6 text-white">Brauerei-Einstellungen</h2>
+    <div className="space-y-8">
+        <div>
+            <h2 className="text-2xl font-black text-white mb-2">Allgemein</h2>
+            <p className="text-zinc-500 text-sm">Verwalte die öffentlichen Details deines Squads.</p>
+        </div>
         
         <form onSubmit={handleSaveSettings} className="space-y-6">
-          {/* Name */}
           <div>
             <label className="block text-sm font-bold mb-2 text-zinc-400">Brauerei-Name</label>
             <input 
               type="text"
               value={breweryName}
-              disabled={!canEdit}
               onChange={e => setBreweryName(e.target.value)}
-              className="w-full bg-zinc-950 border border-zinc-800 p-3 rounded-xl outline-none focus:border-cyan-500 transition text-white placeholder-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-zinc-950 border border-zinc-800 p-3 rounded-xl outline-none focus:border-cyan-500 transition text-white placeholder-zinc-600"
               placeholder="z.B. Hopfenrebellen Crew"
             />
           </div>
 
-          {/* Logo */}
           <div>
             <label className="block text-sm font-bold mb-2 text-zinc-400">Profilbild / Logo</label>
             <div className="flex items-center gap-4">
@@ -199,23 +235,17 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
                 )}
               </div>
               <div className="flex-1">
-                {canEdit && (
-                    <>
-                    <input 
+                <input 
                     type="file" 
                     accept="image/*"
                     onChange={handleLogoChange}
                     className="w-full text-sm text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-cyan-900 file:text-cyan-400 hover:file:bg-cyan-800 file:cursor-pointer transition-colors"
-                    />
-                    <p className="text-xs text-zinc-600 mt-2">JPG, PNG oder GIF. Max. 2 MB.</p>
-                    </>
-                )}
-                {!canEdit && <p className="text-zinc-500 text-sm italic">Änderungen nur durch Admin möglich.</p>}
+                />
+                <p className="text-xs text-zinc-600 mt-2">JPG, PNG oder GIF. Max. 2 MB.</p>
               </div>
             </div>
           </div>
 
-          {/* Header */}
           <div>
             <label className="block text-sm font-bold mb-2 text-zinc-400">Header-Bild</label>
             <div className="space-y-3">
@@ -224,42 +254,160 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
                   <img src={headerPreview} className="w-full h-full object-cover" alt="Header" />
                 </div>
               )}
-              {canEdit && (
-                <>
-                <input 
-                    type="file" 
-                    accept="image/*"
-                    onChange={handleHeaderChange}
-                    className="w-full text-sm text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-cyan-900 file:text-cyan-400 hover:file:bg-cyan-800 file:cursor-pointer transition-colors"
-                />
-                <p className="text-xs text-zinc-600">Empfohlen: 1200x300px. JPG oder PNG. Max. 5 MB.</p>
-                </>
-              )}
+              <input 
+                  type="file" 
+                  accept="image/*"
+                  onChange={handleHeaderChange}
+                  className="w-full text-sm text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-cyan-900 file:text-cyan-400 hover:file:bg-cyan-800 file:cursor-pointer transition-colors"
+              />
+              <p className="text-xs text-zinc-600">Empfohlen: 1200x300px. JPG oder PNG. Max. 5 MB.</p>
             </div>
           </div>
 
-          <div className="pt-4">
-            {canEdit && (
-                <button 
-                    disabled={isSaving}
-                    className="w-full bg-white text-black font-black py-3 rounded-xl hover:bg-cyan-400 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:hover:scale-100"
-                >
-                    {isSaving ? 'Speichern...' : 'Änderungen speichern'}
-                </button>
+          <div className="pt-4 border-t border-zinc-800">
+            <button 
+                disabled={isSaving}
+                className="bg-white text-black font-black py-3 px-8 rounded-xl hover:bg-cyan-400 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+                {isSaving ? 'Speichern...' : 'Speichern'}
+            </button>
+            {message && (
+                <span className={`ml-4 text-sm font-bold ${message.type === 'success' ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {message.msg}
+                </span>
             )}
           </div>
-
-          {message && (
-            <div className={`text-sm p-4 rounded-xl font-medium border ${
-                message.type === 'success' 
-                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
-                    : 'bg-red-500/10 border-red-500/20 text-red-400'
-            }`}>
-              {message.msg}
-            </div>
-          )}
         </form>
-      </div>
     </div>
   );
+}
+
+function NotificationSettings({ breweryId }: { breweryId: string }) {
+    const { user } = useAuth();
+    const [prefs, setPrefs] = useState({
+        notify_new_brew: true,
+        notify_new_rating: true,
+        notify_new_message: true
+    });
+    const [isLoading, setIsLoading] = useState(true);
+    const [savingKey, setSavingKey] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (user) {
+            loadPrefs();
+        }
+    }, [user, breweryId]);
+
+    async function loadPrefs() {
+        try {
+            const { data, error } = await supabase
+                .from('brewery_members')
+                .select('preferences')
+                .eq('brewery_id', breweryId)
+                .eq('user_id', user!.id)
+                .single();
+            
+            if (data?.preferences) {
+                setPrefs(prev => ({ ...prev, ...data.preferences }));
+            }
+        } catch (e) {
+            console.error("Error loading preferences:", e);
+        } finally {
+            setIsLoading(false);
+        }
+    }
+
+    async function togglePref(key: keyof typeof prefs) {
+        if (!user) return;
+        
+        const newVal = !prefs[key];
+        const newPrefs = { ...prefs, [key]: newVal };
+        
+        setPrefs(newPrefs);
+        setSavingKey(key);
+
+        try {
+            const { error } = await supabase
+                .from('brewery_members')
+                .update({ preferences: newPrefs })
+                .eq('brewery_id', breweryId)
+                .eq('user_id', user.id);
+
+            if (error) throw error;
+        } catch (e) {
+            console.error("Error saving preference:", e);
+            // Revert on error
+            setPrefs(prev => ({ ...prev, [key]: !newVal }));
+        } finally {
+            setSavingKey(null);
+        }
+    }
+
+    if (isLoading) {
+        return <div className="text-zinc-500 animate-pulse text-sm">Lade Einstellungen...</div>;
+    }
+
+    return (
+        <div className="space-y-8">
+            <div>
+                <h2 className="text-2xl font-black text-white mb-2">Benachrichtigungen</h2>
+                <p className="text-zinc-500 text-sm">Wähle aus, worüber du informiert werden möchtest.</p>
+            </div>
+
+            <div className="space-y-4">
+                
+                {/* Neues Rezept */}
+                <div className="flex items-center justify-between p-4 bg-zinc-950 border border-zinc-800 rounded-xl hover:border-zinc-700 transition-colors">
+                    <div className="pr-4">
+                        <div className="flex items-center gap-2 mb-1">
+                            <h4 className="font-bold text-white text-sm">Neues Rezept</h4>
+                            {savingKey === 'notify_new_brew' && <span className="text-xs text-cyan-500 animate-pulse">Speichert...</span>}
+                        </div>
+                        <p className="text-xs text-zinc-500">Erhalte eine Info, wenn jemand aus deinem Team ein neues Braurezept anlegt.</p>
+                    </div>
+                    <button
+                        onClick={() => togglePref('notify_new_brew')}
+                        className={`relative w-12 h-6 rounded-full p-1 transition-colors duration-200 ease-in-out ${prefs.notify_new_brew ? 'bg-cyan-600' : 'bg-zinc-800'}`}
+                    >
+                        <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-200 ease-in-out ${prefs.notify_new_brew ? 'translate-x-6' : 'translate-x-0'}`} />
+                    </button>
+                </div>
+
+                {/* Neue Bewertung */}
+                <div className="flex items-center justify-between p-4 bg-zinc-950 border border-zinc-800 rounded-xl hover:border-zinc-700 transition-colors">
+                    <div className="pr-4">
+                        <div className="flex items-center gap-2 mb-1">
+                            <h4 className="font-bold text-white text-sm">Neue Bewertung</h4>
+                            {savingKey === 'notify_new_rating' && <span className="text-xs text-cyan-500 animate-pulse">Speichert...</span>}
+                        </div>
+                        <p className="text-xs text-zinc-500">Benachrichtigung bei neuen Bewertungen zu euren Bieren.</p>
+                    </div>
+                    <button
+                        onClick={() => togglePref('notify_new_rating')}
+                        className={`relative w-12 h-6 rounded-full p-1 transition-colors duration-200 ease-in-out ${prefs.notify_new_rating ? 'bg-cyan-600' : 'bg-zinc-800'}`}
+                    >
+                        <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-200 ease-in-out ${prefs.notify_new_rating ? 'translate-x-6' : 'translate-x-0'}`} />
+                    </button>
+                </div>
+
+                {/* Neue Nachricht */}
+                <div className="flex items-center justify-between p-4 bg-zinc-950 border border-zinc-800 rounded-xl hover:border-zinc-700 transition-colors">
+                    <div className="pr-4">
+                        <div className="flex items-center gap-2 mb-1">
+                            <h4 className="font-bold text-white text-sm">Neue Nachricht</h4>
+                            {savingKey === 'notify_new_message' && <span className="text-xs text-cyan-500 animate-pulse">Speichert...</span>}
+                        </div>
+                        <p className="text-xs text-zinc-500">Wenn jemand einen Kommentar im Feed oder Chat schreibt.</p>
+                    </div>
+                    <button
+                        onClick={() => togglePref('notify_new_message')}
+                        className={`relative w-12 h-6 rounded-full p-1 transition-colors duration-200 ease-in-out ${prefs.notify_new_message ? 'bg-cyan-600' : 'bg-zinc-800'}`}
+                    >
+                        <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-200 ease-in-out ${prefs.notify_new_message ? 'translate-x-6' : 'translate-x-0'}`} />
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    );
 }

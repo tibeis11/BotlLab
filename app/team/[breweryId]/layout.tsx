@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/app/context/AuthContext';
 import Logo from '@/app/components/Logo';
 import { getTierConfig } from '@/lib/tier-system';
+import { NotificationProvider } from '@/app/context/NotificationContext';
 
 export default function TeamLayout({
   children,
@@ -122,6 +123,7 @@ export default function TeamLayout({
 
   return (
     <div className="min-h-screen bg-black text-zinc-200">
+      <NotificationProvider>
         <header className="border-b border-zinc-900 bg-zinc-950/80 backdrop-blur-md sticky top-0 z-50">
             <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
                 
@@ -359,6 +361,7 @@ export default function TeamLayout({
 
             {children}
         </main>
+      </NotificationProvider>
     </div>
   );
 }
