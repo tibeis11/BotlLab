@@ -56,7 +56,7 @@ export async function getBreweryFeed(breweryId: string) {
     .from('brewery_feed')
     .select(`
       *,
-      profiles:user_id (
+      profiles (
         display_name,
         logo_url
       )
