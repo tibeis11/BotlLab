@@ -56,7 +56,7 @@ export async function getBreweryFeed(breweryId: string) {
     .from('brewery_feed')
     .select(`
       *,
-      profiles:user_id (
+      profiles (
         display_name,
         logo_url
       )
@@ -70,12 +70,9 @@ export async function getBreweryFeed(breweryId: string) {
     return [];
   }
   
-  // Debug Log
-  console.log("Feed Data:", data);
-
   // Robustheit: Supabase gibt bei Joins manchmal Arrays zurück
   const formattedData = data.map((item: any) => {
-    // Falls profiles:user_id genutzt wurde, landet das Ergebnis oft im Key "profiles" (wegen Alias)
+    // Standard Relation Name ist "profiles"
     const profileData = item.profiles;
     return {
       ...item,
