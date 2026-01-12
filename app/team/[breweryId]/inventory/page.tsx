@@ -870,8 +870,8 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 					 <div className="bg-transparent rounded-3xl overflow-hidden flex-1 min-h-[500px]">
 							<div className="overflow-x-auto p-1">
 								{/* Header */}
-								<div className="flex items-center text-zinc-500 text-xs uppercase font-bold tracking-wider mb-2 min-w-[600px] sm:min-w-0">
-									<div className="w-16 pl-8 pr-5 py-3 shrink-0">
+								<div className="flex items-center text-zinc-500 text-xs uppercase font-bold tracking-wider mb-2">
+									<div className="w-16 pl-4 sm:pl-8 pr-2 sm:pr-5 py-3 shrink-0">
 										<label className="relative flex items-center justify-center cursor-pointer group">
 											<input 
 												type="checkbox" 
@@ -886,17 +886,17 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 											</div>
 										</label>
 									</div>
-									<div className="w-24 px-5 py-3 shrink-0">Nr.</div>
-									<div className="flex-1 px-5 py-3">Inhalt / Status</div>
+									<div className="w-20 sm:w-24 px-2 sm:px-5 py-3 shrink-0">Nr.</div>
+									<div className="flex-1 px-2 sm:px-5 py-3">Inhalt / Status</div>
 									<div className="hidden sm:block w-48 px-5 py-3 shrink-0">Schnell-Zuweisung</div>
-									<div className="w-24 pr-8 pl-5 py-3 text-right shrink-0"></div>
+									<div className="w-20 sm:w-24 pr-4 sm:pr-8 pl-2 sm:pl-5 py-3 text-right shrink-0"></div>
 								</div>
 
 								{/* Body */}
-								<div className="space-y-2 min-w-[600px] sm:min-w-0">
+								<div className="space-y-2">
 									{filteredBottles.map((bottle) => (
 										<div key={bottle.id} className={`flex items-center rounded-2xl transition-all ${selectedBottles.has(bottle.id) ? 'bg-cyan-500/10 shadow-[0_0_0_1px_rgba(6,182,212,0.3)]' : 'bg-zinc-900/40 hover:bg-zinc-900 hover:shadow-lg hover:scale-[1.01]'}`}>
-											<div className="w-16 pl-8 pr-5 py-5 shrink-0">
+											<div className="w-16 pl-4 sm:pl-8 pr-2 sm:pr-5 py-5 shrink-0">
 												<label className="relative flex items-center justify-center cursor-pointer">
 													<input 
 														type="checkbox" 
@@ -911,10 +911,10 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 													</div>
 												</label>
 											</div>
-											<div className="w-24 px-5 py-5 font-black text-white text-xl tabular-nums tracking-tight shrink-0">
+											<div className="w-20 sm:w-24 px-2 sm:px-5 py-5 font-black text-white text-xl tabular-nums tracking-tight shrink-0">
 													<span className="text-zinc-600 mr-0.5">#</span>{bottle.bottle_number}
 											</div>
-											<div className="flex-1 px-5 py-5 min-w-0">
+											<div className="flex-1 px-2 sm:px-5 py-5 min-w-0">
 													{bottle.brews?.name ? (
 														<div className="flex items-center gap-3">
 															<div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)] shrink-0"></div>
@@ -943,7 +943,7 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 													</div>
 												</div>
 											</div>
-											<div className="w-24 pr-8 pl-5 py-5 text-right shrink-0">
+											<div className="w-20 sm:w-24 pr-4 sm:pr-8 pl-2 sm:pl-5 py-5 text-right shrink-0">
 													<div className="flex justify-end gap-2">
 														<button 
 															onClick={() => showQrModal(bottle)}
