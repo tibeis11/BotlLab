@@ -285,9 +285,14 @@ function GeneralSettings({ brewery, onUpdate }: { brewery: any, onUpdate: () => 
 function NotificationSettings({ breweryId }: { breweryId: string }) {
     const { user } = useAuth();
     const [prefs, setPrefs] = useState({
-        notify_new_brew: true,
-        notify_new_rating: true,
-        notify_new_message: true
+        // E-Mail
+        email_new_brew: true,
+        email_new_rating: true,
+        email_new_message: true,
+        // In-App
+        in_app_new_brew: true,
+        in_app_new_rating: true,
+        in_app_new_message: true
     });
     const [isLoading, setIsLoading] = useState(true);
     const [savingKey, setSavingKey] = useState<string | null>(null);
@@ -308,7 +313,24 @@ function NotificationSettings({ breweryId }: { breweryId: string }) {
                 .single();
             
             if (data?.preferences) {
-                setPrefs(prev => ({ ...prev, ...data.preferences }));
+                // Merge loaded prefs with defaults.
+                const loaded = data.preferences;
+                
+                // Compatibility layer: map old keys (notify_*) to new structure if needed
+                if (loaded.notify_new_brew !== undefined && loaded.email_new_brew === undefined) {
+                     loaded.email_new_brew = loaded.notify_new_brew;
+                     loaded.in_app_new_brew = loaded.notify_new_brew;
+                }
+                if (loaded.notify_new_rating !== undefined && loaded.email_new_rating === undefined) {
+                     loaded.email_new_rating = loaded.notify_new_rating;
+                     loaded.in_app_new_rating = loaded.notify_new_rating;
+                }
+                 if (loaded.notify_new_message !== undefined && loaded.email_new_message === undefined) {
+                     loaded.email_new_message = loaded.notify_new_message;
+                     loaded.in_app_new_message = loaded.notify_new_message;
+                }
+
+                setPrefs(prev => ({ ...prev, ...loaded }));
             }
         } catch (e) {
             console.error("Error loading preferences:", e);
@@ -336,7 +358,6 @@ function NotificationSettings({ breweryId }: { breweryId: string }) {
             if (error) throw error;
         } catch (e) {
             console.error("Error saving preference:", e);
-            // Revert on error
             setPrefs(prev => ({ ...prev, [key]: !newVal }));
         } finally {
             setSavingKey(null);
@@ -347,66 +368,76 @@ function NotificationSettings({ breweryId }: { breweryId: string }) {
         return <div className="text-zinc-500 animate-pulse text-sm">Lade Einstellungen...</div>;
     }
 
+    const NotificationToggle = ({ label, desc, pKey }: { label: string, desc: string, pKey: keyof typeof prefs }) => (
+        <div className="flex items-center justify-between p-4 bg-zinc-950 border border-zinc-800 rounded-xl hover:border-zinc-700 transition-colors">
+            <div className="pr-4">
+                <div className="flex items-center gap-2 mb-1">
+                    <h4 className="font-bold text-white text-sm">{label}</h4>
+                    {savingKey === pKey && <span className="text-xs text-cyan-500 animate-pulse">Speichert...</span>}
+                </div>
+                <p className="text-xs text-zinc-500">{desc}</p>
+            </div>
+            <button
+                onClick={() => togglePref(pKey)}
+                className={`flex-shrink-0 relative w-12 h-6 rounded-full p-1 transition-colors duration-200 ease-in-out ${prefs[pKey] ? 'bg-cyan-600' : 'bg-zinc-800'}`}
+            >
+                <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-200 ease-in-out ${prefs[pKey] ? 'translate-x-6' : 'translate-x-0'}`} />
+            </button>
+        </div>
+    );
+
     return (
-        <div className="space-y-8">
-            <div>
-                <h2 className="text-2xl font-black text-white mb-2">Benachrichtigungen</h2>
-                <p className="text-zinc-500 text-sm">Wähle aus, worüber du informiert werden möchtest.</p>
+        <div className="space-y-10">
+            {/* IN-APP SECTION */}
+            <div className="space-y-4">
+                <div className="mb-4">
+                    <h3 className="text-lg font-black text-white flex items-center gap-2">
+                        <span className="text-xl">🔔</span> In-App Mitteilungen
+                    </h3>
+                    <p className="text-zinc-500 text-xs">Infos oben rechts in der App (Toasts).</p>
+                </div>
+                
+                <NotificationToggle 
+                    label="Neues Rezept" 
+                    desc="Wenn jemand ein neues Rezept anlegt."
+                    pKey="in_app_new_brew"
+                />
+                <NotificationToggle 
+                    label="Neue Bewertung" 
+                    desc="Bei neuen Bewertungen zu deinen Bieren."
+                    pKey="in_app_new_rating"
+                />
+                <NotificationToggle 
+                    label="Neue Nachricht" 
+                    desc="Kommentare im Feed oder Chat."
+                    pKey="in_app_new_message"
+                />
             </div>
 
+            {/* EMAIL SECTION */}
             <div className="space-y-4">
-                
-                {/* Neues Rezept */}
-                <div className="flex items-center justify-between p-4 bg-zinc-950 border border-zinc-800 rounded-xl hover:border-zinc-700 transition-colors">
-                    <div className="pr-4">
-                        <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-bold text-white text-sm">Neues Rezept</h4>
-                            {savingKey === 'notify_new_brew' && <span className="text-xs text-cyan-500 animate-pulse">Speichert...</span>}
-                        </div>
-                        <p className="text-xs text-zinc-500">Erhalte eine Info, wenn jemand aus deinem Team ein neues Braurezept anlegt.</p>
-                    </div>
-                    <button
-                        onClick={() => togglePref('notify_new_brew')}
-                        className={`relative w-12 h-6 rounded-full p-1 transition-colors duration-200 ease-in-out ${prefs.notify_new_brew ? 'bg-cyan-600' : 'bg-zinc-800'}`}
-                    >
-                        <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-200 ease-in-out ${prefs.notify_new_brew ? 'translate-x-6' : 'translate-x-0'}`} />
-                    </button>
+                <div className="mb-4">
+                    <h3 className="text-lg font-black text-white flex items-center gap-2">
+                        <span className="text-xl">📧</span> E-Mail Benachrichtigungen
+                    </h3>
+                    <p className="text-zinc-500 text-xs">Werden an deine registrierte E-Mail Adresse gesendet.</p>
                 </div>
 
-                {/* Neue Bewertung */}
-                <div className="flex items-center justify-between p-4 bg-zinc-950 border border-zinc-800 rounded-xl hover:border-zinc-700 transition-colors">
-                    <div className="pr-4">
-                        <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-bold text-white text-sm">Neue Bewertung</h4>
-                            {savingKey === 'notify_new_rating' && <span className="text-xs text-cyan-500 animate-pulse">Speichert...</span>}
-                        </div>
-                        <p className="text-xs text-zinc-500">Benachrichtigung bei neuen Bewertungen zu euren Bieren.</p>
-                    </div>
-                    <button
-                        onClick={() => togglePref('notify_new_rating')}
-                        className={`relative w-12 h-6 rounded-full p-1 transition-colors duration-200 ease-in-out ${prefs.notify_new_rating ? 'bg-cyan-600' : 'bg-zinc-800'}`}
-                    >
-                        <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-200 ease-in-out ${prefs.notify_new_rating ? 'translate-x-6' : 'translate-x-0'}`} />
-                    </button>
-                </div>
-
-                {/* Neue Nachricht */}
-                <div className="flex items-center justify-between p-4 bg-zinc-950 border border-zinc-800 rounded-xl hover:border-zinc-700 transition-colors">
-                    <div className="pr-4">
-                        <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-bold text-white text-sm">Neue Nachricht</h4>
-                            {savingKey === 'notify_new_message' && <span className="text-xs text-cyan-500 animate-pulse">Speichert...</span>}
-                        </div>
-                        <p className="text-xs text-zinc-500">Wenn jemand einen Kommentar im Feed oder Chat schreibt.</p>
-                    </div>
-                    <button
-                        onClick={() => togglePref('notify_new_message')}
-                        className={`relative w-12 h-6 rounded-full p-1 transition-colors duration-200 ease-in-out ${prefs.notify_new_message ? 'bg-cyan-600' : 'bg-zinc-800'}`}
-                    >
-                        <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-200 ease-in-out ${prefs.notify_new_message ? 'translate-x-6' : 'translate-x-0'}`} />
-                    </button>
-                </div>
-
+                <NotificationToggle 
+                    label="Neues Rezept per Mail" 
+                    desc="Lasse dich per E-Mail informieren."
+                    pKey="email_new_brew"
+                />
+                <NotificationToggle 
+                    label="Neue Bewertung per Mail" 
+                    desc="Erhalte eine Zusammenfassung der Bewertung."
+                    pKey="email_new_rating"
+                />
+                <NotificationToggle 
+                    label="Nachrichten per Mail" 
+                    desc="Wenn du offline bist, informieren wir dich per Mail."
+                    pKey="email_new_message"
+                />
             </div>
         </div>
     );

@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/lib/supabase'; // Assuming a server-friendly createClient exists or use @supabase/ssr logic directly if needed. 
+import { createClient } from '@supabase/supabase-js'; 
 // However, since we might not have a clean server-client setup in lib/supabase.ts (it might be client-side only), 
 // let's check lib/supabase.ts first to see if it exports a helper, or just use process.env directly.
 
