@@ -42,7 +42,11 @@ export default function LoginPage() {
           email, 
           password,
           options: {
-            emailRedirectTo: getRedirectUrl()
+            emailRedirectTo: getRedirectUrl(),
+            // Brauerei-Name wird auch als Display-Name gesetzt (User = Brauerei)
+            data: {
+                display_name: breweryName 
+            }
           }
         });
         
@@ -52,8 +56,11 @@ export default function LoginPage() {
             // Profil Eintrag erstellen
             const { error: profileError } = await supabase.from('profiles').insert([{
                 id: data.user.id,
+                display_name: breweryName,
                 brewery_name: breweryName,
-                founded_year: new Date().getFullYear()
+                founded_year: new Date().getFullYear(),
+                logo_url: '/tiers/lehrling.png', // Start-Avatar aus dem Tier-System
+                tier: 'lehrling'
             }]);
 
             if (profileError) {
