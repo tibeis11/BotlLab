@@ -44,7 +44,7 @@ function DashboardContent() {
     const [titleColor, setTitleColor] = useState("");
 	const [userId, setUserId] = useState<string | null>(null);
 	const [profileInfo, setProfileInfo] = useState({
-		brewery_name: '',
+		display_name: '',
 		founded_year: '',
 		logo_url: '',
 		banner_url: '',
@@ -113,7 +113,7 @@ function DashboardContent() {
 			if (brewery) {
 				setBreweryName(brewery.name);
 				setProfileInfo({
-					brewery_name: brewery.name || '',
+					display_name: brewery.name || '',
 					founded_year: brewery.founded_year ? String(brewery.founded_year) : '',
 					logo_url: brewery.logo_url || '',
 					banner_url: brewery.banner_url || '',
@@ -217,7 +217,7 @@ function DashboardContent() {
 	useEffect(() => {
 		if (!userId) return;
 		const fields: Array<{ key: keyof typeof profileInfo; isDone?: (v: any) => boolean }> = [
-			{ key: 'brewery_name' },
+			{ key: 'display_name' },
 			{ key: 'founded_year', isDone: (v) => !!(v && String(v).trim().length > 0) },
 			{ key: 'logo_url' },
 			{ key: 'banner_url' },

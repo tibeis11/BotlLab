@@ -125,7 +125,7 @@ export default function PublicBrewerPage() {
             {/* Logo / Avatar */}
             <div className="relative w-full aspect-square rounded-full overflow-hidden shadow-2xl border-4 border-cyan-500/20 max-w-[200px] mx-auto md:max-w-none">
               {profile.logo_url ? (
-                <img src={profile.logo_url} className="w-full h-full object-cover" alt={profile.brewery_name} />
+                <img src={profile.logo_url} className="w-full h-full object-cover" alt={profile.display_name} />
               ) : (
                 <div className="w-full h-full bg-gradient-to-br from-cyan-900 to-blue-900 flex items-center justify-center text-6xl">
                   👤
@@ -136,7 +136,7 @@ export default function PublicBrewerPage() {
             {/* Brauer Header */}
             <div className="space-y-3 text-center md:text-left">
               <h1 className="text-3xl font-black text-white leading-tight">
-                {profile.brewery_name || 'Brauer'}
+                {profile.display_name || 'Brauer'}
               </h1>
               
               {team && (

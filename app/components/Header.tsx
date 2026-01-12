@@ -22,7 +22,7 @@ export default function Header() {
       if (user) {
         const { data: profileData } = await supabase
           .from('profiles')
-          .select('logo_url, brewery_name, tier, display_name')
+          .select('logo_url, tier, display_name')
           .eq('id', user.id)
           .single();
         if (!cancelled && profileData) {
@@ -196,11 +196,11 @@ export default function Header() {
                       <img src={profile.logo_url} alt="Profile" className="w-10 h-10 rounded-full object-cover" />
                     ) : (
                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center text-white font-bold">
-                        {profile?.brewery_name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || '?'}
+                        {profile?.display_name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || '?'}
                       </div>
                     )}
                     <span className="font-bold text-white">
-                      {profile?.brewery_name || 'Mein Profil'}
+                      {profile?.display_name || 'Mein Profil'}
                     </span>
                  </div>
                  

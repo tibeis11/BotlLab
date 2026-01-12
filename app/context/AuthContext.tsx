@@ -25,7 +25,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     async function getInitialSession() {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+             // Handle "Refresh Token Not Found" or similar errors by clearing session
+             if (error.message.includes('Refresh Token') || error.message.includes('refresh_token')) {
+                 console.warn("Session expired or invalid, clearing auth...", error.message);
+                 await supabase.auth.signOut();
+                 if (mounted) {
+                    setSession(null);
+                    setUser(null);
+                 }
+                 return;
+             }
+             // For other errors, just log (and no session)
+             console.error("Error fetching session:", error);
+        }
+
         if (mounted) {
           setSession(session);
           setUser(session?.user ?? null);

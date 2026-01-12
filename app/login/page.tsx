@@ -57,7 +57,6 @@ export default function LoginPage() {
             const { error: profileError } = await supabase.from('profiles').insert([{
                 id: data.user.id,
                 display_name: breweryName,
-                brewery_name: breweryName,
                 founded_year: new Date().getFullYear(),
                 logo_url: '/tiers/lehrling.png', // Start-Avatar aus dem Tier-System
                 tier: 'lehrling'
@@ -200,7 +199,7 @@ export default function LoginPage() {
             {isRegister && (
               <div className="animate-in fade-in slide-in-from-top-3 duration-300">
                 <label className="block text-xs font-bold uppercase tracking-widest text-cyan-500 mb-2">
-                  🍺 Name deiner Brauerei
+                  Wie heißt du?
                 </label>
                 <input 
                   type="text" 

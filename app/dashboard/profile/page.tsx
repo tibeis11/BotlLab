@@ -15,7 +15,7 @@ export default function ProfilePage() {
 	const [saving, setSaving] = useState(false);
 	
 	const [profile, setProfile] = useState<{
-        brewery_name: string,
+        display_name: string,
         location: string,
         founded_year: string,
         bio: string,
@@ -24,7 +24,7 @@ export default function ProfilePage() {
         banner_url: string,
         tier?: string
     }>({
-		brewery_name: '',
+		display_name: '',
 		location: '',
 		founded_year: new Date().getFullYear().toString(),
 		bio: '',
@@ -69,7 +69,7 @@ export default function ProfilePage() {
 
 		if (data) {
 			setProfile({
-				brewery_name: data.brewery_name || '',
+				display_name: data.display_name || '',
 				location: data.location || '',
 				founded_year: data.founded_year?.toString() || '',
 				bio: data.bio || '',
@@ -151,7 +151,7 @@ export default function ProfilePage() {
 
 		const updates = {
 			id: user.id,
-			brewery_name: profile.brewery_name,
+			display_name: profile.display_name,
 			location: profile.location,
 			founded_year: parseInt(profile.founded_year) || null,
 			bio: profile.bio,
@@ -186,7 +186,7 @@ export default function ProfilePage() {
 			{/* Profil-Vervollständigungsstatus */}
 			{(() => {
 				const fields: Array<{ key: keyof typeof profile; label: string; isDone?: (v: any) => boolean }> = [
-					{ key: 'brewery_name', label: 'Anzeigename' },
+					{ key: 'display_name', label: 'Anzeigename' },
 					{ key: 'founded_year', label: 'Dabei seit', isDone: (v) => !!(v && String(v).trim().length > 0) },
 					{ key: 'logo_url', label: 'Profilbild' },
 					{ key: 'banner_url', label: 'Banner' },
@@ -268,7 +268,7 @@ export default function ProfilePage() {
 					</div>
 
 					<div className="mt-12 mb-8 border-b border-zinc-800 pb-8">
-						<h3 className="text-2xl font-bold text-white">{profile.brewery_name || user?.email}</h3>
+						<h3 className="text-2xl font-bold text-white">{profile.display_name || user?.email}</h3>
 						<p className="text-sm text-zinc-500">Community Mitglied seit {user?.created_at ? new Date(user.created_at).getFullYear() : new Date().getFullYear()}</p>
 					</div>
 
@@ -293,8 +293,8 @@ export default function ProfilePage() {
 								<label className="block text-xs font-bold uppercase text-zinc-500 mb-2">Anzeigename</label>
 								<input
 									type="text"
-									value={profile.brewery_name}
-									onChange={(e) => setProfile({ ...profile, brewery_name: e.target.value })}
+									value={profile.display_name}
+									onChange={(e) => setProfile({ ...profile, display_name: e.target.value })}
 									placeholder="Dein Name in der Community"
 									className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 focus:ring-2 focus:ring-cyan-500 outline-none transition text-white placeholder-zinc-700"
 								/>

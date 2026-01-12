@@ -150,7 +150,7 @@ export default function TeamMembersPage({ params }: { params: Promise<{ breweryI
                     <div>
                       <div className="flex items-center gap-2">
                           <p className="font-bold text-white">
-                            {m.profiles?.display_name || m.profiles?.brewery_name || 'Unbekannt'}
+                            {m.profiles?.display_name || 'Unbekannt'}
                           </p>
                           <span className="text-[10px] font-black uppercase px-1.5 py-0.5 rounded border" style={{ borderColor: `${tier.color}40`, color: tier.color, backgroundColor: `${tier.color}10` }}>
                              {tier.displayName}

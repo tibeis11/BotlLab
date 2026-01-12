@@ -127,7 +127,7 @@ export default function PublicScanPage() {
 
         const { data: memberData } = await supabase
           .from('brewery_members')
-          .select('role, profiles:user_id(display_name, brewery_name, logo_url)')
+          .select('role, profiles:user_id(display_name, logo_url)')
           .eq('brewery_id', brew.brewery_id);
         setTeam(memberData || []);
       }
@@ -931,7 +931,7 @@ export default function PublicScanPage() {
                       <div 
                         key={i} 
                         className="w-8 h-8 rounded-full border-2 border-black bg-zinc-800 flex items-center justify-center overflow-hidden"
-                        title={m.profiles?.display_name || m.profiles?.brewery_name}
+                        title={m.profiles?.display_name}
                       >
                         {m.profiles?.logo_url ? (
                           <img src={m.profiles.logo_url} className="w-full h-full object-cover" />

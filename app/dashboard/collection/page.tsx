@@ -26,7 +26,7 @@ export default function CollectionPage() {
             cap_url,
             brew_type,
             profiles (
-              brewery_name
+              display_name
             )
           )
         `)
@@ -111,7 +111,7 @@ export default function CollectionPage() {
                     {brew.name}
                   </h3>
                   <p className="text-[9px] text-zinc-600 uppercase font-black tracking-widest flex items-center justify-center gap-1">
-                    <span className="opacity-50">BY</span> {brew.profiles?.brewery_name || 'Anonymous'}
+                    <span className="opacity-50">BY</span> {brew.profiles?.display_name || 'Anonymous'}
                   </p>
                 </div>
                 

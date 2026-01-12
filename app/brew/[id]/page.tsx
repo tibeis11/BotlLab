@@ -142,7 +142,7 @@ export default function BrewDetailPage() {
              if (breweryData) {
                  setProfile({
                      id: breweryData.id,
-                     brewery_name: breweryData.name,
+                     display_name: breweryData.name,
                      logo_url: breweryData.logo_url,
                      bio: breweryData.description,
                      location: null
@@ -152,7 +152,7 @@ export default function BrewDetailPage() {
             // Profile laden (Personal)
             const { data: profileData } = await supabase
               .from('profiles')
-              .select('id, brewery_name, location, bio, logo_url, tier')
+              .select('id, display_name, location, bio, logo_url, tier')
               .eq('id', brewData.user_id)
               .maybeSingle();
             setProfile(profileData);
@@ -162,7 +162,7 @@ export default function BrewDetailPage() {
         if (brewData.remix_parent_id) {
           const { data: parentData } = await supabase
             .from('brews')
-            .select('id, name, user_id, profiles!inner(brewery_name)')
+            .select('id, name, user_id, profiles!inner(display_name)')
             .eq('id', brewData.remix_parent_id)
             .maybeSingle();
           setParent(parentData);
@@ -287,7 +287,7 @@ export default function BrewDetailPage() {
                     )}
                   </div>
                   <div className="min-w-0">
-                    <h3 className="text-lg font-black text-white truncate">{profile.brewery_name || 'Brauerei'}</h3>
+                    <h3 className="text-lg font-black text-white truncate">{profile.display_name || 'Brauerei'}</h3>
                     {profile.location && (
                       <p className="text-xs text-zinc-400 mt-0.5 truncate">📍 {profile.location}</p>
                     )}
@@ -387,8 +387,8 @@ export default function BrewDetailPage() {
             <p className="text-sm text-zinc-400">
               ♻️ Basiert auf
               <Link href={`/brew/${parent.id}`} className="text-cyan-400 font-bold ml-1 hover:underline">{parent.name}</Link>
-              {parent.profiles?.brewery_name && (
-                <> von <Link href={`/brewer/${parent.user_id}`} className="text-cyan-400 font-bold hover:underline">{parent.profiles.brewery_name}</Link></>
+              {parent.profiles?.display_name && (
+                <> von <Link href={`/brewer/${parent.user_id}`} className="text-cyan-400 font-bold hover:underline">{parent.profiles.display_name}</Link></>
               )}
             </p>
           </div>
