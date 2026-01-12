@@ -10,6 +10,7 @@ import { getBreweryTierConfig, type BreweryTierName } from '@/lib/tier-system';
 import { checkAndGrantAchievements } from '@/lib/achievements';
 import { useAchievementNotification } from '@/app/context/AchievementNotificationContext';
 import { useAuth } from '@/app/context/AuthContext';
+import { useNotification } from '@/app/context/NotificationContext';
 
 export default function TeamInventoryPage({ params }: { params: Promise<{ breweryId: string }> }) {
 	const { breweryId } = use(params);
@@ -22,6 +23,7 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 	const [isMounted, setIsMounted] = useState(false);
 	const [breweryTier, setBreweryTier] = useState<BreweryTierName>('garage');
 	const { showAchievement } = useAchievementNotification();
+	const { showToast } = useNotification();
 
 	const [showScanner, setShowScanner] = useState(false);
 	const [scanBrewId, setScanBrewId] = useState<string>(""); 
@@ -201,6 +203,7 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 			}
 		}
 		doc.save(`BotlLab_Codes_${Date.now()}.pdf`);
+		showToast("PDF erstellt", "Deine QR-Codes wurden erfolgreich heruntergeladen.", "success");
 	}
 
 	async function createBatchAndDownloadPDF() {

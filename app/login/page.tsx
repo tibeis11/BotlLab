@@ -173,6 +173,7 @@ export default function LoginPage() {
                   placeholder="••••••••" 
                   required
                   value={password}
+                  minLength={8}
                   className="w-full bg-zinc-950/50 border border-zinc-800 p-4 pr-12 rounded-xl focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition text-white placeholder:text-zinc-600"
                   onChange={(e) => setPassword(e.target.value)}
                 />
@@ -193,6 +194,11 @@ export default function LoginPage() {
                   )}
                 </button>
               </div>
+              {isRegister && (
+                  <p className="text-[10px] text-zinc-500 mt-2 px-1">
+                      Min. 8 Zeichen, Klein- & Großbuchstaben, Zahlen & Symbole.
+                  </p>
+              )}
             </div>
 
             {/* Brewery Name (nur bei Registrierung) */}
