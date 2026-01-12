@@ -1,14 +1,30 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { cleanText, isProfane } from '@/lib/profanity';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { brew_id, rating, comment, author_name, ip_address } = body;
+    let { brew_id, rating, comment, author_name, ip_address } = body;
 
     if (!brew_id || !rating || !author_name || !ip_address) {
         return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
+
+    // --- Profanity Filter ---
+    // Wir bereinigen den Namen und den Kommentar bevor wir speichern.
+    if (isProfane(author_name)) {
+        // Option A: Reject
+        // return NextResponse.json({ error: 'Bitte wähle einen höflichen Namen.' }, { status: 400 });
+        
+        // Option B: Clean (Tim Arsch -> Tim *****)
+        author_name = cleanText(author_name);
+    }
+
+    if (comment && isProfane(comment)) {
+        comment = cleanText(comment);
+    }
+    // ------------------------
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -36,8 +52,8 @@ export async function POST(req: NextRequest) {
         .insert([{
             brew_id,
             rating,
-            comment,
-            author_name,
+            comment, // Cleaned comment
+            author_name, // Cleaned name
             ip_address,
             moderation_status: 'auto_approved' // or 'pending' depending on settings, keeping 'auto_approved' as per original code
         }])
