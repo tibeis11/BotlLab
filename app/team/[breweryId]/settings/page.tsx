@@ -368,20 +368,22 @@ function NotificationSettings({ breweryId }: { breweryId: string }) {
         return <div className="text-zinc-500 animate-pulse text-sm">Lade Einstellungen...</div>;
     }
 
-    const NotificationToggle = ({ label, desc, pKey }: { label: string, desc: string, pKey: keyof typeof prefs }) => (
-        <div className="flex items-center justify-between p-4 bg-zinc-950 border border-zinc-800 rounded-xl hover:border-zinc-700 transition-colors">
+    const NotificationToggle = ({ label, desc, pKey, disabled }: { label: string, desc: string, pKey: keyof typeof prefs, disabled?: boolean }) => (
+        <div className={`flex items-center justify-between p-4 bg-zinc-950 border border-zinc-800 rounded-xl transition-colors ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-zinc-700'}`}>
             <div className="pr-4">
                 <div className="flex items-center gap-2 mb-1">
                     <h4 className="font-bold text-white text-sm">{label}</h4>
                     {savingKey === pKey && <span className="text-xs text-cyan-500 animate-pulse">Speichert...</span>}
+                    {disabled && <span className="text-[10px] uppercase font-bold bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded">Bald verfügbar</span>}
                 </div>
                 <p className="text-xs text-zinc-500">{desc}</p>
             </div>
             <button
-                onClick={() => togglePref(pKey)}
-                className={`flex-shrink-0 relative w-12 h-6 rounded-full p-1 transition-colors duration-200 ease-in-out ${prefs[pKey] ? 'bg-cyan-600' : 'bg-zinc-800'}`}
+                disabled={disabled}
+                onClick={() => !disabled && togglePref(pKey)}
+                className={`flex-shrink-0 relative w-12 h-6 rounded-full p-1 transition-colors duration-200 ease-in-out ${disabled ? 'bg-zinc-800 cursor-not-allowed' : (prefs[pKey] ? 'bg-cyan-600' : 'bg-zinc-800')}`}
             >
-                <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-200 ease-in-out ${prefs[pKey] ? 'translate-x-6' : 'translate-x-0'}`} />
+                <div className={`w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ease-in-out ${disabled ? 'bg-zinc-600 translate-x-0' : (prefs[pKey] ? 'bg-white translate-x-6' : 'bg-white translate-x-0')}`} />
             </button>
         </div>
     );
@@ -417,7 +419,7 @@ function NotificationSettings({ breweryId }: { breweryId: string }) {
             {/* EMAIL SECTION */}
             <div className="space-y-4">
                 <div className="mb-4">
-                    <h3 className="text-lg font-black text-white flex items-center gap-2">
+                    <h3 className="text-lg font-black text-white flex items-center gap-2 opacity-50">
                         <span className="text-xl">📧</span> E-Mail Benachrichtigungen
                     </h3>
                     <p className="text-zinc-500 text-xs">Werden an deine registrierte E-Mail Adresse gesendet.</p>
@@ -427,16 +429,19 @@ function NotificationSettings({ breweryId }: { breweryId: string }) {
                     label="Neues Rezept per Mail" 
                     desc="Lasse dich per E-Mail informieren."
                     pKey="email_new_brew"
+                    disabled={true}
                 />
                 <NotificationToggle 
                     label="Neue Bewertung per Mail" 
                     desc="Erhalte eine Zusammenfassung der Bewertung."
                     pKey="email_new_rating"
+                    disabled={true}
                 />
                 <NotificationToggle 
                     label="Nachrichten per Mail" 
                     desc="Wenn du offline bist, informieren wir dich per Mail."
                     pKey="email_new_message"
+                    disabled={true}
                 />
             </div>
         </div>
