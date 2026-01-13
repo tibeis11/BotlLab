@@ -124,7 +124,7 @@ export default function AdminHeader() {
           </Link>
 
           {/* Left Desktop Navigation (External Context) */}
-          <div className="hidden md:flex gap-6 text-sm font-medium items-center border-l border-zinc-800 pl-6 h-8">
+          <div className="hidden lg:flex gap-6 text-sm font-medium items-center border-l border-zinc-800 pl-6 h-8">
             {breweryId && (
               <div 
                 className="relative group"
@@ -167,7 +167,7 @@ export default function AdminHeader() {
         </div>
         
         {/* Desktop Navigation (Dashboard Context) */}
-        <div className="hidden md:flex gap-1 text-sm font-medium items-center">
+        <div className="hidden lg:flex gap-1 text-sm font-medium items-center">
           {tabs.map(tab => {
             // Dashboard root matches only exact, others match prefix
             const isActive = tab.path === '/dashboard' 
@@ -260,7 +260,7 @@ export default function AdminHeader() {
 
         {/* Mobile Menu Button */}
         <button 
-          className="md:hidden p-2 text-zinc-400 hover:text-white"
+          className="lg:hidden p-2 text-zinc-400 hover:text-white"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         >
           {isMobileMenuOpen ? (
@@ -277,7 +277,7 @@ export default function AdminHeader() {
 
       {/* Mobile Navigation */}
       {isMobileMenuOpen && (
-        <div className="md:hidden absolute w-full bg-zinc-950 border-b border-zinc-800 animate-in slide-in-from-top-2 fade-in duration-200 shadow-2xl z-40 max-h-[90vh] overflow-y-auto left-0 top-full">
+        <div className="lg:hidden absolute w-full bg-zinc-950 border-b border-zinc-800 animate-in slide-in-from-top-2 fade-in duration-200 shadow-2xl z-40 max-h-[90vh] overflow-y-auto left-0 top-full">
             <div className="p-4 space-y-2">
             <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest px-2 mb-2">Persönlicher Bereich</p>
             {tabs.map(tab => {
@@ -297,6 +297,19 @@ export default function AdminHeader() {
 
             <div className="h-px bg-zinc-800 my-2"></div>
             
+            <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest px-2 mb-2">Community</p>
+
+            <Link 
+                href="/discover"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="p-3 rounded-xl text-sm font-bold text-zinc-400 hover:text-white hover:bg-zinc-900 transition flex items-center gap-3 mb-2"
+            >
+                <span>🌍</span>
+                <span>Entdecken</span>
+            </Link>
+
+            <div className="h-px bg-zinc-800 my-2"></div>
+
             <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest px-2 mb-2">Team Bereich</p>
             
             {userBreweries.length > 0 ? (

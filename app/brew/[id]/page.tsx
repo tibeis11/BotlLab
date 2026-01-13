@@ -423,51 +423,236 @@ export default function BrewDetailPage() {
 
             {/* Technical Specs */}
              {brew.data && (
-                <div className="py-8 border-t border-zinc-800/50">
-                    <h3 className="text-xs font-black uppercase tracking-[0.3em] text-zinc-500 mb-6">Technische Details</h3>
-                    {/* Reuse existing blocks but with adjusted styling if needed. Keeping original logic structure */}
+                <div className="py-10 border-t border-zinc-800/50">
+                    <div className="flex items-center gap-4 mb-8">
+                        <h3 className="text-xs font-black uppercase tracking-[0.3em] text-zinc-500">Technische Details</h3>
+                        <div className="h-px bg-zinc-800 flex-1"></div>
+                    </div>
                     
-                    {/* BEER Details */}
+                    {/* Head Stats: Universal */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+                        <div className="bg-zinc-900/40 rounded-xl p-4 border border-zinc-800 flex flex-col items-center text-center justify-center min-h-[100px]">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-1">Menge</span>
+                            <span className="text-2xl font-black text-white">{brew.data.batch_size_liters || '-'} <span className="text-sm font-bold text-zinc-600">L</span></span>
+                        </div>
+                         <div className="bg-zinc-900/40 rounded-xl p-4 border border-zinc-800 flex flex-col items-center text-center justify-center min-h-[100px]">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-1">Brautag</span>
+                            <span className="text-xl font-bold text-white max-w-full truncate">{brew.data.brewed_at ? new Date(brew.data.brewed_at).toLocaleDateString() : '-'}</span>
+                        </div>
+                        <div className="bg-zinc-900/40 rounded-xl p-4 border border-zinc-800 flex flex-col items-center text-center justify-center min-h-[100px]">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-1">Ausbeute</span>
+                            <span className="text-2xl font-black text-white">{brew.data.efficiency || '-'} <span className="text-sm font-bold text-zinc-600">%</span></span>
+                        </div>
+                         <div className="bg-gradient-to-br from-cyan-900/20 to-blue-900/20 rounded-xl p-4 border border-cyan-500/20 flex flex-col items-center text-center justify-center min-h-[100px]">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-400 mb-1">Alkohol (ABV)</span>
+                            <span className="text-2xl font-black text-white">{brew.data.abv || brew.data.est_abv || '-'} <span className="text-sm font-bold text-zinc-600">%</span></span>
+                        </div>
+                    </div>
+
+                    {/* BEER Structure */}
                     {(!brew.brew_type || brew.brew_type === 'beer') && (
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-y-6 gap-x-4">
-                        {brew.data.og && (<div><p className="text-zinc-600 text-[10px] uppercase font-bold mb-1">Stammwürze (OG)</p><p className="text-white font-mono">{brew.data.og}</p></div>)}
-                        {brew.data.fg && (<div><p className="text-zinc-600 text-[10px] uppercase font-bold mb-1">Restextrakt (FG)</p><p className="text-white font-mono">{brew.data.fg}</p></div>)}
-                        {brew.data.est_abv && (<div><p className="text-zinc-600 text-[10px] uppercase font-bold mb-1">Est. ABV</p><p className="text-white font-mono">{brew.data.est_abv}%</p></div>)}
-                        {brew.data.yeast && (<div><p className="text-zinc-600 text-[10px] uppercase font-bold mb-1">Hefe</p><p className="text-white">{brew.data.yeast}</p></div>)}
-                        {brew.data.boil_minutes && (<div><p className="text-zinc-600 text-[10px] uppercase font-bold mb-1">Kochzeit</p><p className="text-white">{brew.data.boil_minutes} min</p></div>)}
-                        {brew.data.mash_temp_c && (<div><p className="text-zinc-600 text-[10px] uppercase font-bold mb-1">Maische</p><p className="text-white">{brew.data.mash_temp_c} °C</p></div>)}
-                        
-                        {brew.data.malts && (<div className="col-span-2 md:col-span-3 pt-4 border-t border-zinc-800/50"><p className="text-zinc-600 text-[10px] uppercase font-bold mb-1">Malz & Getreide</p><p className="text-zinc-300">{brew.data.malts}</p></div>)}
-                        {brew.data.hops && (<div className="col-span-2 md:col-span-3"><p className="text-zinc-600 text-[10px] uppercase font-bold mb-1">Hopfen</p><p className="text-zinc-300">{brew.data.hops}</p></div>)}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                         {/* Column 1: Ingredients */}
+                         <div className="bg-zinc-900/20 rounded-2xl p-6 border border-zinc-800/50 h-full">
+                            <h4 className="flex items-center gap-2 text-sm font-bold text-white mb-6 pb-4 border-b border-zinc-800/50">
+                                <span>🌾</span> Zutaten
+                            </h4>
+                            <div className="space-y-6">
+                                <div>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-2">Malz & Getreide</p>
+                                    <p className="text-sm text-zinc-300 font-medium leading-relaxed">{brew.data.malts || '–'}</p>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-2">Hopfen</p>
+                                    <p className="text-sm text-zinc-300 font-medium leading-relaxed">{brew.data.hops || '–'}</p>
+                                    {brew.data.dry_hop_g && brew.data.dry_hop_g > 0 && (
+                                        <div className="mt-2 text-xs text-emerald-400 bg-emerald-950/20 inline-block px-2 py-1 rounded border border-emerald-900/30">
+                                            + {brew.data.dry_hop_g}g Dry Hop
+                                        </div>
+                                    )}
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-2">Hefe</p>
+                                    <p className="text-sm text-white font-medium">{brew.data.yeast || '–'}</p>
+                                </div>
+                            </div>
+                         </div>
+
+                         {/* Column 2: Specs & Process */}
+                         <div className="space-y-4">
+                             {/* Stats Grid */}
+                            <div className="bg-zinc-900/20 rounded-2xl p-6 border border-zinc-800/50">
+                                <h4 className="flex items-center gap-2 text-sm font-bold text-white mb-6 pb-4 border-b border-zinc-800/50">
+                                    <span>📊</span> Messwerte
+                                </h4>
+                                <div className="grid grid-cols-2 gap-y-6 gap-x-4">
+                                    <div><p className="text-zinc-600 text-[10px] uppercase font-bold mb-1">Stammwürze</p><p className="text-white font-mono text-lg">{brew.data.og || '-'} °P</p></div>
+                                    <div><p className="text-zinc-600 text-[10px] uppercase font-bold mb-1">Restextrakt</p><p className="text-white font-mono text-lg">{brew.data.fg || '-'} °P</p></div>
+                                    <div><p className="text-zinc-600 text-[10px] uppercase font-bold mb-1">Bittere</p><p className="text-white font-mono text-lg">{brew.data.ibu || '-'} IBU</p></div>
+                                    <div><p className="text-zinc-600 text-[10px] uppercase font-bold mb-1">Farbe</p><p className="text-white font-mono text-lg">{brew.data.color || '-'} EBC</p></div>
+                                </div>
+                            </div>
+                            
+                            {/* Process Info */}
+                            <div className="bg-zinc-900/20 rounded-2xl p-6 border border-zinc-800/50">
+                                <h4 className="flex items-center gap-2 text-sm font-bold text-white mb-6 pb-4 border-b border-zinc-800/50">
+                                    <span>🔥</span> Prozess
+                                </h4>
+                                <div className="grid grid-cols-2 gap-4">
+                                     <div className="bg-zinc-950 rounded-xl p-3 border border-zinc-800">
+                                         <p className="text-zinc-500 text-[10px] uppercase font-bold mb-1">Kochzeit</p>
+                                         <p className="text-white font-mono font-bold">{brew.data.boil_time || brew.data.boil_minutes || 60} min</p>
+                                     </div>
+                                     <div className="bg-zinc-950 rounded-xl p-3 border border-zinc-800">
+                                         <p className="text-zinc-500 text-[10px] uppercase font-bold mb-1">Maischetemp</p>
+                                         <p className="text-white font-mono font-bold">{brew.data.mash_temp || brew.data.mash_temp_c || '-'} °C</p>
+                                     </div>
+                                </div>
+                            </div>
+                         </div>
                       </div>
                     )}
                     
-                    {/* Other types logic (simplified for brevity using same pattern) */}
-                    {brew.brew_type !== 'beer' && (
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-y-6 gap-x-4">
-                            {Object.entries(brew.data).map(([k, v]) => {
-                                if (['abv', 'ibu', 'name'].includes(k) || !v) return null;
-                                let label = k.replace(/_/g, ' ');
-                                if (k === 'vintage') label = 'Jahrgang';
-                                if (k === 'varietal') label = 'Rebsorte';
-                                if (k === 'sugar_g_l') label = 'Restsüße';
-                                if (k === 'acidity_g_l') label = 'Säure';
-
-                                return (
-                                    <div key={k} className="overflow-hidden">
-                                        <p className="text-zinc-600 text-[10px] uppercase font-bold mb-1 truncate">{label}</p>
-                                        <p className="text-white truncate">{String(v)}</p>
+                    {/* WINE Structure */}
+                    {brew.brew_type === 'wine' && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                             <div className="bg-zinc-900/20 rounded-2xl p-6 border border-zinc-800/50 h-full">
+                                <h4 className="flex items-center gap-2 text-sm font-bold text-white mb-6 pb-4 border-b border-zinc-800/50">
+                                    <span>🍇</span> Reben & Terroir
+                                </h4>
+                                <div className="space-y-6">
+                                    <div>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-1">Rebsorten</p>
+                                        <p className="text-lg text-white font-bold leading-relaxed">{brew.data.grapes || '–'}</p>
                                     </div>
-                                )
-                            })}
+                                    <div>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-1">Region</p>
+                                        <p className="text-zinc-300 font-medium">{brew.data.region || '–'}</p>
+                                    </div>
+                                    <div>
+                                         <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-1">Jahrgang</p>
+                                         <p className="text-white font-mono">{brew.data.vintage || '–'}</p>
+                                    </div>
+                                </div>
+                             </div>
+
+                             <div className="space-y-4">
+                                <div className="bg-zinc-900/20 rounded-2xl p-6 border border-zinc-800/50">
+                                    <h4 className="flex items-center gap-2 text-sm font-bold text-white mb-6 pb-4 border-b border-zinc-800/50">
+                                        <span>🍷</span> Ausbau & Balance
+                                    </h4>
+                                    <div className="grid grid-cols-2 gap-6 mb-6">
+                                        <div><p className="text-zinc-600 text-[10px] uppercase font-bold mb-1">Restzucker</p><p className="text-white font-mono text-lg">{brew.data.residual_sugar_g_l || '-'} g/l</p></div>
+                                        <div><p className="text-zinc-600 text-[10px] uppercase font-bold mb-1">Säure</p><p className="text-white font-mono text-lg">{brew.data.acidity_g_l || '-'} g/l</p></div>
+                                        <div><p className="text-zinc-600 text-[10px] uppercase font-bold mb-1">Start-Dichte</p><p className="text-white font-mono text-lg">{brew.data.original_gravity || '-'} °Oe</p></div>
+                                         <div><p className="text-zinc-600 text-[10px] uppercase font-bold mb-1">Fasslager</p><p className="text-white font-mono text-lg">{brew.data.oak_months || '0'} M</p></div>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {brew.data.oak_aged && <span className="px-3 py-1.5 bg-amber-950/40 text-amber-500 border border-amber-900/50 rounded-lg text-xs font-bold uppercase tracking-wider">Barrique</span>}
+                                        {brew.data.sulfites && <span className="px-3 py-1.5 bg-zinc-800 text-zinc-400 border border-zinc-700 rounded-lg text-xs font-bold uppercase tracking-wider">Enthält Sulfite</span>}
+                                    </div>
+                                </div>
+                             </div>
                         </div>
+                    )}
+                    
+                    {/* MEAD Structure */}
+                    {brew.brew_type === 'mead' && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                             <div className="bg-zinc-900/20 rounded-2xl p-6 border border-zinc-800/50 h-full">
+                                <h4 className="flex items-center gap-2 text-sm font-bold text-white mb-6 pb-4 border-b border-zinc-800/50">
+                                    <span>🍯</span> Zutaten
+                                </h4>
+                                <div className="space-y-6">
+                                     <div>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-2">Honig & Zusätze</p>
+                                        <p className="text-lg text-white font-bold leading-relaxed">{brew.data.honey || '–'}</p>
+                                        {brew.data.adjuncts && <p className="text-sm text-zinc-400 mt-2">+ {brew.data.adjuncts}</p>}
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-2">Hefe</p>
+                                        <p className="text-sm text-white font-medium">{brew.data.yeast || '–'}</p>
+                                    </div>
+                                </div>
+                             </div>
+                             
+                             <div className="space-y-4">
+                                 <div className="bg-zinc-900/20 rounded-2xl p-6 border border-zinc-800/50">
+                                     <h4 className="flex items-center gap-2 text-sm font-bold text-white mb-6 pb-4 border-b border-zinc-800/50">
+                                        <span>📊</span> Metrics
+                                    </h4>
+                                    <div className="grid grid-cols-2 gap-6">
+                                        <div><p className="text-zinc-600 text-[10px] uppercase font-bold mb-1">OG (Start)</p><p className="text-white font-mono text-lg">{brew.data.original_gravity || '-'} SG</p></div>
+                                        <div><p className="text-zinc-600 text-[10px] uppercase font-bold mb-1">FG (End)</p><p className="text-white font-mono text-lg">{brew.data.final_gravity || '-'} SG</p></div>
+                                        <div><p className="text-zinc-600 text-[10px] uppercase font-bold mb-1">Reifezeit</p><p className="text-white font-mono text-lg">{brew.data.aging_months || '0'} M</p></div>
+                                    </div>
+                                 </div>
+                                 {brew.data.nutrient_schedule && (
+                                     <div className="bg-zinc-900/20 rounded-2xl p-6 border border-zinc-800/50">
+                                        <h4 className="flex items-center gap-2 text-sm font-bold text-white mb-4">
+                                            <span>💊</span> Nährstoffplan
+                                        </h4>
+                                        <p className="text-zinc-300 font-mono text-xs whitespace-pre-wrap">{brew.data.nutrient_schedule}</p>
+                                     </div>
+                                 )}
+                             </div>
+                        </div>
+                    )}
+                    
+                    {/* CIDER & SOFTDRINK Structure (Simplified) */}
+                    {(brew.brew_type === 'cider' || brew.brew_type === 'softdrink') && (
+                        <div className="bg-zinc-900/20 rounded-2xl p-8 border border-zinc-800/50">
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                                 <div>
+                                      <h4 className="flex items-center gap-2 text-sm font-bold text-white mb-6 pb-4 border-b border-zinc-800/50">
+                                        <span>🍎</span> Zutaten
+                                    </h4>
+                                    <div className="space-y-6">
+                                        {brew.data.apples && (<div><p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-1">Apfelsorten</p><p className="text-lg text-white font-bold">{brew.data.apples}</p></div>)}
+                                        {brew.data.base && (<div><p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-1">Basis</p><p className="text-lg text-white font-bold">{brew.data.base}</p></div>)}
+                                        {brew.data.yeast && (<div><p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-1">Hefe</p><p className="text-zinc-300">{brew.data.yeast}</p></div>)}
+                                    </div>
+                                 </div>
+                                 <div>
+                                     <h4 className="flex items-center gap-2 text-sm font-bold text-white mb-6 pb-4 border-b border-zinc-800/50">
+                                        <span>📊</span> Werte
+                                    </h4>
+                                    <div className="grid grid-cols-2 gap-6">
+                                         {brew.data.original_gravity && (<div><p className="text-zinc-600 text-[10px] uppercase font-bold mb-1">Start-Dichte</p><p className="text-white font-mono text-lg">{brew.data.original_gravity}</p></div>)}
+                                         {brew.data.carbonation_g_l && (<div><p className="text-zinc-600 text-[10px] uppercase font-bold mb-1">Karbonisierung</p><p className="text-white font-mono text-lg">{brew.data.carbonation_g_l} g/l</p></div>)}
+                                         {brew.data.pH && (<div><p className="text-zinc-600 text-[10px] uppercase font-bold mb-1">pH</p><p className="text-white font-mono text-lg">{brew.data.pH}</p></div>)}
+                                         {brew.data.sugar_g_l && (<div><p className="text-zinc-600 text-[10px] uppercase font-bold mb-1">Zucker</p><p className="text-white font-mono text-lg">{brew.data.sugar_g_l} g/l</p></div>)}
+                                         {brew.data.sweetness && (<div><p className="text-zinc-600 text-[10px] uppercase font-bold mb-1">Süße</p><p className="text-white capitalize text-lg">{brew.data.sweetness}</p></div>)}
+                                    </div>
+                                 </div>
+                             </div>
+                        </div>
+                    )}
+
+                    {/* Generic Notes Field for Everyone - Footer Style */}
+                    {brew.data.notes && (
+                         <div className="mt-10 pt-8 border-t border-zinc-800/50">
+                             <div className="flex flex-col md:flex-row gap-6 items-start">
+                                 <div className="md:w-48 flex-shrink-0">
+                                     <h4 className="text-xs font-black uppercase tracking-widest text-zinc-500 flex items-center gap-2">
+                                        <span>📝</span> Notizen
+                                     </h4>
+                                 </div>
+                                 <div className="flex-1">
+                                    <p className="text-zinc-400 whitespace-pre-wrap leading-relaxed text-sm font-mono">{brew.data.notes}</p>
+                                 </div>
+                             </div>
+                         </div>
                     )}
                 </div>
             )}
 
             {/* Ratings Section */}
             <div className="py-8 border-t border-zinc-800/50">
-              <h3 className="text-xs font-black uppercase tracking-[0.3em] text-zinc-500 mb-6">Community Feedback ({ratings.length})</h3>
+               <div className="flex items-center gap-4 mb-8">
+                  <h3 className="text-xs font-black uppercase tracking-[0.3em] text-zinc-500">Community Feedback ({ratings.length})</h3>
+                  <div className="h-px bg-zinc-800 flex-1"></div>
+               </div>
               
               {ratings.length === 0 ? (
                 <div className="bg-zinc-900/30 rounded-2xl p-8 border border-dashed border-zinc-800 text-center">
