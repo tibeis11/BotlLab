@@ -278,7 +278,7 @@ export default function AccountPage() {
 	}
 
 	return (
-		<div className="max-w-6xl mx-auto px-4 pt-8 pb-24 animate-in fade-in slide-in-from-bottom-4 duration-500">
+		<div className="pb-24 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div>
 				<h1 className="text-3xl font-black text-white mb-2">Einstellungen</h1>
 				<p className="text-zinc-400 font-medium mb-8">Verwalte dein Profil, deine Zugangsdaten und Sicherheitseinstellungen.</p>

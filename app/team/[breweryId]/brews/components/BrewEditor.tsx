@@ -10,6 +10,17 @@ import { useAchievementNotification } from '@/app/context/AchievementNotificatio
 import { useAuth } from '@/app/context/AuthContext';
 import { addToFeed } from '@/lib/feed-service';
 import CrownCap from '@/app/components/CrownCap';
+import { IngredientListEditor } from './IngredientListEditor';
+import { RecipeStepsEditor } from './RecipeStepsEditor';
+
+function formatIngredientsForPrompt(value: any): string {
+    if (!value) return '';
+    if (typeof value === 'string') return value;
+    if (Array.isArray(value)) {
+        return value.map((v: any) => `${v.amount}${v.unit} ${v.name}`.trim()).join(', ');
+    }
+    return '';
+}
 
 // Simple SVG Component to replace Heroicons
 function ArrowLeftIcon({ className }: { className?: string }) {
@@ -420,8 +431,8 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 			if (d.abv) typePrompt.push(`ABV ${d.abv}%`);
 			if (d.ibu) typePrompt.push(`IBU ${d.ibu}`);
 			if (d.srm) typePrompt.push(`SRM ${d.srm}`);
-			if (d.malts) typePrompt.push(`Malts: ${d.malts}`);
-			if (d.hops) typePrompt.push(`Hops: ${d.hops}`);
+			if (d.malts) typePrompt.push(`Malts: ${formatIngredientsForPrompt(d.malts)}`);
+			if (d.hops) typePrompt.push(`Hops: ${formatIngredientsForPrompt(d.hops)}`);
 			if (d.yeast) typePrompt.push(`Yeast: ${d.yeast}`);
 			if (d.og && d.fg) typePrompt.push(`OG ${d.og}, FG ${d.fg}`);
 		} else if (brew.brew_type === 'wine') {
@@ -523,8 +534,8 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 			if (brew.brew_type) context.push(`Type: ${brew.brew_type}`);
 			
 			if (brew.brew_type === 'beer') {
-				if (d.hops) context.push(`Hops: ${d.hops}`);
-				if (d.malts) context.push(`Malts: ${d.malts}`);
+				if (d.hops) context.push(`Hops: ${formatIngredientsForPrompt(d.hops)}`);
+				if (d.malts) context.push(`Malts: ${formatIngredientsForPrompt(d.malts)}`);
 				if (d.abv) context.push(`ABV: ${d.abv}%`);
 				if (d.ibu) context.push(`IBU: ${d.ibu}`);
 			} else if (brew.brew_type === 'wine') {
@@ -585,8 +596,8 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 				recipeData.srm = d.srm;
 				recipeData.og = d.og;
 				recipeData.fg = d.fg;
-				recipeData.malts = d.malts;
-				recipeData.hops = d.hops;
+				recipeData.malts = formatIngredientsForPrompt(d.malts);
+				recipeData.hops = formatIngredientsForPrompt(d.hops);
 				recipeData.yeast = d.yeast;
 				recipeData.dryHop = d.dry_hop_g;
 				recipeData.boilMinutes = d.boil_minutes;
@@ -649,8 +660,8 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 				if (d.abv) details.push(`ABV: ${d.abv}%`);
 				if (d.ibu) details.push(`IBU: ${d.ibu}`);
 				if (d.srm) details.push(`SRM: ${d.srm}`);
-				if (d.malts) details.push(`Malts: ${d.malts}`);
-				if (d.hops) details.push(`Hops: ${d.hops}`);
+				if (d.malts) details.push(`Malts: ${formatIngredientsForPrompt(d.malts)}`);
+				if (d.hops) details.push(`Hops: ${formatIngredientsForPrompt(d.hops)}`);
 				if (d.yeast) details.push(`Yeast: ${d.yeast}`);
 				if (d.og && d.fg) details.push(`OG: ${d.og}, FG: ${d.fg}`);
 			} else if (brew.brew_type === 'wine') {
@@ -1033,22 +1044,27 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                 <div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm border border-zinc-700">🌾</div>
                                                 Zutaten
                                             </h3>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                                                 <div>
-                                                    <label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 block">Malz</label>
-                                                    <input className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-600" value={brew.data?.malts || ''} onChange={(e) => updateData('malts', e.target.value)} placeholder="z.B. Pilsner, Münchner..." />
+                                                    <IngredientListEditor 
+                                                        label="Malz" 
+                                                        value={brew.data?.malts} 
+                                                        onChange={(val) => updateData('malts', val)} 
+                                                    />
                                                 </div>
                                                 <div>
                                                     <label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 block">Hefe</label>
                                                     <input className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-600" value={brew.data?.yeast || ''} onChange={(e) => updateData('yeast', e.target.value)} placeholder="z.B. Fermentis US-05" />
                                                 </div>
-                                                <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                                                     <div>
-                                                        <label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 block">Hopfen</label>
-                                                        <input className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-600" value={brew.data?.hops || ''} onChange={(e) => updateData('hops', e.target.value)} placeholder="z.B. Citra, Mosaic, Galaxy..." />
-                                                        <p className="text-[10px] text-zinc-600 mt-1.5 ml-1">Mehrere Sorten mit Komma trennen</p>
+                                                        <IngredientListEditor 
+                                                            label="Hopfen" 
+                                                            value={brew.data?.hops} 
+                                                            onChange={(val) => updateData('hops', val)} 
+                                                        />
                                                     </div>
-                                                    <div>
+                                                    <div className="pt-6">
                                                         <NumberInput label="Dry Hop (g)" value={brew.data?.dry_hop_g || ''} onChange={(val) => updateData('dry_hop_g', val)} placeholder="0" />
                                                     </div>
                                                 </div>
@@ -1057,6 +1073,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                     </div>
                                 )}
 
+                                {/* Dynamic Fields based on Type */}
                                 {brew.brew_type === 'wine' && (
                                     <div className="space-y-10 pt-4 border-t border-zinc-900">
                                          {/* Section: Messwerte */}
@@ -1260,6 +1277,13 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                 
 
                                 <div className="pt-8 border-t border-zinc-900">
+                                    <div className="mb-8">
+                                        <RecipeStepsEditor 
+                                            value={brew.data?.steps} 
+                                            onChange={(val) => updateData('steps', val)} 
+                                        />
+                                    </div>
+                                    
                                     <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
                                         <div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm border border-zinc-700">📝</div>
                                         Sonstiges

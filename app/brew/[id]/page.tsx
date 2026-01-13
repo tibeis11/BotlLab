@@ -8,6 +8,35 @@ import { getTierConfig, getBreweryTierConfig } from '@/lib/tier-system';
 import Header from '@/app/components/Header';
 import Logo from '@/app/components/Logo';
 
+// Helper Component for Ingredients
+function IngredientView({ value }: { value: any }) {
+  if (!value) return <span className="text-zinc-500">–</span>;
+  
+  // Legacy String Support
+  if (typeof value === 'string') {
+    return <p className="text-sm text-zinc-300 font-medium leading-relaxed">{value}</p>;
+  }
+  
+  // Structured Support
+  if (Array.isArray(value)) {
+     return (
+       <ul className="space-y-2">
+         {value.map((item: any, i: number) => (
+            <li key={i} className="flex justify-between items-baseline text-sm border-b border-zinc-800/50 pb-2 last:border-0 border-dashed last:pb-0">
+               <span className="text-zinc-300 font-medium">{item.name}</span>
+               <span className="text-zinc-500 font-mono text-xs whitespace-nowrap ml-4 flex items-baseline gap-1">
+                 {item.amount && <span className="text-white font-bold">{item.amount}</span>} 
+                 {item.unit && <span className="opacity-70">{item.unit}</span>}
+               </span>
+            </li>
+         ))}
+       </ul>
+     );
+  }
+  
+  return null;
+}
+
 export default function BrewDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -460,11 +489,11 @@ export default function BrewDetailPage() {
                             <div className="space-y-6">
                                 <div>
                                     <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-2">Malz & Getreide</p>
-                                    <p className="text-sm text-zinc-300 font-medium leading-relaxed">{brew.data.malts || '–'}</p>
+                                    <IngredientView value={brew.data.malts} />
                                 </div>
                                 <div>
                                     <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-2">Hopfen</p>
-                                    <p className="text-sm text-zinc-300 font-medium leading-relaxed">{brew.data.hops || '–'}</p>
+                                    <IngredientView value={brew.data.hops} />
                                     {brew.data.dry_hop_g && brew.data.dry_hop_g > 0 && (
                                         <div className="mt-2 text-xs text-emerald-400 bg-emerald-950/20 inline-block px-2 py-1 rounded border border-emerald-900/30">
                                             + {brew.data.dry_hop_g}g Dry Hop
@@ -626,6 +655,30 @@ export default function BrewDetailPage() {
                                     </div>
                                  </div>
                              </div>
+                        </div>
+                    )}
+
+                    {/* Recipe Steps / Instructions */}
+                    {brew.data.steps && brew.data.steps.length > 0 && (
+                        <div className="py-10 border-t border-zinc-800/50">
+                             <div className="flex items-center gap-4 mb-8">
+                                <h3 className="text-xs font-black uppercase tracking-[0.3em] text-zinc-500">Brauanleitung</h3>
+                                <div className="h-px bg-zinc-800 flex-1"></div>
+                            </div>
+                            
+                            <div className="relative border-l border-zinc-800 ml-3 space-y-8 py-2">
+                                {brew.data.steps.map((step: any, idx: number) => (
+                                    <div key={idx} className="relative pl-8">
+                                        <div className="absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full bg-cyan-900 border border-cyan-500"></div>
+                                        <div className="bg-zinc-900/40 rounded-xl p-5 border border-zinc-800/80">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <span className="text-xs font-black text-cyan-500 bg-cyan-950/30 px-2 py-0.5 rounded border border-cyan-900/50 uppercase tracking-wider">Schritt {idx + 1}</span>
+                                            </div>
+                                            <p className="text-zinc-300 font-medium leading-relaxed whitespace-pre-wrap">{step.instruction}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     )}
 
