@@ -1006,7 +1006,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                 <div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm border border-zinc-700">📊</div>
                                                 Messwerte
                                             </h3>
-                                            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                                            <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-6">
                                                 <NumberInput label="Menge (Liter)" value={brew.data?.batch_size_liters || ''} onChange={(val) => updateData('batch_size_liters', val)} placeholder="20" step={0.5} />
                                                 <NumberInput label="Ausbeute (%)" value={brew.data?.efficiency || ''} onChange={(val) => updateData('efficiency', val)} placeholder="75" />
                                                 <NumberInput label="ABV (%)" value={brew.data?.abv || ''} onChange={(val) => updateData('abv', val)} placeholder="0.0" step={0.1} />
@@ -1023,7 +1023,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                 <div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm border border-zinc-700">🌡️</div>
                                                 Brauprozess
                                             </h3>
-                                            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                                            <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-6">
                                                 <div>
                                                     <label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 block">Brautag</label>
                                                     <input 
@@ -1044,7 +1044,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                 <div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm border border-zinc-700">🌾</div>
                                                 Zutaten
                                             </h3>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                                            <div className="grid grid-cols-[repeat(auto-fit,minmax(350px,1fr))] gap-6 items-start">
                                                 <div>
                                                     <IngredientListEditor 
                                                         label="Malz" 
@@ -1056,17 +1056,15 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                     <label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 block">Hefe</label>
                                                     <input className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-600" value={brew.data?.yeast || ''} onChange={(e) => updateData('yeast', e.target.value)} placeholder="z.B. Fermentis US-05" />
                                                 </div>
-                                                <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-                                                    <div>
-                                                        <IngredientListEditor 
-                                                            label="Hopfen" 
-                                                            value={brew.data?.hops} 
-                                                            onChange={(val) => updateData('hops', val)} 
-                                                        />
-                                                    </div>
-                                                    <div className="pt-6">
-                                                        <NumberInput label="Dry Hop (g)" value={brew.data?.dry_hop_g || ''} onChange={(val) => updateData('dry_hop_g', val)} placeholder="0" />
-                                                    </div>
+                                                <div>
+                                                    <IngredientListEditor 
+                                                        label="Hopfen" 
+                                                        value={brew.data?.hops} 
+                                                        onChange={(val) => updateData('hops', val)} 
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <NumberInput label="Dry Hop (g)" value={brew.data?.dry_hop_g || ''} onChange={(val) => updateData('dry_hop_g', val)} placeholder="0" />
                                                 </div>
                                             </div>
                                         </div>
@@ -1082,7 +1080,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                 <div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm border border-zinc-700">📊</div>
                                                 Messwerte
                                             </h3>
-                                            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                                            <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-6">
                                                 <NumberInput label="Menge (Liter)" value={brew.data?.batch_size_liters || ''} onChange={(val) => updateData('batch_size_liters', val)} placeholder="15" step={0.5} />
                                                 <NumberInput label="Start-Dichte (Öchsle)" value={brew.data?.original_gravity || ''} onChange={(val) => updateData('original_gravity', val)} placeholder="85" />
                                                 <NumberInput label="ABV (%)" value={brew.data?.abv || ''} onChange={(val) => updateData('abv', val)} placeholder="12.5" step={0.1} />
@@ -1137,7 +1135,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                 <div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm border border-zinc-700">📊</div>
                                                 Messwerte
                                             </h3>
-                                            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                                            <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-6">
                                                 <NumberInput label="Menge (Liter)" value={brew.data?.batch_size_liters || ''} onChange={(val) => updateData('batch_size_liters', val)} placeholder="10" step={0.5} />
                                                 <NumberInput label="Start-Dichte (SG)" value={brew.data?.original_gravity || ''} onChange={(val) => updateData('original_gravity', val)} placeholder="1.050" step={0.001} />
                                                 <NumberInput label="ABV (%)" value={brew.data?.abv || ''} onChange={(val) => updateData('abv', val)} placeholder="6.2" step={0.1} />
@@ -1199,7 +1197,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                 <div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm border border-zinc-700">📊</div>
                                                 Messwerte
                                             </h3>
-                                            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                                            <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-6">
                                                 <NumberInput label="Menge (Liter)" value={brew.data?.batch_size_liters || ''} onChange={(val) => updateData('batch_size_liters', val)} placeholder="10" step={0.5} />
                                                 <NumberInput label="Start-Dichte (SG)" value={brew.data?.original_gravity || ''} onChange={(val) => updateData('original_gravity', val)} placeholder="1.100" step={0.001} />
                                                 <NumberInput label="ABV (%)" value={brew.data?.abv || ''} onChange={(val) => updateData('abv', val)} placeholder="14.0" step={0.1} />
@@ -1248,7 +1246,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                 <div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm border border-zinc-700">📊</div>
                                                 Messwerte
                                             </h3>
-                                            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                                            <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-6">
                                                 <NumberInput label="Menge (Liter)" value={brew.data?.batch_size_liters || ''} onChange={(val) => updateData('batch_size_liters', val)} placeholder="10" step={0.5} />
                                                 <NumberInput label="Zucker (g/l)" value={brew.data?.sugar_g_l || ''} onChange={(val) => updateData('sugar_g_l', val)} placeholder="40" step={1} />
                                                 <NumberInput label="Säure (pH)" value={brew.data?.acidity_ph || ''} onChange={(val) => updateData('acidity_ph', val)} placeholder="3.2" step={0.1} />
