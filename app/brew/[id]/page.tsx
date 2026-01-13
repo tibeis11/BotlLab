@@ -9,6 +9,55 @@ import ReactMarkdown from 'react-markdown';
 import Header from '@/app/components/Header';
 import Logo from '@/app/components/Logo';
 
+// Share Button Component (Local)
+function ShareButton({ brew }: { brew: any }) {
+    const [copied, setCopied] = useState(false);
+
+    const handleShare = async () => {
+        const shareData = {
+            title: `BotlLab: ${brew.name}`,
+            text: `Schau dir dieses Rezept an: ${brew.name} (${brew.style}).`,
+            url: window.location.href
+        };
+
+        if (navigator.share && /mobile|android|iphone/i.test(navigator.userAgent)) {
+             try {
+                 await navigator.share(shareData);
+             } catch (e) {
+                 console.log('Share cancelled');
+             }
+        } else {
+             // Desktop Fallback
+             try {
+                 await navigator.clipboard.writeText(window.location.href);
+                 setCopied(true);
+                 setTimeout(() => setCopied(false), 2000);
+             } catch (e) {
+                 console.error('Clipboard failed');
+             }
+        }
+    };
+
+    return (
+        <button 
+            onClick={handleShare}
+            className="w-full bg-zinc-900 border border-zinc-700/50 hover:border-zinc-500 text-zinc-300 hover:text-white rounded-2xl py-3 font-bold transition flex items-center justify-center gap-2 group mb-2"
+        >
+            {copied ? (
+                 <>
+                    <span>✅</span>
+                    <span>Link kopiert!</span>
+                 </>
+            ) : (
+                 <>
+                    <span className="group-hover:scale-110 transition">📤</span>
+                    <span>Mit Freunden teilen</span>
+                 </>
+            )}
+        </button>
+    );
+}
+
 // Helper Component for Ingredients
 function IngredientView({ value }: { value: any }) {
   if (!value) return <span className="text-zinc-500">–</span>;
@@ -299,6 +348,9 @@ export default function BrewDetailPage() {
                 
                 {/* Badges Overlay */}
              </div>
+
+             {/* Share Button Component */}
+             <ShareButton brew={brew} />
 
              {/* Action Button */}
              <button
