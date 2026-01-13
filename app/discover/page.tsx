@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import Link from 'next/link';
 import Header from '../components/Header';
+import BrewCard from '../components/BrewCard';
 
 type Brew = {
   id: string;
@@ -13,10 +13,14 @@ type Brew = {
   created_at: string;
   user_id: string;
   brew_type?: string | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data?: any;
   remix_parent_id?: string | null;
-  breweries?: any; // Handling Supabase's tendency to return arrays for joins
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  breweries?: any; 
   ratings?: { rating: number }[] | null;
+  likes?: { count: number }[] | null;
+  user_has_liked?: boolean;
 };
 
 export default function DiscoverPage() {
@@ -33,12 +37,45 @@ export default function DiscoverPage() {
 
   async function loadBrews() {
     setLoading(true);
-    const { data } = await supabase
+    
+    // 1. Get current user to check for owned likes
+    const { data: { user } } = await supabase.auth.getUser();
+
+    // 2. Fetch public brews
+    const { data, error } = await supabase
       .from('brews')
-      .select('id,name,style,image_url,created_at,user_id,brew_type,data,remix_parent_id,breweries(name,logo_url),ratings(rating)')
+      .select('id,name,style,image_url,created_at,user_id,brew_type,data,remix_parent_id,breweries(name,logo_url),ratings(rating),likes(count)')
       .eq('is_public', true)
       .order('created_at', { ascending: false });
-    setBrews((data || []) as Brew[]);
+    
+    if (error) {
+      console.error('Error loading brews:', JSON.stringify(error, null, 2));
+    }
+
+    let brewsData = (data || []) as Brew[];
+
+    // 3. If logged in, cross-reference likes
+    if (user) {
+      const { data: likesData } = await supabase
+        .from('likes')
+        .select('brew_id')
+        .eq('user_id', user.id);
+
+      const likedIds = new Set((likesData || []).map((l: any) => l.brew_id));
+
+      brewsData = brewsData.map(b => ({
+        ...b,
+        user_has_liked: likedIds.has(b.id)
+      }));
+    } else {
+      // For guests, none are liked
+      brewsData = brewsData.map(b => ({
+        ...b,
+        user_has_liked: false
+      }));
+    }
+    
+    setBrews(brewsData);
     setLoading(false);
   }
 
@@ -113,84 +150,9 @@ export default function DiscoverPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-in fade-in duration-500">
-            {list.map(brew => {
-              const brewery = Array.isArray(brew.breweries) ? brew.breweries[0] : brew.breweries;
-              const rs = brew.ratings || [];
-              const avg = rs.length ? Math.round((rs.reduce((s, r) => s + r.rating, 0) / rs.length) * 10) / 10 : 0;
-
-              return (
-              <Link
-                key={brew.id}
-                href={`/brew/${brew.id}`}
-                className="group bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden shadow-lg hover:border-zinc-600 transition flex flex-col h-full"
-              >
-                {/* Main Image Area */}
-                <div className="aspect-video relative bg-zinc-950 overflow-hidden">
-                  {brew.image_url ? (
-                    <img
-                        src={brew.image_url}
-                        alt={brew.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-950/50">
-                        <span className="text-5xl mb-3 grayscale opacity-30">🍺</span>
-                         <span className="text-[10px] font-black uppercase tracking-widest opacity-40">Kein Label</span>
-                    </div>
-                  )}
-                  {/* Gradient Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60" />
-                  
-                  {/* Top Left: Style Badge */}
-                  <div className="absolute top-3 left-3 flex flex-col gap-1.5 items-start z-10">
-                    <span className="bg-black/80 backdrop-blur-md text-[10px] px-2.5 py-1 rounded-lg uppercase tracking-wider border border-white/5 font-bold text-white shadow-sm">
-                        {brew.style || 'Standard'}
-                    </span>
-                  </div>
-
-                  {/* Top Right: Remix Badge */}
-                  {brew.remix_parent_id && (
-                    <div className="absolute top-3 right-3 z-10">
-                       <span className="bg-black/60 backdrop-blur-md text-[10px] px-2.5 py-1 rounded-lg uppercase tracking-wider border border-purple-500/30 font-bold text-purple-400 shadow-sm">
-                            Remix
-                        </span>
-                    </div>
-                  )}
-
-                  {/* Bottom Right: Rating Badge */}
-                   {avg > 0 && (
-                        <div className="absolute bottom-3 right-3 pointer-events-none z-10">
-                            <div className="bg-black/80 backdrop-blur-md text-amber-400 font-black px-2.5 py-1.5 rounded-xl text-xs flex items-center gap-1.5 border border-white/5 shadow-lg">
-                                <span>⭐</span>
-                                <span className="text-white">{avg.toFixed(1)}</span>
-                                <span className="text-zinc-500 font-normal">({rs.length})</span>
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                {/* Content Section */}
-                <div className="p-5 flex flex-col flex-1 gap-4">
-                    <div>
-                        <h3 className="font-black text-xl leading-tight text-white group-hover:text-cyan-400 transition line-clamp-2 mb-2">
-                            {brew.name}
-                        </h3>
-                        <div className="flex items-center gap-2">
-                            {brewery?.logo_url ? (
-                                <img src={brewery.logo_url} className="w-5 h-5 rounded-full object-cover border border-zinc-800" />
-                            ) : (
-                                <div className="w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center text-[10px] border border-zinc-700">🏭</div>
-                            )}
-                            <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider truncate">
-                                {brewery?.name || 'Unbekannt'}
-                            </span>
-                        </div>
-                    </div>
-                    
-                </div>
-              </Link>
-            );
-            })}
+            {list.map(brew => (
+              <BrewCard key={brew.id} brew={brew} />
+            ))}
           </div>
         )}
       </div>

@@ -6,8 +6,16 @@ import { createClient } from '@supabase/supabase-js';
 import Link from 'next/link';
 import { getTierConfig, getBreweryTierConfig } from '@/lib/tier-system';
 import ReactMarkdown from 'react-markdown';
+import remarkBreaks from 'remark-breaks';
 import Header from '@/app/components/Header';
 import Logo from '@/app/components/Logo';
+import LikeButton from '@/app/components/LikeButton';
+
+// Helper: Ensure lists render correctly even if user didn't use double line breaks
+const formatMarkdown = (text: string) => {
+  if (!text) return '';
+  return text.replace(/([^\n])\n(\s*-[ \t])/g, '$1\n\n$2');
+};
 
 // Share Button Component (Local)
 function ShareButton({ brew }: { brew: any }) {
@@ -101,6 +109,10 @@ export default function BrewDetailPage() {
   const [errorMsg, setErrorMsg] = useState("");
   const [remixLoading, setRemixLoading] = useState(false);
   const [remixMessage, setRemixMessage] = useState<string | null>(null);
+
+  // Like System State
+  const [likesCount, setLikesCount] = useState(0);
+  const [userHasLiked, setUserHasLiked] = useState(false);
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -276,6 +288,23 @@ export default function BrewDetailPage() {
           .order('created_at', { ascending: false });
         setRatings(ratingData || []);
 
+        // Likes laden (Count & HasLiked)
+        const { count: lCount } = await supabase
+          .from('likes')
+          .select('*', { count: 'exact', head: true })
+          .eq('brew_id', brewData.id);
+        setLikesCount(lCount || 0);
+
+        if (user) {
+          const { data: myLike } = await supabase
+            .from('likes')
+            .select('id')
+            .eq('brew_id', brewData.id)
+            .eq('user_id', user.id)
+            .maybeSingle();
+          setUserHasLiked(!!myLike);
+        }
+
         // Bottles laden
         const { data: bottleData } = await supabase
           .from('bottles')
@@ -436,13 +465,24 @@ export default function BrewDetailPage() {
                     </div>
                  </div>
 
-                 {/* ABV */}
+                 {/* KPI 2: Likes (Moved here) */}
+                 <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 flex flex-col justify-center min-h-[100px] hover:border-zinc-600 transition-colors cursor-pointer group">
+                    <LikeButton 
+                        brewId={brew.id} 
+                        initialCount={likesCount} 
+                        initialIsLiked={userHasLiked} 
+                        mode="card"
+                        className="w-full h-full"
+                    />
+                 </div>
+
+                 {/* KPI 3: Alcohol */}
                  <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 flex flex-col justify-center min-h-[100px]">
                     <div className="text-cyan-500 text-[10px] uppercase font-bold mb-1 tracking-wider">Alkohol</div>
                     <div className="font-black text-3xl text-white">{brew.data?.abv ? brew.data.abv + '%' : '-'}</div>
                  </div>
                  
-                 {/* Type Specific KPI 1 */}
+                 {/* KPI 4: IBU / Special */}
                  <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 flex flex-col justify-center min-h-[100px]">
                      {(!brew.brew_type || brew.brew_type === 'beer') ? (
                          <>
@@ -459,23 +499,6 @@ export default function BrewDetailPage() {
                              <div className="text-pink-500 text-[10px] uppercase font-bold mb-1 tracking-wider">Zucker</div>
                              <div className="font-black text-3xl text-white">{brew.data?.sugar_g_l || '-'}</div>
                          </>
-                     )}
-                 </div>
-
-                 {/* Type Specific KPI 2 (Default Gravity or Other) */}
-                  <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 flex flex-col justify-center min-h-[100px]">
-                     {(!brew.brew_type || brew.brew_type === 'beer') ? (
-                         <>
-                            <div className="text-zinc-500 text-[10px] uppercase font-bold mb-1 tracking-wider">Farbe (EBC)</div>
-                            <div className="font-black text-3xl text-white">{brew.data?.color || '-'}</div>
-                         </>
-                     ) : (
-                        <>
-                            <div className="text-zinc-500 text-[10px] uppercase font-bold mb-1 tracking-wider">Jahrgang</div>
-                            <div className="font-black text-xl text-white truncate text-ellipsis overflow-hidden">
-                                {brew.data?.vintage || '-'}
-                            </div>
-                        </>
                      )}
                  </div>
             </div>
@@ -525,10 +548,17 @@ export default function BrewDetailPage() {
                             <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-1">Ausbeute</span>
                             <span className="text-2xl font-black text-white">{brew.data.efficiency || '-'} <span className="text-sm font-bold text-zinc-600">%</span></span>
                         </div>
-                         <div className="bg-gradient-to-br from-cyan-900/20 to-blue-900/20 rounded-xl p-4 border border-cyan-500/20 flex flex-col items-center text-center justify-center min-h-[100px]">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-400 mb-1">Alkohol (ABV)</span>
-                            <span className="text-2xl font-black text-white">{brew.data.abv || brew.data.est_abv || '-'} <span className="text-sm font-bold text-zinc-600">%</span></span>
-                        </div>
+                         {(!brew.brew_type || brew.brew_type === 'beer') ? (
+                            <div className="bg-zinc-900/40 rounded-xl p-4 border border-zinc-800 flex flex-col items-center text-center justify-center min-h-[100px]">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-1">Farbe</span>
+                                <span className="text-2xl font-black text-white">{brew.data.color || '-'} <span className="text-sm font-bold text-zinc-600">EBC</span></span>
+                            </div>
+                         ) : (
+                            <div className="bg-gradient-to-br from-cyan-900/20 to-blue-900/20 rounded-xl p-4 border border-cyan-500/20 flex flex-col items-center text-center justify-center min-h-[100px]">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-400 mb-1">Alkohol (ABV)</span>
+                                <span className="text-2xl font-black text-white">{brew.data.abv || brew.data.est_abv || '-'} <span className="text-sm font-bold text-zinc-600">%</span></span>
+                            </div>
+                         )}
                     </div>
 
                     {/* BEER Structure */}
@@ -547,11 +577,6 @@ export default function BrewDetailPage() {
                                 <div>
                                     <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-2">Hopfen</p>
                                     <IngredientView value={brew.data.hops} />
-                                    {brew.data.dry_hop_g && brew.data.dry_hop_g > 0 && (
-                                        <div className="mt-2 text-xs text-emerald-400 bg-emerald-950/20 inline-block px-2 py-1 rounded border border-emerald-900/30">
-                                            + {brew.data.dry_hop_g}g Dry Hop
-                                        </div>
-                                    )}
                                 </div>
                                 <div>
                                     <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-2">Hefe</p>
@@ -571,7 +596,13 @@ export default function BrewDetailPage() {
                                     <div><p className="text-zinc-600 text-[10px] uppercase font-bold mb-1">Stammwürze</p><p className="text-white font-mono text-lg">{brew.data.og || '-'} °P</p></div>
                                     <div><p className="text-zinc-600 text-[10px] uppercase font-bold mb-1">Restextrakt</p><p className="text-white font-mono text-lg">{brew.data.fg || '-'} °P</p></div>
                                     <div><p className="text-zinc-600 text-[10px] uppercase font-bold mb-1">Bittere</p><p className="text-white font-mono text-lg">{brew.data.ibu || '-'} IBU</p></div>
-                                    <div><p className="text-zinc-600 text-[10px] uppercase font-bold mb-1">Farbe</p><p className="text-white font-mono text-lg">{brew.data.color || '-'} EBC</p></div>
+                                    <div><p className="text-cyan-400 text-[10px] uppercase font-bold mb-1">Alkohol</p><p className="text-white font-mono text-lg">{brew.data.abv || brew.data.est_abv || '-'} %</p></div>
+                                    {brew.data.carbonation_g_l && (
+                                        <div className="col-span-2 mt-4 pt-4 border-t border-zinc-800/50 flex items-center justify-between">
+                                            <p className="text-zinc-600 text-[10px] uppercase font-bold">Karbonisierung</p>
+                                            <p className="text-white font-mono text-lg">{brew.data.carbonation_g_l} g/l</p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             
@@ -724,11 +755,25 @@ export default function BrewDetailPage() {
                                     <div key={idx} className="relative pl-8">
                                         <div className="absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full bg-cyan-900 border border-cyan-500"></div>
                                         <div className="bg-zinc-900/40 rounded-xl p-5 border border-zinc-800/80">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <span className="text-xs font-black text-cyan-500 bg-cyan-950/30 px-2 py-0.5 rounded border border-cyan-900/50 uppercase tracking-wider">Schritt {idx + 1}</span>
+                                            <div className="flex flex-wrap items-center gap-3 mb-3">
+                                                <span className="text-[10px] font-black text-cyan-500 bg-cyan-950/30 px-2 py-0.5 rounded border border-cyan-900/50 uppercase tracking-wider">
+                                                    Schritt {idx + 1}
+                                                </span>
+                                                {step.title && (
+                                                    <span className="text-white font-bold text-base">{step.title}</span>
+                                                )}
                                             </div>
                                             <div className="prose prose-invert prose-sm max-w-none text-zinc-300 font-medium leading-relaxed [&>p]:my-0">
-                                                <ReactMarkdown>{step.instruction}</ReactMarkdown>
+                                                <ReactMarkdown 
+                                                    remarkPlugins={[remarkBreaks]}
+                                                    components={{
+                                                        ul: ({node, ...props}) => <ul className="list-disc pl-4 space-y-1 my-2" {...props} />,
+                                                        ol: ({node, ...props}) => <ol className="list-decimal pl-4 space-y-1 my-2" {...props} />,
+                                                        li: ({node, ...props}) => <li className="pl-1 marker:text-zinc-500" {...props} />
+                                                    }}
+                                                >
+                                                    {formatMarkdown(step.instruction)}
+                                                </ReactMarkdown>
                                             </div>
                                         </div>
                                     </div>

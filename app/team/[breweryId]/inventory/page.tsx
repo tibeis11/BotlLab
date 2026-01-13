@@ -7,6 +7,7 @@ import QRCode from 'qrcode';
 import { jsPDF } from 'jspdf'; 
 import JSZip from 'jszip';
 import Scanner from '@/app/components/Scanner';
+import CustomSelect from '@/app/components/CustomSelect';
 import { getBreweryTierConfig, type BreweryTierName } from '@/lib/tier-system';
 import { checkAndGrantAchievements } from '@/lib/achievements';
 import { useAchievementNotification } from '@/app/context/AchievementNotificationContext';
@@ -623,6 +624,36 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 		empty: bottles.filter(b => !b.brew_id).length
 	};
 
+	// Options for CustomSelects
+	const scanOptions = [
+		{ value: "EMPTY_ACTION", label: "Flasche leeren", icon: "🗑️" },
+		...brews.map(b => ({ value: b.id, label: b.name, icon: "🍺", group: "Rezept zuweisen" }))
+	];
+
+	const formatOptions = [
+		{ value: "pdf", label: "PDF (Druckoptimiert)", icon: "📄" },
+		{ value: "zip", label: "ZIP (Einzelne PNGs)", icon: "📦" },
+		{ value: "png", label: "PNG (Ein großes Bild)", icon: "🖼️" }
+	];
+
+	const filterStatusOptions = [
+		{ value: "all", label: "Alle Flaschen" },
+		{ value: "filled", label: "Gefüllt" },
+		{ value: "empty", label: "Leer" }
+	];
+
+	const sortOptions = [
+		{ value: "number_asc", label: "Aufsteigend" },
+		{ value: "number_desc", label: "Absteigend" },
+		{ value: "newest", label: "Neueste" },
+		{ value: "oldest", label: "Älteste" }
+	];
+
+	const brewOptions = [
+		{ value: "", label: "(Leer)" },
+		...brews.map(b => ({ value: b.id, label: b.name }))
+	];
+
 	return (
 		<div className="space-y-12 pb-32">
       
@@ -680,25 +711,12 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 									 <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
 											<div>
 												<label className="text-[10px] font-bold uppercase text-cyan-500 tracking-widest block mb-2 px-1">Aktion wählen</label>
-												<div className="relative">
-                                                    <select 
-                                                        value={scanBrewId}
-                                                        onChange={(e) => setScanBrewId(e.target.value)}
-                                                        suppressHydrationWarning
-                                                        className="w-full appearance-none bg-zinc-950 border-2 border-zinc-800 rounded-xl p-3 pl-4 pr-10 text-sm font-bold focus:border-cyan-500 outline-none transition-colors"
-                                                    >
-                                                        <option value="">-- Bitte wählen --</option>
-                                                        <option value="EMPTY_ACTION">🗑️ Flasche leeren</option>
-                                                        <optgroup label="Rezept zuweisen">
-                                                            {brews.map(b => (
-                                                                <option key={b.id} value={b.id}>🍺 {b.name}</option>
-                                                            ))}
-                                                        </optgroup>
-                                                    </select>
-                                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-zinc-500">
-                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                                                    </div>
-                                                </div>
+												<CustomSelect
+													value={scanBrewId}
+													onChange={setScanBrewId}
+													options={scanOptions}
+													placeholder="-- Bitte wählen --"
+												/>
 											</div>
 
 											<div className="rounded-2xl overflow-hidden border-2 border-zinc-800 relative bg-black aspect-square shadow-inner">
@@ -765,20 +783,11 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
                                         <label className="text-[10px] font-bold uppercase tracking-widest text-cyan-500 px-1">
                                             Format
                                         </label>
-                                        <div className="relative">
-                                            <select 
-                                                value={downloadFormat}
-                                                onChange={(e) => setDownloadFormat(e.target.value as any)}
-                                                className="w-full appearance-none bg-zinc-950 border-2 border-zinc-800 text-white rounded-2xl py-3 px-4 font-bold focus:outline-none focus:border-cyan-500 transition-colors cursor-pointer"
-                                            >
-                                                <option value="pdf">📄 PDF (Druckoptimiert)</option>
-                                                <option value="zip">📦 ZIP (Einzelne PNGs)</option>
-                                                <option value="png">🖼️ PNG (Ein großes Bild)</option>
-                                            </select>
-                                            <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-zinc-500">
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                                            </div>
-                                        </div>
+                                        <CustomSelect
+                                            value={downloadFormat}
+                                            onChange={(val) => setDownloadFormat(val as any)}
+                                            options={formatOptions}
+                                        />
                                         <p className="text-[10px] text-zinc-500 leading-tight px-1">
                                             {downloadFormat === 'pdf' && 'Erzeugt ein A4 PDF mit QR-Codes zum direkten Ausdrucken.'}
                                             {downloadFormat === 'zip' && 'Lädt ein Archiv mit einzelnen Bilddateien für jeden Code herunter.'}
@@ -816,7 +825,7 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 				<div className="lg:col-span-8 flex flex-col gap-6">
            
 					{/* Search & Filter Bar */}
-                    <div className="bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 p-3 rounded-3xl flex flex-col xl:flex-row gap-3 shadow-xl">
+                    <div className="relative z-30 bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 p-3 rounded-3xl flex flex-col xl:flex-row gap-3 shadow-xl">
                         {/* Search Input */}
                         <div className="flex-1 relative group">
                             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -833,37 +842,21 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
                         </div>
                         
                         {/* Filters */}
-                        <div className="flex gap-2">
-                            <div className="relative group">
-                                <select 
+                        <div className="flex gap-2 min-w-[300px]">
+                           <div className="flex-1">
+                                <CustomSelect
                                     value={filterStatus}
-                                    onChange={(e) => setFilterStatus(e.target.value as any)}
-                                    className="appearance-none bg-zinc-950 text-white text-xs font-bold pl-4 pr-10 py-3.5 rounded-2xl border-2 border-zinc-800 hover:border-zinc-700 focus:border-cyan-500 focus:ring-0 outline-none transition-all cursor-pointer min-w-[140px]"
-                                >
-                                    <option value="all">Alle Flaschen</option>
-                                    <option value="filled">Gefüllt</option>
-                                    <option value="empty">Leer</option>
-                                </select>
-                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-zinc-500 group-hover:text-cyan-500 transition-colors">
-                                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" /></svg>
-                                </div>
-                            </div>
-
-                            <div className="relative group">
-                                <select 
+                                    onChange={(v) => setFilterStatus(v as any)}
+                                    options={filterStatusOptions}
+                                />
+                           </div>
+                           <div className="flex-1">
+                                <CustomSelect
                                     value={sortOption}
-                                    onChange={(e) => setSortOption(e.target.value as any)}
-                                    className="appearance-none bg-zinc-950 text-white text-xs font-bold pl-4 pr-10 py-3.5 rounded-2xl border-2 border-zinc-800 hover:border-zinc-700 focus:border-cyan-500 focus:ring-0 outline-none transition-all cursor-pointer min-w-[140px]"
-                                >
-                                    <option value="number_asc">Aufsteigend</option>
-                                    <option value="number_desc">Absteigend</option>
-                                    <option value="newest">Neueste</option>
-                                    <option value="oldest">Älteste</option>
-                                </select>
-                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-zinc-500 group-hover:text-cyan-500 transition-colors">
-                                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" /></svg>
-                                </div>
-                            </div>
+                                    onChange={(v) => setSortOption(v as any)}
+                                    options={sortOptions}
+                                />
+                           </div>
                         </div>
                     </div>
            
@@ -895,7 +888,7 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 								{/* Body */}
 								<div className="space-y-2">
 									{filteredBottles.map((bottle) => (
-										<div key={bottle.id} className={`flex items-center rounded-2xl transition-all ${selectedBottles.has(bottle.id) ? 'bg-cyan-500/10 shadow-[0_0_0_1px_rgba(6,182,212,0.3)]' : 'bg-zinc-900/40 hover:bg-zinc-900 hover:shadow-lg hover:scale-[1.01]'}`}>
+										<div key={bottle.id} className={`relative flex items-center rounded-2xl transition-all focus-within:z-10 focus-within:scale-[1.01] ${selectedBottles.has(bottle.id) ? 'bg-cyan-500/10 shadow-[0_0_0_1px_rgba(6,182,212,0.3)]' : 'bg-zinc-900/40 hover:bg-zinc-900 hover:shadow-lg hover:scale-[1.01]'}`}>
 											<div className="w-16 pl-4 sm:pl-8 pr-2 sm:pr-5 py-5 shrink-0">
 												<label className="relative flex items-center justify-center cursor-pointer">
 													<input 
@@ -928,20 +921,11 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 													)}
 											</div>
 											<div className="hidden sm:block w-48 px-5 py-5 shrink-0">
-												<div className="relative group/select">
-													<select 
-														value={bottle.brew_id || ""}
-														onChange={(e) => updateBottleBrew(bottle.id, e.target.value)}
-														suppressHydrationWarning
-														className="w-full appearance-none bg-zinc-950 border-2 border-zinc-800 text-white text-xs font-bold rounded-xl pl-3 pr-8 py-2.5 focus:border-cyan-500 focus:outline-none transition-colors cursor-pointer"
-													>
-														<option value="">(Leer)</option>
-														{brews.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-													</select>
-													<div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-zinc-500 group-focus-within/select:text-cyan-500 transition-colors">
-														<svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" /></svg>
-													</div>
-												</div>
+                                                <CustomSelect 
+                                                    value={bottle.brew_id || ""}
+                                                    onChange={(val) => updateBottleBrew(bottle.id, val)}
+                                                    options={brewOptions}
+                                                />
 											</div>
 											<div className="w-20 sm:w-24 pr-4 sm:pr-8 pl-2 sm:pl-5 py-5 text-right shrink-0">
 													<div className="flex justify-end gap-2">
@@ -1048,16 +1032,12 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 						<h3 className="text-lg font-bold mb-4">Massen-Zuweisung</h3>
 						<p className="text-sm text-zinc-400 mb-4">Wähle ein Rezept für die {selectedBottles.size} ausgewählten Flaschen.</p>
 						
-						<select 
-							value={bulkAssignBrewId}
-							onChange={(e) => setBulkAssignBrewId(e.target.value)}
-							className="w-full bg-black border border-zinc-700 rounded-xl p-3 text-sm focus:border-cyan-500 outline-none mb-4"
-						>
-							<option value="">(Leer / Entleeren)</option>
-							{brews.map(b => (
-								<option key={b.id} value={b.id}>{b.name}</option>
-							))}
-						</select>
+                        <CustomSelect 
+                            value={bulkAssignBrewId}
+                            onChange={setBulkAssignBrewId}
+                            options={brewOptions}
+                            className="mb-4"
+                        />
 
 						<div className="flex gap-3">
 							<button 

@@ -1,10 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 // Das ist unser Funkgerät zur Datenbank
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Use createBrowserClient for client-side usage (handles cookies automatically)
+// Use createClient for server-side usage (fallback, no automatic auth)
+export const supabase = typeof window !== 'undefined'
+  ? createBrowserClient(supabaseUrl, supabaseAnonKey)
+  : createClient(supabaseUrl, supabaseAnonKey);
 
 // Hilfsfunktionen für das Squad-Modell (Brauerei-Gruppen)
 

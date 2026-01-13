@@ -1,13 +1,47 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export interface BrewStep {
     id?: string; // Add temporary ID for UI stability
+    title?: string;
     instruction: string;
 }
 
 interface RecipeStepsEditorProps {
     value: BrewStep[] | undefined;
     onChange: (value: BrewStep[]) => void;
+}
+
+function AutoResizingTextarea({ 
+    value, 
+    onChange, 
+    className, 
+    placeholder 
+}: { 
+    value: string; 
+    onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void; 
+    className?: string; 
+    placeholder?: string;
+}) {
+    const ref = useRef<HTMLTextAreaElement>(null);
+
+    useEffect(() => {
+        const textarea = ref.current;
+        if (textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = `${textarea.scrollHeight}px`;
+        }
+    }, [value]);
+
+    return (
+        <textarea
+            ref={ref}
+            value={value}
+            onChange={onChange}
+            className={`${className} resize-none overflow-hidden`}
+            placeholder={placeholder}
+            rows={1}
+        />
+    );
 }
 
 export function RecipeStepsEditor({ value, onChange }: RecipeStepsEditorProps) {
@@ -29,17 +63,17 @@ export function RecipeStepsEditor({ value, onChange }: RecipeStepsEditorProps) {
     const handleChange = (newSteps: BrewStep[]) => {
         setSteps(newSteps);
         // Strip local IDs before saving to keep JSON clean
-        onChange(newSteps.map(({ instruction }) => ({ instruction })));
+        onChange(newSteps.map(({ instruction, title }) => ({ instruction, title })));
     };
 
-    const updateStep = (index: number, val: string) => {
+    const updateStep = (index: number, key: keyof BrewStep, val: string) => {
         const newSteps = [...steps];
-        newSteps[index] = { ...newSteps[index], instruction: val };
+        newSteps[index] = { ...newSteps[index], [key]: val };
         handleChange(newSteps);
     };
 
     const addStep = () => {
-        handleChange([...steps, { instruction: '', id: Math.random().toString(36).substr(2, 9) }]);
+        handleChange([...steps, { instruction: '', title: '', id: Math.random().toString(36).substr(2, 9) }]);
     };
 
     const removeStep = (index: number) => {
@@ -93,11 +127,17 @@ export function RecipeStepsEditor({ value, onChange }: RecipeStepsEditorProps) {
                              </div>
                         </div>
 
-                        <div className="flex-1">
-                            <textarea
+                        <div className="flex-1 space-y-2">
+                            <input
+                                value={step.title || ''}
+                                onChange={(e) => updateStep(idx, 'title', e.target.value)}
+                                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-2 text-white font-bold placeholder:text-zinc-600 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none text-sm"
+                                placeholder="Titel (optional, z.B. Einmaischen)"
+                            />
+                            <AutoResizingTextarea
                                 value={step.instruction}
-                                onChange={(e) => updateStep(idx, e.target.value)}
-                                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-600 min-h-[80px] text-sm resize-y font-mono"
+                                onChange={(e) => updateStep(idx, 'instruction', e.target.value)}
+                                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-600 min-h-[80px] text-sm font-mono"
                                 placeholder="Beschreibe diesen Schritt... (Markdown wird unterstützt: **fett**, *kursiv*)"
                             />
                         </div>

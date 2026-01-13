@@ -155,6 +155,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 	const [uploadingCap, setUploadingCap] = useState(false);
 	const [generatingName, setGeneratingName] = useState(false);
 	const [generatingDescription, setGeneratingDescription] = useState(false);
+	const [generatingLabelPrompt, setGeneratingLabelPrompt] = useState(false);
 	const [analyzingRecipe, setAnalyzingRecipe] = useState(false);
 	const [optimizationSuggestions, setOptimizationSuggestions] = useState<string[]>([]);
 	const [message, setMessage] = useState<string | null>(null);
@@ -708,6 +709,36 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 		}
 	}
 
+	async function handleGenerateLabelPrompt() {
+		setGeneratingLabelPrompt(true);
+		setMessage(null);
+
+		try {
+			const response = await fetch('/api/generate-text', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					type: 'label_prompt',
+					context: brew.name, // Pass name as context
+					brewType: brew.brew_type,
+					style: brew.style
+				})
+			});
+
+			const data = await response.json();
+			if (data.text) {
+				setExtraPrompt(data.text);
+				setMessage('Label-Prompt generiert! ✨');
+			} else {
+				setMessage(data.error || 'Prompt-Generierung fehlgeschlagen.');
+			}
+		} catch (e: any) {
+			setMessage(e?.message || 'Prompt-Generierung fehlgeschlagen.');
+		} finally {
+			setGeneratingLabelPrompt(false);
+		}
+	}
+
 	async function handleFileUpload(e: ChangeEvent<HTMLInputElement>) {
 		const file = e.target.files?.[0];
 		if (!file) return;
@@ -909,7 +940,17 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                 <div className="space-y-6">
                                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                                         <div className="lg:col-span-8">
-                                            <label className="text-xs uppercase font-bold text-cyan-400 mb-2 block">Name</label>
+                                            <div className="flex items-center justify-between">
+                                                <label className="text-xs uppercase font-bold text-cyan-400 mb-2 block">Name</label>
+                                                <button 
+                                                    onClick={handleGenerateName}
+                                                    disabled={generatingName}
+                                                    className="text-[10px] uppercase font-bold text-cyan-400 hover:text-cyan-300 disabled:opacity-50 flex items-center gap-1 transition mb-2"
+                                                >
+                                                    {generatingName ? <span className="animate-spin">⏳</span> : <span>✨</span>}
+                                                    KI-Vorschlag
+                                                </button>
+                                            </div>
                                             <div className="flex items-center w-full bg-zinc-900 border border-zinc-800 rounded-xl transition focus-within:border-cyan-500 focus-within:ring-2 focus-within:ring-cyan-500/20 overflow-hidden pr-1.5">
                                                 <input
                                                     value={brew.name}
@@ -917,14 +958,6 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                     className="flex-1 bg-transparent border-none px-3 py-2.5 text-white outline-none placeholder:text-zinc-600 min-w-0"
                                                     placeholder="z.B. Galaxy IPA"
                                                 />
-                                                <button
-                                                    onClick={handleGenerateName}
-                                                    disabled={generatingName}
-                                                    className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-sm font-bold w-9 h-9 rounded-lg transition disabled:opacity-50 flex items-center justify-center whitespace-nowrap"
-                                                    title={generatingName ? 'Wird generiert...' : 'KI-Name generieren'}
-                                                >
-                                                    {generatingName ? '⚡' : '✨'}
-                                                </button>
                                             </div>
                                         </div>
                                         <div className="lg:col-span-4">
@@ -939,24 +972,24 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                     </div>
 
                                     <div>
-                                        <label className="text-xs uppercase font-bold text-zinc-500 mb-2 block">Beschreibung</label>
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-xs uppercase font-bold text-zinc-500 mb-2 block">Beschreibung</label>
+                                            <button 
+                                                onClick={handleGenerateDescription}
+                                                disabled={generatingDescription}
+                                                className="text-[10px] uppercase font-bold text-purple-400 hover:text-purple-300 disabled:opacity-50 flex items-center gap-1 transition mb-2"
+                                            >
+                                                {generatingDescription ? <span className="animate-spin">⏳</span> : <span>✨</span>}
+                                                KI-Vorschlag
+                                            </button>
+                                        </div>
                                         <div className="relative flex flex-col w-full bg-zinc-900 border border-zinc-800 rounded-xl transition focus-within:border-purple-500 focus-within:ring-2 focus-within:ring-purple-500/20 overflow-hidden">
                                             <textarea
                                                 value={brew.description || ''}
                                                 onChange={(e) => handleField('description', e.target.value)}
-                                                className="w-full bg-transparent border-none px-3 py-3 text-white min-h-[120px] outline-none placeholder:text-zinc-600 resize-none flex-1 pb-12"
+                                                className="w-full bg-transparent border-none px-3 py-3 text-white min-h-[120px] outline-none placeholder:text-zinc-600 resize-none flex-1"
                                                 placeholder="Aromen, Malz, Hopfen, Frucht, Farbe..."
                                             />
-                                            <div className="absolute bottom-2 right-2">
-                                                <button
-                                                    onClick={handleGenerateDescription}
-                                                    disabled={generatingDescription}
-                                                    className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white text-sm font-bold w-9 h-9 rounded-lg transition disabled:opacity-50 flex items-center justify-center shadow-lg"
-                                                    title={generatingDescription ? 'Wird generiert...' : 'KI-Beschreibung generieren'}
-                                                >
-                                                    {generatingDescription ? '⚡' : '✨'}
-                                                </button>
-                                            </div>
                                         </div>
                                     </div>
                                     
@@ -1014,6 +1047,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                 <NumberInput label="Stammwürze (°P)" value={brew.data?.og || ''} onChange={(val) => updateData('og', val)} placeholder="12.0" step={0.1}/>
                                                 <NumberInput label="Restextrakt (°P)" value={brew.data?.fg || ''} onChange={(val) => updateData('fg', val)} placeholder="3.0" step={0.1}/>
                                                 <NumberInput label="Farbe (EBC)" value={brew.data?.color || ''} onChange={(val) => updateData('color', val)} placeholder="10" />
+                                                <NumberInput label="Karbonisierung (g/l)" value={brew.data?.carbonation_g_l || ''} onChange={(val) => updateData('carbonation_g_l', val)} placeholder="5.0" step={0.1} />
                                             </div>
                                         </div>
 
@@ -1062,9 +1096,6 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                         value={brew.data?.hops} 
                                                         onChange={(val) => updateData('hops', val)} 
                                                     />
-                                                </div>
-                                                <div>
-                                                    <NumberInput label="Dry Hop (g)" value={brew.data?.dry_hop_g || ''} onChange={(val) => updateData('dry_hop_g', val)} placeholder="0" />
                                                 </div>
                                             </div>
                                         </div>
@@ -1397,7 +1428,17 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-xs uppercase font-bold text-purple-400">Zusatz-Prompt (optional)</label>
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-xs uppercase font-bold text-purple-400">Zusatz-Prompt (optional)</label>
+                                        <button 
+                                            onClick={handleGenerateLabelPrompt}
+                                            disabled={generatingLabelPrompt || !brew.name}
+                                            className="text-[10px] uppercase font-bold text-purple-400 hover:text-purple-300 disabled:opacity-50 flex items-center gap-1 transition"
+                                        >
+                                            {generatingLabelPrompt ? <span className="animate-spin">⏳</span> : <span>✨</span>}
+                                            KI-Vorschlag
+                                        </button>
+                                    </div>
                                     <textarea
                                         value={extraPrompt}
                                         onChange={(e) => setExtraPrompt(e.target.value)}
