@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import Link from 'next/link';
 import { getTierConfig, getBreweryTierConfig } from '@/lib/tier-system';
+import ReactMarkdown from 'react-markdown';
 import Header from '@/app/components/Header';
 import Logo from '@/app/components/Logo';
 
@@ -413,8 +414,8 @@ export default function BrewDetailPage() {
                   <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 flex flex-col justify-center min-h-[100px]">
                      {(!brew.brew_type || brew.brew_type === 'beer') ? (
                          <>
-                            <div className="text-zinc-500 text-[10px] uppercase font-bold mb-1 tracking-wider">Farbe (SRM)</div>
-                            <div className="font-black text-3xl text-white">{brew.data?.srm || '-'}</div>
+                            <div className="text-zinc-500 text-[10px] uppercase font-bold mb-1 tracking-wider">Farbe (EBC)</div>
+                            <div className="font-black text-3xl text-white">{brew.data?.color || '-'}</div>
                          </>
                      ) : (
                         <>
@@ -674,7 +675,9 @@ export default function BrewDetailPage() {
                                             <div className="flex items-center gap-2 mb-2">
                                                 <span className="text-xs font-black text-cyan-500 bg-cyan-950/30 px-2 py-0.5 rounded border border-cyan-900/50 uppercase tracking-wider">Schritt {idx + 1}</span>
                                             </div>
-                                            <p className="text-zinc-300 font-medium leading-relaxed whitespace-pre-wrap">{step.instruction}</p>
+                                            <div className="prose prose-invert prose-sm max-w-none text-zinc-300 font-medium leading-relaxed [&>p]:my-0">
+                                                <ReactMarkdown>{step.instruction}</ReactMarkdown>
+                                            </div>
                                         </div>
                                     </div>
                                 ))}

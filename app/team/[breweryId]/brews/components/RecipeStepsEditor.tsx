@@ -97,8 +97,8 @@ export function RecipeStepsEditor({ value, onChange }: RecipeStepsEditorProps) {
                             <textarea
                                 value={step.instruction}
                                 onChange={(e) => updateStep(idx, e.target.value)}
-                                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-600 min-h-[80px] text-sm resize-y"
-                                placeholder={`Schritt ${idx + 1}...`}
+                                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-600 min-h-[80px] text-sm resize-y font-mono"
+                                placeholder="Beschreibe diesen Schritt... (Markdown wird unterstützt: **fett**, *kursiv*)"
                             />
                         </div>
 
