@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { createClient } from '@supabase/supabase-js';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabase';
 import { getTierConfig, getBreweryTierConfig } from '@/lib/tier-system';
 import ReactMarkdown from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
@@ -113,11 +113,6 @@ export default function BrewDetailPage() {
   // Like System State
   const [likesCount, setLikesCount] = useState(0);
   const [userHasLiked, setUserHasLiked] = useState(false);
-
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
 
   async function handleRemix() {
     setRemixMessage(null);
@@ -289,11 +284,8 @@ export default function BrewDetailPage() {
         setRatings(ratingData || []);
 
         // Likes laden (Count & HasLiked)
-        const { count: lCount } = await supabase
-          .from('likes')
-          .select('*', { count: 'exact', head: true })
-          .eq('brew_id', brewData.id);
-        setLikesCount(lCount || 0);
+        // Optimized: Uses denormalized count from brews table
+        setLikesCount(brewData.likes_count || 0);
 
         if (user) {
           const { data: myLike } = await supabase

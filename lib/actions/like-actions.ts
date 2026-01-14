@@ -36,16 +36,19 @@ export async function getLikeStatus(brewId: string) {
   const supabase = await getSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
 
-  // 1. Get total count
-  const { count, error } = await supabase
-    .from('likes')
-    .select('*', { count: 'exact', head: true })
-    .eq('brew_id', brewId);
+  // 1. Get total count from BREWS table (Performant & Private RLS safe)
+  const { data: brew, error } = await supabase
+    .from('brews')
+    .select('likes_count')
+    .eq('id', brewId)
+    .single();
 
   if (error) {
-    console.error("Error fetching like count:", error);
-    return { count: 0, isLiked: false };
+    console.error("Error fetching brew like count:", error);
+    // Continue with 0, don't break
   }
+  
+  const count = brew?.likes_count ?? 0;
 
   // 2. Check if user liked
   let isLiked = false;

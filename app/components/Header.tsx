@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Logo from "./Logo";
+import NotificationBell from "./NotificationBell";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -76,6 +77,8 @@ export default function Header() {
           {loading ? (
             <div className="w-10 h-10 bg-zinc-800 rounded-full animate-pulse"></div>
           ) : user ? (
+            <>
+            <NotificationBell />
             <div 
               className="relative"
               onMouseEnter={() => setShowMenu(true)}
@@ -112,7 +115,7 @@ export default function Header() {
                       📊 Dashboard
                     </Link>
                     <Link
-                      href="/dashboard/profile"
+                      href="/dashboard/account"
                       className="block px-4 py-3 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition"
                     >
                       ⚙️ Einstellungen
@@ -128,6 +131,7 @@ export default function Header() {
                 </div>
               )}
             </div>
+            </>
           ) : (
             <>
               <Link 
@@ -146,21 +150,24 @@ export default function Header() {
           )}
         </div>
 
-        {/* Mobile Menu Button */}
-        <button 
-          className="md:hidden p-2 text-zinc-400 hover:text-white"
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        >
-          {isMobileMenuOpen ? (
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-            </svg>
-          )}
-        </button>
+        {/* Mobile Menu Button & Notification */}
+        <div className="md:hidden flex items-center gap-4">
+          {user && <NotificationBell />}
+          <button 
+            className="p-2 text-zinc-400 hover:text-white"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            {isMobileMenuOpen ? (
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+              </svg>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Mobile Navigation */}
@@ -218,7 +225,7 @@ export default function Header() {
                  <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)} className="p-3 rounded-xl text-sm font-bold text-zinc-400 hover:text-white hover:bg-zinc-900 transition flex items-center gap-3">
                    <span>📊</span> Dashboard
                  </Link>
-                 <Link href="/dashboard/profile" onClick={() => setIsMobileMenuOpen(false)} className="p-3 rounded-xl text-sm font-bold text-zinc-400 hover:text-white hover:bg-zinc-900 transition flex items-center gap-3">
+                 <Link href="/dashboard/account" onClick={() => setIsMobileMenuOpen(false)} className="p-3 rounded-xl text-sm font-bold text-zinc-400 hover:text-white hover:bg-zinc-900 transition flex items-center gap-3">
                    <span>⚙️</span> Einstellungen
                  </Link>
                  <button onClick={handleLogout} className="w-full text-left p-3 rounded-xl text-sm font-bold text-red-400 hover:bg-red-500/10 transition flex items-center gap-3">

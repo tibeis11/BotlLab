@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "./context/AuthContext";
 import { AchievementNotificationProvider } from "./context/AchievementNotificationContext";
+import { UserNotificationProvider } from "./context/UserNotificationContext";
 import CookieBanner from "./components/CookieBanner";
 
 const geistSans = Geist({
@@ -52,10 +53,12 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}
       >
         <AuthProvider>
-          <AchievementNotificationProvider>
-            {children}
-            <CookieBanner />
-          </AchievementNotificationProvider>
+          <UserNotificationProvider>
+            <AchievementNotificationProvider>
+              {children}
+              <CookieBanner />
+            </AchievementNotificationProvider>
+          </UserNotificationProvider>
         </AuthProvider>
       </body>
     </html>

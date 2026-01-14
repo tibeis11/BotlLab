@@ -19,7 +19,7 @@ type Brew = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   breweries?: any; 
   ratings?: { rating: number }[] | null;
-  likes?: { count: number }[] | null;
+  likes_count?: number; 
   user_has_liked?: boolean;
 };
 
@@ -44,7 +44,7 @@ export default function DiscoverPage() {
     // 2. Fetch public brews
     const { data, error } = await supabase
       .from('brews')
-      .select('id,name,style,image_url,created_at,user_id,brew_type,data,remix_parent_id,breweries(name,logo_url),ratings(rating),likes(count)')
+      .select('id,name,style,image_url,created_at,user_id,brew_type,data,remix_parent_id,breweries(name,logo_url),ratings(rating),likes_count')
       .eq('is_public', true)
       .order('created_at', { ascending: false });
     

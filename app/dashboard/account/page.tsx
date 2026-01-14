@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase, getUserBreweries } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
 import Link from 'next/link';
@@ -17,7 +17,7 @@ export default function AccountPage() {
 	const router = useRouter();
 
     // Menu State
-    const [activeTab, setActiveTab] = useState<'profile' | 'access' | 'security' | 'danger'>('profile');
+    const [activeTab, setActiveTab] = useState<'profile' | 'access' | 'security' | 'teams' | 'danger'>('profile');
 
     // --- PROFILE STATE ---
     const [savingProfile, setSavingProfile] = useState(false);
@@ -56,6 +56,11 @@ export default function AccountPage() {
 	const [newEmail, setNewEmail] = useState('');
 	const [emailLoading, setEmailLoading] = useState(false);
 
+    // --- TEAMS STATE ---
+    const [myTeams, setMyTeams] = useState<any[]>([]);
+    const [joinCode, setJoinCode] = useState('');
+    const [joinLoading, setJoinLoading] = useState(false);
+
 	useEffect(() => {
 		if (!authLoading) {
 			if (!user) {
@@ -74,6 +79,10 @@ export default function AccountPage() {
         // Load Profile Data
         await loadProfile(user.id);
         
+        // Load Teams
+        const teams = await getUserBreweries(user.id);
+        setMyTeams(teams);
+
         setLoading(false);
     }
 
@@ -192,6 +201,72 @@ export default function AccountPage() {
 	}
 
 
+    // --- TEAM HANDLERS ---
+
+    async function handleJoinTeam(e: React.FormEvent) {
+        e.preventDefault();
+        if(!joinCode.trim() || !user) return;
+        setJoinLoading(true);
+
+        try {
+             // 1. Check if brewery exists by invite code
+             const { data: brewery, error: fetchError } = await supabase
+                 .from('breweries')
+                 .select('id, name')
+                 .eq('invite_code', joinCode.trim())
+                 .single();
+
+             if (fetchError || !brewery) throw new Error("Squad nicht gefunden. Code prüfen.");
+
+             // 2. Join as Member
+             const { error: joinError } = await supabase
+                .from('brewery_members')
+                .insert({
+                    brewery_id: brewery.id,
+                    user_id: user.id,
+                    role: 'member'
+                });
+            
+             if (joinError) {
+                 if (joinError.code === '23505') throw new Error(`Du bist bereits Mitglied im Team "${brewery.name}".`);
+                 throw joinError;
+             }
+
+             alert(`Erfolgreich dem Team "${brewery.name}" beigetreten! 🎉`);
+             setJoinCode('');
+             
+             // Refresh list
+             const teams = await getUserBreweries(user.id);
+             setMyTeams(teams);
+
+        } catch (err: any) {
+            alert(err.message || "Fehler beim Beitreten.");
+        } finally {
+            setJoinLoading(false);
+        }
+    }
+
+    async function handleLeaveTeam(breweryId: string, breweryName: string) {
+        if(!user) return;
+        if(!confirm(`Möchtest du das Team "${breweryName}" wirklich verlassen?`)) return;
+
+        try {
+            const { error } = await supabase
+                .from('brewery_members')
+                .delete()
+                .eq('brewery_id', breweryId)
+                .eq('user_id', user.id);
+
+            if(error) throw error;
+
+            // Optimistic Remove
+            setMyTeams(prev => prev.filter(t => t.id !== breweryId));
+
+        } catch(e: any) {
+            alert("Fehler: " + e.message);
+        }
+    }
+
     // --- ACCOUNT HANDLERS ---
 
 	async function handleUpdatePassword(e: React.FormEvent) {
@@ -264,6 +339,7 @@ export default function AccountPage() {
 
     const menuItems = [
         { id: 'profile', label: 'Profil', icon: '👤' },
+        { id: 'teams', label: 'Teams', icon: '🏭' },
         { id: 'access', label: 'Zugangsdaten', icon: '📧' },
         { id: 'security', label: 'Sicherheit', icon: '🔒' },
         { id: 'danger', label: 'Account', icon: '⚠️' }
@@ -529,6 +605,97 @@ export default function AccountPage() {
                                             </div>
                                         </div>
                                     </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'teams' && (
+                             <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-8">
+                                
+                                {/* 1. Join Section */}
+                                <div className="bg-gradient-to-br from-cyan-950/20 to-blue-950/20 border border-cyan-500/20 rounded-2xl p-6 relative overflow-hidden">
+                                     <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
+                                     
+                                     <h2 className="text-xl font-bold text-white mb-2 relative">Team beitreten</h2>
+                                     <p className="text-sm text-zinc-400 mb-6 max-w-lg relative">
+                                        Gib einen Einladungs-Code ein, um einem bestehenden Squad beizutreten.
+                                     </p>
+
+                                     <form onSubmit={handleJoinTeam} className="flex gap-3 relative z-10">
+                                        <input
+                                            type="text"
+                                            value={joinCode}
+                                            onChange={(e) => setJoinCode(e.target.value)}
+                                            placeholder="Einladungs-Code eingeben..."
+                                            className="flex-1 bg-black/50 border border-zinc-700 px-4 py-3 rounded-xl focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition text-white placeholder-zinc-600 font-mono text-sm"
+                                        />
+                                        <button
+                                            type="submit"
+                                            disabled={!joinCode || joinLoading}
+                                            className="bg-cyan-500 text-black font-black px-6 py-3 rounded-xl hover:bg-cyan-400 transition disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95 shadow-lg shadow-cyan-900/20 whitespace-nowrap"
+                                        >
+                                            {joinLoading ? 'Suche...' : 'Beitreten'}
+                                        </button>
+                                     </form>
+                                     <p className="text-[10px] text-zinc-500 mt-2 pl-1">
+                                        Frag den Admin eines Teams nach dem Code.
+                                     </p>
+                                </div>
+
+                                {/* 2. List Section */}
+                                <div>
+                                    <h2 className="text-lg font-bold text-white mb-4">Deine Teams</h2>
+                                    
+                                    {myTeams.length === 0 ? (
+                                        <div className="text-center py-10 bg-zinc-900/30 rounded-2xl border border-zinc-800/50 border-dashed">
+                                            <p className="text-4xl mb-3">🏚️</p>
+                                            <p className="text-zinc-400 font-medium">Du bist noch in keinem Team.</p>
+                                        </div>
+                                    ) : (
+                                        <div className="grid gap-4">
+                                            {myTeams.map(team => (
+                                                <div key={team.id} className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl flex items-center justify-between group hover:border-zinc-700 transition">
+                                                    <div className="flex items-center gap-4">
+                                                        {team.logo_url ? (
+                                                            <img src={team.logo_url} className="w-12 h-12 rounded-xl object-cover bg-black" />
+                                                        ) : (
+                                                            <div className="w-12 h-12 rounded-xl bg-zinc-800 flex items-center justify-center text-xl">
+                                                                🏭
+                                                            </div>
+                                                        )}
+                                                        <div>
+                                                            <h3 className="font-bold text-white group-hover:text-cyan-400 transition">{team.name}</h3>
+                                                            <p className="text-xs text-zinc-500 flex items-center gap-2">
+                                                                <span className="uppercase tracking-wider font-bold bg-zinc-800 px-1.5 py-0.5 rounded text-[10px] text-zinc-400">
+                                                                    {team.userRole === 'admin' ? 'Admin' : 'Mitglied'}
+                                                                </span>
+                                                                {team.location && <span>• {team.location}</span>}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-center gap-2">
+                                                        <Link 
+                                                            href={`/team/${team.id}`}
+                                                            className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition"
+                                                            title="Zum Dashboard"
+                                                        >
+                                                            ➡️
+                                                        </Link>
+                                                        {team.userRole !== 'owner' && (
+                                                            <button
+                                                                onClick={() => handleLeaveTeam(team.id, team.name)}
+                                                                className="p-2 text-zinc-600 hover:text-red-400 hover:bg-zinc-800 rounded-lg transition"
+                                                                title="Team verlassen"
+                                                            >
+                                                                🚪
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )}

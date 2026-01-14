@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import Logo from '../../components/Logo';
+import NotificationBell from '../../components/NotificationBell';
 import { supabase, getActiveBrewery, getUserBreweries } from '@/lib/supabase';
 import { useAuth } from '@/app/context/AuthContext';
 import { getTierConfig } from '@/lib/tier-system';
@@ -109,8 +110,8 @@ export default function AdminHeader() {
   }
 
   const tabs = [
-    { name: 'Dashboard', path: '/dashboard', icon: '📊' },
     { name: 'Sammlung', path: '/dashboard/collection', icon: '🏅' },
+    { name: 'Favoriten', path: '/dashboard/favorites', icon: '❤️' },
     { name: 'Achievements', path: '/dashboard/achievements', icon: '🏆' },
   ];
 
@@ -125,49 +126,85 @@ export default function AdminHeader() {
 
           {/* Left Desktop Navigation (External Context) */}
           <div className="hidden lg:flex gap-6 text-sm font-medium items-center border-l border-zinc-800 pl-6 h-8">
-            {breweryId && (
-              <div 
-                className="relative group"
-                onMouseEnter={() => setShowBreweryMenu(true)}
-                onMouseLeave={() => setShowBreweryMenu(false)}
-              >
-                <div className="flex items-center gap-1">
-                    <Link href={`/team/${breweryId}`} className="group-hover:text-cyan-400 text-zinc-400 transition flex items-center gap-2">
-                        🏭 <span className={userBreweries.length > 1 ? 'border-b border-dashed border-zinc-600' : ''}>{activeBreweryName || 'Brauerei'}</span>
-                    </Link>
-                    {userBreweries.length > 1 && (
-                        <span className="text-[10px] text-zinc-600 ml-1">▼</span>
-                    )}
-                </div>
-                
-                {showBreweryMenu && userBreweries.length > 1 && (
-                    <div className="absolute left-0 top-full pt-2 w-48 z-50">
-                         <div className="bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-1">
-                             <p className="px-3 py-2 text-[10px] text-zinc-500 uppercase font-bold border-b border-zinc-800 bg-zinc-950">Team wechseln</p>
-                             {userBreweries.map(b => (
-                                 <button
-                                    key={b.id}
-                                    onClick={() => handleSwitchBrewery(b.id)}
-                                    className={`w-full text-left px-3 py-2 text-sm hover:bg-zinc-800 transition flex items-center gap-2 ${breweryId === b.id ? 'text-cyan-400 font-bold bg-zinc-800/50' : 'text-zinc-300'}`}
-                                 >
-                                    {breweryId === b.id && <span className="text-cyan-500">●</span>}
-                                    {b.name}
-                                 </button>
-                             ))}
-                        </div>
-                    </div>
-                )}
-              </div>
-            )}
-            
-            <Link href="/discover" className="hover:text-cyan-400 text-zinc-400 transition flex items-center gap-2">
-              🌍 Entdecken
+            <Link href="/discover" className="hover:text-cyan-400 text-zinc-400 transition flex items-center gap-2" title="Entdecken">
+              <span>🌍</span>
+              <span className="hidden xl:inline">Entdecken</span>
             </Link>
           </div>
         </div>
         
         {/* Desktop Navigation (Dashboard Context) */}
         <div className="hidden lg:flex gap-1 text-sm font-medium items-center">
+          
+          {/* Manual Dashboard Link */}
+          <Link 
+            href="/dashboard" 
+            title="Dashboard"
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${pathname === '/dashboard' ? 'bg-cyan-950/50 text-cyan-400' : 'text-zinc-500 hover:text-white hover:bg-zinc-800/50'}`}
+          >
+            <span>📊</span>
+            <span className="hidden xl:inline">Dashboard</span>
+          </Link>
+
+          {/* Team Dropdown (Moved from Left) */}
+          {breweryId && (
+              <div 
+                className="relative group"
+                onMouseEnter={() => setShowBreweryMenu(true)}
+                onMouseLeave={() => setShowBreweryMenu(false)}
+              >
+                <button 
+                  title="Team"
+                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${pathname.startsWith('/team') ? 'bg-cyan-950/50 text-cyan-400' : 'text-zinc-500 hover:text-white hover:bg-zinc-800/50'}`}
+                >
+                    <span>🏭</span>
+                    <span className="hidden xl:inline">Team</span>
+                    <span className="text-[10px] ml-1">▼</span>
+                </button>
+                
+                {showBreweryMenu && (
+                    <div className="absolute left-0 top-full pt-2 w-64 z-50">
+                         <div className="bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-1">
+                             
+                             {/* Active Team Section */}
+                             <div className="p-1">
+                                <div className="p-3 rounded-lg bg-zinc-900 border border-zinc-800/50">
+                                    <p className="text-[10px] text-zinc-500 uppercase font-black tracking-wider mb-1">
+                                        Aktives Team
+                                    </p>
+                                    <p className="font-bold text-white text-sm truncate mb-3">
+                                        {activeBreweryName || 'Brauerei'}
+                                    </p>
+                                    <Link 
+                                        href={`/team/${breweryId}`} 
+                                        className="block w-full text-center py-2 rounded-lg bg-cyan-950 hover:bg-cyan-900 text-cyan-400 font-bold text-xs transition border border-cyan-900/50 hover:border-cyan-700"
+                                    >
+                                        Team-Dashboard öffnen
+                                    </Link>
+                                </div>
+                             </div>
+
+                             {userBreweries.length > 1 && (
+                                <div className="bg-zinc-900/50 border-t border-zinc-800 p-1">
+                                 <p className="px-3 py-2 text-[10px] text-zinc-600 uppercase font-bold">Zu anderem Team wechseln</p>
+                                 {userBreweries.filter(b => b.id !== breweryId).map(b => (
+                                     <button
+                                        key={b.id}
+                                        onClick={() => handleSwitchBrewery(b.id)}
+                                        className="w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-zinc-800 hover:text-white text-zinc-400 transition flex items-center gap-2 group"
+                                     >
+                                        <span className="opacity-50 group-hover:opacity-100 transition">↳</span>
+                                        <span className="truncate">{b.name}</span>
+                                     </button>
+                                 ))}
+                                </div>
+                             )}
+                        </div>
+                    </div>
+                )}
+              </div>
+          )}
+
           {tabs.map(tab => {
             // Dashboard root matches only exact, others match prefix
             const isActive = tab.path === '/dashboard' 
@@ -178,15 +215,18 @@ export default function AdminHeader() {
               <Link 
                 key={tab.path} 
                 href={tab.path} 
+                title={tab.name}
                 className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${isActive ? 'bg-cyan-950/50 text-cyan-400' : 'text-zinc-500 hover:text-white hover:bg-zinc-800/50'}`}
               >
                 <span>{tab.icon}</span>
-                <span>{tab.name}</span>
+                <span className="hidden xl:inline">{tab.name}</span>
               </Link>
             );
           })}
           
           <div className="h-4 w-px bg-zinc-800 mx-2"></div>
+
+          <NotificationBell />
           
           {/* Profile Menu */}
           <div 
@@ -202,7 +242,7 @@ export default function AdminHeader() {
                   <div className="absolute inset-0 border-2 rounded-full opacity-50" style={{ borderColor: tierData?.color || '#555' }}></div>
                   <img src={tierData?.path || '/tiers/lehrling.png'} alt="Avatar" className="w-full h-full object-cover" />
               </div>
-              <div className="flex flex-col items-start leading-none">
+              <div className="hidden xl:flex flex-col items-start leading-none">
                 <span className="truncate max-w-[120px] font-bold text-white text-sm">
                     {userName || 'Profil'}
                 </span>
@@ -223,17 +263,10 @@ export default function AdminHeader() {
                   </div>
 
                   <Link 
-                    href="/dashboard/profile"
-                    className="block w-full px-4 py-3 text-white hover:bg-zinc-800 transition text-sm font-medium flex items-center gap-2"
-                  >
-                    ✏️ Profil bearbeiten
-                  </Link>
-
-                  <Link 
                     href="/dashboard/account"
                     className="block w-full px-4 py-3 text-white hover:bg-zinc-800 transition text-sm font-medium flex items-center gap-2"
                   >
-                    🔐 Kontoeinstellungen
+                    ⚙️ Einstellungen
                   </Link>
 
                   {userId && (
@@ -259,20 +292,23 @@ export default function AdminHeader() {
         </div>
 
         {/* Mobile Menu Button */}
-        <button 
-          className="lg:hidden p-2 text-zinc-400 hover:text-white"
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        >
-          {isMobileMenuOpen ? (
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-            </svg>
-          )}
-        </button>
+        <div className="flex items-center gap-2 lg:hidden">
+          <NotificationBell />
+          <button 
+            className="p-2 text-zinc-400 hover:text-white"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            {isMobileMenuOpen ? (
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+              </svg>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Mobile Navigation */}
@@ -280,6 +316,16 @@ export default function AdminHeader() {
         <div className="lg:hidden absolute w-full bg-zinc-950 border-b border-zinc-800 animate-in slide-in-from-top-2 fade-in duration-200 shadow-2xl z-40 max-h-[90vh] overflow-y-auto left-0 top-full">
             <div className="p-4 space-y-2">
             <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest px-2 mb-2">Persönlicher Bereich</p>
+            
+            <Link 
+                href="/dashboard"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`p-3 rounded-xl text-sm font-bold transition-all flex items-center gap-3 ${pathname === '/dashboard' ? 'bg-cyan-950/50 text-cyan-400 border border-cyan-900/50' : 'text-zinc-400 border border-transparent hover:bg-zinc-900'}`}
+            >
+                <span>📊</span>
+                <span>Dashboard</span>
+            </Link>
+
             {tabs.map(tab => {
                 const isActive = pathname === tab.path;
                 return (
@@ -313,34 +359,42 @@ export default function AdminHeader() {
             <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest px-2 mb-2">Team Bereich</p>
             
             {userBreweries.length > 0 ? (
-                <>
+                <div className="space-y-1 px-1">
+                    {/* Active Team */}
                     <Link 
                         href={`/team/${breweryId}`}
                         onClick={() => setIsMobileMenuOpen(false)} 
-                        className="p-3 rounded-xl text-sm font-bold bg-zinc-900/50 hover:bg-zinc-900 transition flex items-center justify-between gap-3 text-cyan-400 border border-zinc-800 mb-2"
+                        className="w-full p-3 rounded-xl bg-gradient-to-r from-cyan-950/40 to-transparent border border-cyan-900/30 flex items-center justify-between group active:scale-[0.98] transition-all"
                     >
-                        <div className="flex items-center gap-3">
-                            <span>🏭</span>
-                            <span>{activeBreweryName}</span>
-                        </div>
-                        <span className="text-xs opacity-50">Öffnen →</span>
-                    </Link>
-                    
-                    {userBreweries.length > 1 && (
-                            <div className="pl-4 border-l border-zinc-800 ml-2 space-y-1 mt-2">
-                                <p className="text-[10px] uppercase text-zinc-600 font-bold mb-1 pl-2">Wechseln zu:</p>
-                                {userBreweries.filter(b => b.id !== breweryId).map(b => (
-                                <button
-                                    key={b.id}
-                                    onClick={() => handleSwitchBrewery(b.id)}
-                                    className="w-full text-left p-2 rounded-lg hover:bg-zinc-900 transition flex items-center gap-2 text-sm font-medium text-zinc-500 hover:text-white"
-                                >
-                                    <span>↳</span> {b.name}
-                                </button>
-                                ))}
+                         <div className="flex items-center gap-3">
+                            <span className="text-lg">🏭</span>
+                            <div>
+                                <span className="block text-cyan-400 font-bold text-sm leading-none mb-0.5">{activeBreweryName}</span>
+                                <span className="text-[10px] text-cyan-600 font-medium uppercase tracking-wide">Aktives Team</span>
                             </div>
-                    )}
-                </>
+                        </div>
+                        <span className="w-8 h-8 rounded-full bg-cyan-900/20 flex items-center justify-center text-cyan-400 group-hover:bg-cyan-500 group-hover:text-white transition shadow-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                            </svg>
+                        </span>
+                    </Link>
+
+                    {/* Other Teams */}
+                    {userBreweries.filter(b => b.id !== breweryId).map(b => (
+                        <button
+                            key={b.id}
+                            onClick={() => handleSwitchBrewery(b.id)}
+                            className="w-full p-2 px-3 rounded-lg text-sm text-zinc-400 hover:text-white hover:bg-zinc-800/80 transition flex items-center justify-between group"
+                        >
+                            <div className="flex items-center gap-3 opacity-60 group-hover:opacity-100 transition">
+                                <span className="text-base grayscale text-zinc-500">🏠</span>
+                                <span className="font-medium">{b.name}</span>
+                            </div>
+                            <span className="text-[10px] text-zinc-600 bg-zinc-900/50 border border-zinc-800/50 px-2 py-1 rounded group-hover:border-zinc-700 group-hover:text-zinc-400 transition">Wechseln</span>
+                        </button>
+                    ))}
+                </div>
             ) : (
                     <p className="px-3 text-xs text-zinc-600 italic">Kein Team vorhanden.</p>
             )}
@@ -361,18 +415,11 @@ export default function AdminHeader() {
             )}
 
             <Link 
-                href="/dashboard/profile" 
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="p-3 rounded-xl text-sm font-bold text-zinc-400 hover:text-white hover:bg-zinc-900 transition flex items-center gap-3"
-            >
-                <span>✏️</span> Profil bearbeiten
-            </Link>
-            <Link 
                 href="/dashboard/account" 
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="p-3 rounded-xl text-sm font-bold text-zinc-400 hover:text-white hover:bg-zinc-900 transition flex items-center gap-3"
             >
-                <span>🔐</span> Account & Einstellungen
+                <span>⚙️</span> Einstellungen
             </Link>
                 
                 <button

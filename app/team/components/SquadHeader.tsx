@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/app/context/AuthContext';
 import Logo from '@/app/components/Logo';
+import NotificationBell from '@/app/components/NotificationBell';
 import { getTierConfig } from '@/lib/tier-system';
 
 interface SquadHeaderProps {
@@ -66,7 +67,7 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                 </div>
 
                 {/* Right: Team Navigation & Profile */}
-                <div className="flex items-center gap-6">
+                <div className="flex items-center gap-2">
                     
                     {/* Desktop Tabs */}
                     <div className="hidden lg:flex items-center gap-1">
@@ -76,10 +77,11 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                                 <Link 
                                     key={tab.path} 
                                     href={tab.path}
+                                    title={tab.name}
                                     className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${isActive ? 'bg-cyan-950/50 text-cyan-400' : 'text-zinc-500 hover:text-white hover:bg-zinc-800/50'}`}
                                 >
                                     <span>{tab.icon}</span>
-                                    <span>{tab.name}</span>
+                                    <span className="hidden xl:inline">{tab.name}</span>
                                 </Link>
                             );
                         })}
@@ -91,7 +93,10 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                                 onMouseEnter={() => setShowAdminMenu(true)}
                                 onMouseLeave={() => setShowAdminMenu(false)}
                             >
-                                <button className={`px-3 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${showAdminMenu ? 'text-white bg-zinc-800' : 'text-zinc-500 hover:text-white hover:bg-zinc-800/50'}`}>
+                                <button
+                                    title="Mehr" 
+                                    className={`px-3 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${showAdminMenu ? 'text-white bg-zinc-800' : 'text-zinc-500 hover:text-white hover:bg-zinc-800/50'}`}
+                                >
                                     <span>☰</span>
                                 </button>
                                 
@@ -120,6 +125,10 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
 
                     <div className="h-4 w-px bg-zinc-800 mx-2 hidden lg:block"></div>
 
+                    <div className="hidden lg:block">
+                        <NotificationBell />
+                    </div>
+
                     {/* Profile Menu */}
                     <div 
                         className="relative hidden lg:block"
@@ -134,7 +143,7 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                                 <div className="absolute inset-0 border-2 rounded-full opacity-50" style={{ borderColor: tierConfig.color }}></div>
                                 <img src={tierConfig.avatarPath} alt="Avatar" className="w-full h-full object-cover" />
                             </div>
-                            <div className="flex flex-col items-start leading-none hidden md:flex">
+                            <div className="hidden xl:flex flex-col items-start leading-none">
                                 <span className="truncate max-w-[120px] font-bold text-white text-sm">
                                     {userProfile?.display_name || 'Profil'}
                                 </span>
@@ -172,20 +181,23 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                 </div>
 
                 {/* Mobile Menu Button */}
-                <button 
-                  className="lg:hidden p-2 text-zinc-400 hover:text-white"
-                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                >
-                  {isMobileMenuOpen ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-                    </svg>
-                  )}
-                </button>
+                <div className="flex items-center gap-2 lg:hidden">
+                    <NotificationBell />
+                    <button 
+                    className="p-2 text-zinc-400 hover:text-white"
+                    onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                    >
+                    {isMobileMenuOpen ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                        </svg>
+                    )}
+                    </button>
+                </div>
             </div>
 
             {/* Mobile Menu Content */}
