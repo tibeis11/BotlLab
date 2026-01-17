@@ -11,7 +11,7 @@ export default function NewSessionPage({ params }: { params: Promise<{ breweryId
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   
-  const [recipes, setRecipes] = useState<any[]>([]); // Contains group property: 'own' | 'liked'
+  const [recipes, setRecipes] = useState<any[]>([]); // Contains group property: 'own' | 'saved'
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
 
@@ -38,27 +38,27 @@ export default function NewSessionPage({ params }: { params: Promise<{ breweryId
             .eq('brewery_id', breweryId)
             .order('name', { ascending: true });
 
-        // 2. Fetch Liked Recipes
-        const { data: likedData, error: likedError } = await supabase
-            .from('likes')
+        // 2. Fetch Saved Brews from Library
+        const { data: savedData, error: savedError } = await supabase
+            .from('brewery_saved_brews')
             .select(`
                 brew_id,
                 brews (*)
             `)
-            .eq('user_id', user.id);
+            .eq('brewery_id', breweryId);
 
         const ownBrews = (ownData || []).map(b => ({ ...b, sourceGroup: 'own' }));
         
-        // Extract brews from likes and filter out nulls or deleted ones
-        const likedBrewsRaw = likedData?.map((l: any) => l.brews).filter(b => b !== null) || [];
+        // Extract brews from library and filter out nulls or deleted ones
+        const savedBrewsRaw = savedData?.map((item: any) => item.brews).filter(b => b !== null) || [];
         
-        // Filter out duplicates (if I linked my own recipe that is already in ownBrews)
+        // Filter out duplicates (though unlikely logic, saved brews are distinct)
         const ownIds = new Set(ownBrews.map(b => b.id));
-        const likedBrews = likedBrewsRaw
+        const savedBrews = savedBrewsRaw
             .filter((b: any) => !ownIds.has(b.id))
-            .map((b: any) => ({ ...b, sourceGroup: 'liked' }));
+            .map((b: any) => ({ ...b, sourceGroup: 'saved' }));
 
-        const allRecipes = [...ownBrews, ...likedBrews];
+        const allRecipes = [...ownBrews, ...savedBrews];
 
         setRecipes(allRecipes);
         
@@ -137,18 +137,22 @@ export default function NewSessionPage({ params }: { params: Promise<{ breweryId
                 {/* Group 1: Own Recipes */}
                 {recipes.filter(r => r.sourceGroup === 'own').length > 0 && (
                      <div className="space-y-2">
-                        <div className="text-xs font-bold text-zinc-600 uppercase px-1 sticky top-0 bg-zinc-900 pb-1 z-10">Brauerei Rezepte</div>
+                        <div className="text-xs font-bold text-zinc-500 uppercase px-1 sticky top-0 bg-zinc-900 pb-1 z-10 flex items-center gap-2">
+                            <span>🏭</span> Eigene Rezepte
+                        </div>
                         {recipes.filter(r => r.sourceGroup === 'own').map(recipe => (
                             <RecipeOption key={recipe.id} recipe={recipe} selectedId={selectedRecipeId} onChange={setSelectedRecipeId} />
                         ))}
                      </div>
                 )}
 
-                {/* Group 2: Liked Recipes */}
-                {recipes.filter(r => r.sourceGroup === 'liked').length > 0 && (
-                     <div className="space-y-2">
-                        <div className="text-xs font-bold text-zinc-600 uppercase px-1 sticky top-0 bg-zinc-900 pb-1 z-10">Favoriten / Geliked</div>
-                        {recipes.filter(r => r.sourceGroup === 'liked').map(recipe => (
+                {/* Group 2: Saved Recipes */}
+                {recipes.filter(r => r.sourceGroup === 'saved').length > 0 && (
+                     <div className="space-y-2 pt-4 border-t border-zinc-800/50">
+                        <div className="text-xs font-bold text-zinc-500 uppercase px-1 sticky top-0 bg-zinc-900 pb-1 z-10 flex items-center gap-2">
+                             <span>📚</span> Bibliothek
+                        </div>
+                        {recipes.filter(r => r.sourceGroup === 'saved').map(recipe => (
                              <RecipeOption key={recipe.id} recipe={recipe} selectedId={selectedRecipeId} onChange={setSelectedRecipeId} />
                         ))}
                      </div>
@@ -227,14 +231,22 @@ function RecipeOption({ recipe, selectedId, onChange }: { recipe: any, selectedI
                 ) : (
                     <div className="w-full h-full flex items-center justify-center text-zinc-600 font-bold text-xs bg-zinc-900">N/A</div>
                 )}
-                {/* Badge if liked */}
-                {recipe.sourceGroup === 'liked' && (
-                    <div className="absolute top-0 right-0 bg-red-500 w-3 h-3 rounded-bl-md" title="Geliked"></div>
+                        {/* Badge if saved */}
+                {recipe.sourceGroup === 'saved' && (
+                    <div className="absolute top-0 right-0 bg-blue-600 w-3 h-3 rounded-bl-md" title="Gespeichert"></div>
                 )}
             </div>
             <div className="flex-1 min-w-0">
                 <div className="font-bold text-white truncate">{recipe.name}</div>
-                <div className="text-xs text-zinc-500 truncate">{recipe.style} {recipe.sourceGroup === 'liked' && '• ⭐ Favorit'}</div>
+                <div className="flex items-center gap-1 text-xs text-zinc-500 truncate">
+                    <span>{recipe.style}</span>
+                    {recipe.sourceGroup === 'saved' && (
+                        <>
+                           <span>•</span>
+                           <span className="text-zinc-600">aus Bibliothek</span>
+                        </>
+                    )}
+                </div>
             </div>
             {isSelected && <span className="text-cyan-400 text-xl">✓</span>}
         </label>

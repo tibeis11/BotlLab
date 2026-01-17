@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Trash2 } from 'lucide-react';
 
 export interface Ingredient {
     name: string;
@@ -114,8 +115,13 @@ export function IngredientListEditor({ label, value, onChange }: IngredientListE
                             onKeyDown={(e) => handleKeyDown(e, idx)}
                             autoFocus={item.name === '' && idx === items.length - 1}
                         />
-                        <button onClick={() => removeRow(idx)} className="flex items-center justify-center w-8 h-8 text-zinc-600 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition" tabIndex={-1}>
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        <button 
+                            onClick={() => removeRow(idx)}
+                            className="text-zinc-600 hover:text-red-400 transition flex justify-center w-8"
+                            title="Entfernen"
+                            tabIndex={-1}
+                        >
+                            <Trash2 size={16} />
                         </button>
                     </div>
                 ))}

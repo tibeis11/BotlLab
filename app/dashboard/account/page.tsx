@@ -27,7 +27,6 @@ export default function AccountPage() {
         founded_year: string,
         bio: string,
         website: string,
-        logo_url: string,
         tier?: string,
         analytics_opt_out: boolean
     }>({
@@ -36,11 +35,11 @@ export default function AccountPage() {
 		founded_year: new Date().getFullYear().toString(),
 		bio: '',
 		website: '',
-		logo_url: '',
         tier: 'lehrling',
         analytics_opt_out: false
 	});
-	const [uploadingLogo, setUploadingLogo] = useState(false);
+	// Uploading state not needed for tier-based avatar
+
 
 
 	// --- ACCOUNT STATE ---
@@ -59,6 +58,9 @@ export default function AccountPage() {
     const [myTeams, setMyTeams] = useState<any[]>([]);
     const [joinCode, setJoinCode] = useState('');
     const [joinLoading, setJoinLoading] = useState(false);
+
+    // Derived State
+    const currentTier = getTierConfig(profile.tier || 'lehrling');
 
 	useEffect(() => {
 		if (!authLoading) {
@@ -100,73 +102,13 @@ export default function AccountPage() {
 				founded_year: data.founded_year?.toString() || '',
 				bio: data.bio || '',
 				website: data.website || '',
-				logo_url: data.logo_url || '',
                 tier: data.tier || 'lehrling',
                 analytics_opt_out: data.analytics_opt_out || false
 			});
 		}
 	}
 
-    async function uploadImage(e: React.ChangeEvent<HTMLInputElement>) {
-		if (!e.target.files || e.target.files.length === 0 || !user) return;
-
-		const file = e.target.files[0];
-		const fileExt = file.name.split('.').pop();
-		const fileName = `${user.id}-logo-${Date.now()}.${fileExt}`;
-		const filePath = `${fileName}`;
-
-		setUploadingLogo(true);
-
-		try {
-			const { error: uploadError } = await supabase.storage
-				.from('brewery-assets')
-				.upload(filePath, file);
-
-			if (uploadError) throw uploadError;
-
-			const { data: { publicUrl } } = supabase.storage
-				.from('brewery-assets')
-				.getPublicUrl(filePath);
-
-			const updatedProfile = { ...profile, logo_url: publicUrl };
-			setProfile(updatedProfile);
-
-			await supabase.from('profiles').update({ logo_url: publicUrl }).eq('id', user.id);
-		} catch (error: any) {
-			alert('Upload fehlgeschlagen: ' + error.message);
-		} finally {
-			setUploadingLogo(false);
-		}
-	}
-
-	async function deleteImage() {
-		if (!user) return;
-		if (!confirm(`Möchtest du dein Logo wirklich löschen?`)) return;
-
-		const url = profile.logo_url;
-		if (!url) return;
-
-		const fileName = url.split('/').pop();
-		if (!fileName) return;
-
-		try {
-			const { error: storageError } = await supabase.storage
-				.from('brewery-assets')
-				.remove([fileName]);
-
-			if (storageError) console.warn('Storage delete warning:', storageError);
-
-			const { error: dbError } = await supabase.from('profiles')
-				.update({ logo_url: null })
-				.eq('id', user.id);
-
-			if (dbError) throw dbError;
-
-			setProfile({ ...profile, logo_url: '' });
-		} catch (e: any) {
-			alert('Fehler beim Löschen: ' + e.message);
-		}
-	}
+    // No uploadImage/deleteImage needed - Avatar controlled by Tier system
 
 	async function saveProfile() {
 		if (!user) return;
@@ -433,9 +375,7 @@ export default function AccountPage() {
                                     const fields: Array<{ key: keyof typeof profile; label: string; isDone?: (v: any) => boolean }> = [
                                         { key: 'display_name', label: 'Anzeigename' },
                                         { key: 'founded_year', label: 'Dabei seit', isDone: (v) => !!(v && String(v).trim().length > 0) },
-                                        { key: 'logo_url', label: 'Profilbild' },
                                         { key: 'location', label: 'Standort' },
-                                        { key: 'website', label: 'Webseite' },
                                         { key: 'bio', label: 'Über mich' },
                                     ];
                                     const isFilled = (key: keyof typeof profile, custom?: (v: any) => boolean) => {
@@ -458,55 +398,27 @@ export default function AccountPage() {
                                 <form className="space-y-8">
                                     <div className="md:bg-zinc-950/50 px-0 md:p-8 md:rounded-3xl md:border md:border-zinc-800 space-y-8 md:shadow-inner">
                                         
-                                        {/* Logo Selection */}
+                                        {/* Avatar Display - Controlled by Tier System */}
                                         <div className="flex flex-col sm:flex-row items-center gap-8">
-                                            <div className="relative group cursor-pointer" onClick={() => document.getElementById('logo-upload')?.click()}>
-                                                <div className={`w-32 h-32 rounded-full border-2 flex items-center justify-center overflow-hidden transition-all shadow-xl ${profile.logo_url ? 'border-zinc-800 bg-black' : 'border-zinc-800 border-dashed bg-zinc-900 group-hover:border-cyan-500 group-hover:bg-zinc-800'}`}>
-                                                    {profile.logo_url ? (
-                                                    <img src={profile.logo_url} className="w-full h-full object-cover" alt="Logo" />
-                                                    ) : (
-                                                    <span className="text-4xl opacity-50 grayscale group-hover:grayscale-0 transition-all">📷</span>
-                                                    )}
-                                                    
-                                                    {/* Overlay on hover */}
-                                                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center rounded-full backdrop-blur-[2px]">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8 text-white scale-75 group-hover:scale-100 transition-transform">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-                                                        </svg>
-                                                    </div>
+                                            <div className="relative group">
+                                                <div className="w-32 h-32 rounded-full border-4 border-zinc-900 bg-zinc-950 shadow-xl overflow-hidden relative">
+                                                    <img src={currentTier.avatarPath} className="w-full h-full object-cover opacity-80" alt={currentTier.displayName} />
+                                                    <div className="absolute inset-0 rounded-full border border-white/5 pointer-events-none" style={{ boxShadow: `inset 0 0 20px ${currentTier.color}20` }}></div>
+                                                </div>
+                                                {/* Tier Badge */}
+                                                <div className="absolute -bottom-2 md:-right-2 right-[25%] bg-zinc-900 text-xs font-black uppercase text-white px-3 py-1 rounded-full border border-zinc-800 shadow-lg">
+                                                    {currentTier.displayName}
                                                 </div>
                                             </div>
                                             
                                             <div className="flex-1 text-center sm:text-left">
-                                                <h3 className="font-bold text-white mb-1.5 text-lg">Profilbild</h3>
-                                                <p className="text-xs font-medium text-zinc-500 mb-4 leading-relaxed">Zeige dich der Community. <br className="hidden sm:block"/> Empfohlen: Quadratisch (JPG/PNG).</p>
-                                                <input 
-                                                    id="logo-upload"
-                                                    type="file" 
-                                                    accept="image/*"
-                                                    onChange={uploadImage}
-                                                    disabled={uploadingLogo}
-                                                    className="hidden"
-                                                />
-                                                <div className="flex items-center gap-3 justify-center sm:justify-start">
-                                                    <button 
-                                                        type="button" 
-                                                        onClick={() => document.getElementById('logo-upload')?.click()}
-                                                        disabled={uploadingLogo}
-                                                        className="px-5 py-2.5 bg-zinc-900 border border-zinc-700 rounded-xl text-xs font-black uppercase tracking-wide text-zinc-300 hover:text-white hover:bg-zinc-800 hover:border-zinc-600 transition-all shadow-sm"
-                                                    >
-                                                        {uploadingLogo ? 'Lade hoch...' : 'Bild auswählen'}
-                                                    </button>
-                                                    {profile.logo_url && (
-                                                        <button 
-                                                            type="button"
-                                                            onClick={deleteImage}
-                                                            className="p-2.5 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 hover:bg-red-500/20 hover:text-red-400 transition-all"
-                                                            title="Bild entfernen"
-                                                        >
-                                                            🗑️
-                                                        </button>
-                                                    )}
+                                                <h3 className="font-bold text-white mb-1.5 text-lg">Dein Avatar</h3>
+                                                <p className="text-xs font-medium text-zinc-500 mb-2 leading-relaxed max-w-sm mx-auto sm:mx-0">
+                                                    Dein Profilbild basiert auf deinem aktuellen Rang im BotlLab System. 
+                                                    Braue mehr Sude und engagiere dich, um aufzusteigen!
+                                                </p>
+                                                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-bold uppercase tracking-wider">
+                                                    <span>🔒 Automatisch verwaltet</span>
                                                 </div>
                                             </div>
                                         </div>

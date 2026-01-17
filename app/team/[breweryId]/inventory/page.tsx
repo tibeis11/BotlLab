@@ -14,6 +14,187 @@ import { useAchievementNotification } from '@/app/context/AchievementNotificatio
 import { useAuth } from '@/app/context/AuthContext';
 import { useNotification } from '@/app/context/NotificationContext';
 
+// Extracted List Item Component
+function BottleListItem({ 
+    bottle, 
+    isSelected, 
+    onToggle, 
+    onAssign, 
+    onShowQr, 
+    onDelete,
+    openActionMenuId,
+    setOpenActionMenuId
+}: any) {
+    const [touchStart, setTouchStart] = useState<number | null>(null);
+    const [touchEnd, setTouchEnd] = useState<number | null>(null);
+    const [swipedLeft, setSwipedLeft] = useState(false);
+    const minSwipeDistance = 50;
+    
+    const onTouchStart = (e: any) => {
+        setTouchEnd(null);
+        setTouchStart(e.targetTouches[0].clientX);
+    }
+    
+    const onTouchMove = (e: any) => setTouchEnd(e.targetTouches[0].clientX);
+    
+    const onTouchEndHandler = () => {
+        if (!touchStart || !touchEnd) return;
+        const distance = touchStart - touchEnd;
+        const isLeftSwipe = distance > minSwipeDistance;
+        const isRightSwipe = distance < -minSwipeDistance;
+        
+        if (isLeftSwipe) {
+            setSwipedLeft(true);
+            setTimeout(() => setSwipedLeft(false), 3000); // Reset after 3s
+        }
+        if (isRightSwipe) {
+            if (swipedLeft) setSwipedLeft(false);
+            else onToggle();
+        }
+    }
+
+    return (
+        <div 
+            onTouchStart={onTouchStart} 
+            onTouchMove={onTouchMove} 
+            onTouchEnd={onTouchEndHandler}
+            className={`relative overflow-hidden rounded-2xl transition-all focus-within:z-10 focus-within:scale-[1.01] ${isSelected ? 'bg-cyan-500/10 shadow-[0_0_0_1px_rgba(6,182,212,0.3)]' : 'bg-zinc-900/40 hover:bg-zinc-900 hover:shadow-lg hover:scale-[1.01]'}`}
+        >   
+            {/* Swipe Backgrounds */}
+            <div className={`absolute inset-0 z-0 bg-red-500/20 items-center justify-end pr-8 flex transition-opacity duration-300 pointer-events-none ${swipedLeft ? 'opacity-100' : 'opacity-0'}`}>
+                <span className="font-bold text-red-500">Löschen?</span>
+            </div>
+            
+            {/* Content Container */}
+            <div 
+                className={`relative z-10 flex items-center transition-transform duration-300 ${swipedLeft ? '-translate-x-24' : 'translate-x-0'}`}
+                style={{ backgroundColor: swipedLeft ? 'transparent' : '' }}
+            >
+                <div className="w-16 pl-4 sm:pl-8 pr-2 sm:pr-5 py-5 shrink-0">
+                    <label className="relative flex items-center justify-center cursor-pointer">
+                        <input 
+                            type="checkbox" 
+                            checked={isSelected}
+                            onChange={() => onToggle()}
+                            className="peer sr-only"
+                        />
+                        <div className="w-5 h-5 rounded-md border-2 border-zinc-700 bg-zinc-900 peer-checked:bg-cyan-500 peer-checked:border-cyan-500 transition-all duration-200 flex items-center justify-center hover:border-zinc-500">
+                            <svg className="w-3.5 h-3.5 text-black opacity-0 peer-checked:opacity-100 transition-opacity duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
+                    </label>
+                </div>
+                <div className="w-20 sm:w-24 px-2 sm:px-5 py-5 font-black text-white text-xl tabular-nums tracking-tight shrink-0 flex flex-col justify-center">
+                    <div><span className="text-zinc-600 mr-0.5">#</span>{bottle.bottle_number}</div>
+                    {bottle.size_l && <div className="text-[10px] text-zinc-500 font-mono font-normal tracking-wide">{bottle.size_l}L</div>}
+                </div>
+                <div className="flex-1 px-2 sm:px-5 py-5 min-w-0">
+                    {bottle.brews?.name ? (
+                        <div className="flex items-center gap-3">
+                            <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                                bottle.brewing_sessions?.phase === 'completed' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' :
+                                bottle.brewing_sessions?.phase === 'conditioning' ? 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.4)] animate-pulse' :
+                                bottle.brewing_sessions?.phase === 'fermenting' ? 'bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.4)]' :
+                                bottle.brewing_sessions?.phase === 'brewing' ? 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.4)]' :
+                                'bg-zinc-500'
+                            }`}></div>
+                            <div className="font-bold text-white text-base truncate">
+                                <div className="flex items-center gap-2">
+                                    <span>{bottle.brews.name}</span>
+                                    {/* Phase Badge Inline */}
+                                    {bottle.brewing_sessions?.phase === 'conditioning' && (
+                                            <span className="hidden sm:inline-block text-[9px] uppercase font-bold tracking-wider text-amber-400 bg-amber-950/30 px-1.5 py-0.5 rounded border border-amber-500/20">Reifung</span>
+                                    )}
+                                    {bottle.brewing_sessions?.phase === 'completed' && (
+                                            <span className="hidden sm:inline-block text-[9px] uppercase font-bold tracking-wider text-emerald-400 bg-emerald-950/30 px-1.5 py-0.5 rounded border border-emerald-500/20">Fertig</span>
+                                    )}
+                                    {bottle.brewing_sessions?.phase === 'fermenting' && (
+                                            <span className="hidden sm:inline-block text-[9px] uppercase font-bold tracking-wider text-indigo-400 bg-indigo-950/30 px-1.5 py-0.5 rounded border border-indigo-500/20">Gärung</span>
+                                    )}
+                                    {bottle.brewing_sessions?.phase === 'brewing' && (
+                                            <span className="hidden sm:inline-block text-[9px] uppercase font-bold tracking-wider text-orange-400 bg-orange-950/30 px-1.5 py-0.5 rounded border border-orange-500/20">Brautag</span>
+                                    )}
+                                </div>
+                                {bottle.brewing_sessions?.batch_code && <div className="text-zinc-500 text-xs font-mono mt-0.5">Batch {bottle.brewing_sessions.batch_code}</div>}
+                                {!bottle.brewing_sessions?.batch_code && bottle.brewing_sessions?.brewed_at && <div className="text-zinc-500 text-xs font-mono mt-0.5">Gebraut: {new Date(bottle.brewing_sessions.brewed_at).toLocaleDateString()}</div>}
+                            </div>
+                        </div>
+                    ) : (
+                    <div className="flex items-center gap-3">
+                            <div className="w-2.5 h-2.5 rounded-full bg-zinc-700 shrink-0"></div>
+                            <div className="font-bold text-zinc-600 text-base">Unbelegt</div>
+                    </div>
+                    )}
+                </div>
+                <div className="hidden lg:block w-32 px-5 py-5 shrink-0 text-right text-sm font-mono text-zinc-400">
+                    {bottle.filled_at ? new Date(bottle.filled_at).toLocaleDateString() : '-'}
+                </div>
+                
+                <div className="w-32 pr-4 sm:pr-8 pl-2 sm:pl-5 py-5 text-right shrink-0 relative">
+                        {/* Desktop Actions */}
+                        <div className="hidden lg:flex justify-end gap-2">
+                            <button
+                                onClick={() => onAssign(bottle)}
+                                className="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-cyan-400 transition shadow-md border border-transparent hover:border-zinc-700"
+                                title="Sud zuweisen"
+                            >
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                </svg>
+                            </button>
+                            <button 
+                                onClick={() => onShowQr(bottle)}
+                                className="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white transition hover:text-cyan-400 shadow-md border border-transparent hover:border-zinc-700"
+                                title="QR Code anzeigen"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 3.75 9.375v-4.5ZM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5ZM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 13.5 9.375v-4.5Z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75ZM6.75 16.5h.75v.75h-.75v-.75ZM16.5 6.75h.75v.75h-.75v-.75ZM13.5 13.5h.75v.75h-.75v-.75ZM13.5 19.5h.75v.75h-.75v-.75ZM19.5 13.5h.75v.75h-.75v-.75ZM19.5 19.5h.75v.75h-.75v-.75ZM16.5 16.5h.75v.75h-.75v-.75Z" />
+                                </svg>
+                            </button>
+                        </div>
+                        {/* Mobile Dropdown Menu */}
+                        <div className="flex lg:hidden justify-end">
+                            <button 
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setOpenActionMenuId(openActionMenuId === bottle.id ? null : bottle.id);
+                                }}
+                                className="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 text-zinc-400 hover:text-white transition"
+                            >
+                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
+                                </svg>
+                            </button>
+                            {openActionMenuId === bottle.id && (
+                                <>
+                                    <div className="fixed inset-0 z-40 bg-black/20" onClick={(e) => { e.stopPropagation(); setOpenActionMenuId(null); }} />
+                                    <div className="absolute right-4 top-12 z-50 w-48 bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl overflow-hidden py-1 animate-in fade-in zoom-in-95 duration-200">
+                                            <button onClick={(e) => { e.stopPropagation(); setOpenActionMenuId(null); onAssign(bottle); }} className="w-full text-left px-4 py-3 hover:bg-zinc-800 text-white font-bold flex items-center gap-3"><span>🍺</span> Inhalt ändern</button>
+                                            <button onClick={(e) => { e.stopPropagation(); setOpenActionMenuId(null); onShowQr(bottle); }} className="w-full text-left px-4 py-3 hover:bg-zinc-800 text-white font-bold flex items-center gap-3"><span>📱</span> QR Code</button>
+                                            <div className="h-px bg-zinc-800 my-1"></div>
+                                            <button onClick={(e) => { e.stopPropagation(); setOpenActionMenuId(null); onDelete(bottle.id); }} className="w-full text-left px-4 py-3 hover:bg-red-500/10 text-red-500 font-bold flex items-center gap-3"><span>🗑️</span> Löschen</button>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                </div>
+            </div>
+            
+             {/* Delete Action Behind Swipe */}
+             {swipedLeft && (
+                <button 
+                    onClick={() => onDelete(bottle.id)}
+                    className="absolute right-0 top-0 bottom-0 w-24 bg-red-500 text-white font-bold flex items-center justify-center z-20 animate-in slide-in-from-right"
+                >
+                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                </button>
+            )}
+        </div>
+    )
+}
+
 export default function TeamInventoryPage({ params }: { params: Promise<{ breweryId: string }> }) {
 	const { breweryId } = use(params);
 	const { user, loading: authLoading } = useAuth();
@@ -22,6 +203,7 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 	const [brews, setBrews] = useState<any[]>([]);
 	const [sessions, setSessions] = useState<any[]>([]);
 	const [amount, setAmount] = useState(10);
+	const [bottleSize, setBottleSize] = useState<number>(0.5);
 	const [downloadFormat, setDownloadFormat] = useState<'pdf' | 'zip' | 'png'>('pdf');
 	const [isWorking, setIsWorking] = useState(false);
 	const [isMounted, setIsMounted] = useState(false);
@@ -50,6 +232,7 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 	const [filterText, setFilterText] = useState("");
 	const [sortOption, setSortOption] = useState<"newest" | "oldest" | "number_asc" | "number_desc">("number_asc");
 	const [filterStatus, setFilterStatus] = useState<"all" | "filled" | "empty">("all");
+	const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null);
 	const router = useRouter();
 
 	const [activeBrewery, setActiveBrewery] = useState<any>(null);
@@ -366,7 +549,8 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 					brew_id: null,
 					user_id: user?.id,
 					brewery_id: activeBrewery?.id, 
-					bottle_number: currentNum
+					bottle_number: currentNum,
+					size_l: bottleSize
 				};
 			});
 
@@ -659,6 +843,27 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 		setViewQr({ url: qrDataUrl, bottleNumber: bottle.bottle_number, id: bottle.id });
 	}
 
+    async function handleSingleDelete(id: string) {
+        if(!confirm("Flasche wirklich löschen?\nAktion kann nicht rückgängig gemacht werden.")) return;
+        setIsWorking(true);
+        try {
+            const { error } = await supabase.from('bottles').delete().eq('id', id);
+            if (error) throw error;
+            
+            // Renumber if needed, currently we assume gaps are okay or addressed by bulk renumbering
+            setSelectedBottles(prev => {
+                const next = new Set(prev);
+                next.delete(id);
+                return next;
+            });
+            loadData();
+        } catch(e: any) {
+            alert("Fehler: " + e.message);
+        } finally {
+            setIsWorking(false);
+        }
+    }
+
 	const filteredBottles = bottles
 		.filter(b => {
 			const term = filterText.toLowerCase();
@@ -891,6 +1096,46 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
                                             </div>
                                     </div>
 
+                                    {/* Size Input */}
+                                    <div className="space-y-2 p-3 bg-zinc-800/30 rounded-2xl border border-zinc-800/50">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <label className="text-[10px] font-bold uppercase text-cyan-500 tracking-widest pl-1">
+                                                Inhalt pro Flasche
+                                            </label>
+                                            <span className="text-[10px] font-bold text-white bg-zinc-800 px-2 py-0.5 rounded-md border border-zinc-700">
+                                                {bottleSize} Liter
+                                            </span>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-3 gap-2 mb-2">
+                                            {[0.33, 0.5, 0.75].map(size => (
+                                                <button
+                                                    key={size}
+                                                    onClick={() => setBottleSize(size)}
+                                                    className={`py-2 rounded-lg text-sm font-bold transition border ${
+                                                        bottleSize === size 
+                                                        ? 'bg-cyan-500 text-black border-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.3)]' 
+                                                        : 'bg-zinc-900 border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500'
+                                                    }`}
+                                                >
+                                                    {size}
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        <div className="relative">
+                                            <input 
+                                                type="number"
+                                                step="0.01"
+                                                value={bottleSize}
+                                                onChange={(e) => setBottleSize(parseFloat(e.target.value) || 0)}
+                                                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-white font-bold outline-none focus:border-cyan-500 text-right text-sm"
+                                                placeholder="Custom"
+                                            />
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-[10px] font-bold uppercase">Individuell (L)</span>
+                                        </div>
+                                    </div>
+
                                     {/* Format Dropdown */}
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-bold uppercase tracking-widest text-cyan-500 px-1">
@@ -1001,91 +1246,17 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 								{/* Body */}
 								<div className="space-y-2">
 									{filteredBottles.map((bottle) => (
-										<div key={bottle.id} className={`relative flex items-center rounded-2xl transition-all focus-within:z-10 focus-within:scale-[1.01] ${selectedBottles.has(bottle.id) ? 'bg-cyan-500/10 shadow-[0_0_0_1px_rgba(6,182,212,0.3)]' : 'bg-zinc-900/40 hover:bg-zinc-900 hover:shadow-lg hover:scale-[1.01]'}`}>
-											<div className="w-16 pl-4 sm:pl-8 pr-2 sm:pr-5 py-5 shrink-0">
-												<label className="relative flex items-center justify-center cursor-pointer">
-													<input 
-														type="checkbox" 
-														checked={selectedBottles.has(bottle.id)}
-														onChange={() => toggleSelection(bottle.id)}
-														className="peer sr-only"
-													/>
-													<div className="w-5 h-5 rounded-md border-2 border-zinc-700 bg-zinc-900 peer-checked:bg-cyan-500 peer-checked:border-cyan-500 transition-all duration-200 flex items-center justify-center hover:border-zinc-500">
-														<svg className="w-3.5 h-3.5 text-black opacity-0 peer-checked:opacity-100 transition-opacity duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-															<path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-														</svg>
-													</div>
-												</label>
-											</div>
-											<div className="w-20 sm:w-24 px-2 sm:px-5 py-5 font-black text-white text-xl tabular-nums tracking-tight shrink-0">
-													<span className="text-zinc-600 mr-0.5">#</span>{bottle.bottle_number}
-											</div>
-											<div className="flex-1 px-2 sm:px-5 py-5 min-w-0">
-													{bottle.brews?.name ? (
-														<div className="flex items-center gap-3">
-															<div className={`w-2.5 h-2.5 rounded-full shrink-0 ${
-                                                                bottle.brewing_sessions?.phase === 'completed' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' :
-                                                                bottle.brewing_sessions?.phase === 'conditioning' ? 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.4)] animate-pulse' :
-                                                                bottle.brewing_sessions?.phase === 'fermenting' ? 'bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.4)]' :
-                                                                bottle.brewing_sessions?.phase === 'brewing' ? 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.4)]' :
-                                                                'bg-zinc-500'
-                                                            }`}></div>
-															<div className="font-bold text-white text-base truncate">
-																<div className="flex items-center gap-2">
-                                                                    <span>{bottle.brews.name}</span>
-                                                                    {/* Phase Badge Inline */}
-                                                                    {bottle.brewing_sessions?.phase === 'conditioning' && (
-                                                                         <span className="text-[9px] uppercase font-bold tracking-wider text-amber-400 bg-amber-950/30 px-1.5 py-0.5 rounded border border-amber-500/20">Reifung</span>
-                                                                     )}
-                                                                     {bottle.brewing_sessions?.phase === 'completed' && (
-                                                                         <span className="text-[9px] uppercase font-bold tracking-wider text-emerald-400 bg-emerald-950/30 px-1.5 py-0.5 rounded border border-emerald-500/20">Fertig</span>
-                                                                     )}
-                                                                     {bottle.brewing_sessions?.phase === 'fermenting' && (
-                                                                         <span className="text-[9px] uppercase font-bold tracking-wider text-indigo-400 bg-indigo-950/30 px-1.5 py-0.5 rounded border border-indigo-500/20">Gärung</span>
-                                                                     )}
-                                                                    {bottle.brewing_sessions?.phase === 'brewing' && (
-                                                                         <span className="text-[9px] uppercase font-bold tracking-wider text-orange-400 bg-orange-950/30 px-1.5 py-0.5 rounded border border-orange-500/20">Brautag</span>
-                                                                     )}
-                                                                </div>
-																{bottle.brewing_sessions?.batch_code && <div className="text-zinc-500 text-xs font-mono mt-0.5">Batch {bottle.brewing_sessions.batch_code}</div>}
-																{!bottle.brewing_sessions?.batch_code && bottle.brewing_sessions?.brewed_at && <div className="text-zinc-500 text-xs font-mono mt-0.5">Gebraut: {new Date(bottle.brewing_sessions.brewed_at).toLocaleDateString()}</div>}
-															</div>
-														</div>
-													) : (
-													<div className="flex items-center gap-3">
-															<div className="w-2.5 h-2.5 rounded-full bg-zinc-700 shrink-0"></div>
-															<div className="font-bold text-zinc-600 text-base">Unbelegt</div>
-													</div>
-													)}
-											</div>
-											<div className="hidden lg:block w-32 px-5 py-5 shrink-0 text-right text-sm font-mono text-zinc-400">
-												{bottle.filled_at ? new Date(bottle.filled_at).toLocaleDateString() : '-'}
-											</div>
-											
-											<div className="w-32 pr-4 sm:pr-8 pl-2 sm:pl-5 py-5 text-right shrink-0">
-													<div className="flex justify-end gap-2">
-                                                        <button
-                                                            onClick={() => openAssignModal(bottle)}
-                                                            className="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-cyan-400 transition shadow-md border border-transparent hover:border-zinc-700"
-                                                            title="Sud zuweisen"
-                                                        >
-                                                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                                                            </svg>
-                                                        </button>
-														<button 
-															onClick={() => showQrModal(bottle)}
-															className="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white transition hover:text-cyan-400 shadow-md border border-transparent hover:border-zinc-700"
-															title="QR Code anzeigen"
-														>
-															<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-																<path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 3.75 9.375v-4.5ZM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5ZM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 13.5 9.375v-4.5Z" />
-																<path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75ZM6.75 16.5h.75v.75h-.75v-.75ZM16.5 6.75h.75v.75h-.75v-.75ZM13.5 13.5h.75v.75h-.75v-.75ZM13.5 19.5h.75v.75h-.75v-.75ZM19.5 13.5h.75v.75h-.75v-.75ZM19.5 19.5h.75v.75h-.75v-.75ZM16.5 16.5h.75v.75h-.75v-.75Z" />
-															</svg>
-														</button>
-													</div>
-											</div>
-										</div>
+                                        <BottleListItem 
+                                            key={bottle.id}
+                                            bottle={bottle}
+                                            isSelected={selectedBottles.has(bottle.id)}
+                                            onToggle={() => toggleSelection(bottle.id)}
+                                            onAssign={openAssignModal}
+                                            onShowQr={showQrModal}
+                                            onDelete={handleSingleDelete}
+                                            openActionMenuId={openActionMenuId}
+                                            setOpenActionMenuId={setOpenActionMenuId}
+                                        />
 									))}
 			
 									{filteredBottles.length === 0 && (

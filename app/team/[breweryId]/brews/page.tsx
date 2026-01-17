@@ -7,6 +7,8 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
 import { getBreweryTierConfig, type BreweryTierName } from '@/lib/tier-system';
 import BottlesModal from './components/BottlesModal';
+import { removeBrewFromLibrary } from '@/lib/actions/library-actions';
+import { useGlobalToast } from '@/app/context/AchievementNotificationContext';
 
 export default function TeamBrewsPage({ params }: { params: Promise<{ breweryId: string }> }) {
   const { breweryId } = use(params);
@@ -14,6 +16,7 @@ export default function TeamBrewsPage({ params }: { params: Promise<{ breweryId:
   const { user, loading: authLoading } = useAuth();
   
   const [brews, setBrews] = useState<any[]>([]);
+  const [savedBrews, setSavedBrews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isMember, setIsMember] = useState(false);
   
@@ -21,6 +24,21 @@ export default function TeamBrewsPage({ params }: { params: Promise<{ breweryId:
   const [brewRatings, setBrewRatings] = useState<{ [key: string]: { avg: number; count: number } }>({});
   const [bottlesModalOpen, setBottlesModalOpen] = useState(false);
   const [selectedBrew, setSelectedBrew] = useState<{ id: string; name: string } | null>(null);
+  
+  const { showToast } = useGlobalToast();
+
+  async function handleRemoveSaved(brewId: string) {
+       // We'll trust the user's click for now or implement a better UI later as "Undo" is hard. 
+       // For now, let's keep it simple: just do it but notify.
+       // Actually, removing confusing confirm() is what user asked.
+       try {
+           await removeBrewFromLibrary(breweryId, brewId);
+           setSavedBrews(prev => prev.filter(b => b.id !== brewId));
+           showToast("Entfernt", "Rezept wurde aus der Bibliothek entfernt.", "info");
+       } catch(e: any) {
+           showToast("Fehler", "Das Rezept konnte nicht entfernt werden.", "warning");
+       }
+  }
 
   useEffect(() => {
     if (!authLoading) {
@@ -36,6 +54,31 @@ export default function TeamBrewsPage({ params }: { params: Promise<{ breweryId:
       let currentUserId = user?.id;
 
       if (user) {
+        // Fetch Own Brews
+        const { data: ownBrews } = await supabase.from('brews').select('*, bottles(id, count)').eq('brewery_id', breweryId).order('created_at', { ascending: false });
+        setBrews(ownBrews || []);
+
+        // Fetch Saved Brews
+        const { data: savedData } = await supabase
+            .from('brewery_saved_brews')
+            .select(`
+                saved_at,
+                brew:brews (
+                    id, name, style, image_url, is_public, created_at,
+                    profiles(display_name),
+                    breweries(name)
+                )
+            `)
+            .eq('brewery_id', breweryId)
+            .order('saved_at', { ascending: false });
+        
+        if (savedData) {
+            setSavedBrews(savedData.map((item: any) => ({
+                ...item.brew,
+                saved_at: item.saved_at
+            })));
+        }
+
         // Fetch Brewery Tier
         const { data: brewery } = await supabase
 			.from('breweries')
@@ -186,9 +229,25 @@ export default function TeamBrewsPage({ params }: { params: Promise<{ breweryId:
         </div>
       </div>
       
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-in fade-in duration-500">
+      {/* SECTION 1: EIGENE REZEPTE */}
+      <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+         <span>🍺</span> Eigene Rezepte
+      </h3>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-in fade-in duration-500 mb-16">
         
         {/* Brew Cards */}
+        {brews.length === 0 && (
+            <div className="col-span-full py-12 text-center bg-zinc-900/50 rounded-3xl border border-zinc-800 border-dashed">
+                <p className="text-zinc-500 mb-2">Noch keine eigenen Rezepte.</p>
+                {isMember && (
+                    <button onClick={() => router.push(`/team/${breweryId}/brews/new`)} className="text-cyan-400 hover:underline">
+                        Erstelle jetzt dein erstes Rezept
+                    </button>
+                )}
+            </div>
+        )}
+
         {brews.map((brew) => (
             <div
                 key={brew.id}
@@ -313,6 +372,73 @@ export default function TeamBrewsPage({ params }: { params: Promise<{ breweryId:
             </div>
         ))}
       </div>
+
+      {/* SECTION 2: SAVED BREWS */}
+      {savedBrews.length > 0 && (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+               <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2 pt-8 border-t border-zinc-900 mt-8">
+                    <span>📚</span> Bibliothek <span className="text-zinc-500 text-sm font-normal">({savedBrews.length})</span>
+                </h3>
+               
+               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {savedBrews.map((brew) => (
+                    <div
+                        key={brew.id}
+                        className="bg-zinc-900/50 border border-zinc-800 rounded-3xl overflow-hidden shadow-lg flex flex-col h-full relative group hover:border-zinc-700 transition"
+                    >
+                        {/* Image Section */}
+                        <Link href={`/brew/${brew.id}`} className="block aspect-video relative bg-zinc-950 overflow-hidden">
+                             {brew.image_url ? (
+                                <img
+                                    src={brew.image_url}
+                                    alt={brew.name}
+                                    className="object-cover w-full h-full hover:scale-105 transition-transform duration-700 opacity-80 group-hover:opacity-100"
+                                />
+                            ) : (
+                                <div className="flex flex-col items-center justify-center h-full text-zinc-700 bg-zinc-950/50">
+                                    <span className="text-5xl mb-3 grayscale opacity-30">🍺</span>
+                                </div>
+                            )}
+                            
+                            {/* Remove Button (Corner) */}
+                            {isMember && (
+                                <button
+                                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleRemoveSaved(brew.id); }}
+                                   className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/60 text-zinc-400 hover:text-red-400 hover:bg-black hover:scale-110 flex items-center justify-center transition opacity-0 group-hover:opacity-100 backdrop-blur-sm"
+                                   title="Aus Bibliothek entfernen"
+                                >
+                                   ✕
+                                </button>
+                            )}
+
+                             <div className="absolute top-3 left-3 flex flex-col gap-1.5 items-start pointer-events-none z-10">
+                                <span className="bg-black/60 backdrop-blur-md text-[10px] px-2.5 py-1 rounded-lg uppercase tracking-wider border border-white/5 font-bold text-zinc-300 shadow-sm">
+                                    {brew.style || 'Standard'}
+                                </span>
+                            </div>
+                        </Link>
+
+                        <div className="p-5 flex flex-col flex-1 gap-2"> 
+                            <Link href={`/brew/${brew.id}`} className="font-bold text-lg text-white hover:text-cyan-400 transition truncate block">
+                                {brew.name}
+                            </Link>
+                            <p className="text-xs text-zinc-500">
+                                von <span className="text-zinc-300">{brew.profiles?.display_name || brew.breweries?.name || 'Unbekannt'}</span>
+                            </p>
+                             <div className="mt-auto pt-4">
+                                <Link
+                                    href={`/brew/${brew.id}`}
+                                    className="block w-full bg-zinc-950 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-white h-10 flex items-center justify-center rounded-xl text-xs font-bold uppercase tracking-wider transition"
+                                >
+                                    Ansehen
+                                </Link>
+                            </div>
+                        </div>
+                    </div>
+                  ))}
+               </div>
+          </div>
+      )}
 
       {bottlesModalOpen && selectedBrew && (
         <BottlesModal 

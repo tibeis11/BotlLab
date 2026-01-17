@@ -149,6 +149,7 @@ function NumberInput({
         <input 
           type="number"
           step={step}
+          onWheel={(e) => e.currentTarget.blur()}
           className="flex-1 bg-transparent border-none text-center text-white font-bold text-lg h-12 focus:ring-0 outline-none placeholder:font-normal placeholder:text-zinc-700 appearance-none min-w-0 relative z-10" 
           value={value || ''} 
           onChange={(e) => onChange(e.target.value)} 
@@ -261,6 +262,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
             sparge_water_liters: '',
             mash_ph: '',
             boil_time: '',
+            boil_temp: '',
             yeast: [],
             attenuation: '',
             primary_temp: '',
@@ -1155,9 +1157,9 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 					</div>
 				)}
 
-				<div className="flex flex-col md:flex-row gap-8 lg:gap-12 items-start mt-4">
+				<div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-start mt-4">
                     {/* Sidebar */}
-                    <nav className="w-full md:w-64 flex-shrink-0 flex md:flex-col overflow-x-auto md:overflow-visible gap-2 md:sticky md:top-32 bg-zinc-900/50 backdrop-blur-md border border-zinc-800 rounded-2xl p-1 md:p-3 shadow-xl z-40 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+                    <nav className="w-full lg:w-64 flex-shrink-0 flex lg:flex-col overflow-x-auto lg:overflow-visible gap-2 lg:sticky lg:top-32 bg-zinc-900/50 backdrop-blur-md border border-zinc-800 rounded-2xl p-1 lg:p-3 shadow-xl z-40 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
                         {[
                             { id: 'input', label: 'Eingabe', icon: '📋' },
                             { id: 'label', label: 'Label', icon: '🏷️', hidden: id === 'new' },
@@ -1168,9 +1170,9 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id as any)}
-                                className={`px-5 py-3 md:py-3.5 rounded-xl text-sm font-bold transition-all flex items-center gap-3 whitespace-nowrap flex-shrink-0 ${
+                                className={`px-5 py-3 lg:py-3.5 rounded-xl text-sm font-bold transition-all flex items-center gap-3 whitespace-nowrap flex-shrink-0 ${
                                     activeTab === tab.id
-                                        ? 'bg-zinc-800 md:bg-cyan-950/30 text-white md:text-cyan-400 border border-zinc-700 md:border-cyan-500/30 shadow-lg'
+                                        ? 'bg-zinc-800 lg:bg-cyan-950/30 text-white lg:text-cyan-400 border border-zinc-700 lg:border-cyan-500/30 shadow-lg'
                                         : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/50 border border-transparent'
                                 }`}
                             >
@@ -1181,7 +1183,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                     </nav>
 
                     {/* Content Area */}
-                    <main className="flex-1 w-full md:bg-zinc-900/50 md:rounded-3xl pt-2 md:p-10 md:border md:border-zinc-800 space-y-8">
+                    <main className="flex-1 w-full lg:bg-zinc-900/50 lg:rounded-3xl pt-2 lg:p-10 lg:border lg:border-zinc-800 space-y-8">
                         
                         {activeTab === 'input' && (
                             <div className="space-y-8">
@@ -1412,6 +1414,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                             <div className="space-y-8">
                                                 <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-6">
                                                     <NumberInput label="Kochzeit (min)" value={brew.data?.boil_time || ''} onChange={(val) => updateData('boil_time', val)} placeholder="60" />
+                                                    <NumberInput label="Kochtemperatur (°C)" value={brew.data?.boil_temp || ''} onChange={(val) => updateData('boil_temp', val)} placeholder="100" />
                                                 </div>
                                                 
                                                 <HopListEditor 
@@ -1432,7 +1435,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                     value={brew.data?.yeast} 
                                                     onChange={(val) => updateData('yeast', val)} 
                                                 />
-                                                <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-6">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                     <NumberInput label="Gärtemp. (°C)" value={brew.data?.primary_temp || ''} onChange={(val) => updateData('primary_temp', val)} placeholder="19" step={0.5} />
                                                 </div>
                                             </div>

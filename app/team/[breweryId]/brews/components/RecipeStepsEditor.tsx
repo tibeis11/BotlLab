@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Trash2 } from 'lucide-react';
 
 export interface BrewStep {
     id?: string; // Add temporary ID for UI stability
@@ -148,7 +149,7 @@ export function RecipeStepsEditor({ value, onChange }: RecipeStepsEditorProps) {
                                 className="p-2 text-zinc-600 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition"
                                 title="Schritt entfernen"
                             >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                <Trash2 size={16} />
                             </button>
                         </div>
                     </div>

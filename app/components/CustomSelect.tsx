@@ -14,9 +14,10 @@ interface CustomSelectProps {
     placeholder?: string;
     className?: string;
     icon?: React.ReactNode;
+    placement?: 'bottom' | 'top';
 }
 
-export default function CustomSelect({ value, onChange, options, placeholder = 'Bitte wählen', className = '', icon }: CustomSelectProps) {
+export default function CustomSelect({ value, onChange, options, placeholder = 'Bitte wählen', className = '', icon, placement = 'bottom' }: CustomSelectProps) {
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -70,7 +71,9 @@ export default function CustomSelect({ value, onChange, options, placeholder = '
             </button>
 
             {isOpen && (
-                <div className="absolute z-50 w-full mt-2 bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl max-h-60 overflow-y-auto overflow-x-hidden animate-in fade-in zoom-in-95 duration-100">
+                <div className={`absolute z-50 w-full bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl max-h-60 overflow-y-auto overflow-x-hidden animate-in fade-in zoom-in-95 duration-100 ${
+                    placement === 'top' ? 'bottom-full mb-2' : 'top-full mt-2'
+                }`}>
                     <div className="p-1 space-y-0.5">
                         {ungrouped.map((opt) => (
                              <button

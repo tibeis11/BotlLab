@@ -80,7 +80,7 @@ ratings (Feedback)
 
 1. **Signup:** E-Mail + Passwort, Supabase-Confirmation-Mail mit Redirect zu `/auth/callback`.
 2. **Login:** Verweigert, wenn E-Mail nicht bestätigt; Resend-Link möglich.
-3. **Profile Setup:** Ring zeigt Fertigstellung (Logo, Name, Standort, Website, Bio, Gründungsjahr).
+3. **Profile Setup:** Ring zeigt Fertigstellung (Name, Standort, Website, Bio, Gründungsjahr).
 4. **Nudges:** Dashboard-Toast erinnert einmal pro Session an Profil-Vervollständigung.
 
 ## 6. Design & UX Guidelines

@@ -218,9 +218,7 @@ function DashboardContent() {
 		const fields: Array<{ key: keyof typeof profileInfo; isDone?: (v: any) => boolean }> = [
 			{ key: 'display_name' },
 			{ key: 'founded_year', isDone: (v) => !!(v && String(v).trim().length > 0) },
-			{ key: 'logo_url' },
 			{ key: 'location' },
-			{ key: 'website' },
 			{ key: 'bio' },
 		];
 		const isFilled = (key: keyof typeof profileInfo, custom?: (v: any) => boolean) => {
@@ -235,7 +233,7 @@ function DashboardContent() {
 				showAchievement({
 					id: key,
 					name: 'Profil fast fertig',
-					description: 'Ergänze Logo und Infos für dein bestes Auftreten.',
+					description: 'Ergänze deine Infos für dein bestes Auftreten.',
 					icon: '🧩',
 					tier: 'bronze',
 					points: 0,

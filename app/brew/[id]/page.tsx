@@ -12,6 +12,8 @@ import Logo from '@/app/components/Logo';
 import LikeButton from '@/app/components/LikeButton';
 import { ebcToHex } from '@/lib/brewing-calculations';
 import { Star } from 'lucide-react';
+import { saveBrewToLibrary } from '@/lib/actions/library-actions';
+import { useGlobalToast } from '@/app/context/AchievementNotificationContext';
 
 // Helper: Ensure lists render correctly even if user didn't use double line breaks
 const formatMarkdown = (text: string) => {
@@ -218,9 +220,60 @@ export default function BrewDetailPage() {
   const [remixLoading, setRemixLoading] = useState(false);
   const [remixMessage, setRemixMessage] = useState<string | null>(null);
 
+  const { showToast } = useGlobalToast();
+
+  // Save to Library State
+  const [userBreweries, setUserBreweries] = useState<any[]>([]);
+  const [saveModalOpen, setSaveModalOpen] = useState(false);
+  const [saveLoading, setSaveLoading] = useState(false);
+
   // Like System State
   const [likesCount, setLikesCount] = useState(0);
   const [userHasLiked, setUserHasLiked] = useState(false);
+
+  useEffect(() => {
+    async function loadBreweries() {
+        const { data: { user } } = await supabase.auth.getUser();
+        if(!user) return;
+        
+        const { data } = await supabase.from('brewery_members').select('brewery:breweries(id, name, logo_url)').eq('user_id', user.id);
+        if(data) {
+            setUserBreweries(data.map((item:any) => item.brewery));
+        }
+    }
+    loadBreweries();
+  }, []);
+
+  async function handleSaveToTeam(targetBreweryId?: string) {
+    if (!targetBreweryId) {
+        if (userBreweries.length > 1) {
+            setSaveModalOpen(true);
+            return;
+        } else if (userBreweries.length === 1) {
+            targetBreweryId = userBreweries[0].id;
+        } else {
+            showToast("Fehler", "Du musst Mitglied einer Brauerei sein, um Rezepte zu speichern.", "warning");
+            return;
+        }
+    }
+
+    setSaveLoading(true);
+    try {
+        const res = await saveBrewToLibrary(targetBreweryId!, id);
+        if(res.success) {
+             if (res.message === 'Bereits gespeichert') {
+                showToast("Info", "Dieses Rezept befindet sich bereits in der Bibliothek.", "info");
+            } else {
+                showToast("Gespeichert", "Rezept zur Team-Bibliothek hinzugefügt", "success");
+            }
+            setSaveModalOpen(false);
+        }
+    } catch (e: any) {
+        showToast("Fehler", e.message || "Fehler beim Speichern", "warning");
+    } finally {
+        setSaveLoading(false);
+    }
+  }
 
   async function handleRemix() {
     setRemixMessage(null);
@@ -480,6 +533,22 @@ export default function BrewDetailPage() {
 
              {/* Share Button Component */}
              <ShareButton brew={brew} />
+
+             {/* Save To Team Button */}
+             {userBreweries.length > 0 && (
+                 <button
+                   onClick={() => handleSaveToTeam()}
+                   disabled={saveLoading}
+                   className="w-full bg-zinc-900 border border-zinc-700/50 hover:border-zinc-500 text-zinc-300 hover:text-white rounded-2xl py-3 font-bold transition flex items-center justify-center gap-2 group mb-6"
+                 >
+                   {saveLoading ? 'Wird gespeichert...' : (
+                       <>
+                         <span className="group-hover:scale-110 transition">🏭</span>
+                         <span>Zur Team-Bibliothek</span>
+                       </>
+                   )}
+                 </button>
+             )}
 
              {/* Action Button */}
              <button
@@ -928,6 +997,40 @@ export default function BrewDetailPage() {
         </div>
         <p className="text-[8px] text-zinc-800 mt-2 font-mono">{id}</p>
       </footer>
+      
+      {/* Save to Team Modal */}
+      {saveModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+              <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md p-6 shadow-2xl">
+                  <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-xl font-bold text-white">In Team-Bibliothek speichern</h3>
+                      <button onClick={() => setSaveModalOpen(false)} className="text-zinc-500 hover:text-zinc-300">✕</button>
+                  </div>
+                  
+                  <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+                      {userBreweries.map(b => (
+                          <button
+                             key={b.id}
+                             disabled={saveLoading}
+                             onClick={() => handleSaveToTeam(b.id)}
+                             className="w-full text-left p-4 rounded-xl bg-zinc-950 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 hover:shadow-lg transition-all flex items-center gap-4 group disabled:opacity-50"
+                          >
+                             {b.logo_url ? (
+                                 <img src={b.logo_url} className="w-12 h-12 rounded-full object-cover border border-zinc-800" />
+                             ) : (
+                                 <div className="w-12 h-12 rounded-full bg-zinc-800 flex items-center justify-center text-xl">🏭</div>
+                             )}
+                             <div>
+                                 <span className="font-bold text-white text-lg block group-hover:text-cyan-400 transition">{b.name}</span>
+                                 <span className="text-xs text-zinc-500">Klicken zum Speichern</span>
+                             </div>
+                          </button>
+                      ))}
+                  </div>
+              </div>
+          </div>
+      )}
+
     </div>
   );
 }

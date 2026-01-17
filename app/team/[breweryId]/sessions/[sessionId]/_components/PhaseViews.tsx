@@ -389,12 +389,18 @@ export function BrewingView() {
                 <h3 className="text-xs font-bold text-red-500 uppercase tracking-widest flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-red-500"></span> Kochplan
                 </h3>
-                {data.boil_time && (
-                    <div className="flex items-center gap-2 bg-red-950/20 px-3 py-1.5 rounded-lg border border-red-500/20">
-                        <span className="text-[10px] text-red-400 font-bold uppercase tracking-wider">Gesamtzeit</span>
-                        <span className="text-sm font-black text-white">{data.boil_time}<span className="text-[10px] text-red-500/50 font-bold ml-0.5">MIN</span></span>
+                <div className="flex items-center gap-2">
+                    {data.boil_time && (
+                        <div className="flex items-center gap-2 bg-red-950/20 px-3 py-1.5 rounded-lg border border-red-500/20">
+                            <span className="text-[10px] text-red-400 font-bold uppercase tracking-wider">Gesamtzeit</span>
+                            <span className="text-sm font-black text-white">{data.boil_time}<span className="text-[10px] text-red-500/50 font-bold ml-0.5">MIN</span></span>
+                        </div>
+                    )}
+                    <div className="flex items-center gap-2 bg-orange-950/20 px-3 py-1.5 rounded-lg border border-orange-500/20">
+                        <span className="text-[10px] text-orange-400 font-bold uppercase tracking-wider">Temp</span>
+                        <span className="text-sm font-black text-white">{data.boil_temp || 100}<span className="text-[10px] text-orange-500/50 font-bold ml-0.5">°C</span></span>
                     </div>
-                )}
+                </div>
               </div>
               <div className="space-y-3">
                   {hops.sort((a: any, b: any) => b.time - a.time).map((hop: any, i: number) => {

@@ -19,6 +19,7 @@ export default function BottlesModal({ isOpen, onClose, brewId, brewName }: Bott
   const [view, setView] = useState<'list' | 'generate'>('list');
   const [genCount, setGenCount] = useState<number>(10);
   const [downloadFormat, setDownloadFormat] = useState<'pdf' | 'zip' | 'png'>('pdf');
+  const [bottleSize, setBottleSize] = useState<number>(0.5); // Default 0.5L
   const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
@@ -70,7 +71,8 @@ export default function BottlesModal({ isOpen, onClose, brewId, brewName }: Bott
           const newBottles = Array.from({ length: genCount }).map((_, i) => ({
               brew_id: brewId,
               bottle_number: startNum + i,
-              filled_at: new Date().toISOString()
+              filled_at: new Date().toISOString(),
+              size_l: bottleSize
           }));
           
           const { error: insertError } = await supabase.from('bottles').insert(newBottles);
@@ -157,6 +159,46 @@ export default function BottlesModal({ isOpen, onClose, brewId, brewName }: Bott
                             onChange={(e) => setGenCount(Math.min(100, Math.max(1, parseInt(e.target.value) || 0)))}
                             className="bg-transparent text-center text-3xl font-black text-white outline-none w-full tabular-nums"
                         />
+                    </div>
+                </div>
+
+                {/* Size Input */}
+                <div className="space-y-2 p-3 bg-zinc-800/30 rounded-2xl border border-zinc-800">
+                    <div className="flex justify-between items-center">
+                        <label className="text-xs font-black uppercase tracking-widest text-cyan-500">
+                            Flaschengröße
+                        </label>
+                        <span className="text-xs font-bold text-white bg-zinc-800 px-2 py-1 rounded-md">
+                            {bottleSize} Liter
+                        </span>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-2">
+                        {[0.33, 0.5, 0.75].map(size => (
+                            <button
+                                key={size}
+                                onClick={() => setBottleSize(size)}
+                                className={`py-2 rounded-lg font-bold transition border ${
+                                    bottleSize === size 
+                                    ? 'bg-cyan-500 text-black border-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.3)]' 
+                                    : 'bg-zinc-900 border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500'
+                                }`}
+                            >
+                                {size}
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="relative mt-2">
+                        <input 
+                            type="number"
+                            step="0.01"
+                            value={bottleSize}
+                            onChange={(e) => setBottleSize(parseFloat(e.target.value) || 0)}
+                            className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-4 py-2 text-white font-bold outline-none focus:border-cyan-500 text-right text-sm"
+                            placeholder="Custom"
+                        />
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-xs font-bold">INDIVIDUELL (L)</span>
                     </div>
                 </div>
 

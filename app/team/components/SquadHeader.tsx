@@ -22,10 +22,29 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
     const [showProfileMenu, setShowProfileMenu] = useState(false);
     const [showAdminMenu, setShowAdminMenu] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const [mobileTab, setMobileTab] = useState<'personal' | 'team'>('team');
+    const [scrollbarCompensation, setScrollbarCompensation] = useState(0);
+    const [mobileTab, setMobileTab] = useState<'personal' | 'team' | 'discover'>('team');
 
     // Data State
     const [userProfile, setUserProfile] = useState<any>(null);
+
+    // Lock Body Scroll when Mobile Menu is Open
+    useEffect(() => {
+        if (isMobileMenuOpen) {
+            const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+            setScrollbarCompensation(scrollbarWidth);
+            document.body.style.paddingRight = `${scrollbarWidth}px`;
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+            document.body.style.paddingRight = '0px';
+            setScrollbarCompensation(0);
+        }
+        return () => {
+             document.body.style.overflow = 'unset';
+             document.body.style.paddingRight = '0px';
+        };
+    }, [isMobileMenuOpen]);
 
     // Fetch Profile for Avatar
     useEffect(() => {
@@ -144,7 +163,7 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                         onMouseEnter={() => setShowProfileMenu(true)}
                         onMouseLeave={() => setShowProfileMenu(false)}
                     >
-                        <button className="flex items-center gap-3 pl-1 pr-4 py-1 rounded-full bg-zinc-900 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800 transition group">
+                        <button className="flex items-center gap-0 xl:gap-3 pl-1 pr-1 xl:pr-4 py-1 rounded-full bg-zinc-900 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800 transition group">
                             <div 
                                 className="w-8 h-8 rounded-full flex items-center justify-center text-xs overflow-hidden relative shadow-lg"
                                 style={{ backgroundColor: `${tierConfig.color}20` }}
@@ -212,11 +231,14 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
 
             {/* Mobile Menu Content - Redesigned Smart Drawer */}
             {isMobileMenuOpen && (
-                 <div className="lg:hidden fixed inset-0 z-[100] bg-zinc-950/95 backdrop-blur-3xl flex flex-col animate-in slide-in-from-right duration-200 supports-[backdrop-filter]:bg-zinc-950/80">
+                 <div 
+                    className="lg:hidden fixed inset-0 z-[100] bg-zinc-950/95 backdrop-blur-3xl flex flex-col animate-in slide-in-from-right duration-200 supports-[backdrop-filter]:bg-zinc-950/80"
+                    style={{ paddingRight: `${scrollbarCompensation}px` }}
+                 >
                     
                     {/* 1. Header with Close (Aligned with Main Header) */}
                     <div className="border-b border-zinc-900 bg-zinc-950 p-3">
-                        <div className="max-w-[1920px] w-full mx-auto flex justify-between items-center px-3">
+                        <div className="max-w-[1920px] w-full mx-auto flex justify-between items-center px-6">
                             <div className="flex items-center gap-6" onClick={() => setIsMobileMenuOpen(false)}>
                                 <Logo /> 
                             </div>
@@ -236,27 +258,34 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
 
                     {/* Segmented Control */}
                     <div className="p-4 border-b border-zinc-900 bg-zinc-950">
-                       <div className="flex bg-zinc-900 p-1 rounded-xl">
+                       <div className="flex bg-zinc-900 p-1 rounded-xl overflow-x-auto no-scrollbar">
                             <button 
                               onClick={() => setMobileTab('personal')}
-                              className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${mobileTab === 'personal' ? 'bg-zinc-800 text-white shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
+                              className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${mobileTab === 'personal' ? 'bg-zinc-800 text-white shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
                             >
                               <span className={mobileTab === 'personal' ? 'grayscale-0' : 'grayscale'}>🧪</span>
-                              Mein Labor
+                              Labor
                             </button>
                             <button 
                               onClick={() => setMobileTab('team')}
-                              className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${mobileTab === 'team' ? 'bg-cyan-950 text-cyan-400 shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
+                              className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${mobileTab === 'team' ? 'bg-cyan-950 text-cyan-400 shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
                             >
                               <span>🏭</span>
                               Brauerei
+                            </button>
+                            <button 
+                              onClick={() => setMobileTab('discover')}
+                              className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${mobileTab === 'discover' ? 'bg-purple-900/50 text-purple-300 shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
+                            >
+                              <span>🌍</span>
+                              Entdecken
                             </button>
                        </div>
                     </div>
 
                     {/* 2. Scrollable Content */}
                     <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                        {mobileTab === 'team' ? (
+                        {mobileTab === 'team' && (
                             <div className="space-y-6 animate-in fade-in zoom-in-95 duration-200">
                                 
                                 {/* Team Dashboard Main Tile */}
@@ -276,20 +305,21 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                                    </div>
                                 </Link>
 
-                                {/* Team Actions Grid */}
+                                {/* Team Actions List */}
                                 <div>
-                                    <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest px-1 mb-3">Aktionen</p>
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest px-1 mb-1">Aktionen</p>
+                                    <div className="divide-y divide-zinc-900/50">
                                         {/* Filter out Dashboard from tabs since we have the big tile */}
                                         {tabs.filter(t => !t.path.endsWith('/dashboard')).map(tab => (
                                             <Link
                                                 key={tab.path}
                                                 href={tab.path}
                                                 onClick={() => setIsMobileMenuOpen(false)}
-                                                className="bg-zinc-900/50 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 p-4 rounded-xl flex flex-col items-center justify-center gap-2 text-center transition"
+                                                className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
                                             >
-                                                <span className="text-2xl mb-1">{tab.icon}</span>
+                                                <span className="text-xl">{tab.icon}</span>
                                                 <span className="font-bold text-sm text-zinc-200">{tab.name}</span>
+                                                <span className="ml-auto text-zinc-600">→</span>
                                             </Link>
                                         ))}
                                         
@@ -299,16 +329,19 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                                                 key={tab.path}
                                                 href={tab.path}
                                                 onClick={() => setIsMobileMenuOpen(false)}
-                                                className="bg-zinc-900/50 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 p-4 rounded-xl flex flex-col items-center justify-center gap-2 text-center transition last:col-span-2"
+                                                className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
                                             >
-                                                <span className="text-2xl mb-1">{tab.icon}</span>
+                                                <span className="text-xl">{tab.icon}</span>
                                                 <span className="font-bold text-sm text-zinc-200">{tab.name}</span>
+                                                <span className="ml-auto text-zinc-600">→</span>
                                             </Link>
                                         ))}
                                     </div>
                                 </div>
                             </div>
-                        ) : (
+                        )}
+
+                        {mobileTab === 'personal' && (
                             <div className="space-y-6 animate-in fade-in zoom-in-95 duration-200">
                                 {/* Personal Dashboard Link */}
                                 <Link 
@@ -327,31 +360,62 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                                   </div>
                                </Link>
 
-                               {/* Personal Tools */}
+                               {/* Personal Tools List */}
                                <div>
-                                  <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest px-1 mb-3">Meine Tools</p>
-                                  <div className="grid grid-cols-2 gap-3">
+                                  <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest px-1 mb-1">Aktionen</p>
+                                  <div className="divide-y divide-zinc-900/50">
                                      {personalTabs.map(tab => (
                                         <Link
                                            key={tab.path}
                                            href={tab.path}
                                            onClick={() => setIsMobileMenuOpen(false)}
-                                           className="bg-zinc-900/50 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 p-4 rounded-xl flex flex-col items-center justify-center gap-2 text-center transition"
+                                           className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
                                         >
-                                           <span className="text-2xl mb-1">{tab.icon}</span>
+                                           <span className="text-xl">{tab.icon}</span>
                                            <span className="font-bold text-sm text-zinc-200">{tab.name}</span>
+                                           <span className="ml-auto text-zinc-600">→</span>
                                         </Link>
                                      ))}
-                                     <Link
-                                        href="/discover"
-                                        onClick={() => setIsMobileMenuOpen(false)}
-                                        className="bg-zinc-900/50 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 p-4 rounded-xl flex flex-col items-center justify-center gap-2 text-center transition"
-                                     >
-                                        <span className="text-2xl mb-1">🌍</span>
-                                        <span className="font-bold text-sm text-zinc-200">Entdecken</span>
-                                     </Link>
                                   </div>
                                </div>
+                            </div>
+                        )}
+                        
+                        {mobileTab === 'discover' && (
+                            <div className="space-y-6 animate-in fade-in zoom-in-95 duration-200">
+                                {/* Discover Hero */}
+                                <div className="bg-gradient-to-br from-purple-900/40 to-purple-900/10 border border-purple-900/50 p-5 rounded-2xl">
+                                      <div className="flex justify-between items-start mb-4">
+                                         <div>
+                                            <p className="text-[10px] text-purple-400 font-black uppercase tracking-widest mb-1">BotlLab Community</p>
+                                            <h3 className="text-xl font-bold text-white leading-tight">Entdecken</h3>
+                                         </div>
+                                         <span className="bg-purple-500/10 text-purple-400 p-2 rounded-lg">🌍</span>
+                                      </div>
+                                      <p className="text-sm text-zinc-400 mb-4">Finde Inspiration, tausche dich aus und entdecke neue Rezepte.</p>
+                                </div>
+
+                                 <div>
+                                    <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest px-1 mb-1">Community</p>
+                                    <div className="divide-y divide-zinc-900/50">
+                                        <Link
+                                            href="/discover"
+                                            onClick={() => setIsMobileMenuOpen(false)}
+                                            className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
+                                        >
+                                            <span className="text-xl">🌍</span>
+                                            <span className="font-bold text-sm text-zinc-200">Rezepte</span>
+                                            <span className="ml-auto text-zinc-600">→</span>
+                                        </Link>
+                                        <div className="w-full flex items-center gap-4 py-4 px-2 opacity-30 cursor-not-allowed">
+                                            <span className="text-xl">💬</span>
+                                            <div>
+                                                <span className="font-bold text-sm text-zinc-400 block">Forum</span>
+                                                <span className="text-[10px] text-zinc-600 uppercase font-bold tracking-wider">Demnächst</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                 </div>
                             </div>
                         )}
                     </div>
