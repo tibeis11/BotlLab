@@ -116,9 +116,9 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
           </div>
 
           {/* Content Area */}
-          <div className="flex-1 bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 rounded-3xl p-6 md:p-10 min-h-[600px] shadow-2xl relative overflow-hidden group">
+          <div className="flex-1 md:bg-zinc-900/50 md:backdrop-blur-sm md:border md:border-zinc-800 rounded-3xl pt-2 md:p-10 min-h-[600px] md:shadow-2xl relative overflow-hidden group">
                {/* Decorative Gradient Background */}
-              <div className="absolute top-0 right-0 p-40 bg-cyan-500/5 blur-[120px] rounded-full pointer-events-none -mt-20 -mr-20 group-hover:bg-cyan-500/10 transition-colors duration-1000"></div>
+              <div className="absolute top-0 right-0 p-40 bg-cyan-500/5 blur-[120px] rounded-full pointer-events-none -mt-20 -mr-20 group-hover:bg-cyan-500/10 transition-colors duration-1000 hidden md:block"></div>
               
               <div className="relative z-10 w-full max-w-2xl">
                 {activeTab === 'general' && isAdmin ? (

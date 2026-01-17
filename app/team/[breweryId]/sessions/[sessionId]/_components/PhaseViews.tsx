@@ -11,7 +11,7 @@ import { AddEventModal } from './AddEventModal';
 
 /* Shared UI Components for internal consistency */
 const PhaseCard = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
-  <div className={`bg-zinc-900/50 border border-zinc-800 rounded-3xl p-4 md:p-8 mb-8 ${className}`}>
+  <div className={`md:bg-zinc-900/50 md:border md:border-zinc-800 rounded-3xl pt-2 md:p-8 mb-8 ${className}`}>
     {children}
   </div>
 );

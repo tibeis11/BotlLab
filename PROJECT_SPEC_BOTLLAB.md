@@ -25,7 +25,7 @@ Integration der **OpenAI DALL-E API** zur Erstellung individueller Etiketten-Gra
 
 ### Brand Identity
 
-- **Öffentliches Profil:** Personalisierbare Brauerei-Seite (`/brewery/[id]`) mit Logo, Banner und Social Links.
+- **Öffentliches Profil:** Personalisierbare Brauerei-Seite (`/brewery/[id]`) mit Logo und Social Links.
 - **Portfolio:** Automatische Auflistung aller öffentlichen Sude inkl. Durchschnittsbewertungen.
 
 ## 3. Technischer Stack
@@ -43,7 +43,7 @@ Integration der **OpenAI DALL-E API** zur Erstellung individueller Etiketten-Gra
 ```sql
 profiles (Brauerei-Identität)
 - id (FK -> auth.users), brewery_name, bio, location, founded_year, website
-- logo_url, banner_url
+- logo_url
 
 brews (Rezepte & Sude)
 - id, user_id, name, style, abv, ibu, description, image_url
@@ -80,7 +80,7 @@ ratings (Feedback)
 
 1. **Signup:** E-Mail + Passwort, Supabase-Confirmation-Mail mit Redirect zu `/auth/callback`.
 2. **Login:** Verweigert, wenn E-Mail nicht bestätigt; Resend-Link möglich.
-3. **Profile Setup:** Ring zeigt Fertigstellung (Logo, Banner, Name, Standort, Website, Bio, Gründungsjahr).
+3. **Profile Setup:** Ring zeigt Fertigstellung (Logo, Name, Standort, Website, Bio, Gründungsjahr).
 4. **Nudges:** Dashboard-Toast erinnert einmal pro Session an Profil-Vervollständigung.
 
 ## 6. Design & UX Guidelines

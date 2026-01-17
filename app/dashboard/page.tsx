@@ -48,7 +48,6 @@ function DashboardContent() {
 		display_name: '',
 		founded_year: '',
 		logo_url: '',
-		banner_url: '',
 		location: '',
 		website: '',
 		bio: ''
@@ -117,7 +116,6 @@ function DashboardContent() {
 					display_name: brewery.name || '',
 					founded_year: brewery.founded_year ? String(brewery.founded_year) : '',
 					logo_url: brewery.logo_url || '',
-					banner_url: brewery.banner_url || '',
 					location: brewery.location || '',
 					website: brewery.website || '',
 					bio: brewery.description || ''
@@ -221,7 +219,6 @@ function DashboardContent() {
 			{ key: 'display_name' },
 			{ key: 'founded_year', isDone: (v) => !!(v && String(v).trim().length > 0) },
 			{ key: 'logo_url' },
-			{ key: 'banner_url' },
 			{ key: 'location' },
 			{ key: 'website' },
 			{ key: 'bio' },
@@ -238,7 +235,7 @@ function DashboardContent() {
 				showAchievement({
 					id: key,
 					name: 'Profil fast fertig',
-					description: 'Ergänze Logo, Banner und Infos für dein bestes Auftreten.',
+					description: 'Ergänze Logo und Infos für dein bestes Auftreten.',
 					icon: '🧩',
 					tier: 'bronze',
 					points: 0,

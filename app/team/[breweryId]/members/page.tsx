@@ -145,9 +145,9 @@ export default function TeamMembersPage({ params }: { params: Promise<{ breweryI
       
       {/* --- LEFT COLUMN: MEMBER LIST --- */}
       <div className="lg:col-span-2 space-y-6">
-          <div className="bg-zinc-900/30 backdrop-blur-md border border-zinc-800/60 p-6 md:p-8 rounded-3xl relative overflow-hidden shadow-2xl min-h-[500px]">
+          <div className="md:bg-zinc-900/30 md:backdrop-blur-md md:border md:border-zinc-800/60 pt-2 md:p-8 rounded-3xl relative overflow-hidden md:shadow-2xl min-h-[500px]">
             {/* Gradient Decor */}
-            <div className="absolute top-0 right-0 p-32 bg-cyan-500/5 blur-[100px] rounded-full pointer-events-none -mt-10 -mr-10"></div>
+            <div className="absolute top-0 right-0 p-32 bg-cyan-500/5 blur-[100px] rounded-full pointer-events-none -mt-10 -mr-10 hidden md:block"></div>
 
             <div className="relative z-10">
                 <div className="flex justify-end mb-6">

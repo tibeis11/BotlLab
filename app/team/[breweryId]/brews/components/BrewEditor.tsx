@@ -30,6 +30,8 @@ function formatIngredientsForPrompt(value: any): string {
             if (v.time) details.push(`${v.time}min`);
             if (v.usage) details.push(v.usage);
             if (v.color_ebc) details.push(`${v.color_ebc} EBC`);
+            if (v.attenuation) details.push(`EVG ${v.attenuation}%`);
+            if (v.type) details.push(v.type);
             
             return details.length > 0 ? `${main} (${details.join(', ')})` : main;
         }).join('; ');
@@ -245,7 +247,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 		description: '',
 		image_url: null,
 		cap_url: null,
-		is_public: false,
+		is_public: true,
 		data: {
             batch_size_liters: '',
             og: '',
@@ -680,7 +682,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 			if (d.srm) typePrompt.push(`SRM ${d.srm}`);
 			if (d.malts) typePrompt.push(`Malts: ${formatIngredientsForPrompt(d.malts)}`);
 			if (d.hops) typePrompt.push(`Hops: ${formatIngredientsForPrompt(d.hops)}`);
-			if (d.yeast) typePrompt.push(`Yeast: ${d.yeast}`);
+			if (d.yeast) typePrompt.push(`Yeast: ${formatIngredientsForPrompt(d.yeast)}`);
 			if (d.og && d.fg) typePrompt.push(`OG ${d.og}, FG ${d.fg}`);
 		} else if (brew.brew_type === 'wine') {
 			if (d.abv) typePrompt.push(`ABV ${d.abv}%`);
@@ -845,7 +847,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 				recipeData.fg = d.fg;
 				recipeData.malts = formatIngredientsForPrompt(d.malts);
 				recipeData.hops = formatIngredientsForPrompt(d.hops);
-				recipeData.yeast = d.yeast;
+				recipeData.yeast = formatIngredientsForPrompt(d.yeast);
 				recipeData.boilTime = d.boil_time;
 				recipeData.mashWater = d.mash_water_liters;
 				recipeData.spargeWater = d.sparge_water_liters;
@@ -913,7 +915,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 				if (d.srm) details.push(`SRM: ${d.srm}`);
 				if (d.malts) details.push(`Malts: ${formatIngredientsForPrompt(d.malts)}`);
 				if (d.hops) details.push(`Hops: ${formatIngredientsForPrompt(d.hops)}`);
-				if (d.yeast) details.push(`Yeast: ${d.yeast}`);
+				if (d.yeast) details.push(`Yeast: ${formatIngredientsForPrompt(d.yeast)}`);
 				if (d.og && d.fg) details.push(`OG: ${d.og}, FG: ${d.fg}`);
 			} else if (brew.brew_type === 'wine') {
 				if (d.abv) details.push(`ABV: ${d.abv}%`);
@@ -1179,7 +1181,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                     </nav>
 
                     {/* Content Area */}
-                    <main className="flex-1 w-full bg-zinc-900/50 rounded-3xl p-6 md:p-10 border border-zinc-800 space-y-8">
+                    <main className="flex-1 w-full md:bg-zinc-900/50 md:rounded-3xl pt-2 md:p-10 md:border md:border-zinc-800 space-y-8">
                         
                         {activeTab === 'input' && (
                             <div className="space-y-8">
