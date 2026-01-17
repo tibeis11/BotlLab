@@ -20,6 +20,7 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 	
 	const [bottles, setBottles] = useState<any[]>([]);
 	const [brews, setBrews] = useState<any[]>([]);
+	const [sessions, setSessions] = useState<any[]>([]);
 	const [amount, setAmount] = useState(10);
 	const [downloadFormat, setDownloadFormat] = useState<'pdf' | 'zip' | 'png'>('pdf');
 	const [isWorking, setIsWorking] = useState(false);
@@ -30,16 +31,21 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 
 	const [showScanner, setShowScanner] = useState(false);
 	const [scanBrewId, setScanBrewId] = useState<string>(""); 
+	const [scanFilledDate, setScanFilledDate] = useState<string>(new Date().toISOString().split('T')[0]);
 	const [scanFeedback, setScanFeedback] = useState<{type: 'success' | 'error', msg: string} | null>(null);
 	const [isProcessingScan, setIsProcessingScan] = useState(false);
 	const [lastScannedId, setLastScannedId] = useState<string | null>(null);
 
 	const [viewQr, setViewQr] = useState<{ url: string, bottleNumber: number, id: string } | null>(null);
+	const [assignTargetBottle, setAssignTargetBottle] = useState<any>(null);
+	const [assignSessionId, setAssignSessionId] = useState<string>("");
+	const [assignFilledDate, setAssignFilledDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
 	// Bulk Selection State
 	const [selectedBottles, setSelectedBottles] = useState<Set<string>>(new Set());
 	const [showBulkAssign, setShowBulkAssign] = useState(false);
 	const [bulkAssignBrewId, setBulkAssignBrewId] = useState("");
+	const [bulkAssignFilledDate, setBulkAssignFilledDate] = useState<string>(new Date().toISOString().split('T')[0]);
 	
 	const [filterText, setFilterText] = useState("");
 	const [sortOption, setSortOption] = useState<"newest" | "oldest" | "number_asc" | "number_desc">("number_asc");
@@ -84,7 +90,7 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 
 			const { data: btl } = await supabase
 				.from('bottles')
-				.select('*, brews(name, style)')
+				.select('*, brews(name, style), brewing_sessions(id, brewed_at, batch_code, phase)')
 				.eq('brewery_id', brewery.id)
 				.order('created_at', { ascending: false });
 			
@@ -92,9 +98,16 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 				.from('brews')
 				.select('id, name')
 				.eq('brewery_id', brewery.id); 
+				
+			const { data: sess } = await supabase
+				.from('brewing_sessions')
+				.select('id, brew_id, brewed_at, batch_code, phase, brews(name)')
+				.eq('brewery_id', brewery.id)
+				.order('brewed_at', { ascending: false });
 			
 			if (btl) setBottles(btl);
 			if (brw) setBrews(brw);
+			if (sess) setSessions(sess);
 		}
 	}
 
@@ -452,10 +465,28 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 	async function handleBulkAssign() {
 		setIsWorking(true);
 		try {
-			const brewIdToSet = bulkAssignBrewId || null;
+			const sessionIdToSet = bulkAssignBrewId || null;
+			let brewIdToSet = null;
+
+			if (sessionIdToSet) {
+				const s = sessions.find(sess => sess.id === sessionIdToSet);
+				if (s) brewIdToSet = s.brew_id;
+			}
+
+			const updates: any = { 
+				session_id: sessionIdToSet,
+				brew_id: brewIdToSet 
+			};
+
+			if (sessionIdToSet) {
+				updates.filled_at = bulkAssignFilledDate ? new Date(bulkAssignFilledDate).toISOString() : new Date().toISOString();
+			} else {
+				updates.filled_at = null;
+			}
+
 			const { error } = await supabase
 				.from('bottles')
-				.update({ brew_id: brewIdToSet })
+				.update(updates)
 				.in('id', Array.from(selectedBottles));
 			
 			if (error) throw error;
@@ -519,7 +550,13 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 				.single();
 			
 			const nextNumber = (maxResult?.bottle_number || 0) + 1;
-			const newBrewId = scanBrewId === "EMPTY_ACTION" ? null : scanBrewId;
+			const newSessionId = scanBrewId === "EMPTY_ACTION" ? null : scanBrewId;
+			let newBrewId = null;
+
+			if (newSessionId) {
+				const session = sessions.find(s => s.id === newSessionId);
+				if (session) newBrewId = session.brew_id;
+			}
 			
 			const { data: existingBottle } = await supabase
 				.from('bottles')
@@ -528,9 +565,16 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 				.single();
 
 			let updatePayload: any = { 
+				session_id: newSessionId,
 				brew_id: newBrewId,
 				brewery_id: activeBrewery.id
 			};
+
+			if (newSessionId) {
+				updatePayload.filled_at = scanFilledDate ? new Date(scanFilledDate).toISOString() : new Date().toISOString();
+			} else {
+				updatePayload.filled_at = null;
+			}
 
 			if (existingBottle && existingBottle.brewery_id !== activeBrewery.id) {
 				updatePayload.bottle_number = nextNumber;
@@ -547,10 +591,10 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 			} else {
 				setLastScannedId(bottleId);
 				
-				if (newBrewId === null) {
+				if (newSessionId === null) {
 					setScanFeedback({ type: 'success', msg: `✅ Flasche geleert` });
 				} else {
-					const bName = brews.find(b => b.id === newBrewId)?.name || 'Bier';
+					const bName = sessions.find(s => s.id === newSessionId)?.brews?.name || 'Sud';
 					setScanFeedback({ type: 'success', msg: `✅ Flasche zugewiesen -> ${bName}` });
 				}
 				
@@ -572,10 +616,37 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 		}
 	}
 
-	async function updateBottleBrew(bottleId: string, brewId: string) {
+	function openAssignModal(bottle: any) {
+		setAssignTargetBottle(bottle);
+		setAssignSessionId(bottle.session_id || "");
+		const dateStr = bottle.filled_at ? new Date(bottle.filled_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+		setAssignFilledDate(dateStr);
+	}
+
+	async function updateBottleBrew(bottleId: string, sessionId: string, filledAtDate?: string) {
+		let brewId = null;
+		
+		if (sessionId) {
+			const s = sessions.find(sess => sess.id === sessionId);
+			if (s) brewId = s.brew_id;
+		}
+
+		const updates: any = { 
+			session_id: sessionId || null,
+			brew_id: brewId 
+		};
+
+		if (sessionId) {
+			// Set filled_at if provided, otherwise now
+			updates.filled_at = filledAtDate ? new Date(filledAtDate).toISOString() : new Date().toISOString();
+		} else {
+			// Clear filled_at when emptying
+			updates.filled_at = null;
+		}
+
 		const { error } = await supabase
 			.from('bottles')
-			.update({ brew_id: brewId || null })
+			.update(updates)
 			.eq('id', bottleId);
 
 		if (!error) loadData();
@@ -627,7 +698,25 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 	// Options for CustomSelects
 	const scanOptions = [
 		{ value: "EMPTY_ACTION", label: "Flasche leeren", icon: "🗑️" },
-		...brews.map(b => ({ value: b.id, label: b.name, icon: "🍺", group: "Rezept zuweisen" }))
+		...sessions.map(s => {
+			const date = s.brewed_at ? new Date(s.brewed_at).toLocaleDateString() : 'Unbekannt';
+			const name = s.brews?.name || 'Unbekannt';
+			const code = s.batch_code ? ` #${s.batch_code}` : '';
+            
+            let phaseLabel = '';
+            if (s.phase === 'planning') phaseLabel = ' [Geplant]';
+            else if (s.phase === 'brewing') phaseLabel = ' [Am Brauen]';
+            else if (s.phase === 'fermenting') phaseLabel = ' [Gärung]';
+            else if (s.phase === 'conditioning') phaseLabel = ' [Reifung]';
+            else if (s.phase === 'completed') phaseLabel = ' [Fertig]';
+
+			return { 
+				value: s.id, 
+				label: `${name} (${date}${code})${phaseLabel}`, 
+				icon: "🍺", 
+				group: "Session (Sud)" 
+			};
+		})
 	];
 
 	const formatOptions = [
@@ -651,7 +740,19 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 
 	const brewOptions = [
 		{ value: "", label: "(Leer)" },
-		...brews.map(b => ({ value: b.id, label: b.name }))
+		...sessions.map(s => {
+			const date = s.brewed_at ? new Date(s.brewed_at).toLocaleDateString() : 'Unbekannt';
+			const name = s.brews?.name || 'Unbekannt';
+            
+            let phaseLabel = '';
+            if (s.phase === 'planning') phaseLabel = ' [Geplant]';
+            else if (s.phase === 'brewing') phaseLabel = ' [Am Brauen]';
+            else if (s.phase === 'fermenting') phaseLabel = ' [Gärung]';
+            else if (s.phase === 'conditioning') phaseLabel = ' [Reifung]';
+            else if (s.phase === 'completed') phaseLabel = ' [Fertig]';
+
+			return { value: s.id, label: `${name} ${date}${phaseLabel}` };
+		})
 	];
 
 	return (
@@ -718,6 +819,18 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 													placeholder="-- Bitte wählen --"
 												/>
 											</div>
+
+											{scanBrewId && scanBrewId !== "EMPTY_ACTION" && (
+												<div className="animate-in fade-in slide-in-from-top-1">
+													<label className="text-[10px] font-bold uppercase text-cyan-500 tracking-widest block mb-2 px-1">Abgefüllt am</label>
+													<input 
+														type="date"
+														value={scanFilledDate}
+														onChange={(e) => setScanFilledDate(e.target.value)}
+														className="w-full bg-black/40 border border-zinc-700/50 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all [color-scheme:dark]"
+													/>
+												</div>
+											)}
 
 											<div className="rounded-2xl overflow-hidden border-2 border-zinc-800 relative bg-black aspect-square shadow-inner">
 												 <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
@@ -881,8 +994,8 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 									</div>
 									<div className="w-20 sm:w-24 px-2 sm:px-5 py-3 shrink-0">Nr.</div>
 									<div className="flex-1 px-2 sm:px-5 py-3">Inhalt / Status</div>
-									<div className="hidden sm:block w-48 px-5 py-3 shrink-0">Schnell-Zuweisung</div>
-									<div className="w-20 sm:w-24 pr-4 sm:pr-8 pl-2 sm:pl-5 py-3 text-right shrink-0"></div>
+									<div className="hidden lg:block w-32 px-5 py-3 shrink-0 text-right">Abgefüllt</div>
+									<div className="w-32 pr-4 sm:pr-8 pl-2 sm:pl-5 py-3 text-right shrink-0">Aktionen</div>
 								</div>
 
 								{/* Body */}
@@ -910,8 +1023,33 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 											<div className="flex-1 px-2 sm:px-5 py-5 min-w-0">
 													{bottle.brews?.name ? (
 														<div className="flex items-center gap-3">
-															<div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)] shrink-0"></div>
-															<div className="font-bold text-white text-base truncate">{bottle.brews.name}</div>
+															<div className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                                                                bottle.brewing_sessions?.phase === 'completed' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' :
+                                                                bottle.brewing_sessions?.phase === 'conditioning' ? 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.4)] animate-pulse' :
+                                                                bottle.brewing_sessions?.phase === 'fermenting' ? 'bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.4)]' :
+                                                                bottle.brewing_sessions?.phase === 'brewing' ? 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.4)]' :
+                                                                'bg-zinc-500'
+                                                            }`}></div>
+															<div className="font-bold text-white text-base truncate">
+																<div className="flex items-center gap-2">
+                                                                    <span>{bottle.brews.name}</span>
+                                                                    {/* Phase Badge Inline */}
+                                                                    {bottle.brewing_sessions?.phase === 'conditioning' && (
+                                                                         <span className="text-[9px] uppercase font-bold tracking-wider text-amber-400 bg-amber-950/30 px-1.5 py-0.5 rounded border border-amber-500/20">Reifung</span>
+                                                                     )}
+                                                                     {bottle.brewing_sessions?.phase === 'completed' && (
+                                                                         <span className="text-[9px] uppercase font-bold tracking-wider text-emerald-400 bg-emerald-950/30 px-1.5 py-0.5 rounded border border-emerald-500/20">Fertig</span>
+                                                                     )}
+                                                                     {bottle.brewing_sessions?.phase === 'fermenting' && (
+                                                                         <span className="text-[9px] uppercase font-bold tracking-wider text-indigo-400 bg-indigo-950/30 px-1.5 py-0.5 rounded border border-indigo-500/20">Gärung</span>
+                                                                     )}
+                                                                    {bottle.brewing_sessions?.phase === 'brewing' && (
+                                                                         <span className="text-[9px] uppercase font-bold tracking-wider text-orange-400 bg-orange-950/30 px-1.5 py-0.5 rounded border border-orange-500/20">Brautag</span>
+                                                                     )}
+                                                                </div>
+																{bottle.brewing_sessions?.batch_code && <div className="text-zinc-500 text-xs font-mono mt-0.5">Batch {bottle.brewing_sessions.batch_code}</div>}
+																{!bottle.brewing_sessions?.batch_code && bottle.brewing_sessions?.brewed_at && <div className="text-zinc-500 text-xs font-mono mt-0.5">Gebraut: {new Date(bottle.brewing_sessions.brewed_at).toLocaleDateString()}</div>}
+															</div>
 														</div>
 													) : (
 													<div className="flex items-center gap-3">
@@ -920,18 +1058,24 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 													</div>
 													)}
 											</div>
-											<div className="hidden sm:block w-48 px-5 py-5 shrink-0">
-                                                <CustomSelect 
-                                                    value={bottle.brew_id || ""}
-                                                    onChange={(val) => updateBottleBrew(bottle.id, val)}
-                                                    options={brewOptions}
-                                                />
+											<div className="hidden lg:block w-32 px-5 py-5 shrink-0 text-right text-sm font-mono text-zinc-400">
+												{bottle.filled_at ? new Date(bottle.filled_at).toLocaleDateString() : '-'}
 											</div>
-											<div className="w-20 sm:w-24 pr-4 sm:pr-8 pl-2 sm:pl-5 py-5 text-right shrink-0">
+											
+											<div className="w-32 pr-4 sm:pr-8 pl-2 sm:pl-5 py-5 text-right shrink-0">
 													<div className="flex justify-end gap-2">
+                                                        <button
+                                                            onClick={() => openAssignModal(bottle)}
+                                                            className="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-cyan-400 transition shadow-md border border-transparent hover:border-zinc-700"
+                                                            title="Sud zuweisen"
+                                                        >
+                                                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                                            </svg>
+                                                        </button>
 														<button 
 															onClick={() => showQrModal(bottle)}
-															className="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white transition hover:text-cyan-400 group-hover:bg-zinc-950 shadow-md border border-transparent hover:border-zinc-700"
+															className="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white transition hover:text-cyan-400 shadow-md border border-transparent hover:border-zinc-700"
 															title="QR Code anzeigen"
 														>
 															<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
@@ -1032,12 +1176,28 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 						<h3 className="text-lg font-bold mb-4">Massen-Zuweisung</h3>
 						<p className="text-sm text-zinc-400 mb-4">Wähle ein Rezept für die {selectedBottles.size} ausgewählten Flaschen.</p>
 						
-                        <CustomSelect 
-                            value={bulkAssignBrewId}
-                            onChange={setBulkAssignBrewId}
-                            options={brewOptions}
-                            className="mb-4"
-                        />
+						<div className="space-y-4 mb-6">
+							<div>
+								<label className="text-[10px] uppercase font-bold text-zinc-500 tracking-widest block mb-1">Inhalt</label>
+								<CustomSelect 
+									value={bulkAssignBrewId}
+									onChange={setBulkAssignBrewId}
+									options={brewOptions}
+								/>
+							</div>
+							
+							{bulkAssignBrewId && (
+								<div className="animate-in fade-in slide-in-from-top-1">
+                                    <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-widest block mb-1">Abgefüllt am</label>
+                                    <input 
+                                        type="date" 
+                                        value={bulkAssignFilledDate}
+                                        onChange={(e) => setBulkAssignFilledDate(e.target.value)}
+                                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-white outline-none focus:border-cyan-500 transition font-mono"
+                                    />
+                                </div>
+							)}
+						</div>
 
 						<div className="flex gap-3">
 							<button 
@@ -1054,6 +1214,64 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 								{isWorking ? 'Speichere...' : 'Anwenden'}
 							</button>
 						</div>
+					</div>
+				</div>
+			)}
+
+			{/* Single Assign Modal */}
+			{assignTargetBottle && (
+				<div 
+                    className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4" 
+                    onClick={() => setAssignTargetBottle(null)}
+                >
+					<div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 w-full max-w-sm relative" onClick={e => e.stopPropagation()}>
+						<button className="absolute top-3 right-3 text-zinc-500 hover:text-white" onClick={() => setAssignTargetBottle(null)}>✖</button>
+						<h3 className="text-lg font-bold mb-4">Sud zuweisen</h3>
+						<p className="text-sm text-zinc-400 mb-4">
+                            Wähle den Inhalt für Flasche <span className="text-white font-mono">#{assignTargetBottle.bottle_number}</span>.
+                        </p>
+						
+                        <div className="space-y-4">
+                            <div>
+                                <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-widest block mb-1">Inhalt</label>
+                                <CustomSelect 
+                                    value={assignSessionId}
+                                    onChange={setAssignSessionId}
+                                    options={brewOptions}
+                                    placeholder="-- Leer / Unbekannt --"
+                                />
+                            </div>
+
+                            {assignSessionId && (
+                                <div className="animate-in fade-in slide-in-from-top-1">
+                                    <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-widest block mb-1">Abgefüllt am</label>
+                                    <input 
+                                        type="date" 
+                                        value={assignFilledDate}
+                                        onChange={(e) => setAssignFilledDate(e.target.value)}
+                                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-white outline-none focus:border-cyan-500 transition font-mono"
+                                    />
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex justify-end gap-3 mt-6">
+                            <button 
+                                onClick={() => setAssignTargetBottle(null)}
+                                className="py-2 px-4 bg-zinc-800 hover:bg-zinc-700 rounded-xl font-bold text-sm text-zinc-300"
+                            >
+                                Abbrechen
+                            </button>
+                             <button 
+                                onClick={() => {
+                                    updateBottleBrew(assignTargetBottle.id, assignSessionId, assignFilledDate);
+                                    setAssignTargetBottle(null);
+                                }}
+                                className="py-2 px-6 bg-cyan-500 hover:bg-cyan-400 text-black rounded-xl font-bold text-sm shadow-lg shadow-cyan-900/20"
+                            >
+                                Speichern
+                            </button>
+                        </div>
 					</div>
 				</div>
 			)}

@@ -70,9 +70,16 @@ export default function TeamLayout({
               .maybeSingle();
           
           setIsMember(!!member);
+
+          // Update active brewery preference in background
+          if (member) {
+             supabase.rpc('update_active_brewery', { brewery_id: id }).then(({ error }) => {
+                if (error) console.error("Failed to set active brewery context", error);
+             });
+          }
       }
     } else {
-        console.error(`Brewery not found in DB. ID: "${id}"`);
+        console.warn(`Brewery not found in DB. ID: "${id}"`); // Warn instead of Error for 404s
         if (error) console.error("Supabase Error:", error);
     }
     setLoading(false);

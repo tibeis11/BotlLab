@@ -17,7 +17,7 @@ export default function AccountPage() {
 	const router = useRouter();
 
     // Menu State
-    const [activeTab, setActiveTab] = useState<'profile' | 'access' | 'security' | 'teams' | 'danger'>('profile');
+    const [activeTab, setActiveTab] = useState<'profile' | 'access' | 'security' | 'teams' | 'danger' | 'privacy'>('profile');
 
     // --- PROFILE STATE ---
     const [savingProfile, setSavingProfile] = useState(false);
@@ -29,7 +29,8 @@ export default function AccountPage() {
         website: string,
         logo_url: string,
         banner_url: string,
-        tier?: string
+        tier?: string,
+        analytics_opt_out: boolean
     }>({
 		display_name: '',
 		location: '',
@@ -38,7 +39,8 @@ export default function AccountPage() {
 		website: '',
 		logo_url: '',
 		banner_url: '',
-        tier: 'lehrling'
+        tier: 'lehrling',
+        analytics_opt_out: false
 	});
 	const [uploadingLogo, setUploadingLogo] = useState(false);
 	const [uploadingBanner, setUploadingBanner] = useState(false);
@@ -103,7 +105,8 @@ export default function AccountPage() {
 				website: data.website || '',
 				logo_url: data.logo_url || '',
 				banner_url: data.banner_url || '',
-                tier: data.tier || 'lehrling'
+                tier: data.tier || 'lehrling',
+                analytics_opt_out: data.analytics_opt_out || false
 			});
 		}
 	}
@@ -174,6 +177,17 @@ export default function AccountPage() {
 	async function saveProfile() {
 		if (!user) return;
 		setSavingProfile(true);
+
+        // Security Check: Prevent "admin" display name
+        if (profile.display_name.trim().toLowerCase() === 'admin') {
+            // Check if user is ALREADY admin (allowed to keep it)
+            const { data: currentProfile } = await supabase.from('profiles').select('display_name').eq('id', user.id).single();
+            if (currentProfile?.display_name !== 'admin') {
+                alert('Der Benutzername "admin" ist reserviert und kann nicht verwendet werden.');
+                setSavingProfile(false);
+                return;
+            }
+        }
 
 		const updates = {
 			id: user.id,
@@ -316,6 +330,25 @@ export default function AccountPage() {
 		}
 	}
 
+    async function togglePrivacy() {
+        if (!user) return;
+        const newVal = !profile.analytics_opt_out;
+        
+        // Optimistic UI update
+        setProfile(prev => ({ ...prev, analytics_opt_out: newVal }));
+        
+        const { error } = await supabase
+            .from('profiles')
+            .update({ analytics_opt_out: newVal })
+            .eq('id', user.id);
+            
+        if (error) {
+            // Revert on error
+            setProfile(prev => ({ ...prev, analytics_opt_out: !newVal }));
+            alert('Fehler beim Speichern der Einstellung: ' + error.message);
+        }
+    }
+
 	async function deleteAccount() {
 		if (!confirm('Willst du dein Konto endgültig löschen? Dies kann nicht rückgängig gemacht werden.')) return;
 		const { data: sessionData } = await supabase.auth.getSession();
@@ -342,6 +375,7 @@ export default function AccountPage() {
         { id: 'teams', label: 'Teams', icon: '🏭' },
         { id: 'access', label: 'Zugangsdaten', icon: '📧' },
         { id: 'security', label: 'Sicherheit', icon: '🔒' },
+        { id: 'privacy', label: 'Privatsphäre', icon: '🕵️' },
         { id: 'danger', label: 'Account', icon: '⚠️' }
     ];
 
@@ -798,6 +832,51 @@ export default function AccountPage() {
                                     </button>
                                 </div>
                             </form>
+                        )}
+                        
+                        {activeTab === 'privacy' && (
+                            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                <div>
+                                    <h2 className="text-xl font-bold text-white mb-1">Privatsphäre & Daten</h2>
+                                    <p className="text-sm text-zinc-400">Transparenz darüber, welche Daten wir sammeln.</p>
+                                </div>
+
+                                <div className="bg-zinc-950/50 border border-zinc-800 rounded-2xl p-6 space-y-6">
+                                    <div className="flex items-start gap-4">
+                                        <div className="p-3 bg-purple-500/10 rounded-xl border border-purple-500/20 text-2xl">
+                                            📊
+                                        </div>
+                                        <div className="flex-1">
+                                            <h3 className="font-bold text-white mb-1">Produktanalyse verbessern</h3>
+                                            <p className="text-zinc-400 text-sm leading-relaxed mb-4">
+                                                Wir analysieren anonym, wie Features genutzt werden (z.B. "Wie oft wird gedruckt?"), um BotlLab besser zu machen. 
+                                                Es werden keine persönlichen Daten an Dritte (Werbenetzwerke) weitergegeben.
+                                            </p>
+                                            
+                                            <label className="flex items-center gap-3 cursor-pointer group">
+                                                <div className="relative">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="peer sr-only" 
+                                                        checked={!profile.analytics_opt_out}
+                                                        onChange={togglePrivacy}
+                                                    />
+                                                    <div className="w-11 h-6 bg-zinc-700 rounded-full peer-checked:bg-purple-500 peer-focus:ring-4 peer-focus:ring-purple-500/30 transition-all after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
+                                                </div>
+                                                <span className={`font-bold text-sm ${!profile.analytics_opt_out ? 'text-white' : 'text-zinc-500'}`}>
+                                                    {!profile.analytics_opt_out ? 'Aktiv (Empfohlen)' : 'Deaktiviert'}
+                                                </span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="h-px bg-zinc-800 w-full" />
+                                    
+                                    <div className="text-xs text-zinc-500">
+                                        Mehr Details findest du in unserer <Link href="/privacy" className="text-zinc-400 underline hover:text-white">Datenschutzerklärung</Link>.
+                                    </div>
+                                </div>
+                            </div>
                         )}
                         
                         {activeTab === 'danger' && (

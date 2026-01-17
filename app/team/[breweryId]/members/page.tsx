@@ -5,7 +5,8 @@ import { supabase, getBreweryMembers } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
 import { addToFeed } from '@/lib/feed-service';
-import { getTierConfig } from '@/lib/tier-system';
+import { getTierConfig, getBreweryTierConfig } from '@/lib/tier-system';
+import { trackEvent } from '@/lib/actions/analytics-actions';
 
 export default function TeamMembersPage({ params }: { params: Promise<{ breweryId: string }> }) {
   const { breweryId } = use(params);
@@ -14,6 +15,7 @@ export default function TeamMembersPage({ params }: { params: Promise<{ breweryI
   const [members, setMembers] = useState<any[]>([]);
   const [activeBrewery, setActiveBrewery] = useState<any>(null);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+  const [memberLimit, setMemberLimit] = useState(3);
   
   const [inviteLink, setInviteLink] = useState("");
   const [copied, setCopied] = useState(false);
@@ -47,6 +49,9 @@ export default function TeamMembersPage({ params }: { params: Promise<{ breweryI
         .single();
       
       setActiveBrewery(brewery);
+      
+      const config = getBreweryTierConfig(brewery.tier || 'garage');
+      setMemberLimit(config.limits.maxMembers);
 
       // Get Members
       const memberList = await getBreweryMembers(breweryId);
@@ -221,9 +226,26 @@ export default function TeamMembersPage({ params }: { params: Promise<{ breweryI
                     Teile diesen Code, damit Freunde deinem Squad beitreten können.
                  </p>
              </div>
+             
+             {members.length >= memberLimit && (
+                 <div className="bg-red-500/10 border border-red-500/20 p-3 rounded-lg flex items-start gap-3">
+                     <span className="text-lg">🔒</span>
+                     <div>
+                         <p className="text-xs font-bold text-red-400 uppercase tracking-wide mb-1">Squad ist voll</p>
+                         <p className="text-xs text-red-300">Upgrade auf einen höheren Tier, um mehr als {memberLimit} Mitglieder einzuladen.</p>
+                    </div>
+                 </div>
+             )}
 
-            <div className="space-y-3">
-                <div onClick={() => {}} className="bg-black/50 border border-zinc-800 p-4 rounded-2xl flex items-center justify-between gap-3 group/code cursor-pointer hover:border-cyan-500/50 hover:bg-zinc-900/80 transition-all duration-300 shadow-inner">
+            <div className={`space-y-3 transition-opacity ${members.length >= memberLimit ? 'opacity-50' : 'opacity-100'}`}>
+                <div onClick={(e) => {
+                    if (members.length >= memberLimit) {
+                         e.stopPropagation();
+                         trackEvent({ event_type: 'limit_reached_members', category: 'monetization', payload: { current: members.length, limit: memberLimit }, path: `/team/${breweryId}/members` });
+                         alert('Limit erreicht! Bitte upgrade deine Brauerei.');
+                         return;
+                    }
+                }} className={`bg-black/50 border border-zinc-800 p-4 rounded-2xl flex items-center justify-between gap-3 group/code cursor-pointer transition-all duration-300 shadow-inner ${members.length >= memberLimit ? 'cursor-not-allowed' : 'hover:border-cyan-500/50 hover:bg-zinc-900/80'}`}>
                     <code className="font-mono text-cyan-400 text-xs sm:text-sm font-bold tracking-widest break-all select-all">
                         {activeBrewery?.invite_code || '---'}
                     </code>

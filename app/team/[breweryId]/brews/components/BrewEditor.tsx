@@ -11,13 +11,28 @@ import { useAuth } from '@/app/context/AuthContext';
 import { addToFeed } from '@/lib/feed-service';
 import CrownCap from '@/app/components/CrownCap';
 import { IngredientListEditor } from './IngredientListEditor';
+import { MaltListEditor } from './MaltListEditor';
+import { HopListEditor } from './HopListEditor';
+import { YeastListEditor } from './YeastListEditor';
+import { MashStepsEditor } from './MashStepsEditor';
 import { RecipeStepsEditor } from './RecipeStepsEditor';
+import { calculateColorEBC, calculateIBU, calculateWaterProfile, calculateOG, calculateABV, calculateFG, ebcToHex, calculateBatchSizeFromWater } from '@/lib/brewing-calculations';
+import { FormulaInspector } from '@/app/components/FormulaInspector';
 
 function formatIngredientsForPrompt(value: any): string {
     if (!value) return '';
     if (typeof value === 'string') return value;
     if (Array.isArray(value)) {
-        return value.map((v: any) => `${v.amount}${v.unit} ${v.name}`.trim()).join(', ');
+        return value.map((v: any) => {
+            const main = `${v.amount}${v.unit} ${v.name}`.trim();
+            const details = [];
+            if (v.alpha) details.push(`${v.alpha}% Alpha`);
+            if (v.time) details.push(`${v.time}min`);
+            if (v.usage) details.push(v.usage);
+            if (v.color_ebc) details.push(`${v.color_ebc} EBC`);
+            
+            return details.length > 0 ? `${main} (${details.join(', ')})` : main;
+        }).join('; ');
     }
     return '';
 }
@@ -50,14 +65,22 @@ function NumberInput({
   step = 1, 
   min = 0, 
   placeholder, 
-  label 
+  label,
+  isCalculated,
+  calculationInfo,
+  previewColor,
+  onInspectorOpen
 }: { 
   value: any, 
   onChange: (val: string) => void, 
   step?: number, 
   min?: number, 
   placeholder?: string,
-  label?: string
+  label?: string,
+  isCalculated?: boolean,
+  calculationInfo?: string,
+  previewColor?: string,
+  onInspectorOpen?: () => void
 }) {
   const val = parseFloat(value) || 0;
 
@@ -68,12 +91,53 @@ function NumberInput({
   };
 
   return (
-    <div className="w-full">
-      {label && <label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 block">{label}</label>}
-      <div className="flex items-center w-full bg-zinc-900 border border-zinc-800 rounded-xl transition focus-within:border-cyan-500 focus-within:ring-2 focus-within:ring-cyan-500/20 overflow-hidden">
+    <div className="w-full relative group">
+      {label && (
+        <label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 flex items-end gap-2 h-8 leading-tight">
+            <span>{label}</span>
+            {isCalculated && (
+                <div 
+                    className={`relative group/info mb-[2px] ${onInspectorOpen ? 'cursor-pointer hover:scale-110 active:scale-95 transition-transform' : 'cursor-help'}`}
+                    onClick={(e) => {
+                        if (onInspectorOpen) {
+                            e.preventDefault();
+                            onInspectorOpen();
+                        }
+                    }}
+                >
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] border ${onInspectorOpen ? 'bg-amber-500/10 border-amber-500/50 text-amber-500' : 'bg-zinc-800 border-zinc-700 text-zinc-400'}`}>
+                        {onInspectorOpen ? 'i' : 'ƒ'}
+                    </div>
+                    {calculationInfo && (
+                        <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-48 bg-black border border-zinc-800 p-2 rounded-lg text-[10px] text-zinc-300 pointer-events-none opacity-0 group-hover/info:opacity-100 transition-opacity z-50 shadow-xl">
+                            {calculationInfo}
+                            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-black border-r border-b border-zinc-800 rotate-45"></div>
+                        </div>
+                    )}
+                </div>
+            )}
+        </label>
+      )}
+      <div className={`flex items-center w-full bg-zinc-900 border ${previewColor ? 'border-zinc-700' : 'border-zinc-800'} rounded-xl transition focus-within:border-cyan-500 focus-within:ring-2 focus-within:ring-cyan-500/20 overflow-hidden relative`}>
+        {/* Color Preview Strip */}
+        {previewColor && (
+            <div 
+                className="absolute left-0 top-0 bottom-0 w-1.5 z-10" 
+                style={{ backgroundColor: previewColor }}
+            />
+        )}
+        
+        {/* Background Tint for Color */}
+        {previewColor && (
+             <div 
+                className="absolute inset-0 z-0 opacity-10 pointer-events-none"
+                style={{ backgroundColor: previewColor }}
+             />
+        )}
+
         <button 
           onClick={() => update(val - step)}
-          className="w-12 h-12 flex items-center justify-center text-zinc-500 hover:text-white hover:bg-zinc-800 transition active:scale-90 flex-shrink-0"
+          className={`w-12 h-12 flex items-center justify-center text-zinc-500 hover:text-white hover:bg-zinc-800 transition active:scale-90 flex-shrink-0 z-10 ${previewColor ? 'pl-2' : ''}`}
           type="button"
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
@@ -83,14 +147,14 @@ function NumberInput({
         <input 
           type="number"
           step={step}
-          className="flex-1 bg-transparent border-none text-center text-white font-bold text-lg h-12 focus:ring-0 outline-none placeholder:font-normal placeholder:text-zinc-700 appearance-none min-w-0" 
+          className="flex-1 bg-transparent border-none text-center text-white font-bold text-lg h-12 focus:ring-0 outline-none placeholder:font-normal placeholder:text-zinc-700 appearance-none min-w-0 relative z-10" 
           value={value || ''} 
           onChange={(e) => onChange(e.target.value)} 
           placeholder={placeholder} 
         />
         <button 
           onClick={() => update(val + step)}
-          className="w-12 h-12 flex items-center justify-center text-zinc-500 hover:text-white hover:bg-zinc-800 transition active:scale-90 flex-shrink-0"
+          className="w-12 h-12 flex items-center justify-center text-zinc-500 hover:text-white hover:bg-zinc-800 transition active:scale-90 flex-shrink-0 z-10"
           type="button"
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
@@ -149,6 +213,14 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 	const [loading, setLoading] = useState(true);
 	const [breweryTier, setBreweryTier] = useState<string>('garage');
 	const [saving, setSaving] = useState(false);
+    const [inspectorOpen, setInspectorOpen] = useState(false);
+    const [inspectorType, setInspectorType] = useState<'IBU' | 'Color' | 'ABV' | 'BatchSize' | 'OG' | 'FG'>('IBU');
+
+    const handleOpenInspector = (type: 'IBU' | 'Color' | 'ABV' | 'BatchSize' | 'OG' | 'FG') => {
+        setInspectorType(type);
+        setInspectorOpen(true);
+    };
+
 	const [generating, setGenerating] = useState(false);
 	const [uploading, setUploading] = useState(false);
 	const [generatingCap, setGeneratingCap] = useState(false);
@@ -174,13 +246,179 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 		image_url: null,
 		cap_url: null,
 		is_public: false,
-		data: {}
+		data: {
+            batch_size_liters: '',
+            og: '',
+            fg: '',
+            abv: '',
+            ibu: '',
+            color: '',
+            efficiency: '',
+            carbonation_g_l: '',
+            mash_water_liters: '',
+            sparge_water_liters: '',
+            mash_ph: '',
+            boil_time: '',
+            yeast: [],
+            attenuation: '',
+            primary_temp: '',
+            malts: [],
+            hops: [],
+            mash_steps: []
+        }
 	});
 
 	function updateData(key: string, value: any) {
 		setBrew(prev => ({ ...prev, data: { ...(prev.data || {}), [key]: value } }));
 	}
 
+    // --- Special Effect: Water -> Batch Size ---
+    // Only runs when Water or Malts change. NOT when Batch Size changes (avoid overwrite loop).
+    useEffect(() => {
+        if (brew.brew_type !== 'beer' || !brew.data) return;
+        
+        const d = brew.data;
+        const mashWater = parseFloat(d.mash_water_liters?.toString().replace(',', '.') || '0');
+        const spargeWater = parseFloat(d.sparge_water_liters?.toString().replace(',', '.') || '0');
+        const batchSize = parseFloat(d.batch_size_liters?.toString().replace(',', '.') || '0');
+
+        if ((mashWater > 0 || spargeWater > 0) && Array.isArray(d.malts)) {
+             const calcBatch = calculateBatchSizeFromWater(mashWater, spargeWater, d.malts as any[]);
+             
+             // Only update if significantly different from current batch size logic
+             if (calcBatch > 0 && Math.abs(calcBatch - batchSize) > 0.5) {
+                  updateData('batch_size_liters', calcBatch.toString());
+             }
+        }
+    }, [brew.data?.mash_water_liters, brew.data?.sparge_water_liters, brew.data?.malts, brew.brew_type]);
+
+	// --- Auto Calculations (Dependent on Batch Size) ---
+	useEffect(() => {
+		if (brew.brew_type !== 'beer' || !brew.data) return;
+        
+        const d = brew.data;
+        const currentData = { ...d };
+        let hasChanges = false;
+
+        // Helper for safe float parsing (handle "12,5" -> 12.5)
+        const safeFloat = (val: any) => {
+            if (!val) return 0;
+            if (typeof val === 'number') return val;
+            const str = val.toString().replace(',', '.');
+            return parseFloat(str) || 0;
+        };
+
+        const batchSize = safeFloat(d.batch_size_liters);
+        const efficiency = safeFloat(d.efficiency || '75');
+        // Note: autoAttenuation logic below might override this locally
+        
+        // 1. Calculate OG from Malts
+        let calcOG = 0;
+        if (Array.isArray(d.malts) && batchSize > 0) {
+            calcOG = calculateOG(batchSize, d.malts as any[], efficiency);
+            const currentOG = safeFloat(d.og);
+            
+            // Allow update if diff is significant (> 0.002 to avoid flip-flop)
+            if (calcOG > 0 && Math.abs(calcOG - currentOG) > 0.002) {
+                currentData.og = calcOG.toString();
+                hasChanges = true;
+            }
+        }
+        
+        // 2. Max Attenuation from Yeast List
+        let autoAttenuation = safeFloat(d.attenuation);
+        if (Array.isArray(d.yeast)) {
+             // Find max attenuation from yeast list
+             let maxAtt = 0;
+             d.yeast.forEach((y: any) => {
+                 const v = safeFloat(y.attenuation);
+                 if(v > maxAtt) maxAtt = v;
+             });
+             
+             // If we found a yeast attenuation, use it
+             // If yeast list is empty or has 0 attenuation, we keep existing user input OR 0 ??
+             // Actually, if we have yeast, we should sync. 
+             if (maxAtt > 0 && Math.abs(maxAtt - autoAttenuation) > 0.1) {
+                 currentData.attenuation = maxAtt.toString();
+                 autoAttenuation = maxAtt;
+                 hasChanges = true;
+             }
+        }
+
+        // 3. FG Calculation (based on OG and Attenuation)
+        // Re-read OG from currentData in case we just updated it
+        const og = safeFloat(currentData.og || d.og);
+        
+        if (og > 0) {
+            // Use the updated attenuation value (autoAttenuation)
+            const calcFG = calculateFG(og, autoAttenuation);
+            const currentFG = safeFloat(d.fg);
+            
+            if (Math.abs(calcFG - currentFG) > 0.002) {
+                 currentData.fg = calcFG.toString();
+                 hasChanges = true;
+            }
+        }
+
+        // 4. ABV Calculation
+		// Uses updated OG/FG 
+        const fg = safeFloat(currentData.fg || d.fg);
+		if (og > 0 && fg > 0 && og > fg) {
+			const calcAbv = calculateABV(og, fg);
+            const currentAbv = safeFloat(d.abv);
+			
+            if (calcAbv > 0 && Math.abs(calcAbv - currentAbv) > 0.1) {
+                currentData.abv = calcAbv.toString();
+                hasChanges = true;
+            }
+		}
+
+        // 5. Color (EBC) Calculation
+        if (Array.isArray(d.malts) && batchSize > 0) {
+            const calcColor = calculateColorEBC(batchSize, d.malts as any[]);
+            const currentColor = safeFloat(d.color);
+            
+            // Allow slight tolerance
+            if (calcColor > 0 && Math.abs(calcColor - currentColor) > 0.5) {
+                 currentData.color = calcColor.toString();
+                 hasChanges = true;
+            }
+        }
+
+        // 6. IBU Calculation
+        if (Array.isArray(d.hops) && batchSize > 0 && og > 0) {
+            const calcIBU = calculateIBU(batchSize, og, d.hops as any[]);
+             const currentIBU = safeFloat(d.ibu);
+             
+             if (calcIBU > 0 && Math.abs(calcIBU - currentIBU) > 0.5) {
+                 currentData.ibu = calcIBU.toString();
+                 hasChanges = true;
+             }
+        }
+        
+        // Removed Block 7 & 8 (Water -> Batch Size is handled in separate useEffect)
+
+        if (hasChanges) {
+             setBrew(prev => ({ ...prev, data: currentData }));
+        }
+
+	}, [
+        brew.brew_type, 
+        brew.data?.og, 
+        brew.data?.fg, 
+        // Use length keys or JSON.stringify for deep comparison to avoid ref-change loop
+        // brew.data?.malts, 
+        // brew.data?.hops, 
+        // brew.data?.yeast,
+        brew.data?.malts?.length,
+        JSON.stringify(brew.data?.malts), // Deep check, but safe since small
+        brew.data?.hops?.length,
+        JSON.stringify(brew.data?.hops),
+        brew.data?.batch_size_liters,
+        brew.data?.yeast?.length,
+        brew.data?.attenuation,
+        brew.data?.efficiency
+    ]);
 	useEffect(() => {
 		if (!authLoading) {
 			init();
@@ -242,6 +480,14 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 		
 		if (!user) return;
 
+        // Sanitize Data (Convert empty strings to null to ensure Postgres Numeric Indices don't crash)
+        const sanitizedData = { ...(brew.data || {}) };
+        Object.keys(sanitizedData).forEach(key => {
+            if (sanitizedData[key] === '') {
+                sanitizedData[key] = null;
+            }
+        });
+
 		if (id === 'new') {
 			const tierConfig = getBreweryTierConfig(breweryTier as any);
 			const { count } = await supabase
@@ -263,7 +509,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 				image_url: brew.image_url,
 				cap_url: brew.cap_url,
 				is_public: brew.is_public || false,
-				data: brew.data || {},
+				data: sanitizedData,
 				user_id: user.id,
 				brewery_id: breweryId,
 			};
@@ -308,7 +554,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 				image_url: brew.image_url,
 				cap_url: brew.cap_url,
 				is_public: brew.is_public,
-				data: brew.data || {},
+				data: sanitizedData,
 			})
 			.eq('id', id)
             .eq('brewery_id', breweryId)
@@ -594,15 +840,19 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 			if (brew.brew_type === 'beer') {
 				recipeData.abv = d.abv;
 				recipeData.ibu = d.ibu;
-				recipeData.srm = d.srm;
+				recipeData.colorEBC = d.color;
 				recipeData.og = d.og;
 				recipeData.fg = d.fg;
 				recipeData.malts = formatIngredientsForPrompt(d.malts);
 				recipeData.hops = formatIngredientsForPrompt(d.hops);
 				recipeData.yeast = d.yeast;
-				recipeData.dryHop = d.dry_hop_g;
-				recipeData.boilMinutes = d.boil_minutes;
-				recipeData.mashTemp = d.mash_temp_c;
+				recipeData.boilTime = d.boil_time;
+				recipeData.mashWater = d.mash_water_liters;
+				recipeData.spargeWater = d.sparge_water_liters;
+
+				if (Array.isArray(d.mash_steps)) {
+					recipeData.mashSchedule = d.mash_steps.map((s: any) => `${s.name}: ${s.temperature}°C (${s.duration}min)`).join(' -> ');
+				}
 			} else if (brew.brew_type === 'wine') {
 				recipeData.abv = d.abv;
 				recipeData.grapes = d.grapes;
@@ -1033,69 +1283,155 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                 {/* Dynamic Fields based on Type */}
                                 {brew.brew_type === 'beer' && (
                                     <div className="space-y-10 pt-4 border-t border-zinc-900">
-                                        {/* Section: Messwerte */}
+                                        {/* SECTION 1: EKS & MESSWERTE */}
                                         <div>
                                             <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
                                                 <div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm border border-zinc-700">📊</div>
-                                                Messwerte
+                                                Eckdaten & Ergebnisse
                                             </h3>
-                                            <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-6">
-                                                <NumberInput label="Menge (Liter)" value={brew.data?.batch_size_liters || ''} onChange={(val) => updateData('batch_size_liters', val)} placeholder="20" step={0.5} />
-                                                <NumberInput label="Ausbeute (%)" value={brew.data?.efficiency || ''} onChange={(val) => updateData('efficiency', val)} placeholder="75" />
-                                                <NumberInput label="ABV (%)" value={brew.data?.abv || ''} onChange={(val) => updateData('abv', val)} placeholder="0.0" step={0.1} />
-                                                <NumberInput label="IBU" value={brew.data?.ibu || ''} onChange={(val) => updateData('ibu', val)} placeholder="0" />
-                                                <NumberInput label="Stammwürze (°P)" value={brew.data?.og || ''} onChange={(val) => updateData('og', val)} placeholder="12.0" step={0.1}/>
-                                                <NumberInput label="Restextrakt (°P)" value={brew.data?.fg || ''} onChange={(val) => updateData('fg', val)} placeholder="3.0" step={0.1}/>
-                                                <NumberInput label="Farbe (EBC)" value={brew.data?.color || ''} onChange={(val) => updateData('color', val)} placeholder="10" />
-                                                <NumberInput label="Karbonisierung (g/l)" value={brew.data?.carbonation_g_l || ''} onChange={(val) => updateData('carbonation_g_l', val)} placeholder="5.0" step={0.1} />
+                                            
+                                            {/* Gruppe 1: Definition des Rezepts (Eingaben) */}
+                                            <div className="mb-8">
+                                                <div className="flex items-center gap-2 mb-4 border-b border-zinc-800 pb-2">
+                                                    <span className="text-[10px] uppercase font-bold text-cyan-400 tracking-widest">Rezept-Vorgaben</span>
+                                                </div>
+                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                                                    <NumberInput label="CO₂ (g/l)" value={brew.data?.carbonation_g_l || ''} onChange={(val) => updateData('carbonation_g_l', val)} placeholder="5.0" step={0.1} />
+                                                    <NumberInput label="System-SHA (%)" value={brew.data?.efficiency || ''} onChange={(val) => updateData('efficiency', val)} placeholder="75" />
+                                                </div>
+                                            </div>
+
+                                            {/* Gruppe 2: Resultierende Werte (Berechnet) */}
+                                            <div>
+                                                <div className="flex items-center gap-2 mb-4 border-b border-zinc-800 pb-2">
+                                                     <span className="text-[10px] uppercase font-bold text-zinc-500 tracking-widest">Ergebnisse / Prognose</span>
+                                                </div>
+                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                                                    <NumberInput 
+                                                        label="Menge (Liter)" 
+                                                        value={brew.data?.batch_size_liters || ''} 
+                                                        onChange={(val) => updateData('batch_size_liters', val)} 
+                                                        placeholder="20" 
+                                                        step={0.5} 
+                                                        isCalculated={!!brew.data?.mash_water_liters || !!brew.data?.sparge_water_liters}
+                                                        calculationInfo="Berechnet aus Wassermenge & Schüttung"
+                                                        onInspectorOpen={() => handleOpenInspector('BatchSize')}
+                                                    />
+
+                                                    <NumberInput 
+                                                        label="Bittere (IBU)" 
+                                                        value={brew.data?.ibu || ''} 
+                                                        onChange={(val) => updateData('ibu', val)} 
+                                                        placeholder="30" 
+                                                        step={0.1}
+                                                        isCalculated={!!brew.data?.hops?.length}
+                                                        calculationInfo="Berechnet nach Tinseth-Formel (Hopfen & Kochzeit)"
+                                                        onInspectorOpen={() => handleOpenInspector('IBU')}
+                                                    />
+                                                    
+                                                    <NumberInput 
+                                                        label="Farbe (EBC)" 
+                                                        value={brew.data?.color || ''} 
+                                                        onChange={(val) => updateData('color', val)} 
+                                                        placeholder="10" 
+                                                        previewColor={brew.data?.color ? ebcToHex(parseFloat(brew.data.color)) : undefined}
+                                                        isCalculated={!!brew.data?.malts?.length}
+                                                        calculationInfo="Berechnet nach Morey-Formel (Malze)"
+                                                        onInspectorOpen={() => handleOpenInspector('Color')}
+                                                    />
+
+                                                    <NumberInput 
+                                                        label="Alkohol (ABV %)" 
+                                                        value={brew.data?.abv || ''} 
+                                                        onChange={(val) => updateData('abv', val)} 
+                                                        placeholder="5.2" 
+                                                        step={0.1} 
+                                                        isCalculated={!!brew.data?.og}
+                                                        calculationInfo="Berechnet aus Stammwürze & Restextrakt"
+                                                        onInspectorOpen={() => handleOpenInspector('ABV')}
+                                                    />
+
+                                                    <NumberInput 
+                                                        label="Stammwürze (°P)" 
+                                                        value={brew.data?.og || ''} 
+                                                        onChange={(val) => updateData('og', val)} 
+                                                        placeholder="12.0" 
+                                                        step={0.1}
+                                                        isCalculated={!!brew.data?.malts?.length}
+                                                        calculationInfo="Berechnet aus Schüttung & SHA"
+                                                        onInspectorOpen={() => handleOpenInspector('OG')}
+                                                    />
+                                                    
+                                                    <NumberInput 
+                                                        label="Restextrakt (°P)" 
+                                                        value={brew.data?.fg || ''} 
+                                                        onChange={(val) => updateData('fg', val)} 
+                                                        placeholder="3.0" 
+                                                        step={0.1}
+                                                        isCalculated={!!brew.data?.og}
+                                                        calculationInfo="Berechnet aus Stammwürze & Hefe-Vergärungsgrad"
+                                                        onInspectorOpen={() => handleOpenInspector('FG')}
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
 
-                                        {/* Section: Brauprozess */}
+                                        {/* SECTION 2: WASSER & MAISCHEN */}
                                         <div>
                                             <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
                                                 <div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm border border-zinc-700">🌡️</div>
-                                                Brauprozess
+                                                Wasser & Maischen
                                             </h3>
-                                            <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-6">
-                                                <div>
-                                                    <label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 block">Brautag</label>
-                                                    <input 
-                                                        type="date" 
-                                                        className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none"
-                                                        value={brew.data?.brewed_at || ''} 
-                                                        onChange={(e) => updateData('brewed_at', e.target.value)} 
-                                                    />
+                                            <div className="space-y-8">
+                                                <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-6">
+                                                    <NumberInput label="Hauptguss (L)" value={brew.data?.mash_water_liters || ''} onChange={(val) => updateData('mash_water_liters', val)} placeholder="15" step={0.5} />
+                                                    <NumberInput label="Nachguss (L)" value={brew.data?.sparge_water_liters || ''} onChange={(val) => updateData('sparge_water_liters', val)} placeholder="12" step={0.5} />
+                                                    <NumberInput label="Maische-pH (Ziel)" value={brew.data?.mash_ph || ''} onChange={(val) => updateData('mash_ph', val)} placeholder="5.4" step={0.1} />
                                                 </div>
-                                                <NumberInput label="Kochzeit (min)" value={brew.data?.boil_time || ''} onChange={(val) => updateData('boil_time', val)} placeholder="60" />
-                                                <NumberInput label="Maischetemp. (°C)" value={brew.data?.mash_temp || ''} onChange={(val) => updateData('mash_temp', val)} placeholder="67" />
+                                                
+                                                <MaltListEditor 
+                                                    value={brew.data?.malts} 
+                                                    onChange={(val) => updateData('malts', val)} 
+                                                />
+
+                                                <MashStepsEditor
+                                                    value={brew.data?.mash_steps}
+                                                    onChange={(val) => updateData('mash_steps', val)}
+                                                />
                                             </div>
                                         </div>
 
-                                        {/* Section: Zutaten */}
+                                        {/* SECTION 3: KOCHEN & HOPFEN */}
                                         <div>
                                             <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
-                                                <div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm border border-zinc-700">🌾</div>
-                                                Zutaten
+                                                <div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm border border-zinc-700">🌿</div>
+                                                Kochen & Hopfen
                                             </h3>
-                                            <div className="grid grid-cols-[repeat(auto-fit,minmax(350px,1fr))] gap-6 items-start">
-                                                <div>
-                                                    <IngredientListEditor 
-                                                        label="Malz" 
-                                                        value={brew.data?.malts} 
-                                                        onChange={(val) => updateData('malts', val)} 
-                                                    />
+                                            <div className="space-y-8">
+                                                <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-6">
+                                                    <NumberInput label="Kochzeit (min)" value={brew.data?.boil_time || ''} onChange={(val) => updateData('boil_time', val)} placeholder="60" />
                                                 </div>
-                                                <div>
-                                                    <label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 block">Hefe</label>
-                                                    <input className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-600" value={brew.data?.yeast || ''} onChange={(e) => updateData('yeast', e.target.value)} placeholder="z.B. Fermentis US-05" />
-                                                </div>
-                                                <div>
-                                                    <IngredientListEditor 
-                                                        label="Hopfen" 
-                                                        value={brew.data?.hops} 
-                                                        onChange={(val) => updateData('hops', val)} 
-                                                    />
+                                                
+                                                <HopListEditor 
+                                                    value={brew.data?.hops} 
+                                                    onChange={(val) => updateData('hops', val)} 
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* SECTION 4: GÄRUNG */}
+                                        <div>
+                                            <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
+                                                <div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm border border-zinc-700">🦠</div>
+                                                Gärung
+                                            </h3>
+                                            <div className="space-y-8">
+                                                <YeastListEditor 
+                                                    value={brew.data?.yeast} 
+                                                    onChange={(val) => updateData('yeast', val)} 
+                                                />
+                                                <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-6">
+                                                    <NumberInput label="Gärtemp. (°C)" value={brew.data?.primary_temp || ''} onChange={(val) => updateData('primary_temp', val)} placeholder="19" step={0.5} />
                                                 </div>
                                             </div>
                                         </div>
@@ -1109,7 +1445,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                         <div>
                                             <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
                                                 <div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm border border-zinc-700">📊</div>
-                                                Messwerte
+                                                Zielwerte & Eckdaten
                                             </h3>
                                             <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-6">
                                                 <NumberInput label="Menge (Liter)" value={brew.data?.batch_size_liters || ''} onChange={(val) => updateData('batch_size_liters', val)} placeholder="15" step={0.5} />
@@ -1164,7 +1500,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                         <div>
                                             <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
                                                 <div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm border border-zinc-700">📊</div>
-                                                Messwerte
+                                                Zielwerte & Eckdaten
                                             </h3>
                                             <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-6">
                                                 <NumberInput label="Menge (Liter)" value={brew.data?.batch_size_liters || ''} onChange={(val) => updateData('batch_size_liters', val)} placeholder="10" step={0.5} />
@@ -1516,7 +1852,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                     <div className="space-y-8 relative z-10 text-left">
                                         <div>
                                             <p className="text-[10px] uppercase font-black text-zinc-500 tracking-widest mb-4">Standard Symbole</p>
-                                            <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-3">
+                                            <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-3 p-2 -ml-2">
                                                 {CAP_ICONS.map(icon => (
                                                     <button
                                                         key={icon}
@@ -1693,6 +2029,23 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                         )}
                     </main>
 				</div>
+
+                <FormulaInspector 
+                    isOpen={inspectorOpen}
+                    onClose={() => setInspectorOpen(false)}
+                    type={inspectorType}
+                    data={{
+                        batchSize: parseFloat(brew.data?.batch_size_liters) || 0,
+                        ogPlato: parseFloat(brew.data?.og) || 0,
+                        fgPlato: parseFloat(brew.data?.fg) || 0,
+                        efficiency: parseFloat(brew.data?.efficiency) || 75,
+                        mashWater: parseFloat(brew.data?.mash_water_liters) || 0,
+                        spargeWater: parseFloat(brew.data?.sparge_water_liters) || 0,
+                        hops: brew.data?.hops || [],
+                        malts: brew.data?.malts || []
+                    }}
+                />
+
                  {/* Sticky Action Bar for Mobile */}
                 <div className="fixed bottom-0 left-0 right-0 bg-zinc-950 border-t border-zinc-800 p-4 md:hidden z-50 flex items-center gap-3">
                     <button

@@ -35,7 +35,11 @@ export async function POST(req: Request) {
       finalPrompt = `${prompt} . iconic beer label art, illustration style. showing hops, barley, malt, wheat or beer foam artfully arranged. square format, full bleed, edge to edge. no text, no typography, no letters. rich colors, detailed.`;
     }
 
+    // Use a model confirmed by check_models.js
     const modelName = "imagen-4.0-generate-001";
+    // const modelName = "imagen-3.0-generate-001"; 
+    
+    // NOTE: If using predict endpoint, we use this URL pattern:
     const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:predict?key=${apiKey}`;
 
     console.log(`[Gemini Image Gen] Calling model: ${modelName} for ${type}`);

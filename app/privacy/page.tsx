@@ -73,12 +73,12 @@ export default function PrivacyPage() {
               </ul>
             </div>
             <div>
-              <h3 className="font-bold text-foreground mb-2">3.3 Automatisch erfasste Daten</h3>
+              <h3 className="font-bold text-foreground mb-2">3.3 Automatisch erfasste Daten & Analytics</h3>
               <ul className="list-disc list-inside space-y-1 text-sm">
-                <li>IP-Adresse</li>
-                <li>Browserdaten (User-Agent, Betriebssystem)</li>
+                <li>IP-Adresse (nur für Logfiles & Sicherheit, nicht für Analytics gespeichert)</li>
+                <li>Browserdaten (User-Agent, Betriebssystem) zur Fehlerbehebung</li>
                 <li>Zugriffszeit und -dauer</li>
-                <li>Referrer (Herkunftseite)</li>
+                <li>Interne Interaktionsdaten (z.B. Button-Klicks, erreichte Limits, Feature-Nutzung) zur Produktverbesserung</li>
               </ul>
             </div>
           </div>
@@ -171,20 +171,29 @@ export default function PrivacyPage() {
 
         {/* 9. Cookies und Tracking */}
         <section>
-          <h2 className="text-2xl font-bold text-foreground mb-4">9. Cookies und Tracking</h2>
+          <h2 className="text-2xl font-bold text-foreground mb-4">9. Cookies und Interne Analyse</h2>
           <div className="text-zinc-300 leading-relaxed space-y-4">
             <div>
-              <p className="font-bold text-foreground mb-2">BotlLab nutzt essenzielle Cookies für:</p>
+              <p className="font-bold text-foreground mb-2">9.1 Essenzielle Cookies</p>
               <ul className="list-disc list-inside space-y-1">
               <li>Session-Management (Login-Daten)</li>
-              <li>Sicherheitstoken</li>
-              <li>CSRF-Schutz</li>
+              <li>Sicherheitstoken (CSRF-Schutz)</li>
               </ul>
             </div>
-            <p>
-              Wir setzen <strong>kein Tracking</strong> (Google Analytics, etc.) ohne deine ausdrückliche Zustimmung ein. 
-            Alle Cookies haben eine Lebensdauer von maximal 30 Tagen.
-            </p>
+            
+            <div>
+              <p className="font-bold text-foreground mb-2">9.2 Interne Produktanalyse (First-Party)</p>
+              <p className="mb-2">
+                Wir nutzen <strong>keine Drittanbieter-Tracker</strong> (wie Google Analytics, Facebook Pixel, etc.), die Daten an andere Unternehmen weitergeben.
+              </p>
+              <p className="mb-2">
+                Um BotlLab zu verbessern, erfassen wir anonymisierte Interaktionsdaten auf unseren eigenen Servern (z.B. "Wie oft wird ein Rezept erstellt?", "Welche Features werden genutzt?"). 
+                Dies geschieht auf Basis unseres berechtigten Interesses (Art. 6 Abs. 1 lit. f DSGVO) an der Optimierung unseres Dienstes.
+              </p>
+              <p>
+                <strong>Widerspruchsrecht:</strong> Du kannst dieser internen Analyse jederzeit in deinen <a href="/dashboard/account" className="text-brand underline">Kontoeinstellungen</a> widersprechen (Opt-Out).
+              </p>
+            </div>
           </div>
         </section>
 

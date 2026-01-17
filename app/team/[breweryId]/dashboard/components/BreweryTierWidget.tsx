@@ -164,13 +164,15 @@ export default function BreweryTierWidget({ breweryId }: { breweryId: string }) 
 
         {/* Benefits Next Tier */}
         {!isMaxTier && nextTier && (
-             <div className="flex gap-2 overflow-x-auto pb-1 text-xs text-zinc-400">
-                <span className="font-bold text-zinc-500 shrink-0 select-none">NEXT UP:</span>
-                {nextTier.benefits.map((b, i) => (
-                    <span key={i} className="whitespace-nowrap px-2 py-0.5 rounded-md bg-zinc-800/50 border border-zinc-700/50">
-                        {b}
-                    </span>
-                ))}
+             <div className="mt-2">
+                <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-600 mb-2">Next Up</div>
+                <div className="flex flex-wrap gap-2 text-xs text-zinc-400">
+                    {nextTier.benefits.map((b, i) => (
+                        <span key={i} className="px-2 py-1 rounded-md bg-zinc-800/50 border border-zinc-700/50">
+                            {b}
+                        </span>
+                    ))}
+                </div>
             </div>
         )}
       </div>

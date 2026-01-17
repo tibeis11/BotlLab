@@ -9,6 +9,149 @@ import Logo from '../../components/Logo';
 import { checkAndGrantAchievements } from '@/lib/achievements';
 import CrownCap from '../../components/CrownCap';
 
+const renderIngredientList = (items: any, mode: 'absolute' | 'percentage' | 'name_only' | { type: 'grams_per_liter', volume: number } = 'absolute') => {
+  if (!items) return null;
+  
+  // Handle string (legacy/simple)
+  if (typeof items === 'string') return items;
+  
+  // Handle array
+  if (Array.isArray(items)) {
+    // Check if it's an array of objects or strings
+    if (items.length === 0) return null;
+    
+    // If elements are strings, join them
+    if (typeof items[0] === 'string') return items.join(', ');
+
+    let total = 0;
+    // Calculation Logic for Percentage Type
+    if (mode === 'percentage') {
+        const parseAmount = (val: any) => {
+             if (typeof val === 'number') return val;
+             if (typeof val === 'string') return parseFloat(val.replace(',', '.'));
+             return 0;
+        };
+
+        const units = new Set(items.filter((i:any) => i?.amount && i?.unit).map((i:any) => i.unit.toLowerCase()));
+        
+        items.forEach((item: any) => {
+             let val = parseAmount(item.amount);
+             const u = item.unit ? item.unit.toLowerCase() : '';
+             if (u === 'kg' && (units.has('g') || units.has('gramm') || units.has('gram'))) val *= 1000;
+             else if ((u === 'g' || u === 'gramm' || u === 'gram') && units.has('kg')) val /= 1000; // Unlikely but possible
+             total += val;
+        });
+        // If calc failed, fallback to absolute
+        if (total <= 0) mode = 'absolute';
+    }
+    
+    // If elements are objects with name (and potentially amount/unit)
+    return (
+      <div className="flex flex-col gap-1.5">
+        {items.map((item: any, idx: number) => {
+          if (typeof item === 'string') return <span key={idx}>{item}</span>;
+          if (item?.name) {
+            let details = "";
+            let highlight = false;
+
+            if (mode === 'name_only') {
+                 // No details, just name
+                 details = "";
+            } else {
+                const parseAmount = (val: any) => {
+                    if (typeof val === 'number') return val;
+                    if (typeof val === 'string') return parseFloat(val.replace(',', '.'));
+                    return 0;
+                };
+
+                if (mode === 'percentage') {
+                     let val = parseAmount(item.amount);
+                     const units = new Set(items.filter((i:any) => i?.amount && i?.unit).map((i:any) => i.unit.toLowerCase()));
+                     const u = item.unit ? item.unit.toLowerCase() : '';
+
+                     if (u === 'kg' && (units.has('g') || units.has('gramm') || units.has('gram'))) val *= 1000;
+                     else if ((u === 'g' || u === 'gramm' || u === 'gram') && units.has('kg')) val /= 1000;
+                     
+                     const pct = (val / total) * 100;
+                     if (pct > 0) {
+                         details = `${Math.round(pct)}%`;
+                         highlight = true;
+                     }
+                } else if (typeof mode === 'object' && mode.type === 'grams_per_liter' && mode.volume > 0) {
+                     // Calculate g/L
+                     let valInGrams = parseAmount(item.amount);
+                     // Normalize to grams
+                     const u = item.unit ? item.unit.toLowerCase().trim() : '';
+                     
+                     // Strict check: Only show amount if it is a weight unit
+                     const weightUnits = ['g', 'gram', 'gramm', 'grams', 'kg', 'kilogram', 'kilogramm'];
+                     const isWeight = weightUnits.includes(u);
+
+                     if (isWeight) {
+                         if (u.startsWith('k') && item.amount) valInGrams *= 1000; // Correct kg to g
+                         
+                         const gPerL = valInGrams / mode.volume;
+                         
+                         if (gPerL > 0) {
+                             // Determine precision
+                             if (gPerL < 0.1) details = `< 0.1 g/L`;
+                             else if (gPerL < 10) details = `${gPerL.toFixed(1)} g/L`;
+                             else details = `${Math.round(gPerL)} g/L`;
+                             highlight = true;
+                         }
+                     }
+                     // If not weight or calc failed, details remains empty (Only Name)
+
+                } else {
+                     if (item.amount) details += item.amount;
+                     if (item.unit) details += " " + item.unit;
+                }
+            }
+
+            return (
+              <div key={idx} className="flex justify-between items-start text-sm group">
+                <span className="text-zinc-300 font-medium leading-tight">{item.name}</span>
+                {details && (
+                  <span className={`text-zinc-500 text-xs font-mono ml-3 shrink-0 whitespace-nowrap ${highlight ? 'text-cyan-500 font-bold' : ''}`}>
+                    {details}
+                  </span>
+                )}
+              </div>
+            );
+          }
+          return null;
+        })}
+      </div>
+    );
+  }
+  
+  // Handle single object
+  if (typeof items === 'object') {
+    if (items.name) {
+      if (mode === 'name_only') {
+           return (
+            <div className="flex justify-between items-center text-sm">
+                <span className="text-zinc-300 font-medium">{items.name}</span>
+            </div>
+           );
+      }
+      return (
+        <div className="flex justify-between items-center text-sm">
+            <span className="text-zinc-300 font-medium">{items.name}</span>
+            {(items.amount || items.unit) && mode === 'absolute' && (
+              <span className="text-zinc-500 text-xs font-mono ml-3 shrink-0">
+                {items.amount && `${items.amount}`}
+                {items.unit && ` ${items.unit}`}
+              </span>
+            )}
+        </div>
+       );
+    }
+  }
+  
+  return null;
+};
+
 export default function PublicScanPage() {
   const params = useParams();
   const id = params?.id as string; 
@@ -61,10 +204,10 @@ export default function PublicScanPage() {
         console.warn('Could not fetch IP:', err);
       }
 
-      // Zunächst die Flasche laden mit der brew_id
+      // Zunächst die Flasche laden mit der brew_id und session_id
       const { data: bottle, error: bottleError } = await supabase
         .from('bottles')
-        .select('id, bottle_number, brew_id')
+        .select('id, bottle_number, brew_id, session_id, filled_at')
         .eq('id', id)
         .maybeSingle();
 
@@ -88,6 +231,13 @@ export default function PublicScanPage() {
         setData(bottle);
         setLoading(false);
         return;
+      }
+
+      // Session laden falls vorhanden
+      let sessionData = null;
+      if (bottle.session_id) {
+         const { data: s } = await supabase.from('brewing_sessions').select('*').eq('id', bottle.session_id).single();
+         sessionData = s;
       }
 
       // Jetzt das Rezept laden
@@ -114,8 +264,8 @@ export default function PublicScanPage() {
         console.error("Supabase Error (brew):", brewError);
       }
 
-      console.log("Brew loaded:", brew);
-      setData(bottle ? { ...bottle, brews: brew } : null);
+      console.log("Brew loaded:", brew, "Session:", sessionData);
+      setData(bottle ? { ...bottle, brews: brew, session: sessionData } : null);
 
       // Brauerei und Team laden
       if (brew?.brewery_id) {
@@ -394,6 +544,68 @@ export default function PublicScanPage() {
   }
 
   const brew = data.brews;
+  const session = data.session;
+  const m = session?.measurements || {};
+
+  // Merge Session Data over Recipe Data for Display
+  const displayData = {
+      ...brew.data,
+      abv: m.abv || brew.data?.abv,
+      ibu: m.ibu || brew.data?.ibu, // Session might not have IBU usually
+      og: m.og || brew.data?.og,
+      fg: m.fg || brew.data?.fg,
+      vintage: session?.brewed_at ? new Date(session.brewed_at).getFullYear() : (brew.data?.vintage || new Date(brew.created_at).getFullYear()),
+      year: session?.brewed_at ? new Date(session.brewed_at).getFullYear() : new Date(brew.created_at).getFullYear(),
+      bottling_date: (data.filled_at || m.bottling_date || session?.bottling_date)
+        ? new Date(data.filled_at || m.bottling_date || session.bottling_date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+        : null,
+      // Wine/Cider specifics if session supports them
+      ph: m.ph || brew.data?.pH, 
+  };
+  
+  // Volume Estimation Logic
+  let estimatedBatchVolume = 0;
+  if (!brew.brew_type || brew.brew_type === 'beer') {
+      // 1. Calculate Total Grain Mass (kg)
+      let totalGrainKg = 0;
+      if (Array.isArray(brew.data?.malts)) {
+          const parseAmount = (val: any) => {
+             if (typeof val === 'number') return val;
+             if (typeof val === 'string') return parseFloat(val.replace(',', '.'));
+             return 0;
+        };
+        brew.data.malts.forEach((m: any) => {
+            let val = parseAmount(m.amount);
+            if (m.unit && (m.unit.toLowerCase() === 'g' || m.unit.toLowerCase() === 'gramm')) val /= 1000;
+            totalGrainKg += val;
+        });
+      }
+
+      // 2. Estimate Volume based on Gravity Point Potential
+      if (totalGrainKg > 0) {
+          // Get Gravity in Points (e.g. 1.050 -> 50, 12P -> 48)
+          let points = 50; // Default 1.050
+          let og = parseFloat(displayData.og);
+          
+          if (!isNaN(og) && og > 0) {
+              if (og > 2) {
+                  // Assume Plato
+                  points = og * 4; 
+              } else {
+                  // Assume SG
+                  points = (og - 1) * 1000;
+              }
+          }
+          
+          // Formula: (Mass_kg * Potential_PPS * Efficiency) / Desired_Points
+          // Potential ~300 pts/kg/L (Sucrose is 384, Malt ~300)
+          // Efficiency ~75% -> 220
+          // Volume = (Mass * 220) / Points
+          if (points > 0) {
+              estimatedBatchVolume = (totalGrainKg * 220) / points;
+          }
+      }
+  }
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col items-center">
@@ -453,21 +665,22 @@ export default function PublicScanPage() {
         <div className="grid grid-cols-3 gap-4">
           <div className="bg-gradient-to-br from-zinc-900 to-zinc-950 p-5 rounded-2xl border border-zinc-800 shadow-lg">
             <p className="text-[10px] text-cyan-400 uppercase font-bold mb-2 tracking-wider">Alkohol</p>
-            <p className="font-black text-3xl text-white tracking-tight">{brew.data?.abv ? brew.data.abv + '%' : '0.0%'}</p>
+            <p className="font-black text-3xl text-white tracking-tight">{displayData.abv || '0.0'}</p>
+            <p className="text-[9px] text-zinc-600 uppercase mt-1">% Vol.</p>
           </div>
           
           <div className="bg-gradient-to-br from-zinc-900 to-zinc-950 p-5 rounded-2xl border border-zinc-800 shadow-lg">
             {(!brew.brew_type || brew.brew_type === 'beer') ? (
               <>
                 <p className="text-[10px] text-amber-400 uppercase font-bold mb-2 tracking-wider">Bittere</p>
-                <p className="font-black text-3xl text-white tracking-tight">{brew.data?.ibu || '-'}</p>
+                <p className="font-black text-3xl text-white tracking-tight">{displayData.ibu || '-'}</p>
                 <p className="text-[9px] text-zinc-600 uppercase mt-1">IBU</p>
               </>
             ) : brew.brew_type === 'wine' ? (
               <>
                 <p className="text-[10px] text-purple-400 uppercase font-bold mb-2 tracking-wider">Säure</p>
                 <p className="font-black text-3xl text-white tracking-tight">
-                  {brew.data?.acidity_g_l || '-'}
+                  {displayData.acidity_g_l || '-'}
                 </p>
                 <p className="text-[9px] text-zinc-600 uppercase mt-1">g/L</p>
               </>
@@ -475,7 +688,7 @@ export default function PublicScanPage() {
               <>
                 <p className="text-[10px] text-pink-400 uppercase font-bold mb-2 tracking-wider">Zucker</p>
                 <p className="font-black text-3xl text-white tracking-tight">
-                  {brew.data?.sugar_g_l || '-'}
+                  {displayData.sugar_g_l || '-'}
                 </p>
                 <p className="text-[9px] text-zinc-600 uppercase mt-1">g/L</p>
               </>
@@ -484,11 +697,14 @@ export default function PublicScanPage() {
 
           <div className="bg-gradient-to-br from-zinc-900 to-zinc-950 p-5 rounded-2xl border border-zinc-800 shadow-lg">
             <p className="text-[10px] text-emerald-400 uppercase font-bold mb-2 tracking-wider">
-              {brew.brew_type === 'wine' ? 'Jahrgang' : 'Jahr'}
+              {(!brew.brew_type || brew.brew_type === 'beer') ? 'Farbe' : (displayData.bottling_date ? 'Abfülldatum' : (brew.brew_type === 'wine' ? 'Jahrgang' : 'Jahr'))}
             </p>
             <p className="font-black text-3xl text-white tracking-tight">
-              {brew.brew_type === 'wine' && brew.data?.vintage ? brew.data.vintage : new Date(brew.created_at).getFullYear()}
+              {(!brew.brew_type || brew.brew_type === 'beer') ? (displayData.color || '-') : (displayData.bottling_date || (brew.brew_type === 'wine' ? displayData.vintage : displayData.year))}
             </p>
+            {(!brew.brew_type || brew.brew_type === 'beer') && (
+               <p className="text-[9px] text-zinc-600 uppercase mt-1">EBC</p>
+            )}
           </div>
         </div>
 
@@ -500,58 +716,48 @@ export default function PublicScanPage() {
             {/* BEER Details */}
             {(!brew.brew_type || brew.brew_type === 'beer') && (
               <div className="grid grid-cols-2 gap-4 text-sm">
-                {brew.data.og && (
-                  <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Original Gravity</p>
-                    <p className="text-white font-mono">{brew.data.og}</p>
-                  </div>
-                )}
-                {brew.data.fg && (
-                  <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Final Gravity</p>
-                    <p className="text-white font-mono">{brew.data.fg}</p>
-                  </div>
-                )}
-                {brew.data.srm && (
+                 {/* 1. RESULTS / MESSWERTE */}
+                <div className="space-y-1">
+                    <p className="text-zinc-500 text-xs uppercase font-bold">Abgefüllt am</p>
+                    <p className="text-white font-mono">{displayData.bottling_date || displayData.year}</p>
+                </div>
+                
+                {displayData.srm && (
                   <div className="space-y-1">
                     <p className="text-zinc-500 text-xs uppercase font-bold">Farbe (SRM)</p>
-                    <p className="text-white font-mono">{brew.data.srm}</p>
+                    <p className="text-white font-mono">{displayData.srm}</p>
                   </div>
                 )}
-                {brew.data.yeast && (
-                  <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Hefe</p>
-                    <p className="text-white">{brew.data.yeast}</p>
-                  </div>
+                {brew.data.carbonation_g_l && (
+                    <div className="space-y-1">
+                        <p className="text-zinc-500 text-xs uppercase font-bold">Karbonisierung</p>
+                        <p className="text-white font-mono">{brew.data.carbonation_g_l} g/l</p>
+                    </div>
                 )}
+
+                 {/* 2. ZUTATEN / INGREDIENTS */}
                 {brew.data.malts && (
-                  <div className="space-y-1 col-span-2">
+                  <div className="space-y-1 col-span-2 pt-2 border-t border-zinc-800/50">
                     <p className="text-zinc-500 text-xs uppercase font-bold">Malzarten</p>
-                    <p className="text-white">{brew.data.malts}</p>
+                    <div className="text-white">{renderIngredientList(brew.data.malts, { type: 'grams_per_liter', volume: estimatedBatchVolume })}</div>
                   </div>
                 )}
                 {brew.data.hops && (
                   <div className="space-y-1 col-span-2">
                     <p className="text-zinc-500 text-xs uppercase font-bold">Hopfen</p>
-                    <p className="text-white">{brew.data.hops}</p>
+                    <div className="text-white">{renderIngredientList(brew.data.hops, { type: 'grams_per_liter', volume: estimatedBatchVolume })}</div>
+                  </div>
+                )}
+                {brew.data.yeast && (
+                  <div className="space-y-1 col-span-2">
+                    <p className="text-zinc-500 text-xs uppercase font-bold">Hefe</p>
+                    <div className="text-white">{renderIngredientList(brew.data.yeast, { type: 'grams_per_liter', volume: estimatedBatchVolume })}</div>
                   </div>
                 )}
                 {brew.data.dry_hop_g && (
                   <div className="space-y-1">
                     <p className="text-zinc-500 text-xs uppercase font-bold">Dry Hop</p>
                     <p className="text-white">{brew.data.dry_hop_g} g</p>
-                  </div>
-                )}
-                {brew.data.boil_minutes && (
-                  <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Kochzeit</p>
-                    <p className="text-white">{brew.data.boil_minutes} min</p>
-                  </div>
-                )}
-                {brew.data.mash_temp_c && (
-                  <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Maischetemp.</p>
-                    <p className="text-white">{brew.data.mash_temp_c} °C</p>
                   </div>
                 )}
               </div>
@@ -563,7 +769,7 @@ export default function PublicScanPage() {
                 {brew.data.grapes && (
                   <div className="space-y-1 col-span-2">
                     <p className="text-zinc-500 text-xs uppercase font-bold">Rebsorten</p>
-                    <p className="text-white">{brew.data.grapes}</p>
+                    <div className="text-white">{renderIngredientList(brew.data.grapes, 'percentage')}</div>
                   </div>
                 )}
                 {brew.data.region && (
@@ -607,13 +813,13 @@ export default function PublicScanPage() {
                 {brew.data.apples && (
                   <div className="space-y-1 col-span-2">
                     <p className="text-zinc-500 text-xs uppercase font-bold">Apfelsorten</p>
-                    <p className="text-white">{brew.data.apples}</p>
+                    <div className="text-white">{renderIngredientList(brew.data.apples, 'percentage')}</div>
                   </div>
                 )}
                 {brew.data.yeast && (
                   <div className="space-y-1">
                     <p className="text-zinc-500 text-xs uppercase font-bold">Hefe</p>
-                    <p className="text-white">{brew.data.yeast}</p>
+                    <div className="text-white">{renderIngredientList(brew.data.yeast, 'name_only')}</div>
                   </div>
                 )}
                 {brew.data.fermentation && (
@@ -651,19 +857,19 @@ export default function PublicScanPage() {
                 {brew.data.honey && (
                   <div className="space-y-1 col-span-2">
                     <p className="text-zinc-500 text-xs uppercase font-bold">Honigsorten</p>
-                    <p className="text-white">{brew.data.honey}</p>
+                    <div className="text-white">{renderIngredientList(brew.data.honey, 'percentage')}</div>
                   </div>
                 )}
                 {brew.data.yeast && (
                   <div className="space-y-1">
                     <p className="text-zinc-500 text-xs uppercase font-bold">Hefe</p>
-                    <p className="text-white">{brew.data.yeast}</p>
+                    <div className="text-white">{renderIngredientList(brew.data.yeast, 'name_only')}</div>
                   </div>
                 )}
                 {brew.data.adjuncts && (
                   <div className="space-y-1 col-span-2">
                     <p className="text-zinc-500 text-xs uppercase font-bold">Zutaten</p>
-                    <p className="text-white">{brew.data.adjuncts}</p>
+                    <div className="text-white">{renderIngredientList(brew.data.adjuncts)}</div>
                   </div>
                 )}
                 {brew.data.aging_months && (

@@ -26,8 +26,9 @@ export default function CookieBanner() {
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="text-zinc-300 text-sm leading-relaxed text-center md:text-left">
           <p>
-            🍪 <strong>Nur das Nötigste:</strong> Wir nutzen ausschließlich essenzielle Cookies, 
-            damit Login und Funktionen sicher laufen. Keine Tracker, keine Werbung.
+            🍪 <strong>Transparenz & Privacy first:</strong> Wir nutzen essenzielle Cookies für den Betrieb 
+            und eine interne, anonyme Nutzungsanalyse zur Verbesserung der App. 
+            <strong>Kein Tracking durch Dritte, keine Werbung.</strong>
           </p>
         </div>
         <button

@@ -50,8 +50,9 @@ export default function Header() {
   const tierConfig = profile ? getTierConfig(profile.tier || 'lehrling') : getTierConfig('lehrling');
 
   return (
+    <>
     <nav className="fixed top-0 w-full z-50 bg-black/80 backdrop-blur-md border-b border-white/5">
-      <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+      <div className="max-w-[1920px] w-full mx-auto px-6 h-20 flex items-center justify-between">
         <Link href="/">
           <Logo />
         </Link>
@@ -162,98 +163,169 @@ export default function Header() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-              </svg>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                </svg>
             )}
           </button>
         </div>
       </div>
-
-      {/* Mobile Navigation */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden absolute w-full bg-zinc-950 border-b border-zinc-800 animate-in slide-in-from-top-2 fade-in duration-200 shadow-2xl z-40 max-h-[90vh] overflow-y-auto left-0 top-full">
-            <div className="p-4 space-y-2">
-            
-            <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest px-2 mb-2">Menu</p>
-
-            {pathname === '/discover' ? (
-              <Link 
-                href="/" 
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="p-3 rounded-xl text-sm font-bold text-zinc-400 hover:text-white hover:bg-zinc-900 transition flex items-center gap-3"
-              >
-                <span>🏠</span> Startseite
-              </Link>
-            ) : (
-              <Link 
-                href="/discover" 
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="p-3 rounded-xl text-sm font-bold text-zinc-400 hover:text-white hover:bg-zinc-900 transition flex items-center gap-3"
-              >
-                <span>🌍</span> Entdecken
-              </Link>
-            )}
-
-            <div className="h-px bg-zinc-800 my-2"></div>
-
-            {loading ? (
-              <div className="py-2 px-3 text-zinc-500 text-sm">Lade...</div>
-            ) : user ? (
-              <>
-                 <div className="flex items-center gap-3 p-3 bg-zinc-900/50 rounded-xl mb-2">
-                    <div className="w-10 h-10 rounded-full bg-zinc-800 border-2 border-zinc-700 flex items-center justify-center text-white font-bold overflow-hidden relative">
-                        {profile?.logo_url ? (
-                          <img src={profile.logo_url} alt="Profile" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center">
-                            {profile?.display_name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || '?'}
-                          </div>
-                        )}
-                        <div className="absolute inset-0 border-2 rounded-full opacity-50" style={{ borderColor: tierConfig.color }}></div>
-                    </div>
-                    <div>
-                        <span className="block font-bold text-white text-sm">
-                          {profile?.display_name || 'Mein Profil'}
-                        </span>
-                        <span className="text-[10px] font-black uppercase tracking-wider" style={{ color: tierConfig.color }}>
-                            {tierConfig.displayName}
-                        </span>
-                    </div>
-                 </div>
-                 
-                 <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)} className="p-3 rounded-xl text-sm font-bold text-zinc-400 hover:text-white hover:bg-zinc-900 transition flex items-center gap-3">
-                   <span>📊</span> Dashboard
-                 </Link>
-                 <Link href="/dashboard/account" onClick={() => setIsMobileMenuOpen(false)} className="p-3 rounded-xl text-sm font-bold text-zinc-400 hover:text-white hover:bg-zinc-900 transition flex items-center gap-3">
-                   <span>⚙️</span> Einstellungen
-                 </Link>
-                 <button onClick={handleLogout} className="w-full text-left p-3 rounded-xl text-sm font-bold text-red-400 hover:bg-red-500/10 transition flex items-center gap-3">
-                   <span>🚪</span> Abmelden
-                 </button>
-              </>
-            ) : (
-              <div className="space-y-2 mt-2">
-                 <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest px-2 mb-2">Mitglied werden</p>
-                 <Link 
-                   href="/login"
-                   onClick={() => setIsMobileMenuOpen(false)} 
-                   className="flex items-center justify-center w-full py-4 bg-zinc-900 border border-zinc-800 rounded-xl text-zinc-300 font-bold hover:bg-zinc-800 hover:text-white transition"
-                 >
-                   Login
-                 </Link>
-                 <Link 
-                   href="/login"
-                   onClick={() => setIsMobileMenuOpen(false)} 
-                   className="flex items-center justify-center w-full py-4 bg-white text-black rounded-xl font-black hover:bg-cyan-400 transition shadow-lg"
-                 >
-                   🚀 Jetzt Starten
-                 </Link>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </nav>
+      
+      {/* Mobile Menu Content - Redesigned Smart Drawer */}
+      {isMobileMenuOpen && (
+          <div className="md:hidden fixed inset-0 z-[100] bg-zinc-950/95 backdrop-blur-3xl flex flex-col animate-in slide-in-from-right duration-200 supports-[backdrop-filter]:bg-zinc-950/80">
+              
+              {/* 1. Header with Close (Aligned with Main Header) */}
+              <div className="border-b border-zinc-900 bg-zinc-950 h-20 flex items-center justify-center">
+                   <div className="w-full max-w-[1920px] px-6 flex items-center justify-between">
+                   <div onClick={() => setIsMobileMenuOpen(false)}>
+                      <Logo /> 
+                   </div>
+                   <div className="flex items-center gap-4">
+                     {user && <NotificationBell />}
+                     <button 
+                       onClick={() => setIsMobileMenuOpen(false)}
+                       className="p-2 text-zinc-400 hover:text-white"
+                     >
+                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                       </svg>
+                     </button>
+                   </div>
+                   </div>
+              </div>
+
+              {/* 2. Scrollable Content */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                  
+                  {user ? (
+                      /* LOGGED IN VIEW */
+                      <div className="space-y-6 animate-in fade-in zoom-in-95 duration-200">
+                           {/* Dashboard Hero */}
+                           <Link 
+                              href="/dashboard"
+                              onClick={() => setIsMobileMenuOpen(false)}
+                              className="block bg-gradient-to-br from-cyan-950/40 to-cyan-900/10 border border-cyan-900/50 p-5 rounded-2xl relative overflow-hidden group"
+                           >
+                              <div className="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                                 <span className="text-6xl">📊</span>
+                              </div>
+                              <p className="text-xs text-cyan-500 uppercase font-black tracking-widest mb-1">Mein Bereich</p>
+                              <h3 className="text-2xl font-black text-white mb-2">Dashboard</h3>
+                              <div className="flex items-center gap-2 text-sm text-zinc-300">
+                                 <span>Zurück ans Werk</span>
+                                 <span>→</span>
+                              </div>
+                           </Link>
+
+                           {/* Navigation Grid */}
+                           <div>
+                              <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest px-1 mb-3">Menu</p>
+                              <div className="grid grid-cols-2 gap-3">
+                                  <Link
+                                      href="/discover"
+                                      onClick={() => setIsMobileMenuOpen(false)}
+                                      className="bg-zinc-900/50 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 p-4 rounded-xl flex flex-col items-center justify-center gap-2 text-center transition"
+                                  >
+                                      <span className="text-2xl mb-1">🌍</span>
+                                      <span className="font-bold text-sm text-zinc-200">Entdecken</span>
+                                  </Link>
+                                  <Link
+                                      href="/"
+                                      onClick={() => setIsMobileMenuOpen(false)}
+                                      className="bg-zinc-900/50 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 p-4 rounded-xl flex flex-col items-center justify-center gap-2 text-center transition"
+                                  >
+                                      <span className="text-2xl mb-1">🏠</span>
+                                      <span className="font-bold text-sm text-zinc-200">Startseite</span>
+                                  </Link>
+                              </div>
+                           </div>
+                      </div>
+                  ) : (
+                      /* PUBLIC VIEW */
+                      <div className="space-y-6 animate-in fade-in zoom-in-95 duration-200">
+                           
+                           <div className="bg-zinc-900/30 border border-zinc-800 p-6 rounded-3xl text-center">
+                               <h3 className="text-2xl font-black text-white mb-2">Willkommen bei BotlLab</h3>
+                               <p className="text-zinc-400 text-sm mb-6">Dein digitales Braulabor. Organisiere deine Sude, teile Rezepte und manage deine Inventory.</p>
+                               
+                               <div className="space-y-3">
+                                   <Link 
+                                     href="/login"
+                                     onClick={() => setIsMobileMenuOpen(false)} 
+                                     className="flex items-center justify-center w-full py-4 bg-white text-black rounded-xl font-black hover:bg-cyan-400 transition shadow-lg text-lg"
+                                   >
+                                     🚀 Jetzt Starten
+                                   </Link>
+                                   <Link 
+                                     href="/login"
+                                     onClick={() => setIsMobileMenuOpen(false)} 
+                                     className="flex items-center justify-center w-full py-4 bg-zinc-900 border border-zinc-800 rounded-xl text-zinc-300 font-bold hover:bg-zinc-800 hover:text-white transition"
+                                   >
+                                     Login
+                                   </Link>
+                               </div>
+                           </div>
+
+                           <div>
+                              <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest px-1 mb-3">Navigation</p>
+                              <div className="grid grid-cols-2 gap-3">
+                                  <Link
+                                      href="/discover"
+                                      onClick={() => setIsMobileMenuOpen(false)}
+                                      className="bg-zinc-900/50 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 p-4 rounded-xl flex flex-col items-center justify-center gap-2 text-center transition"
+                                  >
+                                      <span className="text-2xl mb-1">🌍</span>
+                                      <span className="font-bold text-sm text-zinc-200">Entdecken</span>
+                                  </Link>
+                                  <Link
+                                      href="/"
+                                      onClick={() => setIsMobileMenuOpen(false)}
+                                      className="bg-zinc-900/50 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 p-4 rounded-xl flex flex-col items-center justify-center gap-2 text-center transition"
+                                  >
+                                      <span className="text-2xl mb-1">🏠</span>
+                                      <span className="font-bold text-sm text-zinc-200">Startseite</span>
+                                  </Link>
+                              </div>
+                           </div>
+                      </div>
+                  )}
+              </div>
+
+              {/* 3. Footer (Auth User Only) */}
+              {user && (
+                    <div className="p-4 border-t border-zinc-900 bg-zinc-950 pb-8">
+                         <div className="flex items-center justify-between bg-zinc-900/50 p-3 rounded-2xl mb-3">
+                             <div className="flex items-center gap-3">
+                                 <div className="w-10 h-10 rounded-full flex items-center justify-center text-xs overflow-hidden relative border border-zinc-700 bg-zinc-800">
+                                     <div className="absolute inset-0 border-2 rounded-full opacity-50" style={{ borderColor: tierConfig.color }}></div>
+                                     <img src={tierConfig.avatarPath} alt="Avatar" className="w-full h-full object-cover" />
+                                 </div>
+                                 <div className="overflow-hidden">
+                                     <p className="text-sm font-bold text-white leading-tight truncate max-w-[150px]">{profile?.display_name || user?.email}</p>
+                                     <p className="text-[10px] uppercase font-black tracking-wide" style={{ color: tierConfig.color }}>{tierConfig.displayName}</p>
+                                 </div>
+                             </div>
+                             <Link
+                                href="/dashboard/account"
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-white transition"
+                             >
+                                ⚙️
+                             </Link>
+                         </div>
+                         
+                         <button
+                            onClick={handleLogout}
+                            className="w-full flex items-center justify-center gap-2 p-3 rounded-xl text-xs font-bold text-red-400/80 hover:bg-red-500/10 hover:text-red-400 transition"
+                         >
+                            <span>🚪</span> Abmelden
+                         </button>
+                    </div>
+              )}
+          </div>
+      )}
+    </>
   );
 }

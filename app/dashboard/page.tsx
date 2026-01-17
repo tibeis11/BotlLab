@@ -4,10 +4,11 @@ import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import TierProgressWidget from './components/TierProgressWidget';
+import DiscoverWidget from './components/DiscoverWidget';
 import { useAchievementNotification } from '../context/AchievementNotificationContext';
 import { supabase, getActiveBrewery } from '@/lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { getBreweryFeed, type FeedItem } from '@/lib/feed-service';
+import { getBreweryFeed, addToFeed, type FeedItem } from '@/lib/feed-service';
 import { getTierConfig } from '@/lib/tier-system';
 
 export default function DashboardPage() {
@@ -321,6 +322,11 @@ function DashboardContent() {
                  throw joinError;
              }
 
+             // Feed update
+             if (userId) {
+                 await addToFeed(brewery.id, { id: userId }, 'MEMBER_JOINED', { message: 'ist dem Squad beigetreten' });
+             }
+
              window.location.reload();
 
         } catch (err: any) {
@@ -373,59 +379,74 @@ function DashboardContent() {
                                             Du bist aktuell heimatlos. Gründe eine Brauerei oder tritt einem Team bei, um das volle Potential von BotlLab zu nutzen.
                                         </p>
                                     </div>
-                                    <div className="grid sm:grid-cols-2 gap-4">
+                                    <div className="flex flex-col sm:flex-row gap-3 pt-2">
                                         <button 
                                             onClick={() => setIsCreatingBrewery(true)}
-                                            className="bg-brand text-black font-black py-6 px-6 rounded-2xl hover:bg-cyan-400 transition flex flex-col items-center justify-center gap-2 text-center border-b-4 border-black/10 active:border-b-0 active:translate-y-1"
+                                            className="group flex-1 bg-gradient-to-r from-cyan-400 to-cyan-500 hover:from-cyan-300 hover:to-cyan-400 text-black font-extrabold py-3 px-6 rounded-xl transition-all shadow-lg hover:shadow-cyan-900/20 flex items-center justify-center gap-3"
                                         >
-                                            <span className="text-3xl">🏰</span>
-                                            <span>Squad gründen</span>
+                                            <span className="text-xl group-hover:scale-110 transition-transform duration-300">🏰</span>
+                                            <span>Neuen Squad gründen</span>
                                         </button>
                                         <button 
                                             onClick={() => setIsJoiningBrewery(true)}
-                                            className="bg-zinc-950 border border-zinc-800 text-white font-bold py-6 px-6 rounded-2xl hover:bg-zinc-800 transition flex flex-col items-center justify-center gap-2 text-center border-b-4 border-black/50 active:border-b-0 active:translate-y-1"
+                                            className="px-6 py-3 rounded-xl font-bold bg-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-700 transition border border-zinc-700/50 flex items-center gap-2"
                                         >
-                                            <span className="text-3xl">📩</span>
-                                            <span>Code eingeben</span>
+                                            <span className="text-lg opacity-60">📩</span>
+                                            <span>Einladungscode?</span>
                                         </button>
                                     </div>
                                 </div>
                              )}
 
                              {isCreatingBrewery && (
-                                <form onSubmit={handleCreateBrewery} className="space-y-4 animate-in fade-in relative z-10">
-                                    <div className="flex justify-between items-center mb-4 border-b border-zinc-800 pb-2">
-                                         <h3 className="text-xl font-bold text-white">Dein Squad-Name</h3>
-                                         <button type="button" onClick={() => setIsCreatingBrewery(false)} className="text-zinc-500 hover:text-white px-2 py-1 rounded hover:bg-zinc-800 transition">Abbrechen</button>
+                                <form onSubmit={handleCreateBrewery} className="space-y-6 animate-in fade-in slide-in-from-bottom-2 relative z-10 bg-zinc-950/50 p-6 rounded-2xl border border-zinc-800/50 backdrop-blur-sm">
+                                    <div className="flex justify-between items-center border-b border-zinc-800/50 pb-4">
+                                         <div>
+                                            <h3 className="text-xl font-black text-white">Dein Squad-Name</h3>
+                                            <p className="text-xs text-zinc-500 mt-1">Wie soll euer Brau-Kollektiv heißen?</p>
+                                         </div>
+                                         <button type="button" onClick={() => setIsCreatingBrewery(false)} className="text-zinc-500 hover:text-white px-3 py-2 rounded-lg hover:bg-zinc-800 transition text-sm font-medium">Abbrechen</button>
                                     </div>
-                                    <input 
-                                        type="text"
-                                        placeholder="z.B. Hopfenrebellen"
-                                        className="w-full bg-zinc-950 border border-zinc-800 p-4 rounded-xl outline-none focus:border-cyan-500 transition font-bold text-lg text-white"
-                                        autoFocus
-                                        value={newBreweryName}
-                                        onChange={e => setNewBreweryName(e.target.value)}
-                                    />
-                                    <button className="w-full bg-brand text-black font-bold py-4 rounded-xl hover:bg-cyan-400 mt-2">Squad erstellen 🚀</button>
+                                    <div className="space-y-2">
+                                        <input 
+                                            type="text"
+                                            placeholder="z.B. Hopfenrebellen"
+                                            className="w-full bg-black/40 border border-zinc-700/50 p-4 rounded-xl outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 transition font-bold text-lg text-white placeholder:text-zinc-700"
+                                            autoFocus
+                                            value={newBreweryName}
+                                            onChange={e => setNewBreweryName(e.target.value)}
+                                        />
+                                    </div>
+                                    <button className="w-full bg-gradient-to-r from-cyan-400 to-cyan-500 hover:from-cyan-300 hover:to-cyan-400 text-black font-extrabold py-4 rounded-xl transition-all shadow-lg hover:shadow-cyan-900/20 active:scale-[0.98]">
+                                        Squad erstellen 🚀
+                                    </button>
                                 </form>
                              )}
 
                              {isJoiningBrewery && (
-                                <form onSubmit={handleJoinBrewery} className="space-y-4 animate-in fade-in relative z-10">
-                                    <div className="flex justify-between items-center mb-4 border-b border-zinc-800 pb-2">
-                                         <h3 className="text-xl font-bold text-white">Squad ID eingeben</h3>
-                                         <button type="button" onClick={() => setIsJoiningBrewery(false)} className="text-zinc-500 hover:text-white px-2 py-1 rounded hover:bg-zinc-800 transition">Abbrechen</button>
+                                <form onSubmit={handleJoinBrewery} className="space-y-6 animate-in fade-in slide-in-from-bottom-2 relative z-10 bg-zinc-950/50 p-6 rounded-2xl border border-zinc-800/50 backdrop-blur-sm">
+                                    <div className="flex justify-between items-center border-b border-zinc-800/50 pb-4">
+                                         <div>
+                                            <h3 className="text-xl font-black text-white">Einladungscode</h3>
+                                            <p className="text-xs text-zinc-500 mt-1">Gib die ID deines Teams ein.</p>
+                                         </div>
+                                         <button type="button" onClick={() => setIsJoiningBrewery(false)} className="text-zinc-500 hover:text-white px-3 py-2 rounded-lg hover:bg-zinc-800 transition text-sm font-medium">Abbrechen</button>
                                     </div>
-                                    <p className="text-xs text-zinc-500">Frage deinen Squad-Leader nach der ID (Einstellungen {'>'} Allgemein).</p>
-                                    <input 
-                                        type="text"
-                                        placeholder="UUID Code..."
-                                        className="w-full bg-zinc-950 border border-zinc-800 p-4 rounded-xl outline-none focus:border-cyan-500 transition font-mono text-sm text-white"
-                                        autoFocus
-                                        value={joinCode}
-                                        onChange={e => setJoinCode(e.target.value)}
-                                    />
-                                    <button className="w-full bg-white text-black font-bold py-4 rounded-xl hover:bg-zinc-200 mt-2">Beitreten 🤝</button>
+                                    
+                                    <div className="space-y-2">
+                                        <input 
+                                            type="text"
+                                            placeholder="UUID Code..."
+                                            className="w-full bg-black/40 border border-zinc-700/50 p-4 rounded-xl outline-none focus:border-white focus:ring-1 focus:ring-white/20 transition font-mono text-base text-center tracking-wider text-white placeholder:text-zinc-700"
+                                            autoFocus
+                                            value={joinCode}
+                                            onChange={e => setJoinCode(e.target.value)}
+                                        />
+                                        <p className="text-xs text-zinc-500 text-center">Frage deinen Squad-Leader nach der ID (Einstellungen {'>'} Allgemein).</p>
+                                    </div>
+                                    <button className="w-full bg-white text-black font-extrabold py-4 rounded-xl hover:bg-zinc-200 transition-all active:scale-[0.98]">
+                                        Team beitreten 🤝
+                                    </button>
                                 </form>
                              )}
                              
@@ -487,16 +508,8 @@ function DashboardContent() {
                         </div>
                     )}
 
-                    {/* Discovery Feed Placeholder */}
-                    {activeBrewery && (
-                        <div className="bg-zinc-900/10 border border-zinc-800/50 border-dashed rounded-3xl p-6 relative overflow-hidden flex flex-col items-center justify-center text-center py-12">
-                            <span className="text-4xl mb-4 grayscale opacity-30">🌍</span>
-                            <h3 className="text-lg font-bold text-zinc-500">Community Feed wird geladen...</h3>
-                            <p className="text-xs text-zinc-600 mt-2 max-w-xs">
-                                Hier siehst du bald globale Neuigkeiten, neue öffentliche Rezepte und Trends aus der BotlLab Community.
-                            </p>
-                        </div>
-                    )}
+                    {/* Discovery Widget */}
+                    <DiscoverWidget />
                 </div>
 
                 {/* Right Column: Widgets */}

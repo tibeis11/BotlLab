@@ -65,7 +65,7 @@ export default function Scanner({ onScanSuccess }: ScannerProps) {
                 { facingMode: "environment" }, 
                 {
                     fps: 10,
-                    // qrbox removed to disable default grey overlay -> we use custom UI
+                    aspectRatio: 1.0, // Force square container usage by lib
                 },
                 (decodedText) => {
                     onScanSuccess(decodedText);
@@ -105,46 +105,30 @@ export default function Scanner({ onScanSuccess }: ScannerProps) {
     }
 
     return (
-        <div className="w-full max-w-md mx-auto">
-             <div className="relative overflow-hidden rounded-xl bg-black min-h-[300px] mb-4 shadow-2xl border border-zinc-800">
+        <div className="w-full h-full"> 
+             <div className="relative overflow-hidden w-full h-full bg-black">
                 {/* Scanner Target - React must NOT put children here */}
-                <div id={divId}></div>
+                <div id={divId} className="w-full h-full [&>video]:object-cover [&>video]:w-full [&>video]:h-full"></div>
 
                 {/* UI Overlay - liegt DARÜBER, nicht DRIN */}
                 {!isScanning && (
                     <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-6 text-center bg-black/80 backdrop-blur-sm">
                         <div className="mb-4 text-4xl">📷</div>
-                        <h3 className="text-white font-bold mb-2">QR-Scanner</h3>
-                        <p className="text-zinc-400 text-sm mb-6">Zum Scannen von Flaschencodes Zugriff erlauben.</p>
                         <button 
                             onClick={startScanner}
                             className="bg-cyan-500 hover:bg-cyan-400 text-black font-bold py-3 px-8 rounded-full transition shadow-lg shadow-cyan-500/20 active:scale-95"
                         >
-                            Kamera starten
+                            Start
                         </button>
                     </div>
                 )}
              </div>
-             
-             {isScanning && (
-                 <button 
-                    onClick={stopScanner} 
-                    className="w-full py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-xl font-bold transition flex items-center justify-center gap-2"
-                 >
-                    🛑 Scanner stoppen
-                 </button>
-             )}
 
              {errorMsg && (
-                 <div className="bg-red-500/10 border border-red-500/50 text-red-200 p-4 rounded-xl text-sm mb-4 animate-in fade-in slide-in-from-top-2">
-                     <p className="font-bold">⚠️ Zugriff fehlgeschlagen</p>
-                     <p className="mt-1">{errorMsg}</p>
-                     <p className="mt-2 text-xs opacity-70 bg-black/20 p-2 rounded">
-                        Tipp: Prüfe die Browser-Einstellungen (Schloss-Symbol in der Adresszeile) und erlaube den Zugriff auf die Kamera.
-                     </p>
-                     <button onClick={() => setErrorMsg(null)} className="mt-3 text-red-400 underline text-xs">
-                        Schließen
-                     </button>
+                 <div className="absolute inset-0 z-20 bg-black/90 flex flex-col items-center justify-center text-center p-4">
+                     <p className="text-red-400 font-bold mb-2">⚠️ Fehler</p>
+                     <p className="text-zinc-500 text-xs mb-4">{errorMsg}</p>
+                     <button onClick={() => setErrorMsg(null)} className="text-white underline text-xs">OK</button>
                  </div>
              )}
         </div>

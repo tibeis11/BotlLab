@@ -3,7 +3,9 @@
 import { use, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+import { getBreweryTierConfig } from '@/lib/tier-system';
 import BreweryTierWidget from './components/BreweryTierWidget';
+import { trackEvent } from '@/lib/actions/analytics-actions';
 
 export default function TeamDashboardPage({ params }: { params: Promise<{ breweryId: string }> }) {
   const { breweryId } = use(params);
@@ -14,14 +16,38 @@ export default function TeamDashboardPage({ params }: { params: Promise<{ brewer
     total: 0, 
     distribution: [0,0,0,0,0] 
   });
+  
+  // Tier & Limits
+  const [brewCount, setBrewCount] = useState(0);
+  const [tierLimit, setTierLimit] = useState(10); // Default safest
+  const [isAdminMode, setIsAdminMode] = useState(false);
 
   useEffect(() => {
-    if (breweryId) loadRatingStats();
+    if (breweryId) loadDashboardData();
   }, [breweryId]);
 
-  async function loadRatingStats() {
-    // 1. Get all brews for this brewery
+  async function loadDashboardData() {
+    // 0. Check User Admin Status (Bypass)
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+         const { data: profile } = await supabase.from('profiles').select('display_name').eq('id', user.id).single();
+         if (profile?.display_name === 'admin') {
+             setIsAdminMode(true);
+         }
+    }
+
+    // 1. Get Brewery Tier
+    const { data: brewery } = await supabase.from('breweries').select('tier').eq('id', breweryId).single();
+    const currentTier = brewery?.tier || 'garage';
+    const config = getBreweryTierConfig(currentTier as any);
+    setTierLimit(config.limits.maxBrews);
+
+    // 2. Get all brews for this brewery
     const { data: brews } = await supabase.from('brews').select('id').eq('brewery_id', breweryId);
+    
+    if (brews) {
+        setBrewCount(brews.length);
+    }
     
     if (brews && brews.length > 0) {
         const brewIds = brews.map(b => b.id);
@@ -107,15 +133,41 @@ export default function TeamDashboardPage({ params }: { params: Promise<{ brewer
         <div className="space-y-6">
             
             <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-3xl">
-                <h3 className="text-lg font-bold mb-4">Schnellzugriff</h3>
+                <h3 className="text-lg font-bold mb-4 flex justify-between items-center">
+                    <span>Schnellzugriff</span>
+                    {isAdminMode && <span className="text-[10px] bg-red-900/50 text-red-200 px-2 py-0.5 rounded border border-red-500/30 uppercase tracking-widest">Admin Mode</span>}
+                </h3>
                 <div className="flex flex-col gap-3">
-                    <Link href={`/team/${breweryId}/brews/new`} className="flex items-center gap-3 p-3 bg-zinc-900 rounded-xl hover:bg-zinc-800 transition group border border-zinc-800 hover:border-cyan-500/50">
-                        <span className="text-2xl group-hover:scale-110 transition">📝</span>
-                        <div className="flex-1">
-                            <div className="font-bold text-white">Rezept anlegen</div>
-                            <div className="text-xs text-zinc-500">Neuen Sud planen</div>
+                    {(brewCount >= tierLimit && !isAdminMode) ? (
+                        <div 
+                            onClick={() => trackEvent({ 
+                                event_type: 'limit_reached_brews', 
+                                category: 'monetization', 
+                                payload: { current: brewCount, limit: tierLimit },
+                                path: `/team/${breweryId}/dashboard`
+                            })}
+                            className="flex items-center gap-3 p-3 bg-zinc-900/50 rounded-xl border border-red-900/30 opacity-70 cursor-not-allowed relative overflow-hidden" 
+                            title="Du musst deine Brauerei upgraden, um mehr Rezepte anzulegen."
+                        >
+                             <span className="text-2xl grayscale opacity-50">📝</span>
+                             <div className="flex-1">
+                                <div className="font-bold text-zinc-400">Rezept anlegen</div>
+                                <div className="text-xs text-red-400 font-bold">Limit erreicht ({brewCount}/{tierLimit})</div>
+                            </div>
                         </div>
-                    </Link>
+                    ) : (
+                        <Link href={`/team/${breweryId}/brews/new`} className="flex items-center gap-3 p-3 bg-zinc-900 rounded-xl hover:bg-zinc-800 transition group border border-zinc-800 hover:border-cyan-500/50">
+                            <span className="text-2xl group-hover:scale-110 transition">📝</span>
+                            <div className="flex-1">
+                                <div className="font-bold text-white">Rezept anlegen</div>
+                                <div className="text-xs text-zinc-500">
+                                    {isAdminMode && brewCount >= tierLimit 
+                                        ? <span className="text-red-400 font-bold">Limit Bypass ({brewCount}/{tierLimit})</span> 
+                                        : 'Neuen Sud planen'}
+                                </div>
+                            </div>
+                        </Link>
+                    )}
                     <Link href={`/team/${breweryId}/inventory`} className="flex items-center gap-3 p-3 bg-zinc-900 rounded-xl hover:bg-zinc-800 transition group border border-zinc-800 hover:border-purple-500/50">
                         <span className="text-2xl group-hover:scale-110 transition">🍾</span>
                         <div className="flex-1">

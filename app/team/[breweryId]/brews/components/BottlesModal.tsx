@@ -34,7 +34,7 @@ export default function BottlesModal({ isOpen, onClose, brewId, brewName }: Bott
       try {
         const { data, error: fetchError } = await supabase
             .from('bottles')
-            .select('id, bottle_number, created_at')
+            .select('id, bottle_number, created_at, filled_at')
             .eq('brew_id', brewId)
             .order('bottle_number', { ascending: true });
         
@@ -70,8 +70,7 @@ export default function BottlesModal({ isOpen, onClose, brewId, brewName }: Bott
           const newBottles = Array.from({ length: genCount }).map((_, i) => ({
               brew_id: brewId,
               bottle_number: startNum + i,
-              // QR Content is usually generated from ID later, or we insert a UID here if table has it.
-              // For now we rely on ID or defaults.
+              filled_at: new Date().toISOString()
           }));
           
           const { error: insertError } = await supabase.from('bottles').insert(newBottles);
@@ -258,8 +257,9 @@ export default function BottlesModal({ isOpen, onClose, brewId, brewName }: Bott
                                         </div>
                                         <div>
                                             <p className="font-bold text-white text-sm">Flasche #{bottle.bottle_number}</p>
-                                            <div className="flex items-center gap-2 text-xs text-zinc-500">
+                                            <div className="flex flex-col gap-0.5 text-[10px] text-zinc-500">
                                                 <span>Erstellt: {new Date(bottle.created_at).toLocaleDateString()}</span>
+                                                {bottle.filled_at && <span className="text-cyan-500/70">Abgefüllt: {new Date(bottle.filled_at).toLocaleDateString()}</span>}
                                             </div>
                                         </div>
                                     </div>

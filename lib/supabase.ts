@@ -15,44 +15,61 @@ export const supabase = typeof window !== 'undefined'
 
 /**
  * Holt die aktive Brauerei für einen User.
- * Falls er in mehreren ist, wird aktuell die erste zurückgegeben.
+ * Priorisiert die zuletzt besuchte (active_brewery_id im Profil).
  */
 export async function getActiveBrewery(userId: string) {
   try {
-    // Combined query: fetch membership and brewery in one go
-    const { data: memberData, error: memberError } = await supabase
+    // 1. Hole Preferred ID aus Profil
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('active_brewery_id')
+        .eq('id', userId)
+        .maybeSingle();
+    
+    const preferredId = profile?.active_brewery_id;
+
+    // 2. Hole alle Mitgliedschaften
+    const { data: members, error: memberError } = await supabase
       .from('brewery_members')
       .select(`
         brewery_id,
         role,
         breweries (*)
       `)
-      .eq('user_id', userId)
-      .limit(1)
-      .maybeSingle();
+      .eq('user_id', userId);
 
     if (memberError) {
-      console.error('❌ Error fetching membership:', JSON.stringify(memberError, null, 2));
+      console.error('❌ Error fetching membership:', memberError);
       return null;
     }
     
-    if (!memberData) {
-      console.warn('⚠️ No membership found for user:', userId);
+    if (!members || members.length === 0) {
       return null;
     }
 
-    const breweryData = Array.isArray(memberData.breweries) 
-      ? memberData.breweries[0] 
-      : memberData.breweries;
+    // 3. Wähle die passende Brauerei
+    let selectedMember = null;
+    
+    if (preferredId) {
+        selectedMember = members.find((m: any) => m.brewery_id === preferredId);
+    }
+    
+    // Fallback: Nimm die erste, wenn keine Preference oder Preference ungültig
+    if (!selectedMember) {
+        selectedMember = members[0];
+    }
+
+    const breweryData = Array.isArray(selectedMember.breweries) 
+      ? selectedMember.breweries[0] 
+      : selectedMember.breweries;
 
     if (!breweryData) {
-      console.warn('⚠️ Membership exists but Brewery not found:', memberData.brewery_id);
       return null;
     }
 
     return {
       ...breweryData,
-      userRole: memberData.role,
+      userRole: selectedMember.role,
     };
   } catch (err) {
     console.error('Error in getActiveBrewery:', err);

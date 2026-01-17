@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import Header from '../components/Header';
 import BrewCard from '../components/BrewCard';
+import CustomSelect from '../components/CustomSelect';
 
 type Brew = {
   id: string;
@@ -85,6 +86,29 @@ export default function DiscoverPage() {
     return ['all', ...Array.from(s).sort()];
   }, [brews]);
 
+  const avg = (b: Brew) => {
+    const rs = b.ratings || [];
+    if (rs.length === 0) return 0;
+    return Math.round((rs.reduce((s, r) => s + r.rating, 0) / rs.length) * 10) / 10;
+  };
+
+  const trending = useMemo(() => {
+    return [...brews].sort((a,b) => (b.likes_count||0) - (a.likes_count||0)).slice(0, 10);
+  }, [brews]);
+
+  const topRated = useMemo(() => {
+    return [...brews]
+      .filter(b => (b.ratings?.length || 0) > 0)
+      .sort((a,b) => avg(b) - avg(a))
+      .slice(0, 10);
+  }, [brews]);
+
+  const newest = useMemo(() => {
+    return [...brews].sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 10);
+  }, [brews]);
+
+  const isFiltering = search.length > 0 || styleFilter !== 'all';
+
   const list = useMemo(() => {
     let items = brews.filter(b => {
       const matchesSearch = !search || (b.name?.toLowerCase().includes(search.toLowerCase()) || (b.style||'').toLowerCase().includes(search.toLowerCase()));
@@ -92,17 +116,38 @@ export default function DiscoverPage() {
       return matchesSearch && matchesStyle;
     });
 
-    const avg = (b: Brew) => {
-      const rs = b.ratings || [];
-      if (rs.length === 0) return 0;
-      return Math.round((rs.reduce((s, r) => s + r.rating, 0) / rs.length) * 10) / 10;
-    };
-
     if (sort === 'top') items = items.sort((a, b) => avg(b) - avg(a));
-    if (sort === 'most_rated') items = items.sort((a, b) => (b.ratings?.length||0) - (a.ratings?.length||0));
+    if (sort === 'most_rated') items = items.sort((a, b) => (b.ratings?.length || 0) - (a.ratings?.length || 0));
     if (sort === 'newest') items = items.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     return items;
   }, [brews, search, styleFilter, sort]);
+
+  const styleOptions = styles.map(s => ({
+      value: s,
+      label: s === 'all' ? 'Alle Stile' : s
+  }));
+
+  const sortOptions = [
+      { value: 'top', label: 'Top bewertet' },
+      { value: 'most_rated', label: 'Meist bewertet' },
+      { value: 'newest', label: 'Neueste' }
+  ];
+
+  const Section = ({ title, items }: { title: string, items: Brew[] }) => (
+    <div className="mb-12">
+      <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+        {title}
+        <span className="text-xs bg-zinc-800 text-zinc-400 px-2 py-1 rounded-full font-normal">Top 10</span>
+      </h2>
+      <div className="flex overflow-x-auto gap-4 pb-4 -mx-6 px-6 scrollbar-hide snap-x">
+        {items.map(brew => (
+          <div key={brew.id} className="min-w-[280px] w-[280px] snap-center">
+            <BrewCard brew={brew} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -120,26 +165,20 @@ export default function DiscoverPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Suche nach Name oder Stil..."
-            className="bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2 outline-none focus:border-cyan-600"
+            className="bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2 outline-none focus:border-cyan-600 h-[42px]"
           />
-          <select
+          <CustomSelect
             value={styleFilter}
-            onChange={(e) => setStyleFilter(e.target.value)}
-            className="bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2"
-          >
-            {styles.map(s => (
-              <option key={s} value={s}>{s === 'all' ? 'Alle Stile' : s}</option>
-            ))}
-          </select>
-          <select
+            onChange={setStyleFilter}
+            options={styleOptions}
+            placeholder="Stil wählen"
+          />
+          <CustomSelect
             value={sort}
-            onChange={(e) => setSort(e.target.value as any)}
-            className="bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2"
-          >
-            <option value="top">Top bewertet</option>
-            <option value="most_rated">Meist bewertet</option>
-            <option value="newest">Neueste</option>
-          </select>
+            onChange={(val) => setSort(val as 'newest' | 'top' | 'most_rated')}
+            options={sortOptions}
+            placeholder="Sortierung"
+          />
         </div>
 
         {loading ? (
@@ -149,10 +188,35 @@ export default function DiscoverPage() {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-in fade-in duration-500">
-            {list.map(brew => (
-              <BrewCard key={brew.id} brew={brew} />
-            ))}
+          <div>
+            {!isFiltering ? (
+              <div className="space-y-4">
+                 <Section title="🔥 Gerade angesagt" items={trending} />
+                 <Section title="⭐ Am besten bewertet" items={topRated} />
+                 <Section title="✨ Neuheiten" items={newest} />
+                 
+                 <div className="mt-16 pt-8 border-t border-zinc-800">
+                    <h2 className="text-2xl font-bold mb-6">Alle Rezepte</h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-in fade-in duration-500">
+                      {list.map(brew => (
+                        <BrewCard key={brew.id} brew={brew} />
+                      ))}
+                    </div>
+                 </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-in fade-in duration-500">
+                {list.length > 0 ? (
+                  list.map(brew => (
+                    <BrewCard key={brew.id} brew={brew} />
+                  ))
+                ) : (
+                  <div className="col-span-full py-20 text-center text-zinc-500">
+                    Keine Rezepte gefunden.
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>

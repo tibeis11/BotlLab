@@ -20,6 +20,7 @@ export default function AdminHeader() {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showBreweryMenu, setShowBreweryMenu] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [mobileTab, setMobileTab] = useState<'personal' | 'team'>('personal');
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -116,8 +117,9 @@ export default function AdminHeader() {
   ];
 
   return (
+    <>
     <nav className="border-b border-zinc-900 bg-zinc-950/80 p-3 sticky top-0 z-50 backdrop-blur-md">
-      <div className="max-w-6xl mx-auto flex justify-between items-center">
+      <div className="max-w-[1920px] w-full mx-auto px-6 flex justify-between items-center">
         
         <div className="flex items-center gap-6">
           <Link href="/dashboard">
@@ -136,16 +138,6 @@ export default function AdminHeader() {
         {/* Desktop Navigation (Dashboard Context) */}
         <div className="hidden lg:flex gap-1 text-sm font-medium items-center">
           
-          {/* Manual Dashboard Link */}
-          <Link 
-            href="/dashboard" 
-            title="Dashboard"
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${pathname === '/dashboard' ? 'bg-cyan-950/50 text-cyan-400' : 'text-zinc-500 hover:text-white hover:bg-zinc-800/50'}`}
-          >
-            <span>📊</span>
-            <span className="hidden xl:inline">Dashboard</span>
-          </Link>
-
           {/* Team Dropdown (Moved from Left) */}
           {breweryId && (
               <div 
@@ -181,6 +173,29 @@ export default function AdminHeader() {
                                     >
                                         Team-Dashboard öffnen
                                     </Link>
+
+                                    <div className="mt-2 grid grid-cols-2 gap-1">
+                                        <Link href={`/team/${breweryId}/brews`} className="flex items-center gap-2 p-2 rounded hover:bg-zinc-800 text-zinc-400 hover:text-white transition group">
+                                            <span className="text-xs">🍺</span>
+                                            <span className="text-xs font-bold">Rezepte</span>
+                                        </Link>
+                                        <Link href={`/team/${breweryId}/sessions`} className="flex items-center gap-2 p-2 rounded hover:bg-zinc-800 text-zinc-400 hover:text-white transition group">
+                                            <span className="text-xs">🗓️</span>
+                                            <span className="text-xs font-bold">Sessions</span>
+                                        </Link>
+                                        <Link href={`/team/${breweryId}/inventory`} className="flex items-center gap-2 p-2 rounded hover:bg-zinc-800 text-zinc-400 hover:text-white transition group">
+                                            <span className="text-xs">📦</span>
+                                            <span className="text-xs font-bold">Lager</span>
+                                        </Link>
+                                        <Link href={`/team/${breweryId}/members`} className="flex items-center gap-2 p-2 rounded hover:bg-zinc-800 text-zinc-400 hover:text-white transition group">
+                                            <span className="text-xs">👥</span>
+                                            <span className="text-xs font-bold">Team</span>
+                                        </Link>
+                                        <Link href={`/team/${breweryId}/settings`} className="col-span-2 flex items-center gap-2 p-2 rounded hover:bg-zinc-800 text-zinc-400 hover:text-white transition group border-t border-zinc-800/50 mt-1 pt-2">
+                                            <span className="text-xs">⚙️</span>
+                                            <span className="text-xs font-bold">Einstellungen</span>
+                                        </Link>
+                                    </div>
                                 </div>
                              </div>
 
@@ -204,6 +219,16 @@ export default function AdminHeader() {
                 )}
               </div>
           )}
+          
+          {/* Manual Dashboard Link */}
+          <Link 
+            href="/dashboard" 
+            title="Dashboard"
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${pathname === '/dashboard' ? 'bg-cyan-950/50 text-cyan-400' : 'text-zinc-500 hover:text-white hover:bg-zinc-800/50'}`}
+          >
+            <span>📊</span>
+            <span className="hidden xl:inline">Dashboard</span>
+          </Link>
 
           {tabs.map(tab => {
             // Dashboard root matches only exact, others match prefix
@@ -311,126 +336,240 @@ export default function AdminHeader() {
         </div>
       </div>
 
-      {/* Mobile Navigation */}
-      {isMobileMenuOpen && (
-        <div className="lg:hidden absolute w-full bg-zinc-950 border-b border-zinc-800 animate-in slide-in-from-top-2 fade-in duration-200 shadow-2xl z-40 max-h-[90vh] overflow-y-auto left-0 top-full">
-            <div className="p-4 space-y-2">
-            <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest px-2 mb-2">Persönlicher Bereich</p>
+    </nav>
+    
+    {/* Mobile Navigation - Redesigned "Smart Drawer" */}
+    {/* Moved OUTSIDE the nav to avoid backdrop-filter issues destroying fixed positioning context */}
+    {isMobileMenuOpen && (
+        <div className="lg:hidden fixed inset-0 z-[100] bg-zinc-950/95 backdrop-blur-3xl flex flex-col animate-in slide-in-from-right duration-200 supports-[backdrop-filter]:bg-zinc-950/80">
             
-            <Link 
-                href="/dashboard"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className={`p-3 rounded-xl text-sm font-bold transition-all flex items-center gap-3 ${pathname === '/dashboard' ? 'bg-cyan-950/50 text-cyan-400 border border-cyan-900/50' : 'text-zinc-400 border border-transparent hover:bg-zinc-900'}`}
-            >
-                <span>📊</span>
-                <span>Dashboard</span>
-            </Link>
-
-            {tabs.map(tab => {
-                const isActive = pathname === tab.path;
-                return (
-                    <Link 
-                        key={tab.path} 
-                        href={tab.path}
-                        onClick={() => setIsMobileMenuOpen(false)}
-                        className={`p-3 rounded-xl text-sm font-bold transition-all flex items-center gap-3 ${isActive ? 'bg-cyan-950/50 text-cyan-400 border border-cyan-900/50' : 'text-zinc-400 border border-transparent hover:bg-zinc-900'}`}
-                    >
-                        <span>{tab.icon}</span>
-                        <span>{tab.name}</span>
-                    </Link>
-                );
-            })}
-
-            <div className="h-px bg-zinc-800 my-2"></div>
-            
-            <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest px-2 mb-2">Community</p>
-
-            <Link 
-                href="/discover"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="p-3 rounded-xl text-sm font-bold text-zinc-400 hover:text-white hover:bg-zinc-900 transition flex items-center gap-3 mb-2"
-            >
-                <span>🌍</span>
-                <span>Entdecken</span>
-            </Link>
-
-            <div className="h-px bg-zinc-800 my-2"></div>
-
-            <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest px-2 mb-2">Team Bereich</p>
-            
-            {userBreweries.length > 0 ? (
-                <div className="space-y-1 px-1">
-                    {/* Active Team */}
-                    <Link 
-                        href={`/team/${breweryId}`}
-                        onClick={() => setIsMobileMenuOpen(false)} 
-                        className="w-full p-3 rounded-xl bg-gradient-to-r from-cyan-950/40 to-transparent border border-cyan-900/30 flex items-center justify-between group active:scale-[0.98] transition-all"
-                    >
-                         <div className="flex items-center gap-3">
-                            <span className="text-lg">🏭</span>
-                            <div>
-                                <span className="block text-cyan-400 font-bold text-sm leading-none mb-0.5">{activeBreweryName}</span>
-                                <span className="text-[10px] text-cyan-600 font-medium uppercase tracking-wide">Aktives Team</span>
-                            </div>
-                        </div>
-                        <span className="w-8 h-8 rounded-full bg-cyan-900/20 flex items-center justify-center text-cyan-400 group-hover:bg-cyan-500 group-hover:text-white transition shadow-sm">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                            </svg>
-                        </span>
-                    </Link>
-
-                    {/* Other Teams */}
-                    {userBreweries.filter(b => b.id !== breweryId).map(b => (
-                        <button
-                            key={b.id}
-                            onClick={() => handleSwitchBrewery(b.id)}
-                            className="w-full p-2 px-3 rounded-lg text-sm text-zinc-400 hover:text-white hover:bg-zinc-800/80 transition flex items-center justify-between group"
-                        >
-                            <div className="flex items-center gap-3 opacity-60 group-hover:opacity-100 transition">
-                                <span className="text-base grayscale text-zinc-500">🏠</span>
-                                <span className="font-medium">{b.name}</span>
-                            </div>
-                            <span className="text-[10px] text-zinc-600 bg-zinc-900/50 border border-zinc-800/50 px-2 py-1 rounded group-hover:border-zinc-700 group-hover:text-zinc-400 transition">Wechseln</span>
-                        </button>
-                    ))}
-                </div>
-            ) : (
-                    <p className="px-3 text-xs text-zinc-600 italic">Kein Team vorhanden.</p>
-            )}
-            
-            <div className="h-px bg-zinc-800 my-2"></div>
-
-            {tierData && (
-                <div className="flex items-center gap-3 p-3 bg-zinc-900/50 rounded-xl mb-2">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs overflow-hidden relative border border-zinc-700">
-                        <div className="absolute inset-0 border-2 rounded-full opacity-50" style={{ borderColor: tierData.color }}></div>
-                        <img src={tierData.path} alt="Avatar" className="w-full h-full object-cover" />
-                    </div>
-                    <div>
-                        <p className="text-sm font-bold text-white">{userName}</p>
-                        <p className="text-[10px] uppercase font-black" style={{ color: tierData.color }}>{tierData.name}</p>
-                    </div>
-                </div>
-            )}
-
-            <Link 
-                href="/dashboard/account" 
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="p-3 rounded-xl text-sm font-bold text-zinc-400 hover:text-white hover:bg-zinc-900 transition flex items-center gap-3"
-            >
-                <span>⚙️</span> Einstellungen
-            </Link>
-                
-                <button
-                onClick={() => { handleLogout(); setIsMobileMenuOpen(false); }}
-                className="w-full text-left p-3 rounded-xl text-sm font-bold text-red-400 hover:bg-red-500/10 transition flex items-center gap-3"
-                >
-                <span>🚪</span> Abmelden
-                </button>
+            {/* 1. Header with Close (Exakt nach Pixeln ausgerichtet am Main Header) */}
+            <div className="border-b border-zinc-900 bg-zinc-950 p-3">
+               <div className="max-w-[1920px] w-full mx-auto flex justify-between items-center px-3">
+                   <div className="flex items-center gap-6" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Logo /> 
+                   </div>
+                   <div className="flex items-center gap-2">
+                     <NotificationBell />
+                     <button 
+                       onClick={() => setIsMobileMenuOpen(false)}
+                       className="p-2 text-zinc-400 hover:text-white"
+                     >
+                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                       </svg>
+                     </button>
+                   </div>
+               </div>
             </div>
+
+            {/* Segmented Control Area */}
+            <div className="p-4 border-b border-zinc-900 bg-zinc-950">
+               <div className="flex bg-zinc-900 p-1 rounded-xl">
+                    <button 
+                      onClick={() => setMobileTab('personal')}
+                      className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${mobileTab === 'personal' ? 'bg-zinc-800 text-white shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
+                    >
+                      <span className={mobileTab === 'personal' ? 'grayscale-0' : 'grayscale'}>🧪</span>
+                      Mein Labor
+                    </button>
+                    <button 
+                      onClick={() => setMobileTab('team')}
+                      className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${mobileTab === 'team' ? 'bg-cyan-950 text-cyan-400 shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
+                    >
+                      <span>🏭</span>
+                      Brauerei
+                    </button>
+               </div>
+            </div>
+
+            {/* 2. Scrollable Content Area */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                
+                {mobileTab === 'personal' ? (
+                   <div className="space-y-6 animate-in fade-in zoom-in-95 duration-200">
+                       
+                       {/* Dashboard Main Tile */}
+                       <Link 
+                          href="/dashboard"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                          className="block bg-gradient-to-br from-zinc-800 to-zinc-900 border border-zinc-700 p-5 rounded-2xl relative overflow-hidden group"
+                       >
+                          <div className="absolute right-0 top-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                             <span className="text-6xl">📊</span>
+                          </div>
+                          <p className="text-xs text-zinc-400 uppercase font-black tracking-widest mb-1">Übersicht</p>
+                          <h3 className="text-2xl font-black text-white mb-2">Dashboard</h3>
+                          <div className="flex items-center gap-2 text-sm text-zinc-300">
+                             <span>Alles im Blick</span>
+                             <span>→</span>
+                          </div>
+                       </Link>
+
+                       {/* Grid for Tools */}
+                       <div>
+                          <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest px-1 mb-3">Tools</p>
+                          <div className="grid grid-cols-2 gap-3">
+                             {tabs.map(tab => (
+                                <Link
+                                   key={tab.path}
+                                   href={tab.path}
+                                   onClick={() => setIsMobileMenuOpen(false)}
+                                   className="bg-zinc-900/50 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 p-4 rounded-xl flex flex-col items-center justify-center gap-2 text-center transition"
+                                >
+                                   <span className="text-2xl mb-1">{tab.icon}</span>
+                                   <span className="font-bold text-sm text-zinc-200">{tab.name}</span>
+                                </Link>
+                             ))}
+                             <Link
+                                href="/discover"
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                className="bg-zinc-900/50 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 p-4 rounded-xl flex flex-col items-center justify-center gap-2 text-center transition"
+                             >
+                                <span className="text-2xl mb-1">🌍</span>
+                                <span className="font-bold text-sm text-zinc-200">Entdecken</span>
+                             </Link>
+                          </div>
+                       </div>
+                   </div>
+                ) : (
+                    <div className="space-y-6 animate-in fade-in zoom-in-95 duration-200">
+                         {breweryId ? (
+                             <>
+                               {/* Active Brewery Hero */}
+                               <div className="bg-gradient-to-br from-cyan-950/40 to-cyan-900/10 border border-cyan-900/50 p-5 rounded-2xl">
+                                  <div className="flex justify-between items-start mb-4">
+                                     <div>
+                                        <p className="text-[10px] text-cyan-400 font-black uppercase tracking-widest mb-1">Aktives Team</p>
+                                        <h3 className="text-xl font-bold text-white leading-tight">{activeBreweryName}</h3>
+                                     </div>
+                                     <span className="bg-cyan-500/10 text-cyan-400 p-2 rounded-lg">🏭</span>
+                                  </div>
+                                  
+                                  <Link 
+                                     href={`/team/${breweryId}`}
+                                     onClick={() => setIsMobileMenuOpen(false)}
+                                     className="w-full block text-center bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 font-bold py-3 rounded-xl border border-cyan-500/20 transition"
+                                  >
+                                     Zum Team-Dashboard
+                                  </Link>
+                               </div>
+
+                               {/* Team Quick Actions */}
+                               <div className="grid grid-cols-2 gap-3">
+                                  <Link
+                                     href={`/team/${breweryId}/brews`}
+                                     onClick={() => setIsMobileMenuOpen(false)}
+                                     className="bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 p-4 rounded-xl flex flex-col items-center justify-center gap-2 text-center transition"
+                                  >
+                                      <span className="text-2xl mb-1">🍺</span>
+                                      <span className="font-bold text-sm text-zinc-200">Rezepte</span>
+                                  </Link>
+                                  <Link
+                                     href={`/team/${breweryId}/sessions`}
+                                     onClick={() => setIsMobileMenuOpen(false)}
+                                     className="bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 p-4 rounded-xl flex flex-col items-center justify-center gap-2 text-center transition"
+                                  >
+                                      <span className="text-2xl mb-1">🗓️</span>
+                                      <span className="font-bold text-sm text-zinc-200">Sessions</span>
+                                  </Link>
+                                  <Link
+                                     href={`/team/${breweryId}/inventory`}
+                                     onClick={() => setIsMobileMenuOpen(false)}
+                                     className="bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 p-4 rounded-xl flex flex-col items-center justify-center gap-2 text-center transition"
+                                  >
+                                      <span className="text-2xl mb-1">📦</span>
+                                      <span className="font-bold text-sm text-zinc-200">Inventory</span>
+                                  </Link>
+                                  <Link
+                                     href={`/team/${breweryId}/members`}
+                                     onClick={() => setIsMobileMenuOpen(false)}
+                                     className="bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 p-4 rounded-xl flex flex-col items-center justify-center gap-2 text-center transition"
+                                  >
+                                      <span className="text-2xl mb-1">👥</span>
+                                      <span className="font-bold text-sm text-zinc-200">Mitglieder</span>
+                                  </Link>
+                                  <Link
+                                     href={`/team/${breweryId}/settings`}
+                                     onClick={() => setIsMobileMenuOpen(false)}
+                                     className="col-span-2 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 p-4 rounded-xl flex items-center justify-center gap-3 transition"
+                                  >
+                                      <span className="text-xl">⚙️</span>
+                                      <span className="font-bold text-sm text-zinc-200">Einstellungen</span>
+                                  </Link>
+                               </div>
+
+                               {/* Switchable Teams */}
+                               {userBreweries.length > 1 && (
+                                   <div>
+                                      <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest px-1 mb-3">Team wechseln</p>
+                                      <div className="space-y-2">
+                                         {userBreweries.filter(b => b.id !== breweryId).map(b => (
+                                             <button
+                                                key={b.id}
+                                                onClick={() => handleSwitchBrewery(b.id)}
+                                                className="w-full text-left bg-zinc-900/30 border border-zinc-800/50 p-3 rounded-xl flex items-center justify-between hover:bg-zinc-900 transition"
+                                             >
+                                                <span className="text-sm font-bold text-zinc-400">{b.name}</span>
+                                                <span className="text-[10px] bg-zinc-800 text-zinc-500 px-2 py-1 rounded">Wechseln</span>
+                                             </button>
+                                         ))}
+                                      </div>
+                                   </div>
+                               )}
+                             </>
+                         ) : (
+                             <div className="text-center py-12 px-6 bg-zinc-900/30 rounded-2xl border border-zinc-800 border-dashed">
+                                 <span className="text-4xl mb-4 block opacity-50">🏚️</span>
+                                 <h3 className="font-bold text-white mb-2">Kein Team</h3>
+                                 <p className="text-sm text-zinc-500 mb-6">Du bist aktuell keinem Brauerei-Team zugeordnet.</p>
+                                 <Link
+                                    href="/dashboard/team/create" // Assuming route
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className="inline-block bg-white text-black font-bold px-6 py-3 rounded-xl hover:bg-cyan-400 transition"
+                                 >
+                                    Team Gründen
+                                 </Link>
+                             </div>
+                         )}
+                    </div>
+                )}
+
+            </div>
+
+            {/* 3. Footer (Fixed) */}
+            <div className="p-4 border-t border-zinc-900 bg-zinc-950 pb-8">
+               {tierData && (
+                <div className="flex items-center justify-between bg-zinc-900/50 p-3 rounded-2xl mb-3">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center text-xs overflow-hidden relative border border-zinc-700 bg-zinc-800">
+                            <div className="absolute inset-0 border-2 rounded-full opacity-50" style={{ borderColor: tierData.color }}></div>
+                            <img src={tierData.path} alt="Avatar" className="w-full h-full object-cover" />
+                        </div>
+                        <div>
+                            <p className="text-sm font-bold text-white leading-tight">{userName}</p>
+                            <p className="text-[10px] uppercase font-black tracking-wide" style={{ color: tierData.color }}>{tierData.name}</p>
+                        </div>
+                    </div>
+                    <Link
+                       href="/dashboard/account"
+                       onClick={() => setIsMobileMenuOpen(false)}
+                       className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-white transition"
+                    >
+                       ⚙️
+                    </Link>
+                </div>
+               )}
+               
+               <button
+                onClick={() => { handleLogout(); setIsMobileMenuOpen(false); }}
+                className="w-full flex items-center justify-center gap-2 p-3 rounded-xl text-xs font-bold text-red-400/80 hover:bg-red-500/10 hover:text-red-400 transition"
+               >
+                <span>🚪</span> Abmelden
+               </button>
+         </div>
         </div>
       )}
-    </nav>
+    </>
   );
 }

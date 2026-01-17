@@ -1,9 +1,10 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Logo from "../components/Logo";
+import { useAuth } from "../context/AuthContext";
 
 const getRedirectUrl = () => {
   if (typeof window !== 'undefined') {
@@ -13,6 +14,7 @@ const getRedirectUrl = () => {
 };
 
 export default function LoginPage() {
+  const { user, loading: authLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [breweryName, setBreweryName] = useState("");
@@ -25,6 +27,13 @@ export default function LoginPage() {
   const [message, setMessage] = useState("");
   const router = useRouter();
 
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!authLoading && user) {
+        router.push('/dashboard');
+    }
+  }, [user, authLoading, router]);
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -34,6 +43,12 @@ export default function LoginPage() {
         // --- SIGN UP ---
         if(!breweryName) {
             setMessage("Bitte gib deiner Brauerei einen Namen!");
+            setLoading(false);
+            return;
+        }
+
+        if (breweryName.trim().toLowerCase() === 'admin') {
+            setMessage("Der Name 'admin' ist nicht zulässig.");
             setLoading(false);
             return;
         }

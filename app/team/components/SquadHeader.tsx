@@ -22,6 +22,7 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
     const [showProfileMenu, setShowProfileMenu] = useState(false);
     const [showAdminMenu, setShowAdminMenu] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [mobileTab, setMobileTab] = useState<'personal' | 'team'>('team');
 
     // Data State
     const [userProfile, setUserProfile] = useState<any>(null);
@@ -40,6 +41,7 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
         { name: 'Dashboard', path: `/team/${breweryId}/dashboard`, icon: '📊' },
         { name: 'Feed', path: `/team/${breweryId}/feed`, icon: '💬' },
         { name: 'Rezepte', path: `/team/${breweryId}/brews`, icon: '🍺' },
+        { name: 'Sessions', path: `/team/${breweryId}/sessions`, icon: '🌡️' },
         { name: 'Inventar', path: `/team/${breweryId}/inventory`, icon: '📦' },
     ];
 
@@ -49,9 +51,16 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
         adminTabs.push({ name: 'Einstellungen', path: `/team/${breweryId}/settings`, icon: '⚙️' });
     }
 
+    const personalTabs = [
+        { name: 'Sammlung', path: '/dashboard/collection', icon: '🏅' },
+        { name: 'Favoriten', path: '/dashboard/favorites', icon: '❤️' },
+        { name: 'Achievements', path: '/dashboard/achievements', icon: '🏆' },
+    ];
+
     return (
+        <>
         <header className="border-b border-zinc-900 bg-zinc-950/80 backdrop-blur-md sticky top-0 z-50">
-            <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div className="max-w-[1920px] w-full mx-auto px-6 py-3 flex items-center justify-between">
                 
                 {/* Left: Logo & Exit */}
                 <div className="flex items-center gap-6">
@@ -199,78 +208,185 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                     </button>
                 </div>
             </div>
+        </header>
 
-            {/* Mobile Menu Content */}
+            {/* Mobile Menu Content - Redesigned Smart Drawer */}
             {isMobileMenuOpen && (
-                 <div className="lg:hidden absolute w-full bg-zinc-950 border-b border-zinc-800 animate-in slide-in-from-top-2 fade-in duration-200 shadow-2xl z-40 max-h-[90vh] overflow-y-auto left-0 top-full">
-                    <div className="p-4 space-y-2">
-                        <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest px-2 mb-2">Team Navigation</p>
-                        {tabs.map(tab => {
-                            const isActive = pathname === tab.path || pathname?.startsWith(tab.path + '/');
-                            return (
-                                <Link 
-                                    key={tab.path} 
-                                    href={tab.path}
-                                    onClick={() => setIsMobileMenuOpen(false)}
-                                    className={`p-3 rounded-xl text-sm font-bold transition-all flex items-center gap-3 ${isActive ? 'bg-cyan-950/50 text-cyan-400 border border-cyan-900/50' : 'text-zinc-400 border border-transparent hover:bg-zinc-900'}`}
+                 <div className="lg:hidden fixed inset-0 z-[100] bg-zinc-950/95 backdrop-blur-3xl flex flex-col animate-in slide-in-from-right duration-200 supports-[backdrop-filter]:bg-zinc-950/80">
+                    
+                    {/* 1. Header with Close (Aligned with Main Header) */}
+                    <div className="border-b border-zinc-900 bg-zinc-950 p-3">
+                        <div className="max-w-[1920px] w-full mx-auto flex justify-between items-center px-3">
+                            <div className="flex items-center gap-6" onClick={() => setIsMobileMenuOpen(false)}>
+                                <Logo /> 
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <NotificationBell />
+                                <button 
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                className="p-2 text-zinc-400 hover:text-white"
                                 >
-                                    <span>{tab.icon}</span>
-                                    <span>{tab.name}</span>
-                                </Link>
-                            );
-                        })}
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
 
-                        {adminTabs.length > 0 && (
-                            <>
-                                <div className="h-px bg-zinc-800 my-2"></div>
-                                <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest px-2 mb-2">Verwaltung</p>
-                                {adminTabs.map(tab => {
-                                    const isActive = pathname === tab.path || pathname?.startsWith(tab.path + '/');
-                                    return (
-                                        <Link 
-                                            key={tab.path} 
-                                            href={tab.path}
-                                            onClick={() => setIsMobileMenuOpen(false)}
-                                            className={`p-3 rounded-xl text-sm font-bold transition-all flex items-center gap-3 ${isActive ? 'bg-cyan-950/50 text-cyan-400 border border-cyan-900/50' : 'text-zinc-400 border border-transparent hover:bg-zinc-900'}`}
+                    {/* Segmented Control */}
+                    <div className="p-4 border-b border-zinc-900 bg-zinc-950">
+                       <div className="flex bg-zinc-900 p-1 rounded-xl">
+                            <button 
+                              onClick={() => setMobileTab('personal')}
+                              className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${mobileTab === 'personal' ? 'bg-zinc-800 text-white shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
+                            >
+                              <span className={mobileTab === 'personal' ? 'grayscale-0' : 'grayscale'}>🧪</span>
+                              Mein Labor
+                            </button>
+                            <button 
+                              onClick={() => setMobileTab('team')}
+                              className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${mobileTab === 'team' ? 'bg-cyan-950 text-cyan-400 shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
+                            >
+                              <span>🏭</span>
+                              Brauerei
+                            </button>
+                       </div>
+                    </div>
+
+                    {/* 2. Scrollable Content */}
+                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                        {mobileTab === 'team' ? (
+                            <div className="space-y-6 animate-in fade-in zoom-in-95 duration-200">
+                                
+                                {/* Team Dashboard Main Tile */}
+                                <Link 
+                                   href={`/team/${breweryId}/dashboard`}
+                                   onClick={() => setIsMobileMenuOpen(false)}
+                                   className="block bg-gradient-to-br from-cyan-950/40 to-cyan-900/10 border border-cyan-900/50 p-5 rounded-2xl relative overflow-hidden group"
+                                >
+                                   <div className="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                                      <span className="text-6xl">🏭</span>
+                                   </div>
+                                   <p className="text-xs text-cyan-500 uppercase font-black tracking-widest mb-1">Team Area</p>
+                                   <h3 className="text-2xl font-black text-white mb-2">Übersicht</h3>
+                                   <div className="flex items-center gap-2 text-sm text-zinc-300">
+                                      <span>Team-Feed & Status</span>
+                                      <span>→</span>
+                                   </div>
+                                </Link>
+
+                                {/* Team Actions Grid */}
+                                <div>
+                                    <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest px-1 mb-3">Aktionen</p>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {/* Filter out Dashboard from tabs since we have the big tile */}
+                                        {tabs.filter(t => !t.path.endsWith('/dashboard')).map(tab => (
+                                            <Link
+                                                key={tab.path}
+                                                href={tab.path}
+                                                onClick={() => setIsMobileMenuOpen(false)}
+                                                className="bg-zinc-900/50 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 p-4 rounded-xl flex flex-col items-center justify-center gap-2 text-center transition"
+                                            >
+                                                <span className="text-2xl mb-1">{tab.icon}</span>
+                                                <span className="font-bold text-sm text-zinc-200">{tab.name}</span>
+                                            </Link>
+                                        ))}
+                                        
+                                        {/* Admin Tabs */}
+                                        {adminTabs.map(tab => (
+                                            <Link
+                                                key={tab.path}
+                                                href={tab.path}
+                                                onClick={() => setIsMobileMenuOpen(false)}
+                                                className="bg-zinc-900/50 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 p-4 rounded-xl flex flex-col items-center justify-center gap-2 text-center transition last:col-span-2"
+                                            >
+                                                <span className="text-2xl mb-1">{tab.icon}</span>
+                                                <span className="font-bold text-sm text-zinc-200">{tab.name}</span>
+                                            </Link>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="space-y-6 animate-in fade-in zoom-in-95 duration-200">
+                                {/* Personal Dashboard Link */}
+                                <Link 
+                                  href="/dashboard"
+                                  onClick={() => setIsMobileMenuOpen(false)}
+                                  className="block bg-gradient-to-br from-zinc-800 to-zinc-900 border border-zinc-700 p-5 rounded-2xl relative overflow-hidden group"
+                               >
+                                  <div className="absolute right-0 top-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                     <span className="text-6xl">📊</span>
+                                  </div>
+                                  <p className="text-xs text-zinc-400 uppercase font-black tracking-widest mb-1">Privat</p>
+                                  <h3 className="text-2xl font-black text-white mb-2">Mein Dashboard</h3>
+                                  <div className="flex items-center gap-2 text-sm text-zinc-300">
+                                     <span>Zurück zum Labor</span>
+                                     <span>→</span>
+                                  </div>
+                               </Link>
+
+                               {/* Personal Tools */}
+                               <div>
+                                  <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest px-1 mb-3">Meine Tools</p>
+                                  <div className="grid grid-cols-2 gap-3">
+                                     {personalTabs.map(tab => (
+                                        <Link
+                                           key={tab.path}
+                                           href={tab.path}
+                                           onClick={() => setIsMobileMenuOpen(false)}
+                                           className="bg-zinc-900/50 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 p-4 rounded-xl flex flex-col items-center justify-center gap-2 text-center transition"
                                         >
-                                            <span>{tab.icon}</span>
-                                            <span>{tab.name}</span>
+                                           <span className="text-2xl mb-1">{tab.icon}</span>
+                                           <span className="font-bold text-sm text-zinc-200">{tab.name}</span>
                                         </Link>
-                                    );
-                                })}
-                            </>
+                                     ))}
+                                     <Link
+                                        href="/discover"
+                                        onClick={() => setIsMobileMenuOpen(false)}
+                                        className="bg-zinc-900/50 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 p-4 rounded-xl flex flex-col items-center justify-center gap-2 text-center transition"
+                                     >
+                                        <span className="text-2xl mb-1">🌍</span>
+                                        <span className="font-bold text-sm text-zinc-200">Entdecken</span>
+                                     </Link>
+                                  </div>
+                               </div>
+                            </div>
                         )}
-                        
-                         <div className="h-px bg-zinc-800 my-2"></div>
-                         
-                         <div className="flex items-center gap-3 p-3 bg-zinc-900/50 rounded-xl mb-2">
-                             <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs overflow-hidden relative border border-zinc-700">
-                                   <div className="absolute inset-0 border-2 rounded-full opacity-50" style={{ borderColor: tierConfig.color }}></div>
-                                   <img src={tierConfig.avatarPath} alt="Avatar" className="w-full h-full object-cover" />
+                    </div>
+
+                    {/* 3. Footer (Fixed) */}
+                    <div className="p-4 border-t border-zinc-900 bg-zinc-950 pb-8">
+                         <div className="flex items-center justify-between bg-zinc-900/50 p-3 rounded-2xl mb-3">
+                             <div className="flex items-center gap-3">
+                                 <div className="w-10 h-10 rounded-full flex items-center justify-center text-xs overflow-hidden relative border border-zinc-700 bg-zinc-800">
+                                     <div className="absolute inset-0 border-2 rounded-full opacity-50" style={{ borderColor: tierConfig.color }}></div>
+                                     <img src={tierConfig.avatarPath} alt="Avatar" className="w-full h-full object-cover" />
+                                 </div>
+                                 <div>
+                                     <p className="text-sm font-bold text-white leading-tight">{userProfile?.display_name || user?.email}</p>
+                                     <p className="text-[10px] uppercase font-black tracking-wide" style={{ color: tierConfig.color }}>{tierConfig.displayName}</p>
+                                 </div>
                              </div>
-                             <div>
-                                 <p className="text-sm font-bold text-white">{userProfile?.display_name || user?.email}</p>
-                                 <p className="text-[10px] uppercase font-black" style={{ color: tierConfig.color }}>{tierConfig.displayName}</p>
-                             </div>
+                             <Link
+                                href="/dashboard/account"
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-white transition"
+                             >
+                                ⚙️
+                             </Link>
                          </div>
                          
-                         <Link 
-                            href="/dashboard"
-                            onClick={() => setIsMobileMenuOpen(false)}
-                            className="p-3 rounded-xl text-sm font-bold text-zinc-300 hover:text-white hover:bg-zinc-900 transition flex items-center gap-3"
-                         >
-                            ↩ Zurück zum Haupt-Dashboard
-                         </Link>
-
                          <button
                             onClick={() => { signOut(); setIsMobileMenuOpen(false); }}
-                            className="w-full text-left p-3 rounded-xl text-sm font-bold text-red-400 hover:bg-red-500/10 transition flex items-center gap-3"
+                            className="w-full flex items-center justify-center gap-2 p-3 rounded-xl text-xs font-bold text-red-400/80 hover:bg-red-500/10 hover:text-red-400 transition"
                          >
-                            🚪 Abmelden
+                            <span>🚪</span> Abmelden
                          </button>
                     </div>
                  </div>
             )}
-        </header>
+        </>
     );
 }
