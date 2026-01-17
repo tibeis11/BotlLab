@@ -70,7 +70,7 @@ function BottleListItem({
                 className={`relative z-10 flex items-center transition-transform duration-300 ${swipedLeft ? '-translate-x-24' : 'translate-x-0'}`}
                 style={{ backgroundColor: swipedLeft ? 'transparent' : '' }}
             >
-                <div className="w-16 pl-4 sm:pl-8 pr-2 sm:pr-5 py-5 shrink-0">
+                <div className="hidden sm:block w-16 pl-4 sm:pl-8 pr-2 sm:pr-5 py-5 shrink-0">
                     <label className="relative flex items-center justify-center cursor-pointer">
                         <input 
                             type="checkbox" 
@@ -85,7 +85,7 @@ function BottleListItem({
                         </div>
                     </label>
                 </div>
-                <div className="w-20 sm:w-24 px-2 sm:px-5 py-5 font-black text-white text-xl tabular-nums tracking-tight shrink-0 flex flex-col justify-center">
+                <div className="w-20 pl-4 sm:pl-0 sm:w-24 px-2 sm:px-5 py-5 font-black text-white text-xl tabular-nums tracking-tight shrink-0 flex flex-col justify-center">
                     <div><span className="text-zinc-600 mr-0.5">#</span>{bottle.bottle_number}</div>
                     {bottle.size_l && <div className="text-[10px] text-zinc-500 font-mono font-normal tracking-wide">{bottle.size_l}L</div>}
                 </div>
@@ -136,19 +136,19 @@ function BottleListItem({
                         <div className="hidden lg:flex justify-end gap-2">
                             <button
                                 onClick={() => onAssign(bottle)}
-                                className="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-cyan-400 transition shadow-md border border-transparent hover:border-zinc-700"
+                                className="w-10 h-10 aspect-square flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-cyan-400 transition shadow-md border border-transparent hover:border-zinc-700"
                                 title="Sud zuweisen"
                             >
-                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                                 </svg>
                             </button>
                             <button 
                                 onClick={() => onShowQr(bottle)}
-                                className="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white transition hover:text-cyan-400 shadow-md border border-transparent hover:border-zinc-700"
+                                className="w-10 h-10 aspect-square flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white transition hover:text-cyan-400 shadow-md border border-transparent hover:border-zinc-700"
                                 title="QR Code anzeigen"
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 flex-shrink-0">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 3.75 9.375v-4.5ZM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5ZM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 13.5 9.375v-4.5Z" />
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75ZM6.75 16.5h.75v.75h-.75v-.75ZM16.5 6.75h.75v.75h-.75v-.75ZM13.5 13.5h.75v.75h-.75v-.75ZM13.5 19.5h.75v.75h-.75v-.75ZM19.5 13.5h.75v.75h-.75v-.75ZM19.5 19.5h.75v.75h-.75v-.75ZM16.5 16.5h.75v.75h-.75v-.75Z" />
                                 </svg>
@@ -1078,61 +1078,64 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
                                 </div>
 
                                 <div className="space-y-6">
-                                    <div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        {/* Amount Input */}
+                                        <div>
+                                                <div className="flex justify-between items-center mb-2 px-1">
+                                                    <label className="text-[10px] font-bold uppercase text-cyan-500 tracking-widest">Anzahl</label>
+                                                    <span className="text-[10px] font-mono text-zinc-600">MAX 100</span>
+                                                </div>
+                                                <div className="relative">
+                                                    <input 
+                                                        suppressHydrationWarning
+                                                        type="number" 
+                                                        min="1"
+                                                        max="100"
+                                                        value={amount} 
+                                                        onChange={(e) => setAmount(parseInt(e.target.value))}
+                                                        className="w-full bg-zinc-950 border-2 border-zinc-800 rounded-2xl py-3 px-4 text-xl font-black text-center focus:border-cyan-500 outline-none transition-all shadow-inner"
+                                                    />
+                                                </div>
+                                        </div>
+
+                                        {/* Size Input */}
+                                        <div>
                                             <div className="flex justify-between items-center mb-2 px-1">
-                                                <label className="text-[10px] font-bold uppercase text-cyan-500 tracking-widest">Anzahl</label>
-                                                <span className="text-[10px] font-mono text-zinc-600">MAX 100</span>
+                                                <label className="text-[10px] font-bold uppercase text-cyan-500 tracking-widest">Inhalt (L)</label>
                                             </div>
-                                            <div className="relative">
+                                            <div className="relative group/size">
                                                 <input 
-                                                    suppressHydrationWarning
-                                                    type="number" 
-                                                    min="1"
-                                                    max="100"
-                                                    value={amount} 
-                                                    onChange={(e) => setAmount(parseInt(e.target.value))}
-                                                    className="w-full bg-zinc-950 border-2 border-zinc-800 rounded-2xl py-3 px-4 text-xl font-black text-center focus:border-cyan-500 outline-none transition-all shadow-inner"
+                                                    type="number"
+                                                    step="0.01"
+                                                    value={bottleSize}
+                                                    onChange={(e) => setBottleSize(parseFloat(e.target.value) || 0)}
+                                                    className="w-full bg-zinc-950 border-2 border-zinc-800 rounded-2xl py-3 px-4 text-xl font-black text-center focus:border-cyan-500 outline-none transition-all shadow-inner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                    placeholder="0.0"
                                                 />
+                                                
+                                                {/* Hidden Dropdown on Focus */}
+                                                <div className="absolute top-full left-0 right-0 mt-2 bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl overflow-hidden hidden group-focus-within/size:block z-50">
+                                                    {[0.33, 0.5, 0.75].map(s => (
+                                                        <button 
+                                                            key={s}
+                                                            type="button"
+                                                            onMouseDown={(e) => {
+                                                                e.preventDefault(); // Prevent focus loss
+                                                                setBottleSize(s);
+                                                            }}
+                                                            className="w-full text-left px-4 py-3 hover:bg-zinc-800 font-bold text-zinc-300 hover:text-white flex justify-between items-center group transition"
+                                                        >
+                                                            <span>{s} L</span>
+                                                            {bottleSize === s && <span className="text-cyan-500">✓</span>}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                                
+                                                {/* Chevron indicator */}
+                                                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-600">
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                                                </div>
                                             </div>
-                                    </div>
-
-                                    {/* Size Input */}
-                                    <div className="space-y-2 p-3 bg-zinc-800/30 rounded-2xl border border-zinc-800/50">
-                                        <div className="flex justify-between items-center mb-2">
-                                            <label className="text-[10px] font-bold uppercase text-cyan-500 tracking-widest pl-1">
-                                                Inhalt pro Flasche
-                                            </label>
-                                            <span className="text-[10px] font-bold text-white bg-zinc-800 px-2 py-0.5 rounded-md border border-zinc-700">
-                                                {bottleSize} Liter
-                                            </span>
-                                        </div>
-                                        
-                                        <div className="grid grid-cols-3 gap-2 mb-2">
-                                            {[0.33, 0.5, 0.75].map(size => (
-                                                <button
-                                                    key={size}
-                                                    onClick={() => setBottleSize(size)}
-                                                    className={`py-2 rounded-lg text-sm font-bold transition border ${
-                                                        bottleSize === size 
-                                                        ? 'bg-cyan-500 text-black border-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.3)]' 
-                                                        : 'bg-zinc-900 border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500'
-                                                    }`}
-                                                >
-                                                    {size}
-                                                </button>
-                                            ))}
-                                        </div>
-
-                                        <div className="relative">
-                                            <input 
-                                                type="number"
-                                                step="0.01"
-                                                value={bottleSize}
-                                                onChange={(e) => setBottleSize(parseFloat(e.target.value) || 0)}
-                                                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-white font-bold outline-none focus:border-cyan-500 text-right text-sm"
-                                                placeholder="Custom"
-                                            />
-                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-[10px] font-bold uppercase">Individuell (L)</span>
                                         </div>
                                     </div>
 
@@ -1222,7 +1225,7 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 							<div className="overflow-x-auto p-1">
 								{/* Header */}
 								<div className="flex items-center text-zinc-500 text-xs uppercase font-bold tracking-wider mb-2">
-									<div className="w-16 pl-4 sm:pl-8 pr-2 sm:pr-5 py-3 shrink-0">
+									<div className="hidden sm:block w-16 pl-4 sm:pl-8 pr-2 sm:pr-5 py-3 shrink-0">
 										<label className="relative flex items-center justify-center cursor-pointer group">
 											<input 
 												type="checkbox" 
@@ -1237,7 +1240,7 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 											</div>
 										</label>
 									</div>
-									<div className="w-20 sm:w-24 px-2 sm:px-5 py-3 shrink-0">Nr.</div>
+									<div className="w-20 pl-4 sm:pl-0 sm:w-24 px-2 sm:px-5 py-3 shrink-0">Nr.</div>
 									<div className="flex-1 px-2 sm:px-5 py-3">Inhalt / Status</div>
 									<div className="hidden lg:block w-32 px-5 py-3 shrink-0 text-right">Abgefüllt</div>
 									<div className="w-32 pr-4 sm:pr-8 pl-2 sm:pl-5 py-3 text-right shrink-0">Aktionen</div>
@@ -1396,7 +1399,6 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
                     onClick={() => setAssignTargetBottle(null)}
                 >
 					<div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 w-full max-w-sm relative" onClick={e => e.stopPropagation()}>
-						<button className="absolute top-3 right-3 text-zinc-500 hover:text-white" onClick={() => setAssignTargetBottle(null)}>✖</button>
 						<h3 className="text-lg font-bold mb-4">Sud zuweisen</h3>
 						<p className="text-sm text-zinc-400 mb-4">
                             Wähle den Inhalt für Flasche <span className="text-white font-mono">#{assignTargetBottle.bottle_number}</span>.

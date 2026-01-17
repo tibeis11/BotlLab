@@ -21,6 +21,8 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
     // UI State
     const [showProfileMenu, setShowProfileMenu] = useState(false);
     const [showAdminMenu, setShowAdminMenu] = useState(false);
+    const [showPersonalMenu, setShowPersonalMenu] = useState(false);
+    const [showDiscoverMenu, setShowDiscoverMenu] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [scrollbarCompensation, setScrollbarCompensation] = useState(0);
     const [mobileTab, setMobileTab] = useState<'personal' | 'team' | 'discover'>('team');
@@ -88,9 +90,97 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                     </Link>
                     
                     <div className="hidden lg:flex gap-6 text-sm font-medium items-center border-l border-zinc-800 pl-6 h-8">
-                         <Link href="/dashboard" className="hover:text-cyan-400 transition flex items-center gap-2 text-zinc-400">
-                             ↩ Mein Profil
-                         </Link>
+                        {/* Entdecken Dropdown */}
+                        <div 
+                            className="relative group"
+                            onMouseEnter={() => setShowDiscoverMenu(true)}
+                            onMouseLeave={() => setShowDiscoverMenu(false)}
+                        >
+                            <button 
+                                title="Entdecken"
+                                className={`rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${pathname.startsWith('/discover') ? 'text-cyan-400' : 'text-zinc-500 hover:text-white'}`}
+                            >
+                                <span>🌍</span>
+                                <span>Entdecken</span>
+                                <span className="text-[10px] ml-1">▼</span>
+                            </button>
+                            
+                            {showDiscoverMenu && (
+                                <div className="absolute left-0 top-full pt-4 w-48 z-50">
+                                        <div className="bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-1 px-1 py-1">
+                                            <Link 
+                                                href="/discover" 
+                                                className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
+                                            >
+                                                <span>🍺</span>
+                                                <span>Rezepte</span>
+                                            </Link>
+                                            <div className="px-3 py-2 text-sm font-bold flex items-center gap-3 text-zinc-600 cursor-not-allowed">
+                                                <span>💬</span>
+                                                <div>
+                                                    <span className="block">Forum</span>
+                                                    <span className="text-[9px] uppercase tracking-wider block font-black">Demnächst</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Mein Profil Dropdown */}
+                        <div 
+                            className="relative group"
+                            onMouseEnter={() => setShowPersonalMenu(true)}
+                            onMouseLeave={() => setShowPersonalMenu(false)}
+                        >
+                            <button 
+                                title="Mein Profil"
+                                className={`rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${pathname === '/dashboard' || pathname.startsWith('/dashboard/') ? 'text-cyan-400' : 'text-zinc-500 hover:text-white'}`}
+                            >
+                                <span>👤</span>
+                                <span>Mein Profil</span>
+                                <span className="text-[10px] ml-1">▼</span>
+                            </button>
+                            
+                            {showPersonalMenu && (
+                                <div className="absolute left-0 top-full pt-4 w-56 z-50">
+                                    <div className="bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-1 p-1">
+                                         <Link 
+                                            href="/dashboard"
+                                            className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-300 hover:text-white hover:bg-zinc-900 rounded-lg"
+                                        >
+                                            <span>📊</span> <span>Dashboard</span>
+                                        </Link>
+                                        <div className="h-px bg-zinc-800 my-1 mx-2"></div>
+                                        <Link 
+                                            href="/dashboard/collection" 
+                                            className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
+                                        >
+                                            <span>🏅</span> <span>Sammlung</span>
+                                        </Link>
+                                        <Link 
+                                            href="/dashboard/favorites" 
+                                            className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
+                                        >
+                                            <span>❤️</span> <span>Favoriten</span>
+                                        </Link>
+                                         <Link 
+                                            href="/dashboard/achievements" 
+                                            className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
+                                        >
+                                            <span>🏆</span> <span>Achievements</span>
+                                        </Link>
+                                        <div className="h-px bg-zinc-800 my-1 mx-2"></div>
+                                        <Link 
+                                            href="/dashboard/account" 
+                                            className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
+                                        >
+                                            <span>⚙️</span> <span>Einstellungen</span>
+                                        </Link>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 

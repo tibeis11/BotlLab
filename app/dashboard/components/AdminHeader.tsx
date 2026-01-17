@@ -148,7 +148,44 @@ export default function AdminHeader() {
 
           {/* Left Desktop Navigation (External Context) */}
           <div className="hidden lg:flex gap-6 text-sm font-medium items-center border-l border-zinc-800 pl-6 h-8">
-            {/* Team Dropdown (Moved to Left) */}
+            {/* Entdecken Dropdown */}
+            <div 
+              className="relative group"
+              onMouseEnter={() => setShowDiscoverMenu(true)}
+              onMouseLeave={() => setShowDiscoverMenu(false)}
+            >
+              <button 
+                  title="Entdecken"
+                  className={`rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${pathname.startsWith('/discover') ? 'text-cyan-400' : 'text-zinc-500 hover:text-white'}`}
+              >
+                  <span>🌍</span>
+                  <span className="hidden xl:inline">Entdecken</span>
+                  <span className="text-[10px] ml-1">▼</span>
+              </button>
+              
+              {showDiscoverMenu && (
+                  <div className="absolute left-0 top-full pt-4 w-48 z-50">
+                          <div className="bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-1 px-1 py-1">
+                              <Link 
+                                  href="/discover" 
+                                  className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
+                              >
+                                  <span>🍺</span>
+                                  <span>Rezepte</span>
+                              </Link>
+                              <div className="px-3 py-2 text-sm font-bold flex items-center gap-3 text-zinc-600 cursor-not-allowed">
+                                  <span>💬</span>
+                                  <div>
+                                      <span className="block">Forum</span>
+                                      <span className="text-[9px] uppercase tracking-wider block font-black">Demnächst</span>
+                                  </div>
+                              </div>
+                          </div>
+                  </div>
+              )}
+            </div>
+
+            {/* Team Dropdown */}
             {breweryId && (
                 <div 
                   className="relative group"
@@ -229,43 +266,6 @@ export default function AdminHeader() {
                   )}
                 </div>
             )}
-
-            {/* Entdecken Dropdown (Moved from Left) */}
-            <div 
-              className="relative group"
-              onMouseEnter={() => setShowDiscoverMenu(true)}
-              onMouseLeave={() => setShowDiscoverMenu(false)}
-            >
-              <button 
-                  title="Entdecken"
-                  className={`rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${pathname.startsWith('/discover') ? 'text-cyan-400' : 'text-zinc-500 hover:text-white'}`}
-              >
-                  <span>🌍</span>
-                  <span className="hidden xl:inline">Entdecken</span>
-                  <span className="text-[10px] ml-1">▼</span>
-              </button>
-              
-              {showDiscoverMenu && (
-                  <div className="absolute left-0 top-full pt-4 w-48 z-50">
-                          <div className="bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-1 px-1 py-1">
-                              <Link 
-                                  href="/discover" 
-                                  className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
-                              >
-                                  <span>🍺</span>
-                                  <span>Rezepte</span>
-                              </Link>
-                              <div className="px-3 py-2 text-sm font-bold flex items-center gap-3 text-zinc-600 cursor-not-allowed">
-                                  <span>💬</span>
-                                  <div>
-                                      <span className="block">Forum</span>
-                                      <span className="text-[9px] uppercase tracking-wider block font-black">Demnächst</span>
-                                  </div>
-                              </div>
-                          </div>
-                  </div>
-              )}
-            </div>
           </div>
         </div>
         
