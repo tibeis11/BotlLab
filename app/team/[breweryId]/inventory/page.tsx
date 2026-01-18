@@ -13,6 +13,9 @@ import { checkAndGrantAchievements } from '@/lib/achievements';
 import { useAchievementNotification } from '@/app/context/AchievementNotificationContext';
 import { useAuth } from '@/app/context/AuthContext';
 import { useNotification } from '@/app/context/NotificationContext';
+import { generateSmartLabelPDF } from '@/lib/pdf-generator';
+import { renderLabelToDataUrl } from '@/lib/label-renderer';
+import { LABEL_FORMATS, DEFAULT_FORMAT_ID } from '@/lib/smart-labels-config';
 
 // Extracted List Item Component
 function BottleListItem({ 
@@ -53,19 +56,16 @@ function BottleListItem({
         }
     }
 
-    const isMenuOpen = openActionMenuId === bottle.id;
-
     return (
         <div 
             onTouchStart={onTouchStart} 
             onTouchMove={onTouchMove} 
             onTouchEnd={onTouchEndHandler}
-            style={{ zIndex: isMenuOpen ? 50 : undefined }}
-            className={`relative rounded-2xl transition-all ${isMenuOpen ? 'overflow-visible scale-[1.01]' : 'overflow-hidden hover:scale-[1.01] hover:bg-zinc-900 hover:shadow-lg'} focus-within:z-10 focus-within:scale-[1.01] ${isSelected ? 'bg-cyan-500/10 shadow-[0_0_0_1px_rgba(6,182,212,0.3)]' : `bg-zinc-900/40 ${!isMenuOpen ? 'hover:bg-zinc-900' : 'bg-zinc-900'}`}`}
+            className={`relative overflow-hidden rounded-2xl transition-all focus-within:z-10 focus-within:scale-[1.01] ${isSelected ? 'bg-cyan-500/10 shadow-[0_0_0_1px_rgba(6,182,212,0.3)]' : 'bg-zinc-900/40 hover:bg-zinc-900 hover:shadow-lg hover:scale-[1.01]'}`}
         >   
             {/* Swipe Backgrounds */}
             <div className={`absolute inset-0 z-0 bg-red-500/20 items-center justify-end pr-8 flex transition-opacity duration-300 pointer-events-none ${swipedLeft ? 'opacity-100' : 'opacity-0'}`}>
-                <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                <span className="font-bold text-red-500">Löschen?</span>
             </div>
             
             {/* Content Container */}
@@ -208,11 +208,25 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 	const [amount, setAmount] = useState(10);
 	const [bottleSize, setBottleSize] = useState<number>(0.5);
 	const [downloadFormat, setDownloadFormat] = useState<'pdf' | 'zip' | 'png'>('pdf');
+    const [selectedLabelFormat, setSelectedLabelFormat] = useState<string>(DEFAULT_FORMAT_ID);
 	const [isWorking, setIsWorking] = useState(false);
 	const [isMounted, setIsMounted] = useState(false);
 	const [breweryTier, setBreweryTier] = useState<BreweryTierName>('garage');
 	const { showAchievement } = useAchievementNotification();
 	const { showToast } = useNotification();
+
+    // Load Label Preference
+    useEffect(() => {
+        const savedFormat = localStorage.getItem('botllab_label_format');
+        if (savedFormat && LABEL_FORMATS[savedFormat]) {
+            setSelectedLabelFormat(savedFormat);
+        }
+    }, []);
+
+    const handleLabelFormatChange = (val: string) => {
+        setSelectedLabelFormat(val);
+        localStorage.setItem('botllab_label_format', val);
+    };
 
 	const [showScanner, setShowScanner] = useState(false);
 	const [scanBrewId, setScanBrewId] = useState<string>(""); 
@@ -368,44 +382,20 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 	}
 
 	async function generatePdfForBottles(bottlesList: any[], title: string) {
-		const doc = new jsPDF();
-		doc.setFont("helvetica", "bold");
-		doc.text(title, 20, 20);
-		doc.setFont("helvetica", "normal");
-		doc.setFontSize(10);
-		doc.text(`Erstellt am: ${new Date().toLocaleString()}`, 20, 27);
-		doc.text(`Anzahl: ${bottlesList.length} Flaschen`, 20, 32);
-
-		let x = 20;
-		let y = 45;
-		const qrSize = 35;
-		const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://botllab.vercel.app';
-
-		for (const bottle of bottlesList) {
-			const scanUrl = `${baseUrl}/b/${bottle.id}`;
-			const qrDataUrl = await generateQRWithLogo(scanUrl);
-
-			doc.addImage(qrDataUrl, 'PNG', x, y, qrSize, qrSize);
-			
-			doc.setFontSize(8);
-			doc.text(`Nr: #${bottle.bottle_number}`, x, y + qrSize + 5);
-			doc.setFontSize(6);
-			doc.text(`ID: ${bottle.id.slice(0, 13)}...`, x, y + qrSize + 8);
-
-			x += 45; 
-			if (x > 160) {
-				x = 20;
-				y += 55;
-			}
-
-			if (y > 240) {
-				doc.addPage();
-				y = 20;
-				x = 20;
-			}
+		try {
+			const baseUrl = window.location.origin || process.env.NEXT_PUBLIC_APP_URL || 'https://botllab.vercel.app';
+			// Using the new Smart Label System
+			const doc = await generateSmartLabelPDF(bottlesList, { 
+				baseUrl, 
+				useHighResQR: true,
+                formatId: selectedLabelFormat
+			});
+			doc.save(`${title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.pdf`);
+			showToast("PDF erstellt", "Deine Smart Labels wurden erfolgreich generiert (A4 Landscape).", "success");
+		} catch (e) {
+			console.error("PDF Fail", e);
+			showToast("Fehler", "PDF konnte nicht erstellt werden.", "warning");
 		}
-		doc.save(`BotlLab_Codes_${Date.now()}.pdf`);
-		showToast("PDF erstellt", "Deine QR-Codes wurden erfolgreich heruntergeladen.", "success");
 	}
 
 	function downloadBlob(blob: Blob, fileName: string) {
@@ -426,92 +416,24 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 		const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://botllab.vercel.app';
 
 		for (const bottle of bottlesList) {
-			const scanUrl = `${baseUrl}/b/${bottle.id}`;
-			const qrDataUrl = await generateQRWithLogo(scanUrl);
-			// Remove Data-URL prefix
-			const base64Data = qrDataUrl.split(',')[1];
-			
-			folder.file(`Flasche_${bottle.bottle_number}.png`, base64Data, { base64: true });
+            try {
+                // Use the new single label renderer
+                const labelDataUrl = await renderLabelToDataUrl(bottle, selectedLabelFormat, baseUrl);
+                const base64Data = labelDataUrl.split(',')[1];
+                folder.file(`Label_${bottle.bottle_number}.png`, base64Data, { base64: true });
+            } catch (e) {
+                console.error("Label Gen Error for ZIP", e);
+                // Fallback to simple QR if complex render fails
+                const scanUrl = `${baseUrl}/b/${bottle.id}`;
+			    const qrDataUrl = await generateQRWithLogo(scanUrl);
+			    const base64Data = qrDataUrl.split(',')[1];
+			    folder.file(`QR_Fallback_${bottle.bottle_number}.png`, base64Data, { base64: true });
+            }
 		}
 
 		const blob = await zip.generateAsync({ type: 'blob' });
-		downloadBlob(blob, `BotlLab_Codes_${Date.now()}.zip`);
-		showToast("ZIP erstellt", "Deine QR-Codes wurden als ZIP heruntergeladen.", "success");
-	}
-
-	async function generatePngOverviewForBottles(bottlesList: any[]) {
-		const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://botllab.vercel.app';
-		
-		// Config
-		const itemWidth = 500;
-		const itemHeight = 600; // Extra space for text
-		const gap = 40;
-		
-		const count = bottlesList.length;
-		const cols = Math.ceil(Math.sqrt(count));
-		const rows = Math.ceil(count / cols);
-		
-		const canvas = document.createElement('canvas');
-		canvas.width = (cols * itemWidth) + ((cols - 1) * gap) + (gap * 2);
-		canvas.height = (rows * itemHeight) + ((rows - 1) * gap) + (gap * 2);
-		
-		const ctx = canvas.getContext('2d');
-		if (!ctx) return;
-
-		// Background
-		ctx.fillStyle = '#18181b'; // Zinc-950
-		ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-		// Title
-		ctx.font = 'bold 40px sans-serif';
-		ctx.fillStyle = '#ffffff';
-		ctx.fillText(`BotlLab Export - ${new Date().toLocaleDateString()}`, gap, gap + 20);
-
-		let i = 0;
-		for (const bottle of bottlesList) {
-			const c = i % cols;
-			const r = Math.floor(i / cols);
-			
-			const x = gap + (c * (itemWidth + gap));
-			const y = gap + 80 + (r * (itemHeight + gap)); // Offset for title
-
-			const scanUrl = `${baseUrl}/b/${bottle.id}`;
-			const qrDataUrl = await generateQRWithLogo(scanUrl);
-			
-			const img = new Image();
-			await new Promise(resolve => {
-				img.onload = resolve;
-				img.src = qrDataUrl;
-			});
-
-			// Draw White Card Background
-			ctx.fillStyle = '#ffffff';
-			ctx.beginPath();
-			ctx.roundRect(x, y, itemWidth, itemHeight, 20);
-			ctx.fill();
-
-			// Draw QR
-			ctx.drawImage(img, x, y, itemWidth, itemWidth); // Square QR
-
-			// Text
-			ctx.fillStyle = '#000000';
-			ctx.textAlign = 'center';
-			ctx.font = 'bold 32px sans-serif';
-			ctx.fillText(`#${bottle.bottle_number}`, x + (itemWidth / 2), y + itemWidth + 40);
-			
-			ctx.fillStyle = '#52525b'; // Zinc-600
-			ctx.font = '20px monospace';
-			ctx.fillText(bottle.id.split('-')[0], x + (itemWidth / 2), y + itemWidth + 80);
-
-			i++;
-		}
-
-		canvas.toBlob((blob) => {
-			if (blob) {
-				downloadBlob(blob, `BotlLab_Overview_${Date.now()}.png`);
-				showToast("PNG erstellt", "Dein Übersichtsbild wurde erstellt.", "success");
-			}
-		});
+		downloadBlob(blob, `BotlLab_Labels_${Date.now()}.zip`); // Updated filename
+		showToast("ZIP erstellt", "Deine individuellen Etiketten wurden als ZIP heruntergeladen.", "success");
 	}
 
 	async function createBatchAndDownloadPDF() {
@@ -567,9 +489,7 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 			if (downloadFormat === 'pdf') {
 				await generatePdfForBottles(createdBottles, "BotlLab QR-Code Batch");
 			} else if (downloadFormat === 'zip') {
-				await generateZipForBottles(createdBottles, "BotlLab QR-Codes");
-			} else if (downloadFormat === 'png') {
-				await generatePngOverviewForBottles(createdBottles);
+				await generateZipForBottles(createdBottles, "BotlLab Labels");
 			}
       
 			await loadData();
@@ -929,9 +849,14 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 
 	const formatOptions = [
 		{ value: "pdf", label: "PDF (Druckoptimiert)", icon: "📄" },
-		{ value: "zip", label: "ZIP (Einzelne PNGs)", icon: "📦" },
-		{ value: "png", label: "PNG (Ein großes Bild)", icon: "🖼️" }
+		{ value: "zip", label: "ZIP (Einzelne PNGs)", icon: "📦" }
 	];
+
+    const labelOptions = Object.values(LABEL_FORMATS).map(fmt => ({
+        value: fmt.id,
+        label: fmt.name, // e.g. "Standard (6137) - 57x105 (Landscape)"
+        icon: "🏷️"
+    }));
 
 	const filterStatusOptions = [
 		{ value: "all", label: "Alle Flaschen" },
@@ -1141,6 +1066,23 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
                                             </div>
                                         </div>
                                     </div>
+
+                                    {/* Label Size Dropdown (PDF only) */}
+                                    {downloadFormat === 'pdf' && (
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-bold uppercase tracking-widest text-cyan-500 px-1">
+                                                Etikett-Größe
+                                            </label>
+                                            <CustomSelect
+                                                value={selectedLabelFormat}
+                                                onChange={handleLabelFormatChange}
+                                                options={labelOptions}
+                                            />
+                                            <p className="text-[10px] text-zinc-500 leading-tight px-1">
+                                                Wähle das passende Avery Zweckform Format (z.B. 6137). Das PDF wird im Querformat erstellt.
+                                            </p>
+                                        </div>
+                                    )}
 
                                     {/* Format Dropdown */}
                                     <div className="space-y-2">
