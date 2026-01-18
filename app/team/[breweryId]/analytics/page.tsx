@@ -6,6 +6,7 @@ import { getBreweryAnalytics, getBreweryAnalyticsSummary, exportAnalyticsCSV, ge
 import { supabase } from '@/lib/supabase';
 import { getBreweryAnalyticsAccess, getAvailableTimeRanges, type UserTier, type AnalyticsFeatures } from '@/lib/analytics-tier-features';
 import ReportSettingsPanel from './components/ReportSettingsPanel';
+import BreweryHeatmap from './components/BreweryHeatmap';
 import Link from 'next/link';
 
 interface AnalyticsPageData {
@@ -508,7 +509,16 @@ export default function BreweryAnalyticsPage() {
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6">
+        
+        {/* Geographic Heatmap */}
+        {countryData.length > 0 && (
+          <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800">
+            <h3 className="text-lg font-bold text-white mb-4">🌍 Geografische Verteilung</h3>
+            <p className="text-xs text-zinc-500 mb-4">Wo werden deine Biere gescannt? (Interaktive Karte)</p>
+            <BreweryHeatmap data={data.scansByCountry} />
+          </div>
+        )}
         
         {/* Scans Over Time */}
         <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800">
@@ -548,8 +558,11 @@ export default function BreweryAnalyticsPage() {
             )}
           </div>
         </div>
-
-        {/* Top Countries */}
+      </div>
+      
+      {/* Secondary Charts Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Top Countries List */}
         <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800">
           <h3 className="text-lg font-bold text-white mb-4">Top Länder</h3>
           <div className="space-y-3">

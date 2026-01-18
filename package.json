@@ -13,6 +13,7 @@
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.90.1",
     "@types/canvas-confetti": "^1.9.0",
+    "@types/leaflet": "^1.9.21",
     "bad-words": "^4.0.0",
     "canvas-confetti": "^1.9.4",
     "date-fns": "^4.1.0",
@@ -22,6 +23,7 @@
     "jspdf": "^4.0.0",
     "jszip": "^3.10.1",
     "katex": "^0.16.27",
+    "leaflet": "^1.9.4",
     "lucide-react": "^0.562.0",
     "next": "16.1.1",
     "pg": "^8.17.1",
@@ -30,6 +32,7 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-katex": "^3.1.0",
+    "react-leaflet": "^5.0.0",
     "react-markdown": "^10.1.0",
     "recharts": "^3.6.0",
     "remark-breaks": "^4.0.0"
