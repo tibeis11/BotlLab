@@ -98,8 +98,7 @@ export default function BreweryAnalyticsPage() {
       }
 
       const result = await getBreweryAnalyticsSummary(breweryId, {
-        startDate,
-        brewId: selectedBrewId || undefined
+        startDate
       });
 
       if (result.error) {
