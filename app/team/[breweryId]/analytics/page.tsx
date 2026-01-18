@@ -17,6 +17,7 @@ interface AnalyticsPageData {
   scansByDevice: Record<string, number>;
   topBrews: Record<string, number>;
   scansByHour?: Record<string, number>; // Phase 3: Time-to-Glass data
+  geoPoints?: Array<{ lat: number; lng: number }>; // Phase 4: Geo-Coords
 }
 
 export default function BreweryAnalyticsPage() {
@@ -512,11 +513,14 @@ export default function BreweryAnalyticsPage() {
       <div className="grid grid-cols-1 gap-6">
         
         {/* Geographic Heatmap */}
-        {countryData.length > 0 && (
+        {(countryData.length > 0 || (data.geoPoints && data.geoPoints.length > 0)) && (
           <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800">
             <h3 className="text-lg font-bold text-white mb-4">🌍 Geografische Verteilung</h3>
             <p className="text-xs text-zinc-500 mb-4">Wo werden deine Biere gescannt? (Interaktive Karte)</p>
-            <BreweryHeatmap data={data.scansByCountry} />
+            <BreweryHeatmap 
+              data={data.scansByCountry} 
+              geoPoints={data.geoPoints}
+            />
           </div>
         )}
         

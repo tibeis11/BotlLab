@@ -5,12 +5,12 @@
 -- Useful for: Peak drinking hours, time-based marketing
 
 ALTER TABLE bottle_scans
-ADD COLUMN scanned_at_hour INTEGER;
+ADD COLUMN IF NOT EXISTS scanned_at_hour INTEGER;
 
 COMMENT ON COLUMN bottle_scans.scanned_at_hour IS 'Hour of day (0-23) when scan occurred. Used for time-to-glass analysis.';
 
 -- Index for time analysis queries
-CREATE INDEX idx_bottle_scans_time_analysis
+CREATE INDEX IF NOT EXISTS idx_bottle_scans_time_analysis
 ON bottle_scans(brewery_id, scanned_at_hour)
 WHERE scanned_at_hour IS NOT NULL;
 
@@ -21,12 +21,12 @@ WHERE scanned_at_hour IS NOT NULL;
 -- Adds flag to detect if user left a rating after scanning
 
 ALTER TABLE bottle_scans
-ADD COLUMN converted_to_rating BOOLEAN DEFAULT FALSE;
+ADD COLUMN IF NOT EXISTS converted_to_rating BOOLEAN DEFAULT FALSE;
 
 COMMENT ON COLUMN bottle_scans.converted_to_rating IS 'TRUE if user left a rating after scanning. Enables conversion funnel analysis.';
 
 -- Index for conversion rate queries
-CREATE INDEX idx_bottle_scans_conversion
+CREATE INDEX IF NOT EXISTS idx_bottle_scans_conversion
 ON bottle_scans(brewery_id, converted_to_rating);
 
 -- =====================================================
@@ -35,7 +35,7 @@ ON bottle_scans(brewery_id, converted_to_rating);
 -- Denormalized counter for fast display without JOIN
 
 ALTER TABLE bottles
-ADD COLUMN scan_count INTEGER DEFAULT 0 NOT NULL;
+ADD COLUMN IF NOT EXISTS scan_count INTEGER DEFAULT 0 NOT NULL;
 
 COMMENT ON COLUMN bottles.scan_count IS 'Denormalized total scan count for performance. Updated via trigger on bottle_scans inserts.';
 
@@ -53,6 +53,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Trigger on bottle_scans INSERT
+DROP TRIGGER IF EXISTS trigger_increment_bottle_scan_count ON bottle_scans;
 CREATE TRIGGER trigger_increment_bottle_scan_count
 AFTER INSERT ON bottle_scans
 FOR EACH ROW
@@ -75,7 +76,7 @@ WHERE EXISTS (
 -- Add JSON field to store hourly distribution
 
 ALTER TABLE analytics_daily_stats
-ADD COLUMN hour_distribution JSONB;
+ADD COLUMN IF NOT EXISTS hour_distribution JSONB;
 
 COMMENT ON COLUMN analytics_daily_stats.hour_distribution IS 'JSON object with hourly scan distribution: {"0": 5, "1": 3, "14": 45, ...}';
 

@@ -44,9 +44,10 @@ const COUNTRY_COORDS: Record<string, [number, number]> = {
 
 interface HeatmapProps {
   data: Record<string, number>; // { 'DE': 45, 'AT': 12, ... }
+  geoPoints?: Array<{ lat: number; lng: number }>;
 }
 
-export default function BreweryHeatmap({ data }: HeatmapProps) {
+export default function BreweryHeatmap({ data, geoPoints }: HeatmapProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -64,8 +65,20 @@ export default function BreweryHeatmap({ data }: HeatmapProps) {
   // Calculate max scans for color scaling
   const maxScans = Math.max(...Object.values(data));
   
+  // Decide what to render: Country Markers or City Points
+  const showCityPoints = geoPoints && geoPoints.length > 0;
+
   // Prepare markers
-  const markers = Object.entries(data)
+  const cityMarkers = geoPoints?.map((p, i) => ({
+    key: `point-${i}`,
+    coords: [p.lat, p.lng] as [number, number],
+    radius: 5,
+    color: '#10b981', // green for precise points
+    opacity: 0.8,
+    popup: undefined
+  })) || [];
+
+  const countryMarkers = Object.entries(data)
     .filter(([country]) => COUNTRY_COORDS[country]) // Only countries with coords
     .map(([country, scans]) => {
       const coords = COUNTRY_COORDS[country];
@@ -73,17 +86,27 @@ export default function BreweryHeatmap({ data }: HeatmapProps) {
       const radius = 10 + intensity * 30; // 10-40px
       
       return {
-        country,
+        key: country,
         coords,
-        scans,
-        intensity,
-        radius
+        radius,
+        color: '#06b6d4', // cyan
+        opacity: 0.6 + intensity * 0.4,
+        popup: (
+            <div className="text-sm">
+            <div className="font-bold">{getCountryName(country)}</div>
+            <div className="text-zinc-600">{scans} Scans</div>
+            </div>
+        )
       };
     });
 
+  // Combine markers (if city points exist, prefer them, or mix?)
+  // Strategy: If city points available, show them nicely. If not, fallback to country blobs.
+  const markers = showCityPoints ? cityMarkers : countryMarkers;
+
   // Center map on Europe by default (or US if only US data)
-  const hasUSData = markers.some(m => m.country === 'US');
-  const hasEUData = markers.some(m => m.country !== 'US');
+  const hasUSData = Object.keys(data).includes('US');
+  const hasEUData = Object.keys(data).some(c => c !== 'US');
   const center: [number, number] = hasEUData ? [50, 10] : [37, -95];
   const zoom = hasEUData ? 4 : 4;
 
@@ -91,9 +114,9 @@ export default function BreweryHeatmap({ data }: HeatmapProps) {
     <div className="relative">
       <MapContainer
         center={center}
-        zoom={zoom}
+        zoom={zoom} // eslint-disable-line
         style={{ height: '500px', width: '100%', borderRadius: '0.5rem' }}
-        scrollWheelZoom={true}
+        scrollWheelZoom={true} // eslint-disable-line
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -102,37 +125,37 @@ export default function BreweryHeatmap({ data }: HeatmapProps) {
         
         {markers.map((marker) => (
           <CircleMarker
-            key={marker.country}
+            key={marker.key}
             center={marker.coords}
             radius={marker.radius}
             pathOptions={{
-              fillColor: `rgba(6, 182, 212, ${0.3 + marker.intensity * 0.7})`, // cyan-500 with varying opacity
-              color: '#06b6d4',
-              weight: 2,
-              fillOpacity: 0.6 + marker.intensity * 0.4
+              fillColor: marker.color,
+              color: marker.color,
+              weight: showCityPoints ? 1 : 2,
+              fillOpacity: showCityPoints ? 0.6 : marker.opacity
             }}
           >
-            <Popup>
-              <div className="text-sm">
-                <div className="font-bold">{getCountryName(marker.country)}</div>
-                <div className="text-zinc-600">{marker.scans} Scans</div>
-              </div>
-            </Popup>
+           {marker.popup && <Popup>{marker.popup}</Popup>}
           </CircleMarker>
         ))}
       </MapContainer>
       
       {/* Legend */}
       <div className="absolute bottom-4 right-4 bg-zinc-900/90 backdrop-blur-sm rounded-lg p-3 text-sm z-[1000] border border-zinc-800">
-        <div className="font-bold text-white mb-2">Scan-Intensität</div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-cyan-500/40"></div>
-          <span className="text-zinc-400 text-xs">Niedrig</span>
-        </div>
-        <div className="flex items-center gap-2 mt-1">
-          <div className="w-4 h-4 rounded-full bg-cyan-500"></div>
-          <span className="text-zinc-400 text-xs">Hoch</span>
-        </div>
+        <div className="font-bold text-white mb-2">Scan-Typ</div>
+        {showCityPoints ? (
+           <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-green-500"></div>
+            <span className="text-zinc-400 text-xs">Präziser Scan</span>
+          </div>
+        ) : (
+            <>
+            <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-cyan-500/40"></div>
+            <span className="text-zinc-400 text-xs">Land (geschätzt)</span>
+            </div>
+            </>
+        )}
       </div>
     </div>
   );

@@ -287,7 +287,9 @@ export async function trackBottleScan(
     // Otherwise fall back to 'unknown' (dev environment)
     const geoData = {
       country: headersList.get('x-vercel-ip-country') || 'unknown',
-      city: headersList.get('x-vercel-ip-city') || 'unknown'
+      city: headersList.get('x-vercel-ip-city') || 'unknown',
+      latitude: headersList.get('x-vercel-ip-latitude'),
+      longitude: headersList.get('x-vercel-ip-longitude')
     };
     
     // IMPORTANT: We discard 'rawIp' immediately and never store it!
@@ -337,6 +339,8 @@ export async function trackBottleScan(
       session_hash: sessionHash,
       country_code: geoData.country,
       city: geoData.city,
+      latitude: geoData.latitude ? parseFloat(geoData.latitude) : null,
+      longitude: geoData.longitude ? parseFloat(geoData.longitude) : null,
       user_agent_parsed: `${detectDeviceType(userAgent)}`, // Could parse more info later
       device_type: detectDeviceType(userAgent),
       scan_source: payload?.scanSource || 'qr_code',
@@ -467,6 +471,7 @@ export async function getBreweryAnalyticsSummary(breweryId: string, options?: {
 }) {
   'use server';
   
+  const supabase = await createClient();
   const result = await getBreweryAnalytics(breweryId, options);
   if (result.error || !result.data) {
     return result;
@@ -517,7 +522,36 @@ export async function getBreweryAnalyticsSummary(breweryId: string, options?: {
     }, {} as Record<string, number>),
   };
 
-  return { data: summary };
+  // Phase 4: Fetch raw coordinates for heatmap
+  // Limited to max 500 recent points to avoid huge payloads
+  let geoPoints: Array<{ lat: number; lng: number }> = [];
+  
+  // Note: Only fetching points for the heatmap if requested
+  // Performance optimization: we could move this to a separate server action
+  try {
+    const { data: points } = await supabase
+      .from('bottle_scans')
+      .select('latitude, longitude')
+      .eq('brewery_id', breweryId)
+      .not('latitude', 'is', null)
+      .not('longitude', 'is', null)
+      .gte('created_at', options?.startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()) // Default last 30d
+      .limit(500);
+      
+    if (points) {
+      geoPoints = points.map(p => ({ lat: p.latitude, lng: p.longitude }));
+    }
+  } catch (geoError) {
+    console.warn('[Analytics] Failed to fetch geo points:', geoError);
+  }
+
+  // Add geoPoints to return data (using 'any' cast as we are extending the return type)
+  return { 
+    data: { 
+      ...summary, 
+      geoPoints 
+    } as any 
+  };
 }
 
 /**
