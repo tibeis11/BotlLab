@@ -53,16 +53,18 @@ function BottleListItem({
         }
     }
 
+    const isMenuOpen = openActionMenuId === bottle.id;
+
     return (
         <div 
             onTouchStart={onTouchStart} 
             onTouchMove={onTouchMove} 
             onTouchEnd={onTouchEndHandler}
-            className={`relative overflow-hidden rounded-2xl transition-all focus-within:z-10 focus-within:scale-[1.01] ${isSelected ? 'bg-cyan-500/10 shadow-[0_0_0_1px_rgba(6,182,212,0.3)]' : 'bg-zinc-900/40 hover:bg-zinc-900 hover:shadow-lg hover:scale-[1.01]'}`}
+            className={`relative rounded-2xl transition-all ${isMenuOpen ? 'z-50 overflow-visible scale-[1.01]' : 'overflow-hidden hover:scale-[1.01] hover:bg-zinc-900 hover:shadow-lg'} focus-within:z-10 focus-within:scale-[1.01] ${isSelected ? 'bg-cyan-500/10 shadow-[0_0_0_1px_rgba(6,182,212,0.3)]' : `bg-zinc-900/40 ${!isMenuOpen ? 'hover:bg-zinc-900' : 'bg-zinc-900'}`}`}
         >   
             {/* Swipe Backgrounds */}
             <div className={`absolute inset-0 z-0 bg-red-500/20 items-center justify-end pr-8 flex transition-opacity duration-300 pointer-events-none ${swipedLeft ? 'opacity-100' : 'opacity-0'}`}>
-                <span className="font-bold text-red-500">Löschen?</span>
+                <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
             </div>
             
             {/* Content Container */}
