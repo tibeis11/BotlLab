@@ -50,6 +50,20 @@ export const LABEL_FORMATS: Record<string, LabelDimensions> = {
     marginTop: 8,     // (210 - 2*97) / 2
     safeZone: 5,
     bgImage: '/labels/label_97x67.7.png'
+  },
+  // Avery 6605 (70x37mm) - 3x8 Grid on Portrait A4
+  // Sehr kleines Format - optimiert für kompaktes Layout
+  '6605': {
+    id: '6605',
+    name: 'Compact (6605) - 37x70',
+    width: 37,  // Höhe des Etiketts (querformat)
+    height: 70, // Breite des Etiketts (querformat)
+    cols: 3,    // 3 Spalten auf A4
+    rows: 8,    // 8 Zeilen auf A4
+    marginLeft: 0, // A4 hat 210mm Breite, 3×70 = 210mm (kein Rand nötig)
+    marginTop: 0.5,  // A4 hat 297mm Höhe, 8×37 = 296mm (minimaler Rand)
+    safeZone: 3, // Reduzierte Safe Zone für kleines Format
+    bgImage: '/labels/label_70x37.png'
   }
 };
 

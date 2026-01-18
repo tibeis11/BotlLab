@@ -112,11 +112,17 @@ export const generateSmartLabelPDF = async (bottles: BottleData[], options: Gene
         const cX = x + safeZone;
         const cY = y + safeZone;
 
-        // 1. Header (Logo + Brand Name)
-        const { iconSize, gap, textSize } = BRAND.print;
+        // Detect if this is the compact 6605 format
+        const isCompactFormat = config.id === '6605';
+
+        // 1. Header (Logo + Brand Name) - Scaled down for compact format
+        const { iconSize: baseIconSize, gap: baseGap, textSize: baseTextSize } = BRAND.print;
+        const iconSize = isCompactFormat ? baseIconSize * 0.7 : baseIconSize; // 70% smaller for compact
+        const gap = isCompactFormat ? baseGap * 0.7 : baseGap;
+        const textSize = isCompactFormat ? baseTextSize * 0.7 : baseTextSize;
         
         // Calculate layout with Image
-        const headerTextH = 5; // Reduced from 6.8 to match smaller icon (6mm)
+        const headerTextH = isCompactFormat ? 3.5 : 5; // Smaller text height for compact
         const headerTextW = sharedHeaderImage ? (sharedHeaderImage.width * (headerTextH / sharedHeaderImage.height)) : 28; 
         
         const totalHeaderW = iconSize + gap + headerTextW;
@@ -143,25 +149,26 @@ export const generateSmartLabelPDF = async (bottles: BottleData[], options: Gene
             doc.addImage(logoWithTextBase64, 'SVG', fallbackX, fallbackY, fallbackW, fallbackH, undefined, 'FAST');
         }
 
-        // 2. QR Code (Center)
+        // 2. QR Code (Center) - Optimized for compact format
         // Available height between header and footer
-        const headerBlockH = 12; // Height reserved for header
-        const footerH = 18; // Increased for larger slogan
-        const qrAvailableH = contentH - headerBlockH - footerH - 5; // Reduced padding
-        const qrSize = Math.min(contentW, qrAvailableH, 38); // Reduced from 42 to 38
+        const headerBlockH = isCompactFormat ? 8 : 12; // Reduced header space for compact
+        const footerH = isCompactFormat ? 12 : 18; // Reduced footer space for compact
+        const qrPadding = isCompactFormat ? 2 : 5; // Less padding for compact
+        const qrAvailableH = contentH - headerBlockH - footerH - qrPadding;
+        const maxQrSize = isCompactFormat ? 28 : 38; // Smaller QR for compact format
+        const qrSize = Math.min(contentW, qrAvailableH, maxQrSize);
         
         const qrX = cX + (contentW - qrSize) / 2;
-        const qrY = cY + headerBlockH + 2; 
+        const qrY = cY + headerBlockH + (isCompactFormat ? 1 : 2); 
 
         doc.addImage(bottle.qrData, 'PNG', qrX, qrY, qrSize, qrSize);
 
-        // 3. Slogan (Below QR)
+        // 3. Slogan (Below QR) - Scaled for compact format
         // Calculate dynamic center between QR bottom and Footer top
         const qrBottom = qrY + qrSize;
-        // "SCAN FOR CONTENT" will be drawn at footerY - 4 (calculated as contentH - 2 - 4 = contentH - 6)
-        const scanForContentY = cY + contentH - 6;
-        // Account for approximate text height (6pt ≈ 2mm) to get visual top
-        const footerVisualTop = scanForContentY - 2;
+        const scanFooterOffset = isCompactFormat ? 4 : 6;
+        const scanForContentY = cY + contentH - scanFooterOffset;
+        const footerVisualTop = scanForContentY - (isCompactFormat ? 1.5 : 2);
         
         // Use actual geometric center between QR bottom and footer top
         const centerV = qrBottom + (footerVisualTop - qrBottom) / 2;
@@ -169,13 +176,15 @@ export const generateSmartLabelPDF = async (bottles: BottleData[], options: Gene
         const slogan = options.customSlogan || SLOGANS[bottle.bottle_number % SLOGANS.length];
         
         // Calculate available width
-        const maxW = contentW - 6;
+        const maxW = contentW - (isCompactFormat ? 3 : 6);
 
         // Use dummy font to calculate line breaks for the slogan
-        doc.setFontSize(14); // Target size
+        const sloganFontSize = isCompactFormat ? 10 : 14; // Smaller font for compact
+        doc.setFontSize(sloganFontSize);
         doc.setFont("helvetica", "bold"); 
         const lines = doc.splitTextToSize(slogan.toUpperCase(), maxW);
-        const limitedLines = lines.slice(0, 2); // Max 2 lines
+        const maxLines = isCompactFormat ? 1 : 2; // Only 1 line for compact format
+        const limitedLines = lines.slice(0, maxLines);
         
         // Prepare Line Images
         type PreparedLine = 
@@ -185,10 +194,10 @@ export const generateSmartLabelPDF = async (bottles: BottleData[], options: Gene
         const preparedLines: PreparedLine[] = [];
         for (const line of limitedLines) {
             try {
-                 const lineImg = await renderStyledTextAsImage(line, BRAND.colors.textDark, 14, {
+                 const lineImg = await renderStyledTextAsImage(line, BRAND.colors.textDark, sloganFontSize, {
                     fontWeight: '900',
                     uppercase: true,
-                    letterSpacing: 0.05
+                    letterSpacing: isCompactFormat ? 0.03 : 0.05 // Less letter spacing for compact
                 });
                 preparedLines.push({ type: 'img', data: lineImg, text: line });
             } catch (e) {
@@ -235,16 +244,19 @@ export const generateSmartLabelPDF = async (bottles: BottleData[], options: Gene
             }
         }
 
-        // 4. Footer (Bottom)
-        // Replaced ID with CTA
+        // 4. Footer (Bottom) - Compact version for small format
         const footerY = cY + contentH - 2;
-        doc.setFontSize(6);
-        doc.setFont("helvetica", "bold"); // Bold for CTA
+        const footerFontSize = isCompactFormat ? 5 : 6; // Smaller footer for compact
+        const urlFontSize = isCompactFormat ? 5.5 : 7; // Smaller URL for compact
+        
+        doc.setFontSize(footerFontSize);
+        doc.setFont("helvetica", "bold");
         doc.setTextColor(150, 150, 150);
-        doc.text("SCAN FOR CONTENT", cX + contentW / 2, footerY - 4, { align: 'center' }); // CTA Text
+        const ctaOffset = isCompactFormat ? 2.5 : 4;
+        doc.text("SCAN FOR CONTENT", cX + contentW / 2, footerY - ctaOffset, { align: 'center' });
 
-        doc.setTextColor(0, 0, 0); // Black for URL
-        doc.setFontSize(7);
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(urlFontSize);
         const footerText = options.isPremiumBranding && options.breweryName ? options.breweryName : "botllab.vercel.app";
         doc.text(footerText, cX + contentW / 2, footerY, { align: 'center' });
 

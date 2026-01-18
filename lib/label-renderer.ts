@@ -61,9 +61,15 @@ export const renderLabelToDataUrl = async (
     const cX = safeZonePx;
     const cY = safeZonePx;
 
-    // --- 1. Header (Logo + Brand) ---
+    // Detect compact format
+    const isCompactFormat = config.id === '6605';
+
+    // --- 1. Header (Logo + Brand) - Scaled for compact format ---
     const logoBase64 = options?.customLogo || await loadLogoAsBase64();
-    const { iconSize, gap, textSize } = BRAND.print;
+    const { iconSize: baseIconSize, gap: baseGap, textSize: baseTextSize } = BRAND.print;
+    const iconSize = isCompactFormat ? baseIconSize * 0.7 : baseIconSize;
+    const gap = isCompactFormat ? baseGap * 0.7 : baseGap;
+    const textSize = isCompactFormat ? baseTextSize * 0.7 : baseTextSize;
     const iconSizePx = mmToPx(iconSize);
     const gapPx = mmToPx(gap);
 
@@ -79,14 +85,9 @@ export const renderLabelToDataUrl = async (
 
     // Determine layout
     // Header Text Height relative to Icon Size
-    const headerTextHPx_mm = 5; // Reduced from 6.8 to match smaller icon (6mm)
+    const headerTextHPx_mm = isCompactFormat ? 3.5 : 5; // Smaller for compact
     const headerTextHPx = mmToPx(headerTextHPx_mm);
-    const headerTextWPx = headerImage.width * (headerTextHPx / headerImage.height) * (scale / (headerImage.height / headerTextHPx)); // Approx width conversion
-    // Actually renderBrandTextAsImage returns logical pixels (already scaled down by 4)
-    // We need to draw it scaled by OUR scale (5)
-    // The render function returned width/height are "1 scale". 
-    // We want to draw it at `headerTextHPx`. 
-    // Aspect Ratio is headerImage.width / headerImage.height
+    const headerTextWPx = headerImage.width * (headerTextHPx / headerImage.height) * (scale / (headerImage.height / headerTextHPx));
     const aspectRatio = headerImage.ratio;
     const drawTextW = headerTextHPx * aspectRatio;
 
@@ -110,7 +111,7 @@ export const renderLabelToDataUrl = async (
     ctx.drawImage(textImg, headerX + iconSizePx + gapPx, textY, drawTextW, headerTextHPx);
 
 
-    // --- 2. QR Code ---
+    // --- 2. QR Code - Optimized for compact format ---
     const url = `${baseUrl}/b/${bottle.id}`;
     const qrData = await QRCode.toDataURL(url, {
         errorCorrectionLevel: 'H',
@@ -119,14 +120,16 @@ export const renderLabelToDataUrl = async (
         color: { dark: '#000000', light: '#ffffff' }
     });
 
-    const headerBlockH = mmToPx(12);
-    const footerH = mmToPx(18);
-    const qrAvailableH = contentH - headerBlockH - footerH - mmToPx(5);
-    const qrSizeMm = Math.min(config.width - (config.safeZone * 2), (qrAvailableH / scale), 38);
+    const headerBlockH = mmToPx(isCompactFormat ? 8 : 12);
+    const footerH = mmToPx(isCompactFormat ? 12 : 18);
+    const qrPadding = mmToPx(isCompactFormat ? 2 : 5);
+    const qrAvailableH = contentH - headerBlockH - footerH - qrPadding;
+    const maxQrSize = isCompactFormat ? 28 : 38;
+    const qrSizeMm = Math.min(config.width - (config.safeZone * 2), (qrAvailableH / scale), maxQrSize);
     
     const qrSizePx = mmToPx(qrSizeMm);
     const qrX = cX + (contentW - qrSizePx) / 2;
-    const qrY = cY + headerBlockH + mmToPx(2);
+    const qrY = cY + headerBlockH + mmToPx(isCompactFormat ? 1 : 2);
 
     const qrImg = new Image();
     qrImg.src = qrData;
@@ -134,28 +137,25 @@ export const renderLabelToDataUrl = async (
     ctx.drawImage(qrImg, qrX, qrY, qrSizePx, qrSizePx);
 
 
-    // --- 3. Slogan ---
+    // --- 3. Slogan - Scaled for compact format ---
     const slogan = options?.customSlogan || SLOGANS[bottle.bottle_number % SLOGANS.length];
     
     // Dynamic Vertical Centering
     const qrBottom = qrY + qrSizePx;
-    // "SCAN FOR CONTENT" will be drawn at footerY - 1.5mm (contentH - 2mm baseline - 1.5mm offset)
-    const scanForContentY = cY + contentH - mmToPx(3.5);
-    // Account for approximate text height (6pt ≈ 2mm) to get visual top
-    const footerVisualTop = scanForContentY - mmToPx(2);
+    const scanFooterOffset = mmToPx(isCompactFormat ? 4 : 6);
+    const scanForContentY = cY + contentH - scanFooterOffset;
+    const footerVisualTop = scanForContentY - mmToPx(isCompactFormat ? 1.5 : 2);
     
-    // Use actual geometric center between QR bottom and footer top
     const centerV = qrBottom + (footerVisualTop - qrBottom) / 2;
 
     // Split text logic for Canvas
-    // We don't have jspdf's splitTextToSize here easily without loading a font context
-    // But we can use measureText roughly
-    ctx.font = `900 ${mmToPx(14 * 0.353)}px ${getComputedStyle(document.body).fontFamily || 'Helvetica'}`; // 14pt approx
+    const sloganFontSize = isCompactFormat ? 10 : 14;
+    ctx.font = `900 ${mmToPx(sloganFontSize * 0.353)}px ${getComputedStyle(document.body).fontFamily || 'Helvetica'}`;
     const words = slogan.toUpperCase().split(' ');
     const lines: string[] = [];
     let currentLine = words[0];
 
-    const maxW = contentW - mmToPx(6);
+    const maxW = contentW - mmToPx(isCompactFormat ? 3 : 6);
 
     for (let i = 1; i < words.length; i++) {
         const testLine = currentLine + " " + words[i];
@@ -168,15 +168,16 @@ export const renderLabelToDataUrl = async (
         }
     }
     lines.push(currentLine);
-    const limitedLines = lines.slice(0, 2);
+    const maxLines = isCompactFormat ? 1 : 2;
+    const limitedLines = lines.slice(0, maxLines);
 
     // Prepare Lines
     const preparedLines = [];
     for (const line of limitedLines) {
-         const lineImgData = await renderStyledTextAsImage(line, BRAND.colors.textDark, 14, {
+         const lineImgData = await renderStyledTextAsImage(line, BRAND.colors.textDark, sloganFontSize, {
             fontWeight: '900',
             uppercase: true,
-            letterSpacing: 0.05
+            letterSpacing: isCompactFormat ? 0.03 : 0.05
         });
         const lImg = new Image();
         lImg.src = lineImgData.dataUrl;
@@ -214,19 +215,22 @@ export const renderLabelToDataUrl = async (
         currentLineY += (drawSH * 0.65); 
     }
     
-    // --- 4. Footer ---
-    // Replaced ID with CTA
+    // --- 4. Footer - Compact version ---
     const footerY = cY + contentH - mmToPx(2);
     
+    const footerFontSize = isCompactFormat ? 5 : 6;
+    const urlFontSize = isCompactFormat ? 5.5 : 7;
+    const ctaOffset = mmToPx(isCompactFormat ? 2.5 : 4);
+    
     // CTA: SCAN FOR CONTENT
-    ctx.font = `bold ${mmToPx(6 * 0.353)}px Helvetica, Arial, sans-serif`; // 6pt bold
+    ctx.font = `bold ${mmToPx(footerFontSize * 0.353)}px Helvetica, Arial, sans-serif`;
     ctx.fillStyle = '#969696';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
-    ctx.fillText("SCAN FOR CONTENT", cX + contentW / 2, footerY - mmToPx(1.5)); 
+    ctx.fillText("SCAN FOR CONTENT", cX + contentW / 2, footerY - ctaOffset); 
 
     ctx.fillStyle = '#000000';
-    ctx.font = `400 ${mmToPx(7 * 0.353)}px Helvetica, Arial, sans-serif`; // 7pt approx
+    ctx.font = `400 ${mmToPx(urlFontSize * 0.353)}px Helvetica, Arial, sans-serif`;
     const footerText = options?.isPremiumBranding && options?.breweryName ? options.breweryName : "botllab.vercel.app";
     ctx.fillText(footerText, cX + contentW / 2, footerY);
 
