@@ -101,7 +101,7 @@ export default function BreweryAnalyticsPage() {
         startDate
       });
 
-      if (result.error) {
+      if ('error' in result) {
         setError(result.error);
         setLoading(false);
         return;
