@@ -283,7 +283,6 @@ export default function PublicScanPage() {
             viewerUserId: user?.id || undefined,
             scanSource: 'qr_code'
           });
-          console.log('[Analytics] Bottle scan tracked');
         } catch (trackError) {
           console.error('[Analytics] Failed to track scan:', trackError);
           hasTrackedScan.current = false; // Reset on error to allow retry
