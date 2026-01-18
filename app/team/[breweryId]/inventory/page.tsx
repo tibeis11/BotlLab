@@ -60,7 +60,8 @@ function BottleListItem({
             onTouchStart={onTouchStart} 
             onTouchMove={onTouchMove} 
             onTouchEnd={onTouchEndHandler}
-            className={`relative rounded-2xl transition-all ${isMenuOpen ? 'z-50 overflow-visible scale-[1.01]' : 'overflow-hidden hover:scale-[1.01] hover:bg-zinc-900 hover:shadow-lg'} focus-within:z-10 focus-within:scale-[1.01] ${isSelected ? 'bg-cyan-500/10 shadow-[0_0_0_1px_rgba(6,182,212,0.3)]' : `bg-zinc-900/40 ${!isMenuOpen ? 'hover:bg-zinc-900' : 'bg-zinc-900'}`}`}
+            style={{ zIndex: isMenuOpen ? 50 : undefined }}
+            className={`relative rounded-2xl transition-all ${isMenuOpen ? 'overflow-visible scale-[1.01]' : 'overflow-hidden hover:scale-[1.01] hover:bg-zinc-900 hover:shadow-lg'} focus-within:z-10 focus-within:scale-[1.01] ${isSelected ? 'bg-cyan-500/10 shadow-[0_0_0_1px_rgba(6,182,212,0.3)]' : `bg-zinc-900/40 ${!isMenuOpen ? 'hover:bg-zinc-900' : 'bg-zinc-900'}`}`}
         >   
             {/* Swipe Backgrounds */}
             <div className={`absolute inset-0 z-0 bg-red-500/20 items-center justify-end pr-8 flex transition-opacity duration-300 pointer-events-none ${swipedLeft ? 'opacity-100' : 'opacity-0'}`}>
