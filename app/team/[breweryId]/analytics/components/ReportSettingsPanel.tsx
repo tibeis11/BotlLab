@@ -303,8 +303,14 @@ export default function ReportSettingsPanel({ breweryId }: Props) {
 
       {/* Preview Modal */}
       {showPreview && previewData && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-          <div className="bg-zinc-900 rounded-xl max-w-3xl w-full max-h-[80vh] overflow-y-auto border border-zinc-800">
+        <div 
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+          onClick={() => setShowPreview(false)}
+        >
+          <div 
+            className="bg-zinc-900 rounded-xl max-w-3xl w-full max-h-[80vh] overflow-y-auto border border-zinc-800"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="p-6 border-b border-zinc-800 sticky top-0 bg-zinc-900">
               <div className="flex items-center justify-between">
                 <h3 className="text-xl font-bold text-white">Report-Vorschau</h3>
