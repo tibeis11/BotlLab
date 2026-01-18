@@ -468,11 +468,14 @@ export async function getBreweryAnalyticsSummary(breweryId: string, options?: {
   'use server';
   
   const result = await getBreweryAnalytics(breweryId, options);
+  console.log('[Analytics] getBreweryAnalytics result:', { error: result.error, dataLength: result.data?.length });
+  
   if (result.error || !result.data) {
     return result;
   }
 
   const stats = result.data;
+  console.log('[Analytics] Stats data sample:', stats.slice(0, 2));
   
   // Aggregate totals
   const summary = {
@@ -516,6 +519,14 @@ export async function getBreweryAnalyticsSummary(breweryId: string, options?: {
       return acc;
     }, {} as Record<string, number>),
   };
+
+  console.log('[Analytics] Summary:', {
+    totalScans: summary.totalScans,
+    uniqueVisitors: summary.uniqueVisitors,
+    dateCount: Object.keys(summary.scansByDate).length,
+    countryCount: Object.keys(summary.scansByCountry).length,
+    hourCount: Object.keys(summary.scansByHour).length
+  });
 
   return { data: summary };
 }
