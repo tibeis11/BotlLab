@@ -1,30 +1,59 @@
 import Image from "next/image";
+import { useState, useEffect } from "react";
 
 export default function Logo({ 
   className = "w-8 h-8", 
   showText = true,
   textSize = "text-xl",
   useImage = true,
-  imageSrc = "/brand/logo.svg"
+  imageSrc = "/brand/logo.svg",
+  overrideText
 }: { 
   className?: string; 
   showText?: boolean;
   textSize?: string;
   useImage?: boolean;
   imageSrc?: string;
+  overrideText?: string;
 }) {
+  const [imgSrc, setImgSrc] = useState(imageSrc);
+  const [hasError, setHasError] = useState(false);
+
+  // Update internal state when prop changes
+  useEffect(() => {
+    setImgSrc(imageSrc);
+    setHasError(false);
+  }, [imageSrc]);
+
   return (
     <div className="flex items-center gap-3 select-none">
       <div className={`relative flex items-center justify-center ${className}`}>
         {useImage ? (
-          <Image
-            src={imageSrc}
-            alt="BotlLab"
-            fill
-            sizes="48px"
-            className="object-contain"
-            priority
-          />
+          (!hasError && imgSrc && (imgSrc.startsWith('http') || imgSrc.startsWith('blob'))) ? (
+            /* Standard img tag for external/storage logos to avoid Next.js Image optimization issues on local dev */
+            <img
+              src={imgSrc}
+              alt={overrideText || "BotlLab"}
+              className="w-full h-full object-contain"
+              onError={() => {
+                console.error("Logo (img) failed to load:", imgSrc);
+                setHasError(true);
+              }}
+            />
+          ) : (
+            <Image
+              src={hasError || !imgSrc ? "/brand/logo.svg" : imgSrc}
+              alt={overrideText || "BotlLab"}
+              fill
+              sizes="48px"
+              className="object-contain"
+              priority
+              onError={() => {
+                console.error("Logo (Image) failed to load:", imgSrc);
+                setHasError(true);
+              }}
+            />
+          )
         ) : (
           <div className="relative flex items-center justify-center bg-brand/10 border border-brand/20 rounded-xl shadow-[0_0_15px_rgba(6,182,212,0.15)] w-full h-full">
             <svg 
@@ -47,7 +76,11 @@ export default function Logo({
       
       {showText && (
         <span className={`font-bold tracking-tighter text-foreground ${textSize}`}>
-          Botl<span className="text-brand">Lab</span>
+          {overrideText ? (
+            overrideText
+          ) : (
+            <>Botl<span className="text-brand">Lab</span></>
+          )}
         </span>
       )}
     </div>

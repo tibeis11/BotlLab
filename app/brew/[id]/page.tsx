@@ -14,6 +14,7 @@ import { ebcToHex } from '@/lib/brewing-calculations';
 import { Star } from 'lucide-react';
 import { saveBrewToLibrary } from '@/lib/actions/library-actions';
 import { useGlobalToast } from '@/app/context/AchievementNotificationContext';
+import { getPremiumStatus } from '@/lib/actions/premium-actions';
 
 // Helper: Ensure lists render correctly even if user didn't use double line breaks
 const formatMarkdown = (text: string) => {
@@ -317,9 +318,13 @@ export default function BrewDetailPage() {
     const { data: brewery } = await supabase.from('breweries').select('tier').eq('id', member.brewery_id).single();
     const { data: brews } = await supabase.from('brews').select('id', { count: 'exact', head: true }).eq('brewery_id', member.brewery_id);
     
+    // Check if user has premium status that allows bypassing limits
+    const premiumStatus = await getPremiumStatus();
+    const shouldBypass = premiumStatus?.features.bypassBrewLimits ?? false;
+    
     const breweryTierConfig = getBreweryTierConfig((brewery?.tier || 'garage') as any);
     
-    if ((brews?.length || 0) >= breweryTierConfig.limits.maxBrews) {
+    if (!shouldBypass && (brews?.length || 0) >= breweryTierConfig.limits.maxBrews) {
          setRemixMessage(`Brauerei-Limit erreicht: ${breweryTierConfig.displayName} erlaubt maximal ${breweryTierConfig.limits.maxBrews} Rezepte.`);
          setRemixLoading(false);
          return;
@@ -507,7 +512,7 @@ export default function BrewDetailPage() {
   return (
     <div className="min-h-screen bg-black text-white pb-24">
       
-      <Header />
+      <Header breweryId={brew.brewery_id} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 pt-24">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">

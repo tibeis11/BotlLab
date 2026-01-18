@@ -11,7 +11,8 @@ import { BottleData } from './pdf-generator';
 export const renderLabelToDataUrl = async (
     bottle: BottleData, 
     formatId: string, 
-    baseUrl: string
+    baseUrl: string,
+    options?: { customSlogan?: string; customLogo?: string, breweryName?: string, isPremiumBranding?: boolean }
 ): Promise<string> => {
     
     // Scale for high quality (e.g. 300 DPI approx)
@@ -61,16 +62,20 @@ export const renderLabelToDataUrl = async (
     const cY = safeZonePx;
 
     // --- 1. Header (Logo + Brand) ---
-    const logoBase64 = await loadLogoAsBase64();
+    const logoBase64 = options?.customLogo || await loadLogoAsBase64();
     const { iconSize, gap, textSize } = BRAND.print;
     const iconSizePx = mmToPx(iconSize);
     const gapPx = mmToPx(gap);
 
     // Render Brand Text
-    const headerImage = await renderBrandTextAsImage([
-        { text: "Botl", color: BRAND.colors.textDark },
-        { text: "Lab", color: BRAND.colors.primary }
-    ], textSize);
+    const textParts = (options?.isPremiumBranding && options?.breweryName)
+        ? [{ text: options.breweryName, color: BRAND.colors.textDark }]
+        : [
+            { text: "Botl", color: BRAND.colors.textDark },
+            { text: "Lab", color: BRAND.colors.primary }
+          ];
+
+    const headerImage = await renderBrandTextAsImage(textParts, textSize);
 
     // Determine layout
     // Header Text Height relative to Icon Size
@@ -130,7 +135,7 @@ export const renderLabelToDataUrl = async (
 
 
     // --- 3. Slogan ---
-    const slogan = SLOGANS[bottle.bottle_number % SLOGANS.length];
+    const slogan = options?.customSlogan || SLOGANS[bottle.bottle_number % SLOGANS.length];
     
     // Dynamic Vertical Centering
     const qrBottom = qrY + qrSizePx;
@@ -222,7 +227,8 @@ export const renderLabelToDataUrl = async (
 
     ctx.fillStyle = '#000000';
     ctx.font = `400 ${mmToPx(7 * 0.353)}px Helvetica, Arial, sans-serif`; // 7pt approx
-    ctx.fillText("botllab.vercel.app", cX + contentW / 2, footerY);
+    const footerText = options?.isPremiumBranding && options?.breweryName ? options.breweryName : "botllab.vercel.app";
+    ctx.fillText(footerText, cX + contentW / 2, footerY);
 
     return canvas.toDataURL('image/png');
 };

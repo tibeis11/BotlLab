@@ -1,13 +1,33 @@
 import { NextResponse } from "next/server";
-import { createClient } from '@supabase/supabase-js';
-
-// Hinweis: Das SDK @google/generative-ai unterstützt Imagen noch nicht, 
-// daher nutzen wir fetch direkt gegen die REST API.
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+import { createClient } from "@/lib/supabase-server";
+import { canUseAI, trackAIUsage } from "@/lib/premium-checks";
 
 export async function POST(req: Request) {
   try {
-    const { prompt, brewId, type = 'label' } = await req.json();
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Premium Check
+    const aiCheck = await canUseAI(user.id);
+    if (!aiCheck.allowed) {
+      return NextResponse.json(
+        {
+          error: "AI generation limit reached",
+          reason: aiCheck.reason,
+          upgrade_required: true,
+        },
+        { status: 402 }
+      );
+    }
+
+    const { prompt, brewId, type = "label" } = await req.json();
 
     if (!prompt) {
       return NextResponse.json({ error: "Prompt is missing" }, { status: 400 });
@@ -24,7 +44,7 @@ export async function POST(req: Request) {
     let dbField = "image_url";
     let filenamePrefix = "brew";
 
-    if (type === 'cap') {
+    if (type === "cap") {
       // Optimized prompt for high-end circular icons
       finalPrompt = `${prompt} . minimalist flat vector icon, centered on solid black background, circular composition, high contrast, clean lines, professional graphic design, no text, no letters, no typography, 4k high quality.`;
       storageBucket = "caps"; // We might need to create this bucket in Supabase
@@ -37,8 +57,8 @@ export async function POST(req: Request) {
 
     // Use a model confirmed by check_models.js
     const modelName = "imagen-4.0-generate-001";
-    // const modelName = "imagen-3.0-generate-001"; 
-    
+    // const modelName = "imagen-3.0-generate-001";
+
     // NOTE: If using predict endpoint, we use this URL pattern:
     const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:predict?key=${apiKey}`;
 
@@ -51,9 +71,9 @@ export async function POST(req: Request) {
         instances: [{ prompt: finalPrompt }],
         parameters: {
           sampleCount: 1,
-          aspectRatio: "1:1", 
-          outputMimeType: "image/png"
-        }
+          aspectRatio: "1:1",
+          outputMimeType: "image/png",
+        },
       }),
     });
 
@@ -62,66 +82,84 @@ export async function POST(req: Request) {
     // 2. Fehlerprüfung
     if (!response.ok) {
       console.error("[Imagen API Error]:", JSON.stringify(result, null, 2));
-      throw new Error(result.error?.message || result.error || "Fehler bei der Bildgenerierung");
+      throw new Error(
+        result.error?.message || result.error || "Fehler bei der Bildgenerierung"
+      );
     }
 
     // 3. Bild extrahieren
     // WICHTIG: Google ändert die API Struktur. Wir prüfen ALLE bekannten Varianten.
     // Zuletzt gesehen: { mimeType: 'image/png', bytesBase64Encoded: '...' }
     const prediction = result.predictions?.[0];
-    const base64Image = prediction?.bytesBase64Encoded || prediction?.bytesBase64 || prediction?.bytes;
-    
+    const base64Image =
+      prediction?.bytesBase64Encoded ||
+      prediction?.bytesBase64 ||
+      prediction?.bytes;
+
     if (!base64Image) {
-       console.error("[Imagen Unexpected Response]:", JSON.stringify(result, null, 2));
-       const keys = prediction ? Object.keys(prediction).join(", ") : "Keine Prediction";
-       throw new Error(`Bildstruktur unbekannt. Erhaltene Keys: ${keys}`);
+      console.error(
+        "[Imagen Unexpected Response]:",
+        JSON.stringify(result, null, 2)
+      );
+      const keys = prediction
+        ? Object.keys(prediction).join(", ")
+        : "Keine Prediction";
+      throw new Error(`Bildstruktur unbekannt. Erhaltene Keys: ${keys}`);
     }
 
     const imageBuffer = Buffer.from(base64Image, "base64");
-    
+
     // Fallback ID falls brewId fehlt
     const cleanBrewId = brewId || `temp-${Date.now()}`;
     const fileName = `${filenamePrefix}-${cleanBrewId}.png`;
 
     // 4. Upload zu Supabase
+    // Using authenticated client implies user has permissions
     const { error: uploadError } = await supabase.storage
       .from(storageBucket)
       .upload(fileName, imageBuffer, {
-        contentType: 'image/png',
+        contentType: "image/png",
         upsert: true,
-        cacheControl: '3600'
+        cacheControl: "3600",
       });
 
     if (uploadError) {
       // If the specific bucket doesn't exist, try falling back to labels
-      if (uploadError.message.includes('not found') && storageBucket === 'caps') {
+      if (
+        uploadError.message.includes("not found") &&
+        storageBucket === "caps"
+      ) {
         const { error: fallbackError } = await supabase.storage
-          .from('labels')
+          .from("labels")
           .upload(fileName, imageBuffer, {
-            contentType: 'image/png',
+            contentType: "image/png",
             upsert: true,
-            cacheControl: '3600'
+            cacheControl: "3600",
           });
         if (fallbackError) throw fallbackError;
-        storageBucket = 'labels';
+        storageBucket = "labels";
       } else {
         throw uploadError;
       }
     }
 
-    const { data: { publicUrl } } = supabase.storage.from(storageBucket).getPublicUrl(fileName);
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from(storageBucket).getPublicUrl(fileName);
     const finalUrl = `${publicUrl}?t=${Date.now()}`;
 
     // 5. URL in der Datenbank speichern, wenn eine brewId vorhanden ist
     if (brewId) {
       await supabase
-        .from('brews')
+        .from("brews")
         .update({ [dbField]: finalUrl })
-        .eq('id', brewId);
+        .eq("id", brewId);
     }
 
-    return NextResponse.json({ imageUrl: finalUrl });
+    // 6. Track AI Usage (Premium)
+    await trackAIUsage(user.id, "image");
 
+    return NextResponse.json({ imageUrl: finalUrl });
   } catch (error: any) {
     console.error("[Generate Image Route Error]:", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });

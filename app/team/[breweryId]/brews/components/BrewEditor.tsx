@@ -18,6 +18,8 @@ import { MashStepsEditor } from './MashStepsEditor';
 import { RecipeStepsEditor } from './RecipeStepsEditor';
 import { calculateColorEBC, calculateIBU, calculateWaterProfile, calculateOG, calculateABV, calculateFG, ebcToHex, calculateBatchSizeFromWater } from '@/lib/brewing-calculations';
 import { FormulaInspector } from '@/app/components/FormulaInspector';
+import { SubscriptionTier, type PremiumStatus } from '@/lib/premium-config';
+import { getPremiumStatus } from '@/lib/actions/premium-actions';
 
 function formatIngredientsForPrompt(value: any): string {
     if (!value) return '';
@@ -235,7 +237,18 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 	const [optimizationSuggestions, setOptimizationSuggestions] = useState<string[]>([]);
 	const [message, setMessage] = useState<string | null>(null);
 	const [activeTab, setActiveTab] = useState<'input' | 'label' | 'caps' | 'optimization' | 'ratings'>('input');
+    const [premiumStatus, setPremiumStatus] = useState<PremiumStatus | null>(null);
 	const [extraPrompt, setExtraPrompt] = useState('');
+
+    async function refreshPremium() {
+        if (!user) return;
+        const status = await getPremiumStatus();
+        setPremiumStatus(status);
+    }
+    
+    useEffect(() => {
+        if (user) refreshPremium();
+    }, [user]);
 	const [ratings, setRatings] = useState<any[]>([]);
 	const [ratingsLoading, setRatingsLoading] = useState(false);
 	const [ratingsMessage, setRatingsMessage] = useState<string | null>(null);
@@ -246,7 +259,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 		style: '',
 		brew_type: 'beer',
 		description: '',
-		image_url: null,
+		image_url: '/default_label/default.png',
 		cap_url: null,
 		is_public: true,
 		data: {
@@ -439,7 +452,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 			router.push(`/login?redirect=${redirectPath}`);
 			return;
 		}
-        
+
         // Fetch Brewery Tier
         const { data: bData } = await supabase.from('breweries').select('tier').eq('id', breweryId).maybeSingle();
         if (bData) setBreweryTier(bData.tier || 'garage');
@@ -499,7 +512,10 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 				.select('*', { count: 'exact', head: true })
 				.eq('brewery_id', breweryId);
 
-			if ((count || 0) >= tierConfig.limits.maxBrews) {
+			// Check if we should bypass organic brewery limits (Premium/Enterprise feature)
+			const shouldBypass = premiumStatus?.features.bypassBrewLimits ?? false;
+
+			if (!shouldBypass && (count || 0) >= tierConfig.limits.maxBrews) {
 				setMessage(`Brauerei-Limit erreicht: ${tierConfig.displayName} erlaubt ${tierConfig.limits.maxBrews} Rezepte.`);
 				setSaving(false);
 				return;
@@ -751,8 +767,32 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 			setMessage(e?.message || 'Generierung fehlgeschlagen.');
 		} finally {
 			setGenerating(false);
+            // Re-fetch credits
+            if (user?.id) {
+                fetch(`/api/premium/status?userId=${user.id}`)
+                    .then((res) => res.json())
+                    .then((data) => setPremiumStatus(data));
+            }
 		}
 	}
+
+    /**
+     * Helper to show credit info next to AI buttons
+     */
+    function AICreditBadge() {
+        if (!premiumStatus) return null;
+        const remaining = premiumStatus.features.aiGenerationsRemaining;
+        // JSON.stringify converts Infinity to null, so we check both
+        const isUnlimited = remaining === Infinity || remaining === null;
+        
+        return (
+            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ml-1.5 ${
+                isUnlimited || (remaining && remaining > 0) ? 'bg-cyan-500/20 text-cyan-400' : 'bg-red-500/20 text-red-500'
+            }`}>
+                {isUnlimited ? '∞' : remaining} Left
+            </span>
+        );
+    }
 
 	async function handleField<K extends keyof BrewForm>(key: K, value: BrewForm[K]) {
 		setBrew(prev => {
@@ -813,6 +853,12 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 				})
 			});
 
+            if (response.status === 402) {
+                setMessage('Keine KI-Credits mehr übrig! Bitte warte bis zum nächsten Monat oder upgrade dein Abo.');
+                setGeneratingName(false);
+                return;
+            }
+
 			const data = await response.json();
 			if (data.text) {
 				setBrew(prev => ({ ...prev, name: data.text }));
@@ -824,6 +870,12 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 			setMessage(e?.message || 'Name-Generierung fehlgeschlagen.');
 		} finally {
 			setGeneratingName(false);
+            // Re-fetch credits
+            if (user?.id) {
+                fetch(`/api/premium/status?userId=${user.id}`)
+                    .then((res) => res.json())
+                    .then((data) => setPremiumStatus(data));
+            }
 		}
 	}
 
@@ -949,6 +1001,12 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 				})
 			});
 
+            if (response.status === 402) {
+                setMessage('Keine KI-Credits mehr übrig! Bitte warte bis zum nächsten Monat oder upgrade dein Abo.');
+                setGeneratingDescription(false);
+                return;
+            }
+
 			const data = await response.json();
 			if (data.text) {
 				setBrew(prev => ({ ...prev, description: data.text }));
@@ -960,6 +1018,12 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 			setMessage(e?.message || 'Beschreibungs-Generierung fehlgeschlagen.');
 		} finally {
 			setGeneratingDescription(false);
+            // Re-fetch credits
+            if (user?.id) {
+                fetch(`/api/premium/status?userId=${user.id}`)
+                    .then((res) => res.json())
+                    .then((data) => setPremiumStatus(data));
+            }
 		}
 	}
 
@@ -979,6 +1043,12 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 				})
 			});
 
+            if (response.status === 402) {
+                setMessage('Keine KI-Credits mehr übrig! Bitte warte bis zum nächsten Monat oder upgrade dein Abo.');
+                setGeneratingLabelPrompt(false);
+                return;
+            }
+
 			const data = await response.json();
 			if (data.text) {
 				setExtraPrompt(data.text);
@@ -990,6 +1060,12 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 			setMessage(e?.message || 'Prompt-Generierung fehlgeschlagen.');
 		} finally {
 			setGeneratingLabelPrompt(false);
+            // Re-fetch credits
+            if (user?.id) {
+                fetch(`/api/premium/status?userId=${user.id}`)
+                    .then((res) => res.json())
+                    .then((data) => setPremiumStatus(data));
+            }
 		}
 	}
 
@@ -1104,6 +1180,12 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 				})
 			});
 
+            if (response.status === 402) {
+                setMessage('Keine KI-Credits mehr übrig! Bitte warte bis zum nächsten Monat oder upgrade dein Abo.');
+                setGeneratingCap(false);
+                return;
+            }
+
 			const data = await response.json();
 			if (data.imageUrl) {
 				setBrew(prev => ({ ...prev, cap_url: data.imageUrl }));
@@ -1115,6 +1197,12 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 			setMessage('KI-Generierung fehlgeschlagen: ' + err.message);
 		} finally {
 			setGeneratingCap(false);
+            // Re-fetch credits
+            if (user?.id) {
+                fetch(`/api/premium/status?userId=${user.id}`)
+                    .then((res) => res.json())
+                    .then((data) => setPremiumStatus(data));
+            }
 		}
 	}
 
@@ -1198,11 +1286,12 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                 <label className="text-xs uppercase font-bold text-cyan-400 mb-2 block">Name</label>
                                                 <button 
                                                     onClick={handleGenerateName}
-                                                    disabled={generatingName}
+                                                    disabled={generatingName || premiumStatus?.features.aiGenerationsRemaining === 0}
                                                     className="text-[10px] uppercase font-bold text-cyan-400 hover:text-cyan-300 disabled:opacity-50 flex items-center gap-1 transition mb-2"
                                                 >
                                                     {generatingName ? <span className="animate-spin">⏳</span> : <span>✨</span>}
                                                     KI-Vorschlag
+                                                    <AICreditBadge />
                                                 </button>
                                             </div>
                                             <div className="flex items-center w-full bg-zinc-900 border border-zinc-800 rounded-xl transition focus-within:border-cyan-500 focus-within:ring-2 focus-within:ring-cyan-500/20 overflow-hidden pr-1.5">
@@ -1230,11 +1319,12 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                             <label className="text-xs uppercase font-bold text-zinc-500 mb-2 block">Beschreibung</label>
                                             <button 
                                                 onClick={handleGenerateDescription}
-                                                disabled={generatingDescription}
+                                                disabled={generatingDescription || premiumStatus?.features.aiGenerationsRemaining === 0}
                                                 className="text-[10px] uppercase font-bold text-purple-400 hover:text-purple-300 disabled:opacity-50 flex items-center gap-1 transition mb-2"
                                             >
                                                 {generatingDescription ? <span className="animate-spin">⏳</span> : <span>✨</span>}
                                                 KI-Vorschlag
+                                                <AICreditBadge />
                                             </button>
                                         </div>
                                         <div className="relative flex flex-col w-full bg-zinc-900 border border-zinc-800 rounded-xl transition focus-within:border-purple-500 focus-within:ring-2 focus-within:ring-purple-500/20 overflow-hidden">
@@ -1702,10 +1792,11 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                     </div>
                                     <button
                                         onClick={handleOptimizeRecipe}
-                                        disabled={analyzingRecipe || !brew.name || !brew.style}
-                                        className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold px-4 py-2 rounded-xl transition disabled:opacity-50 text-sm"
+                                        disabled={analyzingRecipe || !brew.name || !brew.style || premiumStatus?.features.aiGenerationsRemaining === 0}
+                                        className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold px-4 py-2 rounded-xl transition disabled:opacity-50 text-sm flex items-center gap-2"
                                     >
                                         {analyzingRecipe ? '🔍 Analysiere...' : '🔬 Rezept analysieren'}
+                                        <AICreditBadge />
                                     </button>
                                 </div>
 
@@ -1773,11 +1864,12 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                         <label className="text-xs uppercase font-bold text-purple-400">Zusatz-Prompt (optional)</label>
                                         <button 
                                             onClick={handleGenerateLabelPrompt}
-                                            disabled={generatingLabelPrompt || !brew.name}
+                                            disabled={generatingLabelPrompt || !brew.name || premiumStatus?.features.aiGenerationsRemaining === 0}
                                             className="text-[10px] uppercase font-bold text-purple-400 hover:text-purple-300 disabled:opacity-50 flex items-center gap-1 transition"
                                         >
                                             {generatingLabelPrompt ? <span className="animate-spin">⏳</span> : <span>✨</span>}
                                             KI-Vorschlag
+                                            <AICreditBadge />
                                         </button>
                                     </div>
                                     <textarea
@@ -1789,7 +1881,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                     <div className="flex flex-col sm:flex-row gap-3 pt-2">
                                         <button
                                             onClick={handleGenerate}
-                                            disabled={generating || uploading}
+                                            disabled={generating || uploading || premiumStatus?.features.aiGenerationsRemaining === 0}
                                             className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold px-6 py-3 rounded-xl hover:shadow-lg hover:shadow-purple-500/30 transition disabled:opacity-60 flex items-center justify-center gap-2 min-h-[50px]"
                                         >
                                             {generating ? (
@@ -1801,6 +1893,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                 <>
                                                     <span>✨</span>
                                                     <span>KI-Label generieren</span>
+                                                    <AICreditBadge />
                                                 </>
                                             )}
                                         </button>
@@ -1813,8 +1906,8 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                 {uploading ? 'Upload...' : '📂 Upload'}
                                             </button>
                                             <button
-                                                onClick={() => setBrew(prev => ({ ...prev, image_url: null }))}
-                                                disabled={uploading || generating || !brew.image_url}
+                                                onClick={() => setBrew(prev => ({ ...prev, image_url: '/default_label/default.png' }))}
+                                                disabled={uploading || generating || !brew.image_url || brew.image_url === '/default_label/default.png'}
                                                 className="px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-sm text-zinc-400 hover:text-red-400 hover:border-red-900/50 transition disabled:opacity-50 flex items-center justify-center gap-2 min-h-[50px]"
                                                 title="Label entfernen"
                                             >
@@ -1879,7 +1972,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                             <button 
                                                 className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold px-6 py-4 rounded-xl hover:shadow-lg hover:shadow-purple-500/30 transition disabled:opacity-60 flex items-center justify-center gap-3 min-h-[60px]"
                                                 onClick={handleGenerateCap}
-                                                disabled={generatingCap || uploadingCap}
+                                                disabled={generatingCap || uploadingCap || premiumStatus?.features.aiGenerationsRemaining === 0}
                                             >
                                                 {generatingCap ? (
                                                     <>
@@ -1890,6 +1983,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                     <>
                                                         <span className="text-xl">✨</span>
                                                         <span className="text-xs font-black uppercase tracking-wider">mit KI generieren</span>
+                                                        <AICreditBadge />
                                                     </>
                                                 )}
                                             </button>

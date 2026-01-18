@@ -8,16 +8,26 @@ import { useAuth } from '@/app/context/AuthContext';
 import Link from 'next/link';
 import ProfileCompletionRing from "../components/ProfileCompletionRing";
 import { getTierConfig } from '@/lib/tier-system';
+import PremiumBadge from '@/app/components/PremiumBadge';
+import AICreditsDisplay from '@/app/components/AICreditsDisplay';
+import PremiumFeatureLock from '@/app/components/PremiumFeatureLock';
+import { SubscriptionTier } from '@/lib/premium-config';
+import { redeemCode } from '@/lib/actions/premium-actions';
 
 export default function AccountPage() {
 	const { user, loading: authLoading } = useAuth();
 	const [loading, setLoading] = useState(true);
     
+	// Access Code State
+	const [redeemInput, setRedeemInput] = useState('');
+	const [redeemLoading, setRedeemLoading] = useState(false);
+	const [redeemMessage, setRedeemMessage] = useState<{ type: 'success' | 'error', msg: string } | null>(null);
+
     // Global State
 	const router = useRouter();
 
     // Menu State
-    const [activeTab, setActiveTab] = useState<'profile' | 'access' | 'security' | 'teams' | 'danger' | 'privacy'>('profile');
+    const [activeTab, setActiveTab] = useState<'profile' | 'subscription' | 'access' | 'security' | 'teams' | 'danger' | 'privacy'>('profile');
 
     // --- PROFILE STATE ---
     const [savingProfile, setSavingProfile] = useState(false);
@@ -28,7 +38,9 @@ export default function AccountPage() {
         bio: string,
         website: string,
         tier?: string,
-        analytics_opt_out: boolean
+        analytics_opt_out: boolean,
+        subscription_tier: SubscriptionTier,
+        subscription_status: string
     }>({
 		display_name: '',
 		location: '',
@@ -36,7 +48,9 @@ export default function AccountPage() {
 		bio: '',
 		website: '',
         tier: 'lehrling',
-        analytics_opt_out: false
+        analytics_opt_out: false,
+        subscription_tier: 'free',
+        subscription_status: 'active'
 	});
 	// Uploading state not needed for tier-based avatar
 
@@ -103,7 +117,9 @@ export default function AccountPage() {
 				bio: data.bio || '',
 				website: data.website || '',
                 tier: data.tier || 'lehrling',
-                analytics_opt_out: data.analytics_opt_out || false
+                analytics_opt_out: data.analytics_opt_out || false,
+                subscription_tier: (data.subscription_tier as SubscriptionTier) || 'free',
+                subscription_status: data.subscription_status || 'active'
 			});
 		}
 	}
@@ -217,6 +233,28 @@ export default function AccountPage() {
         }
     }
 
+	async function handleRedeemEnterpriseCode(e: React.FormEvent) {
+		e.preventDefault();
+		if (!redeemInput.trim()) return;
+		setRedeemLoading(true);
+		setRedeemMessage(null);
+
+		try {
+			const res = await redeemCode(redeemInput);
+			if (res.success) {
+				setRedeemMessage({ type: 'success', msg: res.message });
+				setRedeemInput('');
+				if (user) loadProfile(user.id); // Reload to show new status
+			} else {
+				setRedeemMessage({ type: 'error', msg: res.error || res.message });
+			}
+		} catch (err) {
+			setRedeemMessage({ type: 'error', msg: 'Ein technischer Fehler ist aufgetreten.' });
+		} finally {
+			setRedeemLoading(false);
+		}
+	}
+
     // --- ACCOUNT HANDLERS ---
 
 	async function handleUpdatePassword(e: React.FormEvent) {
@@ -308,6 +346,7 @@ export default function AccountPage() {
 
     const menuItems = [
         { id: 'profile', label: 'Profil', icon: '👤' },
+        { id: 'subscription', label: 'Abo & Premium', icon: '✨' },
         { id: 'teams', label: 'Teams', icon: '🏭' },
         { id: 'access', label: 'Zugangsdaten', icon: '📧' },
         { id: 'security', label: 'Sicherheit', icon: '🔒' },
@@ -362,6 +401,98 @@ export default function AccountPage() {
 
                     <div className="relative z-10 w-full max-w-2xl">
                         
+                        {/* --- SUBSCRIPTION TAB --- */}
+                        {activeTab === 'subscription' && (
+                            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-8">
+                                <div>
+                                    <h2 className="text-xl font-bold text-white mb-1">Dein Abonnement</h2>
+                                    <p className="text-sm text-zinc-400">Verwalte deinen Premium-Status und AI Credits.</p>
+                                </div>
+
+                                <div className="bg-zinc-950/50 p-6 rounded-2xl border border-zinc-800 space-y-6">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-xs font-bold text-zinc-500 uppercase mb-1">Aktueller Plan</p>
+                                            <div className="flex items-center gap-3">
+                                                 <span className="text-2xl font-black text-white capitalize">{profile.subscription_tier}</span>
+                                                 <PremiumBadge tier={profile.subscription_tier} size="lg" />
+                                            </div>
+                                            <p className="text-sm text-zinc-400 mt-1 capitalize">Status: {profile.subscription_status}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-4 border-t border-zinc-800">
+                                         <AICreditsDisplay userId={user?.id || ''} />
+                                    </div>
+                                    
+                                    {profile.subscription_tier === 'free' && (
+                                        <div className="pt-4 border-t border-zinc-800">
+                                            <h3 className="font-bold text-white mb-2">Upgrade Möglichkeiten</h3>
+                                            <div className="grid gap-3">
+                                                <div className="p-4 bg-gradient-to-br from-amber-500/10 to-transparent border border-amber-500/20 rounded-xl flex items-center justify-between">
+                                                    <div>
+                                                        <h4 className="font-bold text-amber-500">Heimbrauer (Brewer)</h4>
+                                                        <p className="text-xs text-zinc-400">50 Credits, Custom Logos</p>
+                                                    </div>
+                                                    <button className="px-4 py-2 bg-amber-500 text-black font-bold text-sm rounded-lg hover:bg-amber-400 transition cursor-not-allowed opacity-75">
+                                                        Bald verfügbar
+                                                    </button>
+                                                </div>
+                                                <div className="p-4 bg-gradient-to-br from-indigo-500/10 to-transparent border border-indigo-500/20 rounded-xl flex items-center justify-between">
+                                                    <div>
+                                                        <h4 className="font-bold text-indigo-500">Brauerei (Business)</h4>
+                                                        <p className="text-xs text-zinc-400">Unbegrenzt Credits, Teams</p>
+                                                    </div>
+                                                    <button className="px-4 py-2 bg-indigo-500 text-white font-bold text-sm rounded-lg hover:bg-indigo-400 transition cursor-not-allowed opacity-75">
+                                                        Bald verfügbar
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Code Redemption Section */}
+                                    <div className="pt-6 border-t border-zinc-800 space-y-4">
+                                        <div>
+                                            <h3 className="font-bold text-white mb-1.5 text-sm uppercase tracking-wider">Enterprise-Code einlösen</h3>
+                                            <p className="text-xs text-zinc-500">Hast du einen exklusiven Zugangscode erhalten? Gib ihn hier ein.</p>
+                                        </div>
+
+                                        <form onSubmit={handleRedeemEnterpriseCode} className="flex flex-col sm:flex-row gap-3">
+                                            <div className="flex-1">
+                                                <input 
+                                                    type="text"
+                                                    value={redeemInput}
+                                                    onChange={e => setRedeemInput(e.target.value)}
+                                                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm text-white focus:border-cyan-500 outline-none transition-all placeholder:text-zinc-700 font-mono"
+                                                    placeholder="LAB-XXXX-XXXX"
+                                                    disabled={redeemLoading}
+                                                />
+                                            </div>
+                                            <button 
+                                                type="submit"
+                                                disabled={redeemLoading || !redeemInput.trim()}
+                                                className="px-6 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl text-sm font-bold border border-zinc-700 transition disabled:opacity-50 whitespace-nowrap"
+                                            >
+                                                {redeemLoading ? 'Prüfe...' : 'Aktivieren'}
+                                            </button>
+                                        </form>
+
+                                        {redeemMessage && (
+                                            <div className={`text-xs font-bold px-4 py-2 rounded-lg border animate-in fade-in slide-in-from-top-1 ${
+                                                redeemMessage.type === 'success' 
+                                                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
+                                                : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+                                            }`}>
+                                                {redeemMessage.type === 'success' ? '✅ ' : '❌ '}
+                                                {redeemMessage.msg}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {/* --- PROFILE TAB --- */}
                         {activeTab === 'profile' && (
                             <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-8">

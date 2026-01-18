@@ -15,11 +15,15 @@ export interface GeneratorOptions {
     useHighResQR?: boolean;
     formatId?: string;
     onProgress?: (current: number, total: number) => void;
+    customSlogan?: string;
+    customLogo?: string;
+    breweryName?: string;
+    isPremiumBranding?: boolean;
 }
 
 export const generateSmartLabelPDF = async (bottles: BottleData[], options: GeneratorOptions): Promise<jsPDF> => {
     const config = getSmartLabelConfig(options.formatId);
-    const logoBase64 = await loadLogoAsBase64();
+    const logoBase64 = options.customLogo || await loadLogoAsBase64();
     const logoWithTextBase64 = await loadLogoWithTextAsBase64(); // Fallback wenn Canvas fehlschlägt
     
     // Load Background if available
@@ -28,10 +32,16 @@ export const generateSmartLabelPDF = async (bottles: BottleData[], options: Gene
     // Pre-render text image once to save performance
     let sharedHeaderImage: { dataUrl: string; width: number; height: number; ratio: number } | null = null;
     try {
-        sharedHeaderImage = await renderBrandTextAsImage([
-            { text: "Botl", color: BRAND.colors.textDark },
-            { text: "Lab", color: BRAND.colors.primary }
-        ], BRAND.print.textSize);
+        if (options.isPremiumBranding && options.breweryName) {
+            sharedHeaderImage = await renderBrandTextAsImage([
+                { text: options.breweryName, color: BRAND.colors.textDark }
+            ], BRAND.print.textSize);
+        } else {
+            sharedHeaderImage = await renderBrandTextAsImage([
+                { text: "Botl", color: BRAND.colors.textDark },
+                { text: "Lab", color: BRAND.colors.primary }
+            ], BRAND.print.textSize);
+        }
     } catch (e) {
         console.warn("Pre-render failed", e);
     }
@@ -156,7 +166,7 @@ export const generateSmartLabelPDF = async (bottles: BottleData[], options: Gene
         // Use actual geometric center between QR bottom and footer top
         const centerV = qrBottom + (footerVisualTop - qrBottom) / 2;
 
-        const slogan = SLOGANS[bottle.bottle_number % SLOGANS.length];
+        const slogan = options.customSlogan || SLOGANS[bottle.bottle_number % SLOGANS.length];
         
         // Calculate available width
         const maxW = contentW - 6;
@@ -235,7 +245,8 @@ export const generateSmartLabelPDF = async (bottles: BottleData[], options: Gene
 
         doc.setTextColor(0, 0, 0); // Black for URL
         doc.setFontSize(7);
-        doc.text("botllab.vercel.app", cX + contentW / 2, footerY, { align: 'center' });
+        const footerText = options.isPremiumBranding && options.breweryName ? options.breweryName : "botllab.vercel.app";
+        doc.text(footerText, cX + contentW / 2, footerY, { align: 'center' });
 
 
         // Grid Advancement (Landscape grid logic)

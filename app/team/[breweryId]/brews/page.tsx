@@ -9,6 +9,8 @@ import { getBreweryTierConfig, type BreweryTierName } from '@/lib/tier-system';
 import BottlesModal from './components/BottlesModal';
 import { removeBrewFromLibrary } from '@/lib/actions/library-actions';
 import { useGlobalToast } from '@/app/context/AchievementNotificationContext';
+import { getPremiumStatus } from '@/lib/actions/premium-actions';
+import { type PremiumStatus } from '@/lib/premium-config';
 
 export default function TeamBrewsPage({ params }: { params: Promise<{ breweryId: string }> }) {
   const { breweryId } = use(params);
@@ -19,6 +21,7 @@ export default function TeamBrewsPage({ params }: { params: Promise<{ breweryId:
   const [savedBrews, setSavedBrews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isMember, setIsMember] = useState(false);
+  const [premiumStatus, setPremiumStatus] = useState<PremiumStatus | null>(null);
   
   const [breweryTier, setBreweryTier] = useState<BreweryTierName>('garage');
   const [brewRatings, setBrewRatings] = useState<{ [key: string]: { avg: number; count: number } }>({});
@@ -115,6 +118,12 @@ export default function TeamBrewsPage({ params }: { params: Promise<{ breweryId:
       if (error) throw error;
       setBrews(data || []);
 
+      // Load Premium Status
+      if (user) {
+        const status = await getPremiumStatus();
+        setPremiumStatus(status);
+      }
+
       // Load Ratings if we have brews
       if (data && data.length > 0) {
           const brewIds = data.map((b) => b.id);
@@ -178,7 +187,9 @@ export default function TeamBrewsPage({ params }: { params: Promise<{ breweryId:
 
   // Tier Config Limit Check (Brewery Based)
   const tierConfig = getBreweryTierConfig(breweryTier);
-  const limitReached = brews.length >= tierConfig.limits.maxBrews;
+  const organicLimitReached = brews.length >= tierConfig.limits.maxBrews;
+  const bypassed = premiumStatus?.features.bypassBrewLimits ?? false;
+  const limitReached = organicLimitReached && !bypassed;
 
   return (
     <div className="space-y-12 pb-24">

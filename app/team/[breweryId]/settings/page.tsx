@@ -4,6 +4,8 @@ import { useEffect, useState, use } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
+import PremiumFeatureLock from '@/app/components/PremiumFeatureLock';
+import { SubscriptionTier } from '@/lib/premium-config';
 
 export default function TeamSettingsPage({ params }: { params: Promise<{ breweryId: string }> }) {
   const { breweryId } = use(params);
@@ -11,6 +13,7 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
   const [loading, setLoading] = useState(true);
   const [brewery, setBrewery] = useState<any>(null);
   const [userRole, setUserRole] = useState<string>('member');
+  const [ownerPremiumTier, setOwnerPremiumTier] = useState<SubscriptionTier>('free');
   
   // Tab State
   const [activeTab, setActiveTab] = useState<'general' | 'notifications' | 'membership'>('general');
@@ -47,13 +50,26 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
       // Check role
       const { data: membership } = await supabase
         .from('brewery_members')
-        .select('role')
+        .select('role, profiles(subscription_tier)')
         .eq('brewery_id', breweryId)
         .eq('user_id', user.id)
         .single();
         
       if (membership) {
          setUserRole(membership.role);
+         
+         // Fetch owner's tier (only owners determine premium features for brewery)
+         const { data: ownerMember } = await supabase
+           .from('brewery_members')
+           .select('profiles(subscription_tier)')
+           .eq('brewery_id', breweryId)
+           .eq('role', 'owner')
+           .single();
+           
+         if (ownerMember) {
+           setOwnerPremiumTier((ownerMember.profiles as any).subscription_tier);
+         }
+
          // If regular member, default to notifications tab since they can't edit general
          if (!['owner', 'admin'].includes(membership.role)) {
              setActiveTab('notifications');
@@ -122,7 +138,11 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
               
               <div className="relative z-10 w-full max-w-2xl">
                 {activeTab === 'general' && isAdmin ? (
-                    <GeneralSettings brewery={brewery} onUpdate={() => { loadData(); router.refresh(); }} />
+                    <GeneralSettings 
+                      brewery={brewery} 
+                      onUpdate={() => { loadData(); router.refresh(); }} 
+                      ownerPremiumTier={ownerPremiumTier}
+                    />
                 ) : activeTab === 'notifications' ? (
                     <NotificationSettings breweryId={brewery.id} />
                 ) : activeTab === 'membership' ? (
@@ -142,8 +162,17 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
 
 // --- Sub-Components ---
 
-function GeneralSettings({ brewery, onUpdate }: { brewery: any, onUpdate: () => void }) {
+function GeneralSettings({ 
+  brewery, 
+  onUpdate,
+  ownerPremiumTier
+}: { 
+  brewery: any, 
+  onUpdate: () => void,
+  ownerPremiumTier: SubscriptionTier
+}) {
   const [breweryName, setBreweryName] = useState(brewery.name || "");
+  const [brewerySlogan, setBrewerySlogan] = useState(brewery.custom_slogan || "");
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(brewery.logo_url);
   
@@ -180,6 +209,7 @@ function GeneralSettings({ brewery, onUpdate }: { brewery: any, onUpdate: () => 
         .from('breweries')
         .update({
           name: breweryName,
+          custom_slogan: brewerySlogan,
           logo_url: logoUrl,
         })
         .eq('id', brewery.id);
@@ -229,6 +259,20 @@ function GeneralSettings({ brewery, onUpdate }: { brewery: any, onUpdate: () => 
                 <div className="flex-1 text-center sm:text-left">
                     <h3 className="font-bold text-white mb-1.5 text-lg">Brand Identity</h3>
                     <p className="text-xs font-medium text-zinc-500 mb-4 leading-relaxed">Das Logo erscheint auf deinen öffentlichen Rezepten und im Feed. <br className="hidden sm:block"/> Empfohlen: 500x500px (JPG/PNG).</p>
+                    
+                    {/* Logo on Labels Premium Hint */}
+                    <div className="mb-4">
+                      <PremiumFeatureLock 
+                        tier={ownerPremiumTier} 
+                        feature="brewery_logo_on_labels"
+                        compact
+                      >
+                        <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-lg w-fit">
+                          <span>✨ Logo erscheint auf Smart Labels</span>
+                        </div>
+                      </PremiumFeatureLock>
+                    </div>
+
                     <input 
                         id="logo-upload"
                         type="file" 
@@ -261,6 +305,33 @@ function GeneralSettings({ brewery, onUpdate }: { brewery: any, onUpdate: () => 
                     placeholder="E.g. CyberBrew Labs"
                     />
                 </div>
+              </div>
+
+              {/* Slogan Input (Premium) */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between ml-1">
+                   <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500">Dein Label-Slogan</label>
+                </div>
+                
+                <PremiumFeatureLock 
+                  tier={ownerPremiumTier} 
+                  feature="custom_brewery_slogan"
+                  message="Ein eigener Slogan für deine Etiketten ist ab dem 'Brewer' Tier verfügbar."
+                >
+                  <div className="flex items-center gap-4 bg-zinc-900 border border-zinc-800 rounded-xl px-5 py-3 focus-within:border-cyan-500 transition-all duration-300 group">
+                      <span className="text-lg grayscale opacity-50 group-focus-within:grayscale-0 group-focus-within:opacity-100 transition-all">✍️</span>
+                      <input 
+                        type="text"
+                        value={brewerySlogan}
+                        onChange={e => setBrewerySlogan(e.target.value)}
+                        className="bg-transparent border-none outline-none text-white w-full font-bold text-base placeholder-zinc-700"
+                        placeholder="E.g. Handbraukunst aus Berlin"
+                      />
+                  </div>
+                  <p className="text-[10px] text-zinc-500 ml-1">
+                    Dieser Text erscheint unten auf deinen Smart Labels (PDF) anstelle der Zufalls-Sprüche.
+                  </p>
+                </PremiumFeatureLock>
               </div>
 
           </div>

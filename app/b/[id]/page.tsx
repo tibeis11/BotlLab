@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
@@ -8,6 +8,8 @@ import confetti from 'canvas-confetti';
 import Logo from '../../components/Logo';
 import { checkAndGrantAchievements } from '@/lib/achievements';
 import CrownCap from '../../components/CrownCap';
+import { trackBottleScan } from '@/lib/actions/analytics-actions';
+import { useAuth } from '@/app/context/AuthContext';
 
 const renderIngredientList = (items: any, mode: 'absolute' | 'percentage' | 'name_only' | { type: 'grams_per_liter', volume: number } = 'absolute') => {
   if (!items) return null;
@@ -155,6 +157,7 @@ const renderIngredientList = (items: any, mode: 'absolute' | 'percentage' | 'nam
 export default function PublicScanPage() {
   const params = useParams();
   const id = params?.id as string; 
+  const { user } = useAuth();
   
   const [data, setData] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
@@ -184,6 +187,9 @@ export default function PublicScanPage() {
   // Cap Collection
   const [collectingCap, setCollectingCap] = useState(false);
   const [capCollected, setCapCollected] = useState(false);
+
+  // Tracking: Use ref to prevent multiple tracking calls
+  const hasTrackedScan = useRef(false);
 
   // Supabase singleton imported
 
@@ -267,6 +273,23 @@ export default function PublicScanPage() {
       console.log("Brew loaded:", brew, "Session:", sessionData);
       setData(bottle ? { ...bottle, brews: brew, session: sessionData } : null);
 
+      // ===== TRACKING: Track bottle scan (only once!) =====
+      if (bottle && brew && !hasTrackedScan.current) {
+        hasTrackedScan.current = true; // Set immediately to prevent race conditions
+        try {
+          await trackBottleScan(bottle.id, {
+            brewId: brew.id,
+            breweryId: brew.brewery_id || undefined,
+            viewerUserId: user?.id || undefined,
+            scanSource: 'qr_code'
+          });
+          console.log('[Analytics] Bottle scan tracked');
+        } catch (trackError) {
+          console.error('[Analytics] Failed to track scan:', trackError);
+          hasTrackedScan.current = false; // Reset on error to allow retry
+        }
+      }
+
       // Brauerei und Team laden
       if (brew?.brewery_id) {
         const { data: breweryData } = await supabase
@@ -310,7 +333,7 @@ export default function PublicScanPage() {
     }
 
     fetchBottleInfo();
-  }, [id]);
+  }, [id]); // Only re-run when bottle ID changes
 
   useEffect(() => {
     if (showRatingForm) {

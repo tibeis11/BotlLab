@@ -1,0 +1,66 @@
+﻿CREATE OR REPLACE FUNCTION check_and_increment_ai_credits(
+  user_id UUID,
+  OUT can_use BOOLEAN,
+  OUT reason TEXT
+)
+LANGUAGE plpgsql
+AS brewery_members
+DECLARE
+  v_tier TEXT;
+  v_status TEXT;
+  v_used INTEGER;
+  v_limit INTEGER;
+  v_reset_date TIMESTAMPTZ;
+BEGIN
+  -- Lock row for update to prevent race condition
+  SELECT subscription_tier, subscription_status, ai_credits_used_this_month, ai_credits_reset_at
+  INTO v_tier, v_status, v_used, v_reset_date
+  FROM profiles
+  WHERE id = user_id
+  FOR UPDATE;
+
+  -- 1. Ensure reset values if null
+  IF v_reset_date IS NULL THEN
+      v_reset_date := date_trunc('month', NOW() + interval '1 month');
+      UPDATE profiles SET ai_credits_reset_at = v_reset_date WHERE id = user_id;
+  END IF;
+
+  -- 2. Check if monthly reset is needed
+  IF NOW() >= v_reset_date THEN
+    UPDATE profiles
+    SET ai_credits_used_this_month = 0,
+        ai_credits_reset_at = date_trunc('month', NOW() + interval '1 month')
+    WHERE id = user_id;
+    v_used := 0;
+  END IF;
+
+  -- 3. Get tier limit from the centralized config (replicated here for performance)
+  -- free: 0 | brewer: 150 | brewery: 600 | enterprise: unlimited
+  v_limit := CASE v_tier
+    WHEN 'free' THEN 0
+    WHEN 'brewer' THEN 150
+    WHEN 'brewery' THEN 600
+    WHEN 'enterprise' THEN -1
+    ELSE 0
+  END;
+
+  -- 4. Check limit
+  IF v_limit = 0 THEN
+    can_use := FALSE;
+    reason := 'Free tier has no AI credits. Upgrade to Brewer/Brewery to use AI features.';
+    RETURN;
+  ELSIF v_limit != -1 AND v_used >= v_limit THEN
+    can_use := FALSE;
+    reason := 'Monthly AI limit reached (' || v_limit || '). upgrade for more.';
+    RETURN;
+  END IF;
+
+  -- 5. Increment counter
+  UPDATE profiles
+  SET ai_credits_used_this_month = COALESCE(ai_credits_used_this_month, 0) + 1
+  WHERE id = user_id;
+
+  can_use := TRUE;
+  reason := 'OK';
+END;
+brewery_members;

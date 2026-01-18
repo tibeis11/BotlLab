@@ -81,6 +81,17 @@ export default function PrivacyPage() {
                 <li>Interne Interaktionsdaten (z.B. Button-Klicks, erreichte Limits, Feature-Nutzung) zur Produktverbesserung</li>
               </ul>
             </div>
+            <div>
+              <h3 className="font-bold text-foreground mb-2">3.4 QR-Scans & Brauerei-Analytics</h3>
+              <p className="text-zinc-300 text-sm mb-2">
+                Beim Scannen von Flaschen-QR-Codes erfassen wir kurzzeitig technische Daten (IP-Adresse, User-Agent), um Herkunftsland und Gerätetyp zu bestimmen.
+              </p>
+              <ul className="list-disc list-inside space-y-1 text-sm">
+                <li>Diese Daten werden <strong>nicht gespeichert</strong>, sondern sofort in anonyme Zähler umgewandelt (z.B. &quot;1x Mobile aus Deutschland&quot;).</li>
+                <li>Es werden <strong>keine Cookies</strong> gesetzt.</li>
+                <li>Es findet keine langfristige Profilbildung oder personenbezogene Nachverfolgung statt.</li>
+              </ul>
+            </div>
           </div>
         </section>
 

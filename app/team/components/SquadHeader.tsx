@@ -8,6 +8,7 @@ import { useAuth } from '@/app/context/AuthContext';
 import Logo from '@/app/components/Logo';
 import NotificationBell from '@/app/components/NotificationBell';
 import { getTierConfig } from '@/lib/tier-system';
+import { getBreweryBranding } from '@/lib/actions/premium-actions';
 
 interface SquadHeaderProps {
     breweryId: string;
@@ -29,6 +30,11 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
 
     // Data State
     const [userProfile, setUserProfile] = useState<any>(null);
+    const [branding, setBranding] = useState<{ logoUrl: string | null; breweryName: string | null; isPremiumBranding: boolean }>({
+        logoUrl: null,
+        breweryName: null,
+        isPremiumBranding: false
+    });
 
     // Lock Body Scroll when Mobile Menu is Open
     useEffect(() => {
@@ -56,6 +62,15 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
         });
     }, [user]);
 
+    // Fetch Branding
+    useEffect(() => {
+        if (breweryId) {
+            getBreweryBranding(breweryId).then(res => {
+                setBranding(res);
+            });
+        }
+    }, [breweryId]);
+
     const tierConfig = userProfile ? getTierConfig(userProfile.tier || 'lehrling') : getTierConfig('lehrling');
 
     const tabs = [
@@ -64,6 +79,7 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
         { name: 'Rezepte', path: `/team/${breweryId}/brews`, icon: '🍺' },
         { name: 'Sessions', path: `/team/${breweryId}/sessions`, icon: '🌡️' },
         { name: 'Inventar', path: `/team/${breweryId}/inventory`, icon: '📦' },
+        { name: 'Analytics', path: `/team/${breweryId}/analytics`, icon: '📈' },
     ];
 
     const adminTabs: { name: string, path: string, icon: string }[] = [];
@@ -86,7 +102,10 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                 {/* Left: Logo & Exit */}
                 <div className="flex items-center gap-6">
                     <Link href={`/team/${breweryId}`}>
-                        <Logo />
+                        <Logo 
+                            overrideText={branding.breweryName || undefined}
+                            imageSrc={branding.logoUrl || "/brand/logo.svg"}
+                        />
                     </Link>
                     
                     <div className="hidden lg:flex gap-6 text-sm font-medium items-center border-l border-zinc-800 pl-6 h-8">

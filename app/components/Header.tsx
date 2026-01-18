@@ -8,13 +8,20 @@ import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "../context/AuthContext";
 import { getTierConfig } from "@/lib/tier-system";
+import { getBreweryBranding } from "@/lib/actions/premium-actions";
 
-export default function Header() {
+export default function Header({ breweryId }: { breweryId?: string }) {
   const { user, loading, signOut } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [showMenu, setShowMenu] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
+
+  const [branding, setBranding] = useState<{ logoUrl: string | null; breweryName: string | null; isPremiumBranding: boolean }>({
+    logoUrl: null,
+    breweryName: null,
+    isPremiumBranding: false
+  });
 
   // Lock Scroll when Mobile Menu is open
   useEffect(() => {
@@ -57,6 +64,17 @@ export default function Header() {
     };
   }, [user]);
 
+  // Fetch Branding if breweryId provided
+  useEffect(() => {
+    if (breweryId) {
+        getBreweryBranding(breweryId).then(res => {
+            setBranding(res);
+        });
+    } else {
+        setBranding({ logoUrl: null, breweryName: null, isPremiumBranding: false });
+    }
+  }, [breweryId]);
+
   async function handleLogout() {
     await signOut();
     setShowMenu(false);
@@ -70,7 +88,10 @@ export default function Header() {
     <nav className="fixed top-0 w-full z-50 bg-black/80 backdrop-blur-md border-b border-white/5">
       <div className="max-w-[1920px] w-full mx-auto px-6 h-20 flex items-center justify-between">
         <Link href="/">
-          <Logo />
+          <Logo 
+            overrideText={branding.breweryName || undefined}
+            imageSrc={branding.logoUrl || "/brand/logo.svg"}
+          />
         </Link>
         
         {/* Desktop Navigation */}

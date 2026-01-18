@@ -8,6 +8,7 @@ import NotificationBell from '../../components/NotificationBell';
 import { supabase, getActiveBrewery, getUserBreweries } from '@/lib/supabase';
 import { useAuth } from '@/app/context/AuthContext';
 import { getTierConfig } from '@/lib/tier-system';
+import { getBreweryBranding } from '@/lib/actions/premium-actions';
 
 export default function AdminHeader() {
   const { user, signOut } = useAuth();
@@ -16,6 +17,11 @@ export default function AdminHeader() {
   const [tierData, setTierData] = useState<{ path: string, color: string, name: string } | null>(null);
   const [breweryId, setBreweryId] = useState<string | null>(null);
   const [activeBreweryName, setActiveBreweryName] = useState<string | null>(null);
+  const [branding, setBranding] = useState<{ logoUrl: string | null; breweryName: string | null; isPremiumBranding: boolean }>({
+    logoUrl: null,
+    breweryName: null,
+    isPremiumBranding: false
+  });
   const [userBreweries, setUserBreweries] = useState<any[]>([]);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showBreweryMenu, setShowBreweryMenu] = useState(false);
@@ -97,6 +103,11 @@ export default function AdminHeader() {
         if (isMounted && selectedBrewery) {
           setBreweryId(selectedBrewery.id);
           setActiveBreweryName(selectedBrewery.name);
+          
+          // Fetch Branding for high-tier breweries
+          getBreweryBranding(selectedBrewery.id).then(res => {
+              if (isMounted) setBranding(res);
+          });
         }
       } catch (err) {
         if (isMounted) {
@@ -134,6 +145,7 @@ export default function AdminHeader() {
     { name: 'Sammlung', path: '/dashboard/collection', icon: '🏅' },
     { name: 'Favoriten', path: '/dashboard/favorites', icon: '❤️' },
     { name: 'Achievements', path: '/dashboard/achievements', icon: '🏆' },
+    { name: 'Analytics', path: '/dashboard/analytics', icon: '📊' },
   ];
 
   return (
@@ -143,7 +155,10 @@ export default function AdminHeader() {
         
         <div className="flex items-center gap-6">
           <Link href="/dashboard">
-            <Logo />
+            <Logo 
+              overrideText={branding.breweryName || undefined}
+              imageSrc={branding.logoUrl || "/brand/logo.svg"}
+            />
           </Link>
 
           {/* Left Desktop Navigation (External Context) */}
@@ -404,7 +419,10 @@ export default function AdminHeader() {
             <div className="border-b border-zinc-900 bg-zinc-950 p-3">
                <div className="max-w-[1920px] w-full mx-auto flex justify-between items-center px-6">
                    <div className="flex items-center gap-6" onClick={() => setIsMobileMenuOpen(false)}>
-                      <Logo /> 
+                      <Logo 
+                        overrideText={branding.breweryName || undefined}
+                        imageSrc={branding.logoUrl || "/brand/logo.svg"}
+                      /> 
                    </div>
                    <div className="flex items-center gap-2">
                      <NotificationBell />

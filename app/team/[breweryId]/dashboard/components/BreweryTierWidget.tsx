@@ -9,9 +9,12 @@ import {
   type BreweryTierName, 
   type BreweryTierConfig 
 } from '@/lib/tier-system';
+import { getPremiumStatus, getSpecificUserPremiumStatus } from '@/lib/actions/premium-actions';
+import { type PremiumStatus } from '@/lib/premium-config';
 
 export default function BreweryTierWidget({ breweryId }: { breweryId: string }) {
   const [loading, setLoading] = useState(true);
+  const [premiumStatus, setPremiumStatus] = useState<PremiumStatus | null>(null);
   const [data, setData] = useState<{
     tier: BreweryTierName;
     totalFills: number;
@@ -66,6 +69,19 @@ export default function BreweryTierWidget({ breweryId }: { breweryId: string }) 
         .from('bottles')
         .select('*', { count: 'exact', head: true })
         .eq('brewery_id', breweryId);
+
+      // Get Owners Premium Status to check for limit bypass
+      const { data: ownerMember } = await supabase
+        .from('brewery_members')
+        .select('user_id')
+        .eq('brewery_id', breweryId)
+        .eq('role', 'owner')
+        .single();
+      
+      if (ownerMember) {
+        const status = await getSpecificUserPremiumStatus(ownerMember.user_id);
+        setPremiumStatus(status);
+      }
 
       setData({
         tier: (brewery?.tier as BreweryTierName) || 'garage',
@@ -130,13 +146,38 @@ export default function BreweryTierWidget({ breweryId }: { breweryId: string }) 
           
            {/* Limits Overview (Mini) */}
            <div className="hidden sm:flex items-center gap-4">
-                <Limitpill icon="📝" current={data.brewCount} max={currentConfig.limits.maxBrews} label="Rezepte" />
-                <Limitpill icon="🍾" current={data.bottleCount} max={currentConfig.limits.maxBottles} label="Flaschen" />
+                <Limitpill 
+                    icon="📝" 
+                    current={data.brewCount} 
+                    max={currentConfig.limits.maxBrews} 
+                    label="Rezepte" 
+                    bypassed={premiumStatus?.features.bypassBrewLimits}
+                />
+                <Limitpill 
+                    icon="🍾" 
+                    current={data.bottleCount} 
+                    max={currentConfig.limits.maxBottles} 
+                    label="Flaschen" 
+                    bypassed={premiumStatus?.features.bypassBottleLimits}
+                />
            </div>
         </div>
 
+        {/* Premium/Enterprise Notice */}
+        {(premiumStatus?.tier === 'enterprise' || premiumStatus?.tier === 'brewery') && (
+          <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl px-4 py-2 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                  <span className="text-lg">💎</span>
+                  <div className="text-xs">
+                      <div className="font-bold text-purple-400 uppercase tracking-widest">Premium Status Active</div>
+                      <div className="text-zinc-500">Alle Brauerei-Limits wurden durch dein Abo außer Kraft gesetzt.</div>
+                  </div>
+              </div>
+          </div>
+        )}
+
         {/* Progress System */}
-        {!isMaxTier && nextTier && (
+        {!isMaxTier && nextTier && (premiumStatus?.tier !== 'enterprise' && premiumStatus?.tier !== 'brewery') && (
           <div className="bg-zinc-900/50 rounded-2xl p-4 border border-zinc-800/50">
              <div className="flex justify-between items-center mb-3">
                 <span className="text-sm font-bold text-zinc-300">Nächstes Level: <span style={{ color: nextTier.color }}>{nextTier.displayName}</span></span>
@@ -180,14 +221,16 @@ export default function BreweryTierWidget({ breweryId }: { breweryId: string }) 
   );
 }
 
-function Limitpill({ icon, current, max, label }: { icon: string, current: number, max: number, label: string }) {
-    const isUnlimited = max > 90000;
+function Limitpill({ icon, current, max, label, bypassed = false }: { icon: string, current: number, max: number, label: string, bypassed?: boolean }) {
+    const isUnlimited = max > 90000 || bypassed;
     const isClose = !isUnlimited && (current / max) > 0.8;
     const isHit = !isUnlimited && current >= max;
     
     return (
         <div className={`flex flex-col items-end ${isHit ? 'text-red-400' : isClose ? 'text-orange-400' : 'text-zinc-400'}`}>
-            <div className="text-xs font-bold uppercase tracking-wider opacity-60">{label}</div>
+            <div className="text-xs font-bold uppercase tracking-wider opacity-60 flex items-center gap-1">
+                {label} {bypassed && <span title="Limit aufgehoben durch Early Access">🚀</span>}
+            </div>
             <div className="font-mono font-bold text-sm">
                 <span>{current}</span>
                 <span className="opacity-50 mx-1">/</span>

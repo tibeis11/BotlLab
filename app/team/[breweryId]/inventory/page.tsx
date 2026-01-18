@@ -16,6 +16,7 @@ import { useNotification } from '@/app/context/NotificationContext';
 import { generateSmartLabelPDF } from '@/lib/pdf-generator';
 import { renderLabelToDataUrl } from '@/lib/label-renderer';
 import { LABEL_FORMATS, DEFAULT_FORMAT_ID } from '@/lib/smart-labels-config';
+import { getBreweryBranding } from '@/lib/actions/premium-actions';
 
 // Extracted List Item Component
 function BottleListItem({ 
@@ -384,11 +385,34 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 	async function generatePdfForBottles(bottlesList: any[], title: string) {
 		try {
 			const baseUrl = window.location.origin || process.env.NEXT_PUBLIC_APP_URL || 'https://botllab.vercel.app';
+            
+            // Premium Branding
+            let customSlogan: string | undefined;
+            let customLogo: string | undefined;
+            let breweryName: string | undefined;
+            let isPremiumBranding = false;
+
+            if (breweryId) {
+                try {
+                     const branding = await getBreweryBranding(breweryId);
+                     if (branding.slogan) customSlogan = branding.slogan;
+                     if (branding.logoUrl) customLogo = branding.logoUrl;
+                     if (branding.breweryName) breweryName = branding.breweryName;
+                     isPremiumBranding = branding.isPremiumBranding;
+                } catch (e) {
+                    console.warn("Branding fetch failed", e);
+                }
+            }
+
 			// Using the new Smart Label System
 			const doc = await generateSmartLabelPDF(bottlesList, { 
 				baseUrl, 
 				useHighResQR: true,
-                formatId: selectedLabelFormat
+                formatId: selectedLabelFormat,
+                customSlogan,
+                customLogo,
+                breweryName,
+                isPremiumBranding
 			});
 			doc.save(`${title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.pdf`);
 			showToast("PDF erstellt", "Deine Smart Labels wurden erfolgreich generiert (A4 Landscape).", "success");
@@ -415,10 +439,23 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 
 		const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://botllab.vercel.app';
 
+        // Fetch Premium Branding
+        let brOptions: { customSlogan?: string; customLogo?: string; breweryName?: string; isPremiumBranding?: boolean } | undefined;
+        if (breweryId) {
+             try {
+                 const branding = await getBreweryBranding(breweryId);
+                 brOptions = {};
+                 if (branding.slogan) brOptions.customSlogan = branding.slogan;
+                 if (branding.logoUrl) brOptions.customLogo = branding.logoUrl;
+                 if (branding.breweryName) brOptions.breweryName = branding.breweryName;
+                 brOptions.isPremiumBranding = branding.isPremiumBranding;
+             } catch (e) { console.warn("Branding fetch failed", e); }
+        }
+
 		for (const bottle of bottlesList) {
             try {
                 // Use the new single label renderer
-                const labelDataUrl = await renderLabelToDataUrl(bottle, selectedLabelFormat, baseUrl);
+                const labelDataUrl = await renderLabelToDataUrl(bottle, selectedLabelFormat, baseUrl, brOptions);
                 const base64Data = labelDataUrl.split(',')[1];
                 folder.file(`Label_${bottle.bottle_number}.png`, base64Data, { base64: true });
             } catch (e) {
