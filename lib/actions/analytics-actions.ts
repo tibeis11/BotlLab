@@ -253,6 +253,8 @@ export async function trackBottleScan(
     scanSource?: 'qr_code' | 'direct_link' | 'share';
   }
 ) {
+  console.log('[Analytics] trackBottleScan called:', { bottleId, payload });
+  
   try {
     const supabase = await createClient();
     const headersList = await headers();
@@ -328,6 +330,15 @@ export async function trackBottleScan(
     // Extract hour of day for time-to-glass analysis
     const scanHour = new Date().getHours(); // 0-23
 
+    console.log('[Analytics] Inserting scan record:', {
+      bottleId,
+      brewId: payload?.brewId,
+      breweryId: payload?.breweryId,
+      scanHour,
+      isUnique,
+      isOwnerScan
+    });
+
     // 7. Insert Scan Record (without IP!)
     const { error } = await supabase.from('bottle_scans').insert({
       bottle_id: bottleId,
@@ -348,11 +359,14 @@ export async function trackBottleScan(
       console.error('[Analytics] Failed to insert bottle scan:', error.message);
       return;
     }
+    
+    console.log('[Analytics] Bottle scan inserted successfully');
 
     // 8. Update Daily Stats (Aggregation with hour distribution)
     if (payload?.breweryId) {
       try {
-        await supabase.rpc('increment_daily_stats', {
+        console.log('[Analytics] Calling increment_daily_stats RPC...');
+        const { error: rpcError } = await supabase.rpc('increment_daily_stats', {
           p_date: new Date().toISOString().slice(0, 10), // YYYY-MM-DD
           p_brewery_id: payload.breweryId,
           p_brew_id: payload.brewId || null,
@@ -360,10 +374,18 @@ export async function trackBottleScan(
           p_device_type: detectDeviceType(userAgent),
           p_hour: scanHour // Phase 3: Hour tracking
         });
+        
+        if (rpcError) {
+          console.error('[Analytics] RPC increment_daily_stats failed:', rpcError);
+        } else {
+          console.log('[Analytics] Daily stats updated successfully');
+        }
       } catch (statsError) {
         // Don't fail the scan if aggregation fails
         console.error('[Analytics] Failed to update daily stats:', statsError);
       }
+    } else {
+      console.warn('[Analytics] No breweryId provided, skipping daily stats update');
     }
     
   } catch (e) {
