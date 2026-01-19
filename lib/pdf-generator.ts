@@ -85,8 +85,14 @@ export const generateSmartLabelPDF = async (bottles: BottleData[], options: Gene
 
     doc.setFont("helvetica", "normal");
 
-    for (const bottle of bottlesWithQr) {
-        if (!bottle.qrData) continue;
+    for (let i = 0; i < bottlesWithQr.length; i++) {
+        const bottle = bottlesWithQr[i];
+        if (!bottle.qrData) {
+            console.warn(`Skipping bottle ${i+1}/${bottlesWithQr.length} - no QR code`);
+            continue;
+        }
+
+        console.log(`Drawing bottle ${i+1}/${bottlesWithQr.length} at col=${col}, row=${row}, page=${pageCount}`);
 
         // Calculate position in Landscape mode
         // x moves right (cols), y moves down (rows)
@@ -267,16 +273,19 @@ export const generateSmartLabelPDF = async (bottles: BottleData[], options: Gene
             col = 0;
             row++;
             if (row >= config.rows) {
-                const isLast = bottlesWithQr.indexOf(bottle) === bottlesWithQr.length - 1;
+                // Check if this is the last bottle
+                const isLast = i === bottlesWithQr.length - 1;
                 if (!isLast) {
+                    console.log(`Adding new page after bottle ${i+1}`);
                     doc.addPage();
                     pageCount++;
-                    col = 0;
-                    row = 0;
                 }
+                row = 0; // Reset row for next page (or end of document)
             }
         }
     }
+
+    console.log(`PDF generation complete: ${bottlesWithQr.length} bottles, ${pageCount} pages`);
 
     return doc;
 };
