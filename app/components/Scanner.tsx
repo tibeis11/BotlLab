@@ -13,46 +13,43 @@ interface ScannerProps {
 
 export default function Scanner({ onScanSuccess }: ScannerProps) {
     const scannerRef = useRef<Html5Qrcode | null>(null);
-    const isStartingRef = useRef(false); 
-    const isMountedRef = useRef(true);
+    const isStartingRef = useRef(false); // Verhindert gleichzeitige Start-Versuche
     const [isScanning, setIsScanning] = useState(false);
-    const [permissionRequested, setPermissionRequested] = useState(false);
+    const [isStarting, setIsStarting] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
-    
-    // Use stable unique ID to avoid collisions during re-renders/HMR
-    const divId = useRef(`reader-${Math.random().toString(36).slice(2)}`).current;
+    const divId = "reader-camera";
 
     useEffect(() => {
-        isMountedRef.current = true;
-        
-        // Removed auto-start to comply with browser policies requiring user interaction
-        // initScanner(); 
-
         return () => {
-            isMountedRef.current = false;
             if (scannerRef.current) {
-                // Fire and forget cleanup
                 const scanner = scannerRef.current;
-                scanner.stop()
-                    .then(() => scanner.clear())
-                    .catch(e => console.warn("Cleanup warning:", e));
+                if (scanner.getState() !== Html5QrcodeScannerState.NOT_STARTED) {
+                    scanner.stop().then(() => scanner.clear()).catch(() => {});
+                }
             }
         };
     }, []);
 
-    const startScanner = async () => {
+    async function startScanner() {
         if (isStartingRef.current) return;
         isStartingRef.current = true;
-        setPermissionRequested(true);
+        setIsStarting(true);
         setErrorMsg(null);
 
         try {
             // Check for Secure Context
-            if (typeof window !== 'undefined' && !window.isSecureContext && window.location.hostname !== 'localhost') {
-                throw new Error("UNSICHERER KONTEXT: HTTPS erforderlich.");
+            if (!window.isSecureContext && window.location.hostname !== 'localhost') {
+                throw new Error("UNSICHERER KONTEXT: Die Kamera-API wird vom Browser nur über HTTPS oder auf 'localhost' erlaubt. Deine aktuelle Verbindung ist nicht sicher.");
             }
 
-            // Ensure previous instance is gone
+            // Force permission prompt via native API (requires user gesture)
+            // IMPORTANT: keep this as the first awaited call to preserve user activation.
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                stream.getTracks().forEach(track => track.stop());
+            }
+
+            // Cleanup existing
             if (scannerRef.current) {
                 try {
                     const state = scannerRef.current.getState();
@@ -60,25 +57,15 @@ export default function Scanner({ onScanSuccess }: ScannerProps) {
                         await scannerRef.current.stop();
                     }
                     await scannerRef.current.clear();
-                } catch (e) {
-                    console.warn("Pre-start cleanup warning:", e);
-                }
-                scannerRef.current = null;
-            }
-
-            // Create new instance
-            // Wait a tick to ensure DOM is ready and previous cleanup registered
-            await new Promise(r => setTimeout(r, 50));
-            
-            if (!document.getElementById(divId)) {
-                throw new Error("Scanner Container nicht gefunden");
+                } catch (e) {}
             }
 
             const scanner = new Html5Qrcode(divId);
             scannerRef.current = scanner;
 
+            // Kamera-Konfiguration
             const config = {
-                fps: 10,
+                fps: 15,
                 qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
                     const size = Math.min(viewfinderWidth, viewfinderHeight) * 0.75;
                     return { width: size, height: size };
@@ -86,137 +73,120 @@ export default function Scanner({ onScanSuccess }: ScannerProps) {
                 aspectRatio: 1.0,
             };
 
-            // Attempt to start
+            // Prefer a concrete camera ID after permissions are granted
             try {
-                // FORCE permission prompt via native API first.
-                // This is more reliable than the library on some devices.
-                // We request a stream, then immediately stop it just to get the "Allow" signal.
-                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-                    // Permission granted! Stop the stream to release hardware for the library.
-                    stream.getTracks().forEach(track => track.stop());
-                }
-
-                // Now use the library
                 const devices = await Html5Qrcode.getCameras();
                 if (!devices || devices.length === 0) {
-                     throw new Error("NotFoundError: Keine Kamera gefunden");
+                    throw new Error("NotFoundError: Keine Kamera gefunden");
                 }
 
-                // Try to find back camera
-                const backCamera = devices.find(id => id.label.toLowerCase().includes('back') || id.label.toLowerCase().includes('rück'));
+                const backCamera = devices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('rück'));
                 const cameraId = backCamera ? backCamera.id : devices[0].id;
-                
-                await scanner.start(
-                    cameraId, 
-                    config, 
-                    onScanSuccess, 
-                    undefined
-                );
-            } catch (err: any) {
-                console.warn("Camera start failed with specific ID, falling back to mode:", err);
-                
-                // Fallback to basic mode if specific ID failed or permission was partial
-                await scanner.start(
-                    { facingMode: "environment" }, 
-                    config, 
-                    onScanSuccess, 
-                    undefined
-                );
+
+                await scanner.start(cameraId, config, onScanSuccess, () => {});
+            } catch (e) {
+                console.warn("Back camera failed, trying facingMode fallback...", e);
+                await scanner.start({ facingMode: "environment" }, config, onScanSuccess, () => {});
             }
 
-            if (isMountedRef.current) setIsScanning(true);
-            
+            setIsScanning(true);
         } catch (err: any) {
-            console.error("Scanner Start Error:", err);
-            let msg = err.message || "Kamera konnte nicht gestartet werden.";
-            let detailedHelp = null;
+            console.error("Scanner Error:", err);
             
-            // Analyze Error
-            const errStr = msg.toString();
-            if (errStr.includes("NotAllowedError") || errStr.includes("Permission denied")) {
-                msg = "Zugriff verweigert";
-                if (typeof window !== 'undefined' && !window.isSecureContext) {
-                    detailedHelp = "Browser blockieren Kameras auf unsicheren Verbindungen (HTTP). Bitte nutze HTTPS oder Localhost.";
-                } else {
-                    detailedHelp = "Bitte erlaube den Zugriff im Browser (Schloss-Symbol in Adresszeile) oder prüfe die Systemeinstellungen.";
+            let displayMsg = "Kamera-Fehler";
+            const errStr = err.toString();
+
+            if (errStr.includes("NotAllowedError") || err.name === "NotAllowedError") {
+                displayMsg = "Zugriff verweigert oder blockiert. Bitte erlaube die Kamera im Browser (Schloss-Symbol) und prüfe, ob eine andere App die Kamera verwendet.";
+                if (navigator.permissions && navigator.permissions.query) {
+                    try {
+                        const permissionStatus = await navigator.permissions.query({ name: 'camera' as PermissionName });
+                        if (permissionStatus.state === 'denied') {
+                            displayMsg = "Kamera ist blockiert. Bitte erlaube die Kamera in den Browser-Einstellungen für diese Website.";
+                        }
+                    } catch (e) {}
                 }
-            } else if (errStr.includes("NotFoundError")) {
-                msg = "Keine Kamera gefunden";
-                detailedHelp = "Es wurde kein Video-Eingabegerät erkannt.";
-            } else if (errStr.includes("NotReadableError")) {
-                msg = "Kamera belegt/fehlerhaft";
-                detailedHelp = "Die Kamera wird evtl. von einer anderen App genutzt oder ist abgestürzt.";
             } else if (errStr.includes("UNSICHERER KONTEXT")) {
-                msg = "Unsichere Verbindung";
-                detailedHelp = "Kamera funktioniert nur über HTTPS oder auf Localhost.";
+                displayMsg = err.message;
+            } else {
+                displayMsg = err.message || "Unbekannter Fehler beim Kamera-Start.";
             }
             
-            if (isMountedRef.current) {
-                setErrorMsg(detailedHelp ? `${msg}|${detailedHelp}` : msg);
-            }
+            setErrorMsg(displayMsg);
+            setIsScanning(false);
         } finally {
+            setIsStarting(false);
             isStartingRef.current = false;
         }
-    };
-    
-    const handleRetry = () => {
-        isStartingRef.current = false;
-        startScanner();
-    };
+    }
 
-    const [errorTitle, errorDetail] = errorMsg ? errorMsg.split('|') : [errorMsg, null];
+    async function stopScanner() {
+        if (scannerRef.current) {
+            try {
+                const state = scannerRef.current.getState();
+                if (state === Html5QrcodeScannerState.SCANNING || state === Html5QrcodeScannerState.PAUSED) {
+                    await scannerRef.current.stop();
+                }
+                await scannerRef.current.clear();
+            } catch (err) {
+                console.warn("Stop failed", err);
+            }
+            setIsScanning(false);
+        }
+    }
 
     return (
-        <div className="w-full h-full relative bg-black"> 
-             <div className="relative overflow-hidden w-full h-full">
-                {/* Scanner Target */}
+        <div className="w-full h-full relative"> 
+             <div className="relative overflow-hidden w-full h-full bg-black">
+                {/* Scanner Target - React must NOT put children here */}
                 <div id={divId} className="w-full h-full [&>video]:object-cover [&>video]:w-full [&>video]:h-full"></div>
 
-                {/* Pre-Permission State: Explicit User Action Required */}
-                {!isScanning && !permissionRequested && !errorMsg && (
-                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-6 text-center bg-black/40">
-                        <div className="mb-4 text-4xl opacity-50 grayscale">
-                            📷
-                        </div>
-                        <button 
-                            onClick={startScanner}
-                            className="px-8 py-3 bg-cyan-500 hover:bg-cyan-400 text-black font-black uppercase tracking-widest rounded-full shadow-lg shadow-cyan-500/20 transition-all hover:scale-105 active:scale-95"
-                        >
-                            Start
-                        </button>
-                    </div>
-                )}
-
-                {/* Loading State */}
-                {!isScanning && permissionRequested && !errorMsg && (
+                {/* UI Overlay - User gesture required */}
+                {!isScanning && !errorMsg && (
                     <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-6 text-center bg-black/80 backdrop-blur-sm">
-                        <div className="w-12 h-12 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin mb-4"></div>
-                        <p className="text-zinc-400 text-xs font-bold uppercase tracking-widest">Kamera wird gestartet...</p>
+                        {isStarting ? (
+                            <>
+                                <div className="w-12 h-12 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin mb-4"></div>
+                                <p className="text-zinc-400 text-xs font-bold uppercase tracking-widest">Kamera wird gestartet...</p>
+                            </>
+                        ) : (
+                            <>
+                                <div className="mb-4 text-4xl">📷</div>
+                                <button 
+                                    onClick={() => startScanner()} 
+                                    className="bg-cyan-500 hover:bg-cyan-400 text-black font-bold py-3 px-8 rounded-full transition shadow-lg shadow-cyan-500/20 active:scale-95"
+                                >
+                                    Start
+                                </button>
+                            </>
+                        )}
                     </div>
                 )}
              </div>
 
-             {/* Error State */}
              {errorMsg && (
                  <div className="absolute inset-0 z-20 bg-black/95 flex flex-col items-center justify-center text-center p-6 animate-in fade-in zoom-in-95">
                      <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4 border border-red-500/20">
                         <span className="text-2xl">⚠️</span>
                      </div>
-                     <p className="text-red-400 font-black mb-2 uppercase tracking-widest text-sm">{errorTitle}</p>
-                     {errorDetail && (
-                         <p className="text-zinc-400 text-xs mb-6 leading-relaxed max-w-[240px] border-l-2 border-red-500/30 pl-3 py-1 text-left bg-red-500/5 rounded-r mt-2">
-                            {errorDetail}
-                         </p>
-                     )}
-                     {!errorDetail && <div className="h-4"></div>}
-                     
-                     <button 
-                        onClick={handleRetry}
-                        className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-bold uppercase tracking-wider text-xs border border-zinc-700 transition"
-                     >
-                        Erneut versuchen
-                     </button>
+                     <p className="text-red-400 font-black mb-2 uppercase tracking-widest text-sm">Scanner-Fehler</p>
+                     <p className="text-zinc-500 text-xs mb-6 leading-relaxed max-w-[240px]">
+                        {errorMsg}
+                     </p>
+                     <div className="flex flex-col gap-3 w-full max-w-[200px]">
+                        <button 
+                            onClick={() => startScanner()} 
+                            className="bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-3 px-6 rounded-xl text-xs transition active:scale-95 border border-zinc-700"
+                        >
+                            Erneut versuchen
+                        </button>
+                        <button 
+                            onClick={() => setErrorMsg(null)} 
+                            className="text-zinc-600 hover:text-white text-[10px] uppercase font-bold tracking-widest transition"
+                        >
+                            Abbrechen
+                        </button>
+                     </div>
                  </div>
              )}
         </div>
