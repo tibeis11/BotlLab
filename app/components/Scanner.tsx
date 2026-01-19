@@ -16,6 +16,7 @@ export default function Scanner({ onScanSuccess }: ScannerProps) {
     const isStartingRef = useRef(false); 
     const isMountedRef = useRef(true);
     const [isScanning, setIsScanning] = useState(false);
+    const [permissionRequested, setPermissionRequested] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     
     // Use stable unique ID to avoid collisions during re-renders/HMR
@@ -24,15 +25,8 @@ export default function Scanner({ onScanSuccess }: ScannerProps) {
     useEffect(() => {
         isMountedRef.current = true;
         
-        const initScanner = async () => {
-            // Wait for DOM
-            await new Promise(r => setTimeout(r, 100));
-            if (isMountedRef.current) {
-                startScanner();
-            }
-        };
-
-        initScanner();
+        // Removed auto-start to comply with browser policies requiring user interaction
+        // initScanner(); 
 
         return () => {
             isMountedRef.current = false;
@@ -49,6 +43,7 @@ export default function Scanner({ onScanSuccess }: ScannerProps) {
     const startScanner = async () => {
         if (isStartingRef.current) return;
         isStartingRef.current = true;
+        setPermissionRequested(true);
         setErrorMsg(null);
 
         try {
@@ -93,12 +88,32 @@ export default function Scanner({ onScanSuccess }: ScannerProps) {
 
             // Attempt to start
             try {
-                // Try 'environment' (back camera) first
-                await scanner.start({ facingMode: "environment" }, config, onScanSuccess, undefined);
-            } catch (err) {
-                console.warn("Environment camera failed, trying user/any:", err);
-                // Fallback to any camera
-                await scanner.start({ facingMode: "user" }, config, onScanSuccess, undefined);
+                // Explicitly ask for cameras first to trigger permission prompt cleanly
+                const devices = await Html5Qrcode.getCameras();
+                if (!devices || devices.length === 0) {
+                     throw new Error("NotFoundError: Keine Kamera gefunden");
+                }
+
+                // Try to find back camera
+                const backCamera = devices.find(id => id.label.toLowerCase().includes('back') || id.label.toLowerCase().includes('rück'));
+                const cameraId = backCamera ? backCamera.id : devices[0].id;
+                
+                await scanner.start(
+                    cameraId, 
+                    config, 
+                    onScanSuccess, 
+                    undefined
+                );
+            } catch (err: any) {
+                console.warn("Camera start failed with specific ID, falling back to mode:", err);
+                
+                // Fallback to basic mode if specific ID failed or permission was partial
+                await scanner.start(
+                    { facingMode: "environment" }, 
+                    config, 
+                    onScanSuccess, 
+                    undefined
+                );
             }
 
             if (isMountedRef.current) setIsScanning(true);
@@ -149,8 +164,27 @@ export default function Scanner({ onScanSuccess }: ScannerProps) {
                 {/* Scanner Target */}
                 <div id={divId} className="w-full h-full [&>video]:object-cover [&>video]:w-full [&>video]:h-full"></div>
 
+                {/* Pre-Permission State: Explicit User Action Required */}
+                {!isScanning && !permissionRequested && !errorMsg && (
+                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-6 text-center bg-zinc-900">
+                        <div className="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center mb-6">
+                            <span className="text-3xl text-zinc-400">📷</span>
+                        </div>
+                        <h3 className="text-white font-bold mb-2">Kamera aktivieren</h3>
+                        <p className="text-zinc-500 text-xs mb-8 max-w-[200px]">
+                            Der Browser benötigt deine Erlaubnis, um den Scanner zu nutzen.
+                        </p>
+                        <button 
+                            onClick={startScanner}
+                            className="w-full max-w-[200px] py-4 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl font-bold uppercase tracking-widest shadow-lg shadow-cyan-900/20 transition-all active:scale-95"
+                        >
+                            Zugriff erlauben
+                        </button>
+                    </div>
+                )}
+
                 {/* Loading State */}
-                {!isScanning && !errorMsg && (
+                {!isScanning && permissionRequested && !errorMsg && (
                     <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-6 text-center bg-black/80 backdrop-blur-sm">
                         <div className="w-12 h-12 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin mb-4"></div>
                         <p className="text-zinc-400 text-xs font-bold uppercase tracking-widest">Kamera wird gestartet...</p>
