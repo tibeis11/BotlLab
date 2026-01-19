@@ -137,23 +137,34 @@ export async function exportAnalyticsCSV(
     }
 
     // Check tier access (Brewery+ required)
-    const { data: member } = await supabase
+    // The logged-in user must be the owner of the brewery
+    const { data: member, error: memberError } = await supabase
       .from('brewery_members')
-      .select('role, breweries(owner_id)')
+      .select('role')
       .eq('brewery_id', breweryId)
       .eq('user_id', user.id)
       .single();
+
+    if (memberError) {
+      console.error('[CSV Export] Member query error:', memberError);
+      return { error: 'Error checking membership: ' + memberError.message };
+    }
 
     if (!member || member.role !== 'owner') {
       return { error: 'Only brewery owners can export analytics' };
     }
 
-    // Check owner's tier
-    const { data: ownerProfile } = await supabase
+    // Check the logged-in user's (= owner's) tier
+    const { data: ownerProfile, error: profileError } = await supabase
       .from('profiles')
       .select('tier')
-      .eq('id', (member.breweries as any)?.owner_id)
+      .eq('id', user.id)
       .single();
+
+    if (profileError) {
+      console.error('[CSV Export] Profile query error:', profileError);
+      return { error: 'Error checking tier: ' + profileError.message };
+    }
 
     const tier = ownerProfile?.tier || 'free';
     if (tier === 'free' || tier === 'brewer') {

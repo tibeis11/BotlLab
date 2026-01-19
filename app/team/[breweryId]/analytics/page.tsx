@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { getBreweryAnalyticsAccess, getAvailableTimeRanges, type UserTier, type AnalyticsFeatures } from '@/lib/analytics-tier-features';
 import ReportSettingsPanel from './components/ReportSettingsPanel';
 import BreweryHeatmap from './components/BreweryHeatmap';
+import CustomSelect from '@/app/components/CustomSelect';
 import Link from 'next/link';
 
 interface AnalyticsPageData {
@@ -36,8 +37,10 @@ export default function BreweryAnalyticsPage() {
   const [accessError, setAccessError] = useState<string | null>(null);
   
   // Filter states
-  const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | 'all'>('30d');
+  const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | 'all' | 'custom'>('30d');
   const [selectedBrewId, setSelectedBrewId] = useState<string | null>(null);
+  const [customStartDate, setCustomStartDate] = useState<string>('');
+  const [customEndDate, setCustomEndDate] = useState<string>('');
   
   // Export state
   const [exporting, setExporting] = useState(false);
@@ -60,6 +63,13 @@ export default function BreweryAnalyticsPage() {
 
   async function checkAccess() {
     const access = await getBreweryAnalyticsAccess(breweryId);
+    
+    if (!access || !access.features) {
+      setAccessError('Error loading access information');
+      setLoading(false);
+      return;
+    }
+    
     setUserTier(access.tier);
     setFeatures(access.features);
     
@@ -80,7 +90,7 @@ export default function BreweryAnalyticsPage() {
     if (features?.hasAccess && breweryId) {
       loadAnalytics();
     }
-  }, [breweryId, timeRange, selectedBrewId]);
+  }, [breweryId, timeRange, selectedBrewId, customStartDate, customEndDate]);
 
   async function loadAnalytics() {
     setLoading(true);
@@ -89,9 +99,13 @@ export default function BreweryAnalyticsPage() {
     try {
       // Calculate date range
       let startDate: string | undefined;
+      let endDate: string | undefined;
       const today = new Date();
       
-      if (timeRange === '7d') {
+      if (timeRange === 'custom') {
+        startDate = customStartDate || undefined;
+        endDate = customEndDate || undefined;
+      } else if (timeRange === '7d') {
         startDate = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
       } else if (timeRange === '30d') {
         startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
@@ -100,7 +114,8 @@ export default function BreweryAnalyticsPage() {
       }
 
       const result = await getBreweryAnalyticsSummary(breweryId, {
-        startDate
+        startDate,
+        endDate
       });
 
       if ('error' in result) {
@@ -130,7 +145,7 @@ export default function BreweryAnalyticsPage() {
         }
         
         // Load conversion rate data
-        const conversionResult = await getConversionRate(breweryId, { startDate });
+        const conversionResult = await getConversionRate(breweryId, { startDate, endDate });
         if (conversionResult.data) {
           setConversionData(conversionResult.data);
         }
@@ -163,9 +178,13 @@ export default function BreweryAnalyticsPage() {
     try {
       // Calculate date range for export
       let startDate: string | undefined;
+      let endDate: string | undefined;
       const today = new Date();
       
-      if (timeRange === '7d') {
+      if (timeRange === 'custom') {
+        startDate = customStartDate || undefined;
+        endDate = customEndDate || today.toISOString().split('T')[0];
+      } else if (timeRange === '7d') {
         startDate = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
       } else if (timeRange === '30d') {
         startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
@@ -175,7 +194,7 @@ export default function BreweryAnalyticsPage() {
 
       const result = await exportAnalyticsCSV(breweryId, {
         startDate,
-        endDate: today.toISOString().split('T')[0],
+        endDate: endDate || today.toISOString().split('T')[0],
         brewId: selectedBrewId || undefined
       });
 
@@ -438,21 +457,52 @@ export default function BreweryAnalyticsPage() {
               {range.locked && <span className="ml-1">🔒</span>}
             </button>
           ))}
+          <button
+            onClick={() => setTimeRange('custom')}
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+              timeRange === 'custom'
+                ? 'bg-cyan-500 text-black'
+                : 'bg-zinc-900 text-zinc-400 hover:text-white'
+            }`}
+          >
+            📅 Custom
+          </button>
         </div>
+        
+        {/* Custom Date Range Inputs */}
+        {timeRange === 'custom' && (
+          <div className="flex items-center gap-2 bg-zinc-900 rounded-lg p-2 border border-zinc-800">
+            <label className="text-xs text-zinc-500 font-bold">Von:</label>
+            <input
+              type="date"
+              value={customStartDate}
+              onChange={(e) => setCustomStartDate(e.target.value)}
+              className="px-3 py-1 rounded bg-zinc-800 text-white border border-zinc-700 focus:border-cyan-500 outline-none text-sm"
+            />
+            <label className="text-xs text-zinc-500 font-bold">Bis:</label>
+            <input
+              type="date"
+              value={customEndDate}
+              onChange={(e) => setCustomEndDate(e.target.value)}
+              className="px-3 py-1 rounded bg-zinc-800 text-white border border-zinc-700 focus:border-cyan-500 outline-none text-sm"
+            />
+          </div>
+        )}
 
         {breweryBrews.length > 0 && (
-          <select
+          <CustomSelect
             value={selectedBrewId || ''}
-            onChange={(e) => setSelectedBrewId(e.target.value || null)}
-            className="px-4 py-2 rounded-lg bg-zinc-900 text-white border border-zinc-800 focus:border-cyan-500 outline-none"
-          >
-            <option value="">Alle Rezepte</option>
-            {breweryBrews.map(b => (
-              <option key={b.id} value={b.id}>
-                {b.name} ({b.style})
-              </option>
-            ))}
-          </select>
+            onChange={(val) => setSelectedBrewId(val || null)}
+            options={[
+              { value: '', label: 'Alle Rezepte' },
+              ...breweryBrews.map(b => ({
+                value: b.id,
+                label: `${b.name} (${b.style})`
+              }))
+            ]}
+            placeholder="Rezept wählen"
+            className="min-w-[200px]"
+          />
         )}
         
         {/* CSV Export Button (Brewery+ Feature) */}
@@ -755,7 +805,7 @@ export default function BreweryAnalyticsPage() {
             <h4 className="text-white font-bold mb-1">Datenschutz-freundliche Analytics</h4>
             <p className="text-sm text-zinc-500">
               Wir speichern keine IP-Adressen und verwenden tägliche Session-Hashes für anonyme Besucherzählung. 
-              Alle Daten sind GDPR-konform und werden nach 90 Tagen automatisch gelöscht.
+              Alle Daten sind GDPR-konform und werden nach {features?.maxDays || 30} Tagen automatisch gelöscht.
             </p>
           </div>
         </div>

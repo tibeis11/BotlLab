@@ -84,20 +84,33 @@ export async function toggleBrewLike(brewId: string) {
 
   // Check existence
 
-  const { data: existingLike } = await supabase
+  const { data: existingLike, error: fetchError } = await supabase
     .from('likes')
     .select('id')
     .eq('brew_id', brewId)
     .eq('user_id', user.id)
-    .single();
+    .maybeSingle();
+
+  if (fetchError) {
+    console.error("Error checking existing like:", fetchError);
+    throw new Error("Could not check like status");
+  }
 
   if (existingLike) {
-    await supabase.from('likes').delete().eq('id', existingLike.id);
+    const { error: deleteError } = await supabase.from('likes').delete().eq('id', existingLike.id);
+    if (deleteError) {
+      console.error("Error removing like:", deleteError);
+      throw new Error(`Failed to remove like: ${deleteError.message}`);
+    }
   } else {
-    await supabase.from('likes').insert({
+    const { error: insertError } = await supabase.from('likes').insert({
       user_id: user.id,
       brew_id: brewId
     });
+    if (insertError) {
+      console.error("Error adding like:", insertError);
+      throw new Error(`Failed to add like: ${insertError.message}`);
+    }
   }
 
   revalidatePath('/discover');

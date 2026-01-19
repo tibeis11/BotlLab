@@ -23,6 +23,13 @@ export default function AccountPage() {
 	const [redeemLoading, setRedeemLoading] = useState(false);
 	const [redeemMessage, setRedeemMessage] = useState<{ type: 'success' | 'error', msg: string } | null>(null);
 
+	// Cancel Subscription State
+	const [cancelLoading, setCancelLoading] = useState(false);
+	const [showCancelModal, setShowCancelModal] = useState(false);
+
+	// Upgrade State
+	const [upgradeLoading, setUpgradeLoading] = useState(false);
+
     // Global State
 	const router = useRouter();
 
@@ -255,6 +262,62 @@ export default function AccountPage() {
 		}
 	}
 
+	async function handleCancelSubscription() {
+		if (!user) return;
+		
+		setCancelLoading(true);
+		
+		try {
+			const response = await fetch('/api/subscriptions/cancel', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+			});
+			
+			const result = await response.json();
+			
+			if (result.success) {
+				alert('Dein Abo wurde erfolgreich gekündigt. Du erhältst eine Bestätigungs-Email.');
+				setShowCancelModal(false);
+				// Refresh profile
+				await loadProfile(user.id);
+			} else {
+				alert('Fehler: ' + result.error);
+			}
+		} catch (error) {
+			alert('Fehler beim Kündigen: ' + error);
+		} finally {
+			setCancelLoading(false);
+		}
+	}
+
+	async function handleUpgrade(tier: 'brewer' | 'brewery') {
+		if (!user) return;
+		
+		setUpgradeLoading(true);
+		
+		try {
+			const response = await fetch('/api/stripe/create-checkout', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ tier }),
+			});
+			
+			const result = await response.json();
+			
+			if (result.url) {
+				// Redirect to Stripe Checkout
+				window.location.href = result.url;
+			} else {
+				// Payments not enabled yet (Commercial Barrier)
+				alert(result.error || 'Danke für dein Interesse! Wir bereiten gerade den Launch vor. Sobald wir startklar sind, wirst du hier upgraden können.');
+				setUpgradeLoading(false);
+			}
+		} catch (error) {
+			alert('Fehler beim Upgrade: ' + error);
+			setUpgradeLoading(false);
+		}
+	}
+
     // --- ACCOUNT HANDLERS ---
 
 	async function handleUpdatePassword(e: React.FormEvent) {
@@ -434,8 +497,12 @@ export default function AccountPage() {
                                                         <h4 className="font-bold text-amber-500">Heimbrauer (Brewer)</h4>
                                                         <p className="text-xs text-zinc-400">50 Credits, Custom Logos</p>
                                                     </div>
-                                                    <button className="px-4 py-2 bg-amber-500 text-black font-bold text-sm rounded-lg hover:bg-amber-400 transition cursor-not-allowed opacity-75">
-                                                        Bald verfügbar
+                                                    <button 
+                                                        onClick={() => handleUpgrade('brewer')}
+                                                        disabled={upgradeLoading}
+                                                        className="px-4 py-2 bg-amber-500 text-black font-bold text-sm rounded-lg hover:bg-amber-400 transition disabled:opacity-50"
+                                                    >
+                                                        {upgradeLoading ? 'Laden...' : 'Upgrade'}
                                                     </button>
                                                 </div>
                                                 <div className="p-4 bg-gradient-to-br from-indigo-500/10 to-transparent border border-indigo-500/20 rounded-xl flex items-center justify-between">
@@ -443,11 +510,32 @@ export default function AccountPage() {
                                                         <h4 className="font-bold text-indigo-500">Brauerei (Business)</h4>
                                                         <p className="text-xs text-zinc-400">Unbegrenzt Credits, Teams</p>
                                                     </div>
-                                                    <button className="px-4 py-2 bg-indigo-500 text-white font-bold text-sm rounded-lg hover:bg-indigo-400 transition cursor-not-allowed opacity-75">
-                                                        Bald verfügbar
+                                                    <button 
+                                                        onClick={() => handleUpgrade('brewery')}
+                                                        disabled={upgradeLoading}
+                                                        className="px-4 py-2 bg-indigo-500 text-white font-bold text-sm rounded-lg hover:bg-indigo-400 transition disabled:opacity-50"
+                                                    >
+                                                        {upgradeLoading ? 'Laden...' : 'Upgrade'}
                                                     </button>
                                                 </div>
                                             </div>
+                                        </div>
+                                    )}
+
+                                    {/* Cancel Subscription Section - only for active paid subscriptions */}
+                                    {(profile.subscription_tier === 'brewer' || profile.subscription_tier === 'brewery' || profile.subscription_tier === 'enterprise') && 
+                                     profile.subscription_status === 'active' && (
+                                        <div className="pt-6 border-t border-zinc-800 space-y-4">
+                                            <div>
+                                                <h3 className="font-bold text-white mb-1.5 text-sm uppercase tracking-wider">Abo verwalten</h3>
+                                                <p className="text-xs text-zinc-500">Du kannst dein Abo jederzeit kündigen. Es läuft bis zum Ende der Laufzeit weiter.</p>
+                                            </div>
+                                            <button 
+                                                onClick={() => setShowCancelModal(true)}
+                                                className="px-6 py-2.5 bg-rose-900/20 hover:bg-rose-900/30 text-rose-400 rounded-xl text-sm font-bold border border-rose-900/50 transition"
+                                            >
+                                                Abo kündigen
+                                            </button>
                                         </div>
                                     )}
 
@@ -936,6 +1024,42 @@ export default function AccountPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Cancel Subscription Modal */}
+            {showCancelModal && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+                    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200">
+                        <h2 className="text-2xl font-bold text-white mb-2">Abo kündigen?</h2>
+                        <p className="text-zinc-400 text-sm mb-6 leading-relaxed">
+                            Dein Abo bleibt bis zum Ende der aktuellen Laufzeit aktiv. 
+                            Danach wirst du automatisch auf den kostenlosen Plan zurückgestuft.
+                        </p>
+                        
+                        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mb-6">
+                            <p className="text-amber-400 text-xs font-bold">
+                                ⚠️ Diese Aktion kann nicht rückgängig gemacht werden.
+                            </p>
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button 
+                                onClick={() => setShowCancelModal(false)}
+                                disabled={cancelLoading}
+                                className="flex-1 px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl text-sm font-bold border border-zinc-700 transition disabled:opacity-50"
+                            >
+                                Abbrechen
+                            </button>
+                            <button 
+                                onClick={handleCancelSubscription}
+                                disabled={cancelLoading}
+                                className="flex-1 px-6 py-3 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-sm font-bold transition disabled:opacity-50"
+                            >
+                                {cancelLoading ? 'Kündige...' : 'Jetzt kündigen'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 		</div>
 	);
 }

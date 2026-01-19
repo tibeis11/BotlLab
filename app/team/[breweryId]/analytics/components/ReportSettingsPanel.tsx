@@ -11,6 +11,7 @@ import {
   type ReportFrequency,
 } from "@/lib/actions/report-actions";
 import { Mail, Clock, TrendingUp, Calendar, CheckCircle2, XCircle, Loader2, Eye } from "lucide-react";
+import CustomSelect from "@/app/components/CustomSelect";
 
 type Props = {
   breweryId: string;
@@ -199,19 +200,19 @@ export default function ReportSettingsPanel({ breweryId }: Props) {
               Versand-Tag
             </label>
             {frequency === "weekly" ? (
-              <select
-                value={sendDay}
-                onChange={(e) => setSendDay(Number(e.target.value))}
-                className="w-full px-4 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-white focus:border-cyan-500 outline-none"
-              >
-                <option value={1}>Montag</option>
-                <option value={2}>Dienstag</option>
-                <option value={3}>Mittwoch</option>
-                <option value={4}>Donnerstag</option>
-                <option value={5}>Freitag</option>
-                <option value={6}>Samstag</option>
-                <option value={7}>Sonntag</option>
-              </select>
+              <CustomSelect
+                value={sendDay.toString()}
+                onChange={(value) => setSendDay(Number(value))}
+                options={[
+                  { value: "1", label: "Montag" },
+                  { value: "2", label: "Dienstag" },
+                  { value: "3", label: "Mittwoch" },
+                  { value: "4", label: "Donnerstag" },
+                  { value: "5", label: "Freitag" },
+                  { value: "6", label: "Samstag" },
+                  { value: "7", label: "Sonntag" },
+                ]}
+              />
             ) : (
               <input
                 type="number"

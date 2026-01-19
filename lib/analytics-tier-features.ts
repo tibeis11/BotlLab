@@ -91,7 +91,7 @@ export async function getBreweryAnalyticsAccess(breweryId: string): Promise<{
     }
 
     // Check if user is brewery owner
-    const { data: membership } = await supabase
+    const { data: membership, error: memberError } = await supabase
       .from('brewery_members')
       .select('role')
       .eq('brewery_id', breweryId)
@@ -107,7 +107,7 @@ export async function getBreweryAnalyticsAccess(breweryId: string): Promise<{
     }
 
     // Get user tier from profile
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('subscription_tier')
       .eq('id', user.id)

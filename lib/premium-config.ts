@@ -86,12 +86,12 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier, TierConfig> = {
     },
   },
   enterprise: {
-    name: "Early Access", // UI: "Early Access" / "Founder" statt "Enterprise"
+    name: "Enterprise",
     price: 0, // Beta: Kostenlos, später: 49.99
     currency: "EUR",
     interval: "lifetime", // Lifetime für Beta-Tester
     badge_color: "bg-purple-500",
-    badge_icon: "🚀", // Rakete für "Early Access"
+    badge_icon: "🚀",
     features: {
       ai_generations_per_month: -1,
       custom_brewery_slogan: true,

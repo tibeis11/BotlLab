@@ -115,8 +115,9 @@ export default function BreweryHeatmap({ data, geoPoints }: HeatmapProps) {
       <MapContainer
         center={center}
         zoom={zoom} // eslint-disable-line
-        style={{ height: '500px', width: '100%', borderRadius: '0.5rem' }}
+        style={{ height: '500px', width: '100%', borderRadius: '0.5rem', zIndex: 1 }}
         scrollWheelZoom={true} // eslint-disable-line
+        className="z-[1]"
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -141,7 +142,7 @@ export default function BreweryHeatmap({ data, geoPoints }: HeatmapProps) {
       </MapContainer>
       
       {/* Legend */}
-      <div className="absolute bottom-4 right-4 bg-zinc-900/90 backdrop-blur-sm rounded-lg p-3 text-sm z-[1000] border border-zinc-800">
+      <div className="absolute bottom-4 right-4 bg-zinc-900/90 backdrop-blur-sm rounded-lg p-3 text-sm z-[10] border border-zinc-800">
         <div className="font-bold text-white mb-2">Scan-Typ</div>
         {showCityPoints ? (
            <div className="flex items-center gap-2">

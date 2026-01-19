@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
   return Response.json({
     remaining: premiumStatus.features.aiGenerationsRemaining,
     limit:
-      premiumStatus.tier === "enterprise"
+      false
         ? -1
         : premiumStatus.features.aiGenerationsRemaining +
           (await getUsedCredits(user.id)),

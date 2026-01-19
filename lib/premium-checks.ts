@@ -2,6 +2,67 @@ import { createClient } from "@/lib/supabase-server";
 import { SubscriptionTier, SUBSCRIPTION_TIERS, type PremiumStatus } from "./premium-config";
 
 /**
+ * Enforce subscription expiry check
+ * Returns true if profile was updated (downgraded)
+ * 
+ * PHASE 1.1: Real-time expiry enforcement
+ * This function is called by getUserPremiumStatus() before returning status
+ * to ensure expired subscriptions are immediately downgraded.
+ */
+async function enforceSubscriptionExpiry(
+  profile: any,
+  userId: string,
+  supabase: any
+): Promise<boolean> {
+  // Null expires_at = lifetime subscription (enterprise beta users)
+  if (!profile.subscription_expires_at) {
+    return false;
+  }
+
+  const now = new Date();
+  const expiresAt = new Date(profile.subscription_expires_at);
+
+  // Check if expired and still marked as active
+  if (now > expiresAt && profile.subscription_status === 'active') {
+    console.log(
+      `[Expiry] Auto-downgrading user ${userId} from ${profile.subscription_tier} to free`
+    );
+
+    // Atomic update
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({
+        subscription_status: 'expired',
+        subscription_tier: 'free',
+        ai_credits_used_this_month: 0,
+      })
+      .eq('id', userId);
+
+    if (updateError) {
+      console.error('[Expiry] Failed to downgrade user:', updateError);
+      return false;
+    }
+
+    // Log to audit trail
+    await supabase.from('subscription_history').insert({
+      profile_id: userId,
+      subscription_tier: 'free',
+      subscription_status: 'expired',
+      previous_tier: profile.subscription_tier,
+      changed_reason: 'Automatic expiry - real-time check detected expired subscription',
+      metadata: {
+        expired_at: profile.subscription_expires_at,
+        detected_at: now.toISOString(),
+      },
+    });
+
+    return true; // Profile was updated
+  }
+
+  return false; // No changes needed
+}
+
+/**
  * Get full premium status for a user
  */
 export async function getUserPremiumStatus(
@@ -20,6 +81,23 @@ export async function getUserPremiumStatus(
   if (error || !profile) {
     console.error("Failed to fetch premium status:", error);
     return null;
+  }
+
+  // ✅ PHASE 1.1: Enforce expiry check BEFORE returning status
+  const wasExpired = await enforceSubscriptionExpiry(profile, userId, supabase);
+  if (wasExpired) {
+    // Profile was downgraded - refetch to get updated values
+    const { data: updatedProfile } = await supabase
+      .from("profiles")
+      .select(
+        "subscription_tier, subscription_status, subscription_expires_at, ai_credits_used_this_month, ai_credits_reset_at"
+      )
+      .eq("id", userId)
+      .single();
+    
+    if (updatedProfile) {
+      Object.assign(profile, updatedProfile);
+    }
   }
 
   // Check if credits need reset (new month)

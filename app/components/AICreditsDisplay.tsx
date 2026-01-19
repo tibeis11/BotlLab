@@ -70,7 +70,7 @@ export default function AICreditsDisplay({ userId }: { userId: string }) {
       </div>
 
       <p className="text-[10px] text-zinc-500 mt-2 flex justify-between uppercase font-bold tracking-widest">
-        <span>{isUnlimited ? "Enterprise Plan" : "Monatliches Budget"}</span>
+        <span>Monatliches Budget</span>
         {!isUnlimited && percentage < 20 && (
            <span className="text-rose-600 font-bold">Wenig übrig</span>
         )}

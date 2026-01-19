@@ -120,7 +120,82 @@ export default function BreweryTierWidget({ breweryId }: { breweryId: string }) 
   );
 
   const isMaxTier = !nextTier;
+  const isPremiumUser = premiumStatus?.tier === 'brewery' || premiumStatus?.tier === 'enterprise';
 
+  // Premium Widget for Brewery users
+  if (isPremiumUser && premiumStatus) {
+    return (
+      <div className="bg-gradient-to-br from-purple-900/20 to-zinc-900/10 border border-purple-500/20 rounded-3xl p-6 shadow-xl relative overflow-hidden mb-8">
+        <div 
+          className="absolute inset-0 opacity-10 blur-3xl pointer-events-none"
+          style={{ background: `radial-gradient(circle at top right, #a855f7, transparent)` }}
+        />
+
+        <div className="relative z-10 space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div 
+                className="text-4xl w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg bg-gradient-to-br from-purple-600 to-pink-600"
+              >
+                🏭
+              </div>
+              <div>
+                <div className="text-xs font-bold uppercase tracking-widest text-purple-400">Premium Status</div>
+                <h3 className="text-2xl font-black text-white">
+                  {premiumStatus.tier === 'enterprise' ? 'Enterprise' : 'Brewery'} Premium
+                </h3>
+              </div>
+            </div>
+            
+            <div className="hidden sm:block">
+              <div className="text-right">
+                <div className="text-xs text-zinc-500 font-bold uppercase tracking-wider">Status</div>
+                <div className="text-lg font-black text-emerald-400">Aktiv</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Active Benefits */}
+          <div className="bg-zinc-900/50 rounded-2xl p-4 border border-zinc-800/50">
+            <div className="text-sm font-bold text-white mb-3">Freigeschaltete Features</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <FeaturePill icon="♾️" label="Unbegrenzte Rezepte" active={premiumStatus.features.bypassBrewLimits} />
+              <FeaturePill icon="🍾" label="Unbegrenzte Flaschen" active={premiumStatus.features.bypassBottleLimits} />
+              <FeaturePill icon="🏷️" label="Eigenes Brauerei-Logo" active={premiumStatus.features.canUseBreweryLogo} />
+              <FeaturePill icon="💬" label="Custom Slogan" active={premiumStatus.features.canUseCustomSlogan} />
+              <FeaturePill icon="📊" label="Erweiterte Analytics" active={true} />
+              <FeaturePill icon="🤖" label={premiumStatus.features.aiGenerationsRemaining === -1 ? 'Unbegrenzte AI' : `${premiumStatus.features.aiGenerationsRemaining} AI/Monat`} active={true} />
+            </div>
+          </div>
+
+          {/* Current Limits Display */}
+          <div className="bg-zinc-900/30 rounded-2xl p-4 border border-zinc-800/30">
+            <div className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-3">Aktuelle Nutzung</div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-center">
+                <div className="text-2xl font-black text-cyan-400">{data.brewCount}</div>
+                <div className="text-xs text-zinc-500 mt-1">Rezepte</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-black text-purple-400">{data.bottleCount}</div>
+                <div className="text-xs text-zinc-500 mt-1">Flaschen</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Thank You Message */}
+          <div className="text-center p-3 bg-purple-500/10 rounded-xl border border-purple-500/20">
+            <span className="text-sm text-purple-300 font-bold">
+              💎 Danke für deine Unterstützung!
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Regular Tier Widget for Free/Brewer users
   return (
     <div className="bg-gradient-to-br from-emerald-900/20 to-zinc-900/10 border border-emerald-500/20 rounded-3xl p-6 shadow-xl relative overflow-hidden mb-8">
        <div 
@@ -204,7 +279,7 @@ export default function BreweryTierWidget({ breweryId }: { breweryId: string }) 
         )}
 
         {/* Benefits Next Tier */}
-        {!isMaxTier && nextTier && (
+        {!isMaxTier && nextTier && (premiumStatus?.tier !== 'enterprise' && premiumStatus?.tier !== 'brewery') && (
              <div className="mt-2">
                 <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-600 mb-2">Next Up</div>
                 <div className="flex flex-wrap gap-2 text-xs text-zinc-400">
@@ -229,7 +304,7 @@ function Limitpill({ icon, current, max, label, bypassed = false }: { icon: stri
     return (
         <div className={`flex flex-col items-end ${isHit ? 'text-red-400' : isClose ? 'text-orange-400' : 'text-zinc-400'}`}>
             <div className="text-xs font-bold uppercase tracking-wider opacity-60 flex items-center gap-1">
-                {label} {bypassed && <span title="Limit aufgehoben durch Early Access">🚀</span>}
+                {label} {bypassed && <span title="Limit aufgehoben durch Premium">💎</span>}
             </div>
             <div className="font-mono font-bold text-sm">
                 <span>{current}</span>
@@ -248,6 +323,20 @@ function GoalItem({ label, current, target }: { label: string, current: number, 
             <span className={`text-sm font-black ${done ? 'text-emerald-400' : 'text-zinc-300'}`}>
                 {current >= target ? '✓' : `${current}/${target}`}
             </span>
+        </div>
+    )
+}
+
+function FeaturePill({ icon, label, active }: { icon: string, label: string, active: boolean }) {
+    return (
+        <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${
+            active 
+                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
+                : 'bg-zinc-800/50 border-zinc-700/50 text-zinc-500'
+        }`}>
+            <span className="text-lg">{icon}</span>
+            <span className="text-xs font-bold">{label}</span>
+            {active && <span className="ml-auto text-emerald-400">✓</span>}
         </div>
     )
 }

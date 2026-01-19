@@ -8,7 +8,7 @@ import confetti from 'canvas-confetti';
 import Logo from '../../components/Logo';
 import { checkAndGrantAchievements } from '@/lib/achievements';
 import CrownCap from '../../components/CrownCap';
-import { trackBottleScan } from '@/lib/actions/analytics-actions';
+import { trackBottleScan, trackConversion } from '@/lib/actions/analytics-actions';
 import { useAuth } from '@/app/context/AuthContext';
 
 const renderIngredientList = (items: any, mode: 'absolute' | 'percentage' | 'name_only' | { type: 'grams_per_liter', volume: number } = 'absolute') => {
@@ -464,6 +464,11 @@ export default function PublicScanPage() {
         setHasAlreadyRated(true);
         await loadRatings(brewId);
         alert('Danke für deine Bewertung! ⭐');
+        
+        // Track conversion for analytics (if user is logged in)
+        if (user) {
+          trackConversion(id, user.id).catch(console.error);
+        }
         
         // Achievements im Hintergrund prüfen (für den Brew-Besitzer)
         if (data?.brews?.user_id) {

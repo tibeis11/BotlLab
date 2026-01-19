@@ -145,7 +145,6 @@ export default function AdminHeader() {
     { name: 'Sammlung', path: '/dashboard/collection', icon: '🏅' },
     { name: 'Favoriten', path: '/dashboard/favorites', icon: '❤️' },
     { name: 'Achievements', path: '/dashboard/achievements', icon: '🏆' },
-    { name: 'Analytics', path: '/dashboard/analytics', icon: '📊' },
   ];
 
   return (
@@ -253,9 +252,13 @@ export default function AdminHeader() {
                                               <span className="text-xs">👥</span>
                                               <span className="text-xs font-bold">Team</span>
                                           </Link>
-                                          <Link href={`/team/${breweryId}/settings`} className="col-span-2 flex items-center gap-2 p-2 rounded hover:bg-zinc-800 text-zinc-400 hover:text-white transition group border-t border-zinc-800/50 mt-1 pt-2">
+                                          <Link href={`/team/${breweryId}/analytics`} className="flex items-center gap-2 p-2 rounded hover:bg-zinc-800 text-zinc-400 hover:text-white transition group">
+                                              <span className="text-xs">📊</span>
+                                              <span className="text-xs font-bold">Analytics</span>
+                                          </Link>
+                                          <Link href={`/team/${breweryId}/settings`} className="flex items-center gap-2 p-2 rounded hover:bg-zinc-800 text-zinc-400 hover:text-white transition group border-t border-zinc-800/50">
                                               <span className="text-xs">⚙️</span>
-                                              <span className="text-xs font-bold">Einstellungen</span>
+                                              <span className="text-xs font-bold">Settings</span>
                                           </Link>
                                       </div>
                                   </div>
@@ -573,12 +576,21 @@ export default function AdminHeader() {
                                         <span className="ml-auto text-zinc-600">→</span>
                                      </Link>
                                      <Link
+                                      href={`/team/${breweryId}/analytics`}
+                                      onClick={() => setIsMobileMenuOpen(false)}
+                                      className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
+                                     >
+                                        <span className="text-xl">📊</span>
+                                        <span className="font-bold text-sm text-zinc-200">Analytics</span>
+                                        <span className="ml-auto text-zinc-600">→</span>
+                                     </Link>
+                                     <Link
                                       href={`/team/${breweryId}/settings`}
                                       onClick={() => setIsMobileMenuOpen(false)}
                                       className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
                                      >
                                         <span className="text-xl">⚙️</span>
-                                        <span className="font-bold text-sm text-zinc-200">Einstellungen</span>
+                                        <span className="font-bold text-sm text-zinc-200">Settings</span>
                                         <span className="ml-auto text-zinc-600">→</span>
                                      </Link>
                                   </div>
