@@ -92,7 +92,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   console.log(`[Webhook] Checkout completed for user ${userId}, tier: ${tier}`);
   
   // Fetch subscription to get period end
-  const subscription = await stripe.subscriptions.retrieve(session.subscription as string) as Stripe.Subscription;
+  const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
   
   const { error } = await supabaseAdmin
     .from('profiles')
@@ -100,7 +100,8 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       subscription_tier: tier,
       subscription_status: 'active',
       subscription_started_at: new Date(),
-      subscription_expires_at: new Date(subscription.current_period_end * 1000),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      subscription_expires_at: new Date((subscription as any).current_period_end * 1000),
       stripe_subscription_id: subscription.id,
     })
     .eq('id', userId);
