@@ -168,7 +168,7 @@ export const renderLabelToDataUrl = async (
         }
     }
     lines.push(currentLine);
-    const maxLines = 2; // Always allow 2 lines
+    const maxLines = 2; // Always allow 2 lines for multiline slogans
     const limitedLines = lines.slice(0, maxLines);
 
     // Prepare Lines

@@ -9,7 +9,6 @@ export interface LabelDimensions {
   marginTop: number; // mm
   safeZone: number; // mm internal padding
   bgImage?: string; // path to background image in public/
-  orientation?: 'p' | 'l'; // portrait or landscape PDF page orientation (default 'l')
 }
 
 export const LABEL_FORMATS: Record<string, LabelDimensions> = {
@@ -24,8 +23,7 @@ export const LABEL_FORMATS: Record<string, LabelDimensions> = {
     marginLeft: 6,
     marginTop: 0,
     safeZone: 5,
-    bgImage: '/labels/label_105x57.png',
-    orientation: 'l'
+    bgImage: '/labels/label_105x57.png'
   },
   // Transposed Dimensions for Landscape Config (Original 105x74 -> 74x105)
   '6138': {
@@ -38,8 +36,7 @@ export const LABEL_FORMATS: Record<string, LabelDimensions> = {
     marginLeft: 0.5,
     marginTop: 0,
     safeZone: 5,
-    bgImage: '/labels/label_105x74.png',
-    orientation: 'l'
+    bgImage: '/labels/label_105x74.png'
   },
   // Avery 4782 (97x67.7mm) - 4x2 Grid on Portrait
   '4782': {
@@ -52,23 +49,21 @@ export const LABEL_FORMATS: Record<string, LabelDimensions> = {
     marginLeft: 13.1, // (297 - 4*67.7) / 2
     marginTop: 8,     // (210 - 2*97) / 2
     safeZone: 5,
-    bgImage: '/labels/label_97x67.7.png',
-    orientation: 'l'
+    bgImage: '/labels/label_97x67.7.png'
   },
-  // Avery 6605 (70x37mm) - 3x8 Grid on Portrait A4
+  // Avery 6605 (70x37mm) - 8x5 Grid on Landscape A4
   // Sehr kleines Format - optimiert für kompaktes Layout
   '6605': {
     id: '6605',
-    name: 'Compact (6605) - 70x37',
-    width: 70,  // Breite des Etiketts
-    height: 37, // Höhe des Etiketts
-    cols: 3,    // 3 Spalten auf A4
-    rows: 8,    // 8 Zeilen auf A4
-    marginLeft: 0, // A4 Portrait hat 210mm Breite -> 3x70 = 210mm
-    marginTop: 0.5,  // A4 Portrait hat 297mm Höhe -> 8x37 = 296mm
+    name: 'Compact (6605) - 37x70',
+    width: 37,  // Breite des einzelnen Etiketts (schmal)
+    height: 70, // Höhe des einzelnen Etiketts (hoch) -> Hochformat!
+    cols: 8,    // 8 Spalten auf A4 Landscape (8×37 = 296mm passt in 297mm Breite)
+    rows: 3,    // 3 Zeilen auf A4 Landscape (3×70 = 210mm passt in 210mm Höhe)
+    marginLeft: 0.5, // Minimaler Rand links (297mm - 296mm = 1mm)
+    marginTop: 0,    // Kein Rand oben (passt exakt)
     safeZone: 3, // Reduzierte Safe Zone für kleines Format
-    bgImage: '/labels/label_70x37.png',
-    orientation: 'p' // WICHTIG: Portrait Modus für A4 Blattnutzung
+    bgImage: '/labels/label_70x37.png'
   }
 };
 
