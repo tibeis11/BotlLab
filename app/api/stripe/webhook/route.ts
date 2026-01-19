@@ -131,7 +131,8 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
  * Subscription renewed - extend expiry date
  */
 async function handleInvoicePaid(invoice: Stripe.Invoice) {
-  const subscriptionId = invoice.subscription as string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const subscriptionId = (invoice as any).subscription as string;
   
   if (!subscriptionId) return;
   
@@ -141,7 +142,8 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
     .from('profiles')
     .update({
       subscription_status: 'active',
-      subscription_expires_at: new Date(subscription.current_period_end * 1000),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      subscription_expires_at: new Date((subscription as any).current_period_end * 1000),
     })
     .eq('stripe_subscription_id', subscriptionId);
   
