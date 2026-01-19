@@ -175,19 +175,15 @@ export default function Scanner({ onScanSuccess }: ScannerProps) {
 
                 {/* Pre-Permission State: Explicit User Action Required */}
                 {!isScanning && !permissionRequested && !errorMsg && (
-                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-6 text-center bg-zinc-900">
-                        <div className="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center mb-6">
-                            <span className="text-3xl text-zinc-400">📷</span>
+                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-6 text-center bg-black/40">
+                        <div className="mb-4 text-4xl opacity-50 grayscale">
+                            📷
                         </div>
-                        <h3 className="text-white font-bold mb-2">Kamera aktivieren</h3>
-                        <p className="text-zinc-500 text-xs mb-8 max-w-[200px]">
-                            Der Browser benötigt deine Erlaubnis, um den Scanner zu nutzen.
-                        </p>
                         <button 
                             onClick={startScanner}
-                            className="w-full max-w-[200px] py-4 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl font-bold uppercase tracking-widest shadow-lg shadow-cyan-900/20 transition-all active:scale-95"
+                            className="px-8 py-3 bg-cyan-500 hover:bg-cyan-400 text-black font-black uppercase tracking-widest rounded-full shadow-lg shadow-cyan-500/20 transition-all hover:scale-105 active:scale-95"
                         >
-                            Zugriff erlauben
+                            Start
                         </button>
                     </div>
                 )}
