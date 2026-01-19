@@ -48,9 +48,9 @@ export const generateSmartLabelPDF = async (bottles: BottleData[], options: Gene
 
     const safeZone = config.safeZone || 5;
 
-    // Use A4 Landscape
+    // Use A4 Landscape or Portrait based on config
     const doc = new jsPDF({
-        orientation: 'l',
+        orientation: config.orientation || 'l',
         unit: 'mm',
         format: 'a4'
     });
@@ -157,22 +157,22 @@ export const generateSmartLabelPDF = async (bottles: BottleData[], options: Gene
 
         // 2. QR Code (Center) - Optimized for compact format
         // Available height between header and footer
-        const headerBlockH = isCompactFormat ? 8 : 12; // Reduced header space for compact
-        const footerH = isCompactFormat ? 12 : 18; // Reduced footer space for compact
-        const qrPadding = isCompactFormat ? 2 : 5; // Less padding for compact
+        const headerBlockH = isCompactFormat ? 6 : 12; // Reduced header space for compact
+        const footerH = isCompactFormat ? 9 : 18; // Reduced footer space for compact
+        const qrPadding = isCompactFormat ? 1 : 5; // Less padding for compact
         const qrAvailableH = contentH - headerBlockH - footerH - qrPadding;
-        const maxQrSize = isCompactFormat ? 28 : 38; // Smaller QR for compact format
+        const maxQrSize = isCompactFormat ? 20 : 38; // Smaller QR for compact format
         const qrSize = Math.min(contentW, qrAvailableH, maxQrSize);
         
         const qrX = cX + (contentW - qrSize) / 2;
-        const qrY = cY + headerBlockH + (isCompactFormat ? 1 : 2); 
+        const qrY = cY + headerBlockH + (isCompactFormat ? 0.5 : 2); 
 
         doc.addImage(bottle.qrData, 'PNG', qrX, qrY, qrSize, qrSize);
 
         // 3. Slogan (Below QR) - Scaled for compact format
         // Calculate dynamic center between QR bottom and Footer top
         const qrBottom = qrY + qrSize;
-        const scanFooterOffset = isCompactFormat ? 4 : 6;
+        const scanFooterOffset = isCompactFormat ? 2 : 6;
         const scanForContentY = cY + contentH - scanFooterOffset;
         const footerVisualTop = scanForContentY - (isCompactFormat ? 1.5 : 2);
         
@@ -185,11 +185,11 @@ export const generateSmartLabelPDF = async (bottles: BottleData[], options: Gene
         const maxW = contentW - (isCompactFormat ? 3 : 6);
 
         // Use dummy font to calculate line breaks for the slogan
-        const sloganFontSize = isCompactFormat ? 10 : 14; // Smaller font for compact
+        const sloganFontSize = isCompactFormat ? 9 : 14; // Slightly smaller for compact to fit multiple lines
         doc.setFontSize(sloganFontSize);
         doc.setFont("helvetica", "bold"); 
         const lines = doc.splitTextToSize(slogan.toUpperCase(), maxW);
-        const maxLines = isCompactFormat ? 1 : 2; // Only 1 line for compact format
+        const maxLines = 2; // Always allow up to 2 lines
         const limitedLines = lines.slice(0, maxLines);
         
         // Prepare Line Images

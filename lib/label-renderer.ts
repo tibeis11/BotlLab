@@ -149,7 +149,7 @@ export const renderLabelToDataUrl = async (
     const centerV = qrBottom + (footerVisualTop - qrBottom) / 2;
 
     // Split text logic for Canvas
-    const sloganFontSize = isCompactFormat ? 10 : 14;
+    const sloganFontSize = isCompactFormat ? 9 : 14;
     ctx.font = `900 ${mmToPx(sloganFontSize * 0.353)}px ${getComputedStyle(document.body).fontFamily || 'Helvetica'}`;
     const words = slogan.toUpperCase().split(' ');
     const lines: string[] = [];
@@ -168,7 +168,7 @@ export const renderLabelToDataUrl = async (
         }
     }
     lines.push(currentLine);
-    const maxLines = isCompactFormat ? 1 : 2;
+    const maxLines = 2; // Always allow 2 lines
     const limitedLines = lines.slice(0, maxLines);
 
     // Prepare Lines
