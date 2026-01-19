@@ -88,7 +88,16 @@ export default function Scanner({ onScanSuccess }: ScannerProps) {
 
             // Attempt to start
             try {
-                // Explicitly ask for cameras first to trigger permission prompt cleanly
+                // FORCE permission prompt via native API first.
+                // This is more reliable than the library on some devices.
+                // We request a stream, then immediately stop it just to get the "Allow" signal.
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                    // Permission granted! Stop the stream to release hardware for the library.
+                    stream.getTracks().forEach(track => track.stop());
+                }
+
+                // Now use the library
                 const devices = await Html5Qrcode.getCameras();
                 if (!devices || devices.length === 0) {
                      throw new Error("NotFoundError: Keine Kamera gefunden");
