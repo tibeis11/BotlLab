@@ -4,8 +4,9 @@ import { useSession } from '../SessionContext';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import Scanner from '@/app/components/Scanner';
+import BottleScanner from '@/app/components/BottleScanner';
 import { TimelineEvent } from '@/lib/types/session-log';
-import { calculatePrimingSugar, calculateResidualCO2 } from '@/lib/brewing-calculations';
+import { calculatePrimingSugar, calculateResidualCO2, platoToSG } from '@/lib/brewing-calculations';
 
 import { AddEventModal } from './AddEventModal';
 
@@ -513,10 +514,13 @@ export function BrewingView() {
                         <span className="font-mono text-zinc-300 border-b border-dashed border-zinc-700">
                              {(() => {
                                 const val = parseFloat(data.og || data.original_gravity);
-                                if (val > 20) {
-                                    return (1 + (val / 1000)).toFixed(3);
+                                // Assume values < 1.5 are already SG, values >= 1.5 are Plato
+                                if (val >= 1.5) {
+                                    // It's in Plato, convert to SG
+                                    return platoToSG(val).toFixed(3);
                                 }
-                                return val;
+                                // Already in SG
+                                return val.toFixed(3);
                              })()}
                         </span>
                     </div>
@@ -677,16 +681,15 @@ export function FermentingView() {
 
 export function ConditioningView() {
     const { session, changePhase, addEvent } = useSession();
-    const [showScanner, setShowScanner] = useState(false);
-    const [scanFeedback, setScanFeedback] = useState<{type: 'success' | 'error', msg: string} | null>(null);
-    const [isProcessing, setIsProcessing] = useState(false);
-    const [filledAtDate, setFilledAtDate] = useState<string>(new Date().toISOString().split('T')[0]);
     
     // Carbonation Calculator State
     const [carbVolume, setCarbVolume] = useState(''); 
     const [carbTemp, setCarbTemp] = useState('20');
     const [carbTarget, setCarbTarget] = useState('5.0');
     const [sugarResult, setSugarResult] = useState(0);
+
+    // Conditioning Timer State
+    const [days, setDays] = useState(14);
 
     // Initial Load - Set defaults if not set
     useEffect(() => {
@@ -705,27 +708,7 @@ export function ConditioningView() {
         setSugarResult(res);
     }, [carbVolume, carbTemp, carbTarget]);
     
-    // Bottle Stats
-    const [filledCount, setFilledCount] = useState(0);
-    const [lastScannedNumber, setLastScannedNumber] = useState<number | null>(null);
-    
-    // Conditioning Timer State
-    const [days, setDays] = useState(14);
-    
-    // Init: Load existing bottle count
-    useEffect(() => {
-        if (!session?.id) return;
-        const fetchCount = async () => {
-             const { count, error } = await supabase
-                 .from('bottles')
-                 .select('id', { count: 'exact', head: true })
-                 .eq('session_id', session.id);
-             
-             if (!error && count !== null) setFilledCount(count);
-        };
-        fetchCount();
-    }, [session?.id]);
-
+    // Conditioning Timer
     const conditioningStartEvent = session?.timeline
         .find(e => e.type === 'NOTE' && e.title === 'Reifung gestartet');
 
@@ -743,73 +726,6 @@ export function ConditioningView() {
                 type: 'CONDITIONING_TIMER' 
             }
         });
-    };
-
-    const handleScan = async (decodedText: string) => {
-        if (isProcessing || !session) return;
-
-        // Match UUID
-        const idMatch = decodedText.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
-        if (!idMatch) {
-             setScanFeedback({ type: 'error', msg: "❌ Ungültiger Code" });
-             return;
-        }
-
-        const bottleId = idMatch[0];
-        setIsProcessing(true);
-
-        try {
-             // 1. Check existing status first to prevent duplicates
-             const { data: existing, error: checkError } = await supabase
-                .from('bottles')
-                .select('id, bottle_number, session_id, brewery_id')
-                .eq('id', bottleId)
-                .single();
-
-             if (checkError) throw new Error("Flasche nicht gefunden.");
-             
-             // Check ownership
-             if (existing.brewery_id !== session.brewery_id) {
-                 throw new Error("Fremde Flasche! Gehört nicht zur Brauerei.");
-             }
-
-             // Check duplicate scan
-             if (existing.session_id === session.id) {
-                 setLastScannedNumber(existing.bottle_number);
-                 setScanFeedback({ type: 'error', msg: `⚠️ Flasche #${existing.bottle_number} bereits hier erfasst!` });
-                 return; // Exit: do not increment count
-             }
-
-             // 2. Assign bottle
-             const { data, error } = await supabase
-                .from('bottles')
-                .update({ 
-                    session_id: session.id,
-                    brew_id: session.brew_id,
-                    filled_at: new Date(filledAtDate).toISOString()
-                })
-                .eq('id', bottleId)
-                .select('bottle_number');
-
-             if (error) throw error;
-
-             if (!data || data.length === 0) {
-                 throw new Error("Fehler beim Zuweisen.");
-             }
-             
-             const updatedBottle = data[0];
-             setLastScannedNumber(updatedBottle.bottle_number);
-             setScanFeedback({ type: 'success', msg: `✅ Flasche #${updatedBottle.bottle_number} erfasst!` });
-             setFilledCount(prev => prev + 1);
-        } catch (e: any) {
-             setScanFeedback({ type: 'error', msg: "Fehler: " + e.message });
-        } finally {
-             // Debounce/Delay next scan
-             setTimeout(() => {
-                 setIsProcessing(false);
-                 setScanFeedback(null); 
-             }, 1500);
-        }
     };
 
     return (
@@ -930,68 +846,14 @@ export function ConditioningView() {
                  )}
              </div>
 
-             <div className="bg-zinc-950 p-6 rounded-2xl border border-zinc-800 mb-8">
-                 <div className="flex justify-between items-center mb-4">
-                     <div>
-                         <h3 className="text-lg font-bold text-white">Abfüllen & Scannen</h3>
-                         <p className="text-zinc-500 text-sm">Flaschen diesem Sud zuweisen</p>
-                     </div>
-                     <div className="flex items-center gap-6 text-right">
-                         {lastScannedNumber && (
-                             <div className="hidden md:block">
-                                <div className="text-xl font-black text-white">#{lastScannedNumber}</div>
-                                <div className="text-[10px] font-bold uppercase text-zinc-600 tracking-widest">Zuletzt</div>
-                             </div>
-                         )}
-                         <div>
-                            <div className="text-2xl font-black text-cyan-400">{filledCount}</div>
-                            <div className="text-[10px] font-bold uppercase text-zinc-600 tracking-widest">Erfasst</div>
-                         </div>
-                     </div>
-                 </div>
-
-                 <div className="space-y-4">
-                     <div>
-                         <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-2 block">Abgefüllt am</label>
-                         <InputField 
-                             type="date" 
-                             value={filledAtDate}
-                             onChange={(e) => setFilledAtDate(e.target.value)} 
-                         />
-                     </div>
-
-                     {!showScanner ? (
-                         <button 
-                            onClick={() => setShowScanner(true)}
-                            className="w-full py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors border border-zinc-700"
-                        >
-                             <span>📷</span> Scanner starten
-                         </button>
-                     ) : (
-                         <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
-                             <div className="rounded-xl overflow-hidden border border-zinc-700 relative bg-black aspect-square max-w-[300px] mx-auto">
-                                  <Scanner onScanSuccess={handleScan} />
-                                  <div className="absolute inset-0 pointer-events-none border-[30px] border-black/50"></div>
-                             </div>
-                             
-                             {scanFeedback && (
-                                <div className={`p-4 rounded-xl text-center font-bold text-sm ${
-                                    scanFeedback.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'
-                                }`}>
-                                    {scanFeedback.msg}
-                                </div>
-                             )}
-
-                             <button 
-                                onClick={() => setShowScanner(false)}
-                                className="w-full py-2 text-zinc-500 text-sm hover:text-white transition-colors"
-                             >
-                                 Scanner schließen
-                             </button>
-                         </div>
-                     )}
-                 </div>
-             </div>
+             {/* Bottle Scanner - Refactored Component */}
+             {session && (
+                 <BottleScanner 
+                     sessionId={session.id}
+                     breweryId={session.brewery_id}
+                     brewId={session.brew_id}
+                 />
+             )}
             
             <div className="flex justify-end pt-6 border-t border-zinc-800">
                 <button 

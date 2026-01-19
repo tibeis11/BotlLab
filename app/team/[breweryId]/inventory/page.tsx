@@ -16,7 +16,6 @@ import { useNotification } from '@/app/context/NotificationContext';
 import { generateSmartLabelPDF } from '@/lib/pdf-generator';
 import { renderLabelToDataUrl } from '@/lib/label-renderer';
 import { LABEL_FORMATS, DEFAULT_FORMAT_ID } from '@/lib/smart-labels-config';
-import { getBreweryBranding } from '@/lib/actions/premium-actions';
 
 // Extracted List Item Component
 function BottleListItem({ 
@@ -251,6 +250,11 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 	const [sortOption, setSortOption] = useState<"newest" | "oldest" | "number_asc" | "number_desc">("number_asc");
 	const [filterStatus, setFilterStatus] = useState<"all" | "filled" | "empty">("all");
 	const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null);
+	
+	// New Bottle Creation Modal State
+	const [showCreateBottlesModal, setShowCreateBottlesModal] = useState(false);
+	const [useCustomBranding, setUseCustomBranding] = useState(true);
+	
 	const router = useRouter();
 
 	const [activeBrewery, setActiveBrewery] = useState<any>(null);
@@ -386,19 +390,28 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 		try {
 			const baseUrl = window.location.origin || process.env.NEXT_PUBLIC_APP_URL || 'https://botllab.vercel.app';
             
-            // Premium Branding
+            // Premium Branding - Fetch directly via client supabase
             let customSlogan: string | undefined;
             let customLogo: string | undefined;
             let breweryName: string | undefined;
             let isPremiumBranding = false;
 
-            if (breweryId) {
+            if (breweryId && useCustomBranding) {
                 try {
-                     const branding = await getBreweryBranding(breweryId);
-                     if (branding.slogan) customSlogan = branding.slogan;
-                     if (branding.logoUrl) customLogo = branding.logoUrl;
-                     if (branding.breweryName) breweryName = branding.breweryName;
-                     isPremiumBranding = branding.isPremiumBranding;
+                     // Fetch brewery data directly
+                     const { data: breweryData } = await supabase
+                        .from('breweries')
+                        .select('name, logo_url, custom_slogan')
+                        .eq('id', breweryId)
+                        .single();
+                     
+                     if (breweryData) {
+                         breweryName = breweryData.name;
+                         customSlogan = breweryData.custom_slogan;
+                         customLogo = breweryData.logo_url;
+                         // Simple check: if they have custom values, assume premium
+                         isPremiumBranding = !!(customSlogan || customLogo);
+                     }
                 } catch (e) {
                     console.warn("Branding fetch failed", e);
                 }
@@ -439,17 +452,28 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 
 		const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://botllab.vercel.app';
 
-        // Fetch Premium Branding
+        // Fetch Premium Branding - Directly via client supabase
         let brOptions: { customSlogan?: string; customLogo?: string; breweryName?: string; isPremiumBranding?: boolean } | undefined;
-        if (breweryId) {
+        if (breweryId && useCustomBranding) {
              try {
-                 const branding = await getBreweryBranding(breweryId);
-                 brOptions = {};
-                 if (branding.slogan) brOptions.customSlogan = branding.slogan;
-                 if (branding.logoUrl) brOptions.customLogo = branding.logoUrl;
-                 if (branding.breweryName) brOptions.breweryName = branding.breweryName;
-                 brOptions.isPremiumBranding = branding.isPremiumBranding;
-             } catch (e) { console.warn("Branding fetch failed", e); }
+                 // Fetch brewery data directly
+                 const { data: breweryData } = await supabase
+                    .from('breweries')
+                    .select('name, logo_url, custom_slogan')
+                    .eq('id', breweryId)
+                    .single();
+                 
+                 if (breweryData) {
+                     brOptions = {
+                         breweryName: breweryData.name,
+                         customSlogan: breweryData.custom_slogan,
+                         customLogo: breweryData.logo_url,
+                         isPremiumBranding: !!(breweryData.custom_slogan || breweryData.logo_url)
+                     };
+                 }
+             } catch (e) {
+                 console.warn("Branding fetch failed", e);
+             }
         }
 
 		for (const bottle of bottlesList) {
@@ -1033,133 +1057,23 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 							</div>
 					 </div>
 
-					 <div className="relative group bg-zinc-900/50 border border-zinc-800/80 backdrop-blur-sm rounded-3xl p-6 shadow-xl hover:border-cyan-500/30 transition-all duration-300">
+					 <div className="relative group bg-zinc-900/50 border border-zinc-800/80 backdrop-blur-sm rounded-3xl p-6 shadow-xl hover:border-cyan-500/30 transition-all duration-300 cursor-pointer"
+					      onClick={() => setShowCreateBottlesModal(true)}>
                              {/* Decorative gradient */}
                             <div className="absolute bottom-0 left-0 p-24 bg-cyan-500/5 blur-[80px] rounded-full pointer-events-none -mb-10 -ml-10"></div>
                             
-                            <div className="relative z-10">
-                                <div className="flex items-center gap-3 mb-6">
-							        <h3 className="text-lg font-black text-white tracking-tight">Neue Flaschen</h3>
+                            <div className="relative z-10 text-center py-8">
+                                <div className="w-16 h-16 bg-cyan-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-cyan-500/20 transition-colors">
+                                    <span className="text-3xl">🏷️</span>
                                 </div>
-
-                                <div className="space-y-6">
-                                    <div className="grid grid-cols-2 gap-4">
-                                        {/* Amount Input */}
-                                        <div>
-                                                <div className="flex justify-between items-center mb-2 px-1">
-                                                    <label className="text-[10px] font-bold uppercase text-cyan-500 tracking-widest">Anzahl</label>
-                                                    <span className="text-[10px] font-mono text-zinc-600">MAX 100</span>
-                                                </div>
-                                                <div className="relative">
-                                                    <input 
-                                                        suppressHydrationWarning
-                                                        type="number" 
-                                                        min="1"
-                                                        max="100"
-                                                        value={amount} 
-                                                        onChange={(e) => setAmount(parseInt(e.target.value))}
-                                                        className="w-full bg-zinc-950 border-2 border-zinc-800 rounded-2xl py-3 px-4 text-xl font-black text-center focus:border-cyan-500 outline-none transition-all shadow-inner"
-                                                    />
-                                                </div>
-                                        </div>
-
-                                        {/* Size Input */}
-                                        <div>
-                                            <div className="flex justify-between items-center mb-2 px-1">
-                                                <label className="text-[10px] font-bold uppercase text-cyan-500 tracking-widest">Inhalt (L)</label>
-                                            </div>
-                                            <div className="relative group/size">
-                                                <input 
-                                                    type="number"
-                                                    step="0.01"
-                                                    value={bottleSize}
-                                                    onChange={(e) => setBottleSize(parseFloat(e.target.value) || 0)}
-                                                    className="w-full bg-zinc-950 border-2 border-zinc-800 rounded-2xl py-3 px-4 text-xl font-black text-center focus:border-cyan-500 outline-none transition-all shadow-inner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                                    placeholder="0.0"
-                                                />
-                                                
-                                                {/* Hidden Dropdown on Focus */}
-                                                <div className="absolute top-full left-0 right-0 mt-2 bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl overflow-hidden hidden group-focus-within/size:block z-50">
-                                                    {[0.33, 0.5, 0.75].map(s => (
-                                                        <button 
-                                                            key={s}
-                                                            type="button"
-                                                            onMouseDown={(e) => {
-                                                                e.preventDefault(); // Prevent focus loss
-                                                                setBottleSize(s);
-                                                            }}
-                                                            className="w-full text-left px-4 py-3 hover:bg-zinc-800 font-bold text-zinc-300 hover:text-white flex justify-between items-center group transition"
-                                                        >
-                                                            <span>{s} L</span>
-                                                            {bottleSize === s && <span className="text-cyan-500">✓</span>}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                                
-                                                {/* Chevron indicator */}
-                                                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-600">
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Label Size Dropdown (PDF only) */}
-                                    {downloadFormat === 'pdf' && (
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-bold uppercase tracking-widest text-cyan-500 px-1">
-                                                Etikett-Größe
-                                            </label>
-                                            <CustomSelect
-                                                value={selectedLabelFormat}
-                                                onChange={handleLabelFormatChange}
-                                                options={labelOptions}
-                                            />
-                                            <p className="text-[10px] text-zinc-500 leading-tight px-1">
-                                                Wähle das passende Avery Zweckform Format (z.B. 6137). Das PDF wird im Querformat erstellt.
-                                            </p>
-                                        </div>
-                                    )}
-
-                                    {/* Format Dropdown */}
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-bold uppercase tracking-widest text-cyan-500 px-1">
-                                            Format
-                                        </label>
-                                        <CustomSelect
-                                            value={downloadFormat}
-                                            onChange={(val) => setDownloadFormat(val as any)}
-                                            options={formatOptions}
-                                        />
-                                        <p className="text-[10px] text-zinc-500 leading-tight px-1">
-                                            {downloadFormat === 'pdf' && 'Erzeugt ein A4 PDF mit QR-Codes zum direkten Ausdrucken.'}
-                                            {downloadFormat === 'zip' && 'Lädt ein Archiv mit einzelnen Bilddateien für jeden Code herunter.'}
-                                            {downloadFormat === 'png' && 'Erstellt ein Übersichtsbild mit allen Codes.'}
-                                        </p>
-                                    </div>
-                                    
-                                    <button 
-                                        onClick={createBatchAndDownloadPDF}
-                                        disabled={isWorking}
-                                        className="relative overflow-hidden w-full py-4 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed text-black font-black uppercase tracking-wide rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20 group-hover:shadow-cyan-500/30"
-                                    >
-                                        <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 pointer-events-none"></div>
-                                        {isWorking ? (
-                                            <>
-                                                <svg className="animate-spin h-5 w-5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                                                <span>Erstelle...</span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <span>Generieren & Drucken</span>
-                                                <svg className="w-5 h-5 -mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
-                                            </>
-                                        )}
-                                    </button>
-                                    
-                                    <p className="text-xs text-zinc-500 text-center leading-relaxed px-4">
-                                        Erstellt neue Datenbank-Einträge und generiert die Dateien lokal ({downloadFormat.toUpperCase()}).
-                                    </p>
+                                <h3 className="text-xl font-black text-white tracking-tight mb-2">Neue Flaschen</h3>
+                                <p className="text-sm text-zinc-400 mb-4">Etiketten erstellen & drucken</p>
+                                
+                                <div className="inline-flex items-center gap-2 text-cyan-400 text-sm font-bold">
+                                    <span>Konfigurieren</span>
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                                    </svg>
                                 </div>
                             </div>
 					 </div>
@@ -1427,6 +1341,192 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
                                 Speichern
                             </button>
                         </div>
+					</div>
+				</div>
+			)}
+
+			{/* Create Bottles Modal */}
+			{showCreateBottlesModal && (
+				<div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+					<div className="bg-zinc-900 rounded-3xl border border-zinc-800 shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+						<div className="sticky top-0 bg-zinc-900/95 backdrop-blur-sm border-b border-zinc-800 p-6 flex items-center justify-between z-10">
+							<div>
+								<h2 className="text-2xl font-black text-white">Neue Flaschen erstellen</h2>
+								<p className="text-sm text-zinc-400 mt-1">Konfiguriere deine Etiketten und generiere QR-Codes</p>
+							</div>
+							<button 
+								onClick={() => setShowCreateBottlesModal(false)}
+								className="w-10 h-10 rounded-xl bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center text-zinc-400 hover:text-white transition"
+							>
+								<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+								</svg>
+							</button>
+						</div>
+
+						<div className="p-6 space-y-6">
+							{/* Amount & Size */}
+							<div className="grid grid-cols-2 gap-4">
+								<div>
+									<div className="flex justify-between items-center mb-2 px-1">
+										<label className="text-[10px] font-bold uppercase text-cyan-500 tracking-widest">Anzahl</label>
+										<span className="text-[10px] font-mono text-zinc-600">MAX 100</span>
+									</div>
+									<input 
+										suppressHydrationWarning
+										type="number" 
+										min="1"
+										max="100"
+										value={amount} 
+										onChange={(e) => setAmount(parseInt(e.target.value))}
+										className="w-full bg-zinc-950 border-2 border-zinc-800 rounded-2xl py-3 px-4 text-xl font-black text-center focus:border-cyan-500 outline-none transition-all shadow-inner"
+									/>
+								</div>
+
+								<div>
+									<div className="flex justify-between items-center mb-2 px-1">
+										<label className="text-[10px] font-bold uppercase text-cyan-500 tracking-widest">Inhalt (L)</label>
+									</div>
+									<div className="relative group/size">
+										<input 
+											type="number"
+											step="0.01"
+											value={bottleSize}
+											onChange={(e) => setBottleSize(parseFloat(e.target.value) || 0)}
+											className="w-full bg-zinc-950 border-2 border-zinc-800 rounded-2xl py-3 px-4 text-xl font-black text-center focus:border-cyan-500 outline-none transition-all shadow-inner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+											placeholder="0.0"
+										/>
+										
+										<div className="absolute top-full left-0 right-0 mt-2 bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl overflow-hidden hidden group-focus-within/size:block z-50">
+											{[0.33, 0.5, 0.75].map(s => (
+												<button 
+													key={s}
+													type="button"
+													onMouseDown={(e) => {
+														e.preventDefault();
+														setBottleSize(s);
+													}}
+													className="w-full text-left px-4 py-3 hover:bg-zinc-800 font-bold text-zinc-300 hover:text-white flex justify-between items-center group transition"
+												>
+													<span>{s} L</span>
+													{bottleSize === s && <span className="text-cyan-500">✓</span>}
+												</button>
+											))}
+										</div>
+										
+										<div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-600">
+											<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+										</div>
+									</div>
+								</div>
+							</div>
+
+							{/* Format Selection */}
+							<div className="space-y-2">
+								<label className="text-[10px] font-bold uppercase tracking-widest text-cyan-500 px-1">Format</label>
+								<CustomSelect
+									value={downloadFormat}
+									onChange={(val) => setDownloadFormat(val as any)}
+									options={formatOptions}
+								/>
+								<p className="text-[10px] text-zinc-500 leading-tight px-1">
+									{downloadFormat === 'pdf' && 'Erzeugt ein A4 PDF mit QR-Codes zum direkten Ausdrucken.'}
+									{downloadFormat === 'zip' && 'Lädt ein Archiv mit einzelnen Bilddateien für jeden Code herunter.'}
+									{downloadFormat === 'png' && 'Erstellt ein Übersichtsbild mit allen Codes.'}
+								</p>
+							</div>
+
+							{/* Label Format (PDF only) */}
+							{downloadFormat === 'pdf' && (
+								<div className="space-y-2">
+									<label className="text-[10px] font-bold uppercase tracking-widest text-cyan-500 px-1">Etikett-Größe</label>
+									<CustomSelect
+										value={selectedLabelFormat}
+										onChange={handleLabelFormatChange}
+										options={labelOptions}
+									/>
+									<p className="text-[10px] text-zinc-500 leading-tight px-1">
+										Wähle das passende Avery Zweckform Format (z.B. 6137). Das PDF wird im Querformat erstellt.
+									</p>
+								</div>
+							)}
+
+							{/* Premium Branding Options */}
+							{activeBrewery && (activeBrewery.logo_url || activeBrewery.custom_slogan) && (
+								<div className="border border-amber-500/20 bg-amber-950/20 rounded-2xl p-4 space-y-4">
+									<div className="flex items-center gap-2 mb-2">
+										<span className="text-lg">👑</span>
+										<h3 className="text-sm font-bold text-amber-400 uppercase tracking-wider">Premium Branding</h3>
+									</div>
+
+									<label className="flex items-center gap-3 cursor-pointer group">
+										<input 
+											type="checkbox"
+											checked={useCustomBranding}
+											onChange={(e) => setUseCustomBranding(e.target.checked)}
+											className="w-5 h-5 rounded border-2 border-zinc-700 bg-zinc-900 checked:bg-cyan-500 checked:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition"
+										/>
+										<div className="flex-1">
+											<div className="text-sm font-bold text-white group-hover:text-cyan-400 transition">
+												Eigenes Branding verwenden
+											</div>
+											<div className="text-xs text-zinc-400 mt-1">
+												{activeBrewery.logo_url && 'Eigenes Logo'}
+												{activeBrewery.logo_url && activeBrewery.custom_slogan && ' & '}
+												{activeBrewery.custom_slogan && 'Eigener Slogan'}
+											</div>
+										</div>
+									</label>
+
+									{useCustomBranding && (
+										<div className="pl-8 space-y-2 text-xs">
+											{activeBrewery.logo_url && (
+												<div className="flex items-center gap-2 text-zinc-400">
+													<svg className="w-4 h-4 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+														<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+													</svg>
+													<span>Logo: {activeBrewery.name}</span>
+												</div>
+											)}
+											{activeBrewery.custom_slogan && (
+												<div className="flex items-center gap-2 text-zinc-400">
+													<svg className="w-4 h-4 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+														<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+													</svg>
+													<span>Slogan: "{activeBrewery.custom_slogan}"</span>
+												</div>
+											)}
+										</div>
+									)}
+								</div>
+							)}
+
+							{/* Action Button */}
+							<button 
+								onClick={() => {
+									setShowCreateBottlesModal(false);
+									createBatchAndDownloadPDF();
+								}}
+								disabled={isWorking}
+								className="w-full py-4 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed text-black font-black uppercase tracking-wide rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20"
+							>
+								{isWorking ? (
+									<>
+										<svg className="animate-spin h-5 w-5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+										<span>Erstelle...</span>
+									</>
+								) : (
+									<>
+										<span>📦 Generieren & Drucken</span>
+										<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+									</>
+								)}
+							</button>
+
+							<p className="text-xs text-zinc-500 text-center leading-relaxed">
+								Erstellt {amount} neue Datenbank-Einträge und generiert die Dateien lokal ({downloadFormat.toUpperCase()}).
+							</p>
+						</div>
 					</div>
 				</div>
 			)}

@@ -19,8 +19,16 @@ export interface SessionData {
   created_at: string;
   current_gravity: number | null;
   apparent_attenuation: number | null;
+  measurements?: {
+    og?: number;
+    fg?: number;
+    volume?: number;
+    abv?: number;
+  };
+  notes?: string | null;
   brew?: { 
     name: string; 
+    style: string | null;
     recipe_data: any; 
   } | null;
 }
@@ -55,7 +63,7 @@ export function SessionProvider({
         .from('brewing_sessions')
         .select(`
           *,
-          brew:brews ( name, recipe_data:data )
+          brew:brews ( name, style, recipe_data:data )
         `)
         .eq('id', sessionId)
         .single();

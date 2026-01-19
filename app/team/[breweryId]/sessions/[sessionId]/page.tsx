@@ -1,83 +1,67 @@
-'use client';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
+import { isQuickSession } from '@/lib/types/session';
+import SessionClient from './SessionClient';
+import QuickSessionClient from './QuickSessionClient';
 
-// Imports
-import { useSession } from './SessionContext';
-import { 
-  TimelineFeed, 
-  SessionHeader, 
-  SmartActions,
-  PlanningView, 
-  BrewingView, 
-  FermentingView, 
-  ConditioningView, 
-  CompletedView 
-} from './_components';
-import { LogEventType } from '@/lib/types/session-log';
-import { calculateCurrentStats } from '@/lib/session-log-service';
+async function getSupabaseServer() {
+  const cookieStore = await cookies();
 
-export default function SessionPage() {
-  const { session, loading, addEvent, deleteSession } = useSession();
-
-  if (loading) {
-     return <div className="text-white p-8 animate-pulse">Laden...</div>;
-  }
-
-  if (!session) {
-      return <div className="text-white p-8">Session nicht gefunden.</div>;
-  }
-
-  // Phase Router
-  const renderPhaseView = () => {
-    switch(session.phase) {
-      case 'planning': return <PlanningView />;
-      case 'brewing': return <BrewingView />;
-      case 'fermenting': return <FermentingView />;
-      case 'conditioning': return <ConditioningView />;
-      case 'completed': return <CompletedView />;
-      default: return <PlanningView />;
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          } catch {
+            // The `setAll` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing
+            // user sessions.
+          }
+        },
+      },
     }
-  };
-  
-  // Calculate Metrics from Timeline (Live Update)
-  const stats = calculateCurrentStats(session.timeline || []);
-  
-  // Find OG manually for display (calculateCurrentStats uses it internally but returns derived stats)
-  const ogEvent = session.timeline?.filter(e => e.type === 'MEASUREMENT_OG')
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
-  
-  // Find latest SG manually for display
-  const currentEvent = session.timeline?.filter(e => e.type === 'MEASUREMENT_SG' || e.type === 'MEASUREMENT_FG')
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
-
-  const metrics = {
-      gravity: stats.currentGravity || null,
-      attenuation: stats.attenuation,
-      abv: stats.abv,
-      originalGravity: stats.og || null,
-      volume: stats.volume,
-      ph: stats.ph
-  };
-
-  return (
-    <div className="max-w-4xl mx-auto px-2 md:px-4 pb-32 pt-4 md:pt-6">
-       
-       <SessionHeader 
-          phase={session.phase}
-          status={session.status}
-          brewName={session.brew?.name || 'Unbekanntes Rezept'}
-          batchCode={session.batch_code || undefined}
-          metrics={metrics}
-          onDelete={deleteSession}
-       />
-
-       {/* Phase Specific Active View */}
-       {renderPhaseView()}
-
-       {/* Timeline */}
-       <div className="mt-8 border-t border-zinc-800 pt-8">
-          <h3 className="text-lg font-bold text-white mb-4">Verlauf</h3>
-          <TimelineFeed events={session.timeline || []} />
-       </div>
-    </div>
   );
 }
+
+interface PageProps {
+  params: Promise<{ sessionId: string; breweryId: string }>;
+}
+
+export default async function SessionPage({ params }: PageProps) {
+  const resolvedParams = await params;
+  const { sessionId, breweryId } = resolvedParams;
+
+  const supabase = await getSupabaseServer();
+
+  const { data: session, error } = await supabase
+    .from('brewing_sessions')
+    .select(`
+      *,
+      brew:brews ( name, style )
+    `)
+    .eq('id', sessionId)
+    .single() as { data: any, error: any };
+
+  if (error || !session) {
+    return <div className="text-white p-8">Session nicht gefunden.</div>;
+  }
+
+  const isQuick = isQuickSession(session);
+
+  // Quick Session: Simplified View
+  if (isQuick) {
+    return <QuickSessionClient />;
+  }
+
+  // Full Session: Use existing Client Component
+  return <SessionClient sessionId={sessionId} />;
+}
+

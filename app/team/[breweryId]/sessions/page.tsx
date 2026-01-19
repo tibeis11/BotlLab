@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
 import { SessionPhase } from '@/lib/types/session-log';
 import { calculateCurrentStats } from '@/lib/session-log-service';
+import { calculateABVFromSG, platoToSG } from '@/lib/brewing-calculations';
 
 /* --- Design System Helpers --- */
 
@@ -108,10 +109,17 @@ export default function TeamSessionsPage({ params }: { params: Promise<{ brewery
              </div>
              
              {isMember && (
-                <div className="flex justify-start lg:justify-end">
+                <div className="flex flex-col sm:flex-row gap-3 justify-start lg:justify-end">
+                    <Link 
+                        href={`/team/${breweryId}/sessions/new-quick`}
+                        className="group relative flex items-center justify-center gap-3 px-6 py-4 rounded-2xl font-black transition-all duration-300 bg-blue-600 hover:bg-blue-500 text-white shadow-[0_0_20px_rgba(37,99,235,0.3)] hover:shadow-[0_0_30px_rgba(37,99,235,0.5)] active:scale-95"
+                    >
+                        <span>⚡</span>
+                        <span>Quick Session</span>
+                    </Link>
                     <Link 
                         href={`/team/${breweryId}/sessions/new`}
-                        className="group relative flex items-center justify-center gap-3 px-8 py-4 rounded-2xl font-black text-black transition-all duration-300 bg-cyan-400 hover:bg-cyan-300 shadow-[0_0_20px_rgba(34,211,238,0.3)] hover:shadow-[0_0_30px_rgba(34,211,238,0.5)] active:scale-95"
+                        className="group relative flex items-center justify-center gap-3 px-6 py-4 rounded-2xl font-black text-black transition-all duration-300 bg-cyan-400 hover:bg-cyan-300 shadow-[0_0_20px_rgba(34,211,238,0.3)] hover:shadow-[0_0_30px_rgba(34,211,238,0.5)] active:scale-95"
                     >
                         <span>🔥</span>
                         <span>Neuer Sud</span>
@@ -149,15 +157,43 @@ function SessionCard({ session, breweryId }: { session: any, breweryId: string }
     const brew = session.brews;
     const date = new Date(session.brewed_at || session.created_at).toLocaleDateString('de-DE');
     
-    // Calculate Stats on the Client (until we implement DB triggers)
-    const timeline = session.timeline || [];
-    const stats = calculateCurrentStats(timeline);
+    // Check if this is a Quick Session
+    const isQuickSession = session.session_type === 'quick';
     
-    // Extract OG
-    const ogEvent = timeline.filter((e: any) => e.type === 'MEASUREMENT_OG')
-        .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+    let og = null;
+    let stats: any = { abv: null, attenuation: null };
     
-    const og = ogEvent?.data?.gravity || null;
+    if (isQuickSession && session.measurements) {
+        // Quick Session: Get data from measurements
+        const rawOg = session.measurements.og ? parseFloat(session.measurements.og) : null;
+        // Consistent Display: If > 1.5 assume Plato and convert, else keep SG
+        og = rawOg && rawOg >= 1.5 ? platoToSG(rawOg) : rawOg;
+        
+        // Calculate ABV if we have both OG and FG (converting if needed)
+        if (session.measurements.og && session.measurements.fg) {
+            const rawFg = parseFloat(session.measurements.fg);
+            
+            const ogSG = rawOg && rawOg >= 1.5 ? platoToSG(rawOg) : rawOg;
+            const fgSG = rawFg >= 1.5 ? platoToSG(rawFg) : rawFg;
+            
+            if (ogSG && fgSG) {
+                stats.abv = calculateABVFromSG(ogSG, fgSG).toFixed(1);
+            }
+        } else if (session.measurements.abv) {
+            // Or use directly provided ABV
+            stats.abv = parseFloat(session.measurements.abv).toFixed(1);
+        }
+    } else {
+        // Normal Session: Calculate Stats from Timeline
+        const timeline = session.timeline || [];
+        stats = calculateCurrentStats(timeline);
+        
+        // Extract OG from timeline
+        const ogEvent = timeline.filter((e: any) => e.type === 'MEASUREMENT_OG')
+            .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+        
+        og = ogEvent?.data?.gravity || null;
+    }
 
     // Fallback Image
     const bgImage = brew?.image_url 

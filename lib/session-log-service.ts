@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { TimelineEvent, SessionPhase, MeasurementLogEntry } from './types/session-log';
+import { calculateABVFromSG } from './brewing-calculations';
 
 /**
  * Adds a new event to the session timeline using the atomic RPC function.
@@ -77,10 +78,6 @@ export async function updateSessionPhase(sessionId: string, phase: SessionPhase)
   
   if (error) throw error;
 }
-
-import { calculateABVFromSG } from './brewing-calculations';
-
-// ... (existing imports)
 
 /**
  * Calculates the current ABV based on the latest OG and SG/FG measurements in the timeline.
