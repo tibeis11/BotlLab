@@ -92,7 +92,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   console.log(`[Webhook] Checkout completed for user ${userId}, tier: ${tier}`);
   
   // Fetch subscription to get period end
-  const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+  const subscription = await stripe.subscriptions.retrieve(session.subscription as string) as Stripe.Subscription;
   
   const { error } = await supabaseAdmin
     .from('profiles')
