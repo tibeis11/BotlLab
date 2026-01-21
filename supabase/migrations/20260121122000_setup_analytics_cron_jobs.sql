@@ -25,7 +25,7 @@ SELECT cron.schedule(
   '0 2 * * *', -- Daily at 2 AM
   $$
   SELECT net.http_post(
-    url:='http://127.0.0.1:54321/functions/v1/aggregate-analytics',
+    url:=current_setting('app.settings.edge_function_base_url') || '/functions/v1/aggregate-analytics',
     headers:='{"Content-Type": "application/json", "Authorization": "Bearer ' || current_setting('app.settings.service_role_key') || '"}'::jsonb,
     body:='{"mode": "daily"}'::jsonb
   ) as request_id;
@@ -43,7 +43,7 @@ SELECT cron.schedule(
   '5 * * * *', -- Every hour at :05
   $$
   SELECT net.http_post(
-    url:='http://127.0.0.1:54321/functions/v1/aggregate-analytics',
+    url:=current_setting('app.settings.edge_function_base_url') || '/functions/v1/aggregate-analytics',
     headers:='{"Content-Type": "application/json", "Authorization": "Bearer ' || current_setting('app.settings.service_role_key') || '"}'::jsonb,
     body:='{"mode": "hourly"}'::jsonb
   ) as request_id;
@@ -60,7 +60,7 @@ SELECT cron.schedule(
   '0 3 * * 1', -- Every Monday at 3 AM
   $$
   SELECT net.http_post(
-    url:='http://127.0.0.1:54321/functions/v1/aggregate-analytics',
+    url:=current_setting('app.settings.edge_function_base_url') || '/functions/v1/aggregate-analytics',
     headers:='{"Content-Type": "application/json", "Authorization": "Bearer ' || current_setting('app.settings.service_role_key') || '"}'::jsonb,
     body:='{"mode": "cohorts"}'::jsonb
   ) as request_id;
@@ -76,7 +76,7 @@ SELECT cron.schedule(
   '30 2 * * *', -- Daily at 2:30 AM
   $$
   SELECT net.http_post(
-    url:='http://127.0.0.1:54321/functions/v1/aggregate-analytics',
+    url:=current_setting('app.settings.edge_function_base_url') || '/functions/v1/aggregate-analytics',
     headers:='{"Content-Type": "application/json", "Authorization": "Bearer ' || current_setting('app.settings.service_role_key') || '"}'::jsonb,
     body:='{"mode": "features"}'::jsonb
   ) as request_id;
