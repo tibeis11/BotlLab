@@ -128,7 +128,7 @@ export default function ContentView() {
           <h3 className="text-xl font-bold text-white mb-4">⭐ Rating-Verteilung</h3>
           <PieChart
             data={data.ratingDist}
-            nameKey="rating"
+            nameKey="label"
             valueKey="count"
           />
         </div>

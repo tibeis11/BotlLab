@@ -383,7 +383,7 @@ export async function getRatingDistribution() {
   })
 
   return Object.entries(distribution).map(([rating, count]) => ({
-    rating: Number(rating),
+    label: `${rating} ⭐`,
     count,
   }))
 }

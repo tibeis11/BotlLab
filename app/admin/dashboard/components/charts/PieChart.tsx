@@ -49,6 +49,7 @@ export default function PieChart({
           innerRadius={0}
           fill="#8884d8"
           dataKey={valueKey}
+          nameKey={nameKey}
           style={{ fontSize: '11px' }}
         >
           {data.map((entry, index) => (
