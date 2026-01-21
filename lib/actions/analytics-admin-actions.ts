@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase-server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import {
   UserDailyActivity,
   BreweryDailyActivity,
@@ -17,6 +18,26 @@ import {
   UserGrowthData,
   FeatureAdoptionData,
 } from '@/lib/types/admin-analytics'
+
+// ============================================================================
+// Service Role Client (Bypass RLS)
+// ============================================================================
+function getServiceRoleClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    console.error('Missing Supabase credentials for Service Role Client')
+    throw new Error('Internal Configuration Error')
+  }
+
+  return createAdminClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  })
+}
 
 // ============================================================================
 // Audit Logging Helper
@@ -214,7 +235,8 @@ export async function getCohortAnalysis() {
 }
 
 export async function getUserTierDistribution() {
-  const supabase = await createClient()
+  // Use Service Role to see all users regardless of RLS
+  const supabase = getServiceRoleClient()
 
   await logAdminAction('view_tier_distribution')
 
