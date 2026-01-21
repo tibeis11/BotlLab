@@ -242,7 +242,7 @@ export async function getUserTierDistribution() {
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('tier')
+    .select('subscription_tier')
 
   if (error) {
     console.error('Error fetching profiles for tier distribution:', error)
@@ -252,7 +252,7 @@ export async function getUserTierDistribution() {
   // Debug logging
   console.log('Tier Distribution Analysis:', {
     totalProfiles: data.length,
-    rawTiers: data.map(p => p.tier)
+    rawTiers: data.map(p => p.subscription_tier)
   })
 
   const distribution = {
@@ -264,9 +264,7 @@ export async function getUserTierDistribution() {
 
   data.forEach((profile) => {
     // Normalize: trim whitespace and convert to lowercase
-    const tier = profile.tier ? profile.tier.toString().trim().toLowerCase() : 'free'
-    
-    if (tier in distribution) {
+    const tier = profile.subscription_tier ? profile.subscription_tier.toString().trim().toLowerCase() : 'free'
       distribution[tier as keyof typeof distribution]++
     } else {
       console.warn(`Unknown tier found: "${tier}" (Raw: "${profile.tier}") - counting as free`)
