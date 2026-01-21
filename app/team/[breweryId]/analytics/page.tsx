@@ -566,6 +566,18 @@ export default function BreweryAnalyticsPage() {
         {(countryData.length > 0 || (data.geoPoints && data.geoPoints.length > 0)) && (
           <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800">
             <h3 className="text-lg font-bold text-white mb-4">🌍 Geografische Verteilung</h3>
+            
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 mb-4">
+              <p className="text-xs text-amber-500 flex items-start gap-2">
+                <span>⚠️</span>
+                <span>
+                  <strong>Hinweis zu Standorten:</strong> Die angezeigten Standorte basieren auf Internet-Knotenpunkten (IP-Adresse). 
+                  Insbesondere bei Mobilfunk-Nutzern wird oft der Hauptsitz des Anbieters (z.B. Frankfurt, München) angezeigt, 
+                  statt des tatsächlichen Standorts. Dies ist technisch bedingt und kein Fehler.
+                </span>
+              </p>
+            </div>
+            
             <p className="text-xs text-zinc-500 mb-4">Wo werden deine Biere gescannt? (Interaktive Karte)</p>
             <BreweryHeatmap 
               data={data.scansByCountry} 

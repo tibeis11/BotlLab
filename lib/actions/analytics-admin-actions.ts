@@ -73,7 +73,7 @@ async function logAdminAction(
 
 export async function getAdminDashboardSummary(): Promise<AdminDashboardSummary | null> {
   try {
-    const supabase = await createClient()
+    const supabase = getServiceRoleClient()
     
     await logAdminAction('view_dashboard_summary')
 
@@ -153,7 +153,7 @@ export async function getAdminDashboardSummary(): Promise<AdminDashboardSummary 
 // ============================================================================
 
 export async function getUserDailyActivity(dateRange: DateRange = '30d') {
-  const supabase = await createClient()
+  const supabase = getServiceRoleClient()
   const cutoffDate = getCutoffDate(dateRange)
 
   await logAdminAction('view_user_daily_activity', null, { dateRange })
@@ -169,7 +169,7 @@ export async function getUserDailyActivity(dateRange: DateRange = '30d') {
 }
 
 export async function getUserGrowthChart(dateRange: DateRange = '30d'): Promise<UserGrowthData[]> {
-  const supabase = await createClient()
+  const supabase = getServiceRoleClient()
   const cutoffDate = getCutoffDate(dateRange)
 
   await logAdminAction('view_user_growth', null, { dateRange })
@@ -205,7 +205,7 @@ export async function getUserGrowthChart(dateRange: DateRange = '30d'): Promise<
 }
 
 export async function getActiveUsersCount(dateRange: DateRange = '30d'): Promise<number> {
-  const supabase = await createClient()
+  const supabase = getServiceRoleClient()
   const cutoffDate = getCutoffDate(dateRange)
 
   const { data, error } = await supabase
@@ -220,7 +220,7 @@ export async function getActiveUsersCount(dateRange: DateRange = '30d'): Promise
 }
 
 export async function getCohortAnalysis() {
-  const supabase = await createClient()
+  const supabase = getServiceRoleClient()
 
   await logAdminAction('view_cohort_analysis')
 
@@ -283,7 +283,7 @@ export async function getUserTierDistribution() {
 // ============================================================================
 
 export async function getBreweryDailyStats(dateRange: DateRange = '30d') {
-  const supabase = await createClient()
+  const supabase = getServiceRoleClient()
   const cutoffDate = getCutoffDate(dateRange)
 
   await logAdminAction('view_brewery_stats', null, { dateRange })
@@ -299,7 +299,7 @@ export async function getBreweryDailyStats(dateRange: DateRange = '30d') {
 }
 
 export async function getBreweryGrowthChart(dateRange: DateRange = '30d') {
-  const supabase = await createClient()
+  const supabase = getServiceRoleClient()
   const cutoffDate = getCutoffDate(dateRange)
 
   await logAdminAction('view_brewery_growth')
@@ -339,7 +339,7 @@ export async function getBreweryGrowthChart(dateRange: DateRange = '30d') {
 // ============================================================================
 
 export async function getContentDailyStats(dateRange: DateRange = '30d') {
-  const supabase = await createClient()
+  const supabase = getServiceRoleClient()
   const cutoffDate = getCutoffDate(dateRange)
 
   await logAdminAction('view_content_stats', null, { dateRange })
@@ -355,7 +355,7 @@ export async function getContentDailyStats(dateRange: DateRange = '30d') {
 }
 
 export async function getTopBrews(limit: number = 10) {
-  const supabase = await createClient()
+  const supabase = getServiceRoleClient()
 
   await logAdminAction('view_top_brews', null, { limit })
 
@@ -471,7 +471,7 @@ export async function getRecentErrors(limit: number = 50) {
 // ============================================================================
 
 export async function getFeatureUsage(dateRange: DateRange = '30d') {
-  const supabase = await createClient()
+  const supabase = getServiceRoleClient()
   const cutoffDate = getCutoffDate(dateRange)
 
   await logAdminAction('view_feature_usage', null, { dateRange })
@@ -487,7 +487,7 @@ export async function getFeatureUsage(dateRange: DateRange = '30d') {
 }
 
 export async function getFeatureUsageStats(dateRange: DateRange = '7d') {
-  const supabase = await createClient()
+  const supabase = getServiceRoleClient()
   const cutoffDate = getCutoffDate(dateRange)
 
   await logAdminAction('view_feature_usage_stats', null, { dateRange })
