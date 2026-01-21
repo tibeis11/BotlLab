@@ -244,7 +244,16 @@ export async function getUserTierDistribution() {
     .from('profiles')
     .select('tier')
 
-  if (error) throw error
+  if (error) {
+    console.error('Error fetching profiles for tier distribution:', error)
+    throw error
+  }
+
+  // Debug logging
+  console.log('Tier Distribution Analysis:', {
+    totalProfiles: data.length,
+    rawTiers: data.map(p => p.tier)
+  })
 
   const distribution = {
     free: 0,
@@ -254,12 +263,13 @@ export async function getUserTierDistribution() {
   }
 
   data.forEach((profile) => {
-    const tier = profile.tier?.toLowerCase() || 'free'
+    // Normalize: trim whitespace and convert to lowercase
+    const tier = profile.tier ? profile.tier.toString().trim().toLowerCase() : 'free'
+    
     if (tier in distribution) {
       distribution[tier as keyof typeof distribution]++
     } else {
-      // Logic for unknown tiers: fall back to free or log it?
-      // For now, let's count it as free to match previous logic
+      console.warn(`Unknown tier found: "${tier}" (Raw: "${profile.tier}") - counting as free`)
       distribution.free++
     }
   })
