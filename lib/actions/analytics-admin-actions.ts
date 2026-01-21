@@ -265,8 +265,11 @@ export async function getUserTierDistribution() {
   data.forEach((profile) => {
     // Normalize: trim whitespace and convert to lowercase
     const tier = profile.subscription_tier ? profile.subscription_tier.toString().trim().toLowerCase() : 'free'
+    
+    if (tier in distribution) {
       distribution[tier as keyof typeof distribution]++
     } else {
+      // @ts-ignore
       console.warn(`Unknown tier found: "${tier}" (Raw: "${profile.tier}") - counting as free`)
       distribution.free++
     }
