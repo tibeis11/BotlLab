@@ -11,8 +11,12 @@ export default function SettingsView() {
     setLoading(true);
     setMessage(null);
     try {
-      const result = await triggerAggregation(mode);
-      setMessage(`✅ Aggregation (${mode}) erfolgreich gestartet!`);
+      // Wenn wir manuell triggern, wollen wir meistens den aktuellen Stand von HEUTE sehen,
+      // nicht erst die Daten von Gestern (was der Default für Cronjobs ist).
+      const today = new Date().toISOString().split('T')[0];
+      
+      await triggerAggregation(mode, today);
+      setMessage(`✅ Aggregation (${mode}) für HEUTE erfolgreich gestartet!`);
     } catch (e: any) {
       console.error(e);
       setMessage(`❌ Fehler: ${e.message}`);
