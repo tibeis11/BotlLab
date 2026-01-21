@@ -1,32 +1,38 @@
 -- ============================================================================
--- ADMIN ANALYTICS: Setup Cron Jobs for Aggregation
+-- ADMIN ANALYTICS: Setup Cron Jobs (Private Table Strategy)
 -- Created: 2026-01-21
--- Purpose: Automated data aggregation via Edge Functions
+-- Purpose: Automated data aggregation without relying on ALTER DATABASE permissions
 -- ============================================================================
 
 -- Enable pg_cron extension
 CREATE EXTENSION IF NOT EXISTS pg_cron;
 
--- Note: These cron jobs will call Supabase Edge Functions
--- Edge Functions must be deployed first before these will work
--- For local development, these can be triggered manually via API calls
+-- 1. Create a secure table for configuration keys
+CREATE SCHEMA IF NOT EXISTS private_system;
+
+CREATE TABLE IF NOT EXISTS private_system.secrets (
+    key text PRIMARY KEY,
+    value text NOT NULL
+);
+
+-- Secure it: Only Postgres/ServiceRole can read
+ALTER TABLE private_system.secrets ENABLE ROW LEVEL SECURITY;
+-- No standard policies means public has NO access anyway, which is good.
 
 -- ============================================================================
 -- Daily Aggregation (runs at 2 AM every day)
 -- ============================================================================
--- Aggregates previous day's data into:
--- - analytics_user_daily
--- - analytics_brewery_daily
--- - analytics_content_daily
--- - analytics_feature_usage
 
 SELECT cron.schedule(
   'aggregate-daily-analytics',
   '0 2 * * *', -- Daily at 2 AM
   $$
   SELECT net.http_post(
-    url:=current_setting('app.settings.edge_function_base_url') || '/functions/v1/aggregate-analytics',
-    headers:='{"Content-Type": "application/json", "Authorization": "Bearer ' || current_setting('app.settings.service_role_key') || '"}'::jsonb,
+    url := (SELECT value FROM private_system.secrets WHERE key = 'EDGE_FUNCTION_BASE_URL') || '/functions/v1/aggregate-analytics',
+    headers := jsonb_build_object(
+        'Content-Type', 'application/json', 
+        'Authorization', 'Bearer ' || (SELECT value FROM private_system.secrets WHERE key = 'SERVICE_ROLE_KEY')
+    ),
     body:='{"mode": "daily"}'::jsonb
   ) as request_id;
   $$
@@ -35,16 +41,17 @@ SELECT cron.schedule(
 -- ============================================================================
 -- Hourly Aggregation (runs every hour at :05)
 -- ============================================================================
--- Aggregates last hour's data into:
--- - analytics_system_hourly
 
 SELECT cron.schedule(
   'aggregate-hourly-analytics',
   '5 * * * *', -- Every hour at :05
   $$
   SELECT net.http_post(
-    url:=current_setting('app.settings.edge_function_base_url') || '/functions/v1/aggregate-analytics',
-    headers:='{"Content-Type": "application/json", "Authorization": "Bearer ' || current_setting('app.settings.service_role_key') || '"}'::jsonb,
+     url := (SELECT value FROM private_system.secrets WHERE key = 'EDGE_FUNCTION_BASE_URL') || '/functions/v1/aggregate-analytics',
+    headers := jsonb_build_object(
+        'Content-Type', 'application/json', 
+        'Authorization', 'Bearer ' || (SELECT value FROM private_system.secrets WHERE key = 'SERVICE_ROLE_KEY')
+    ),
     body:='{"mode": "hourly"}'::jsonb
   ) as request_id;
   $$
@@ -53,15 +60,17 @@ SELECT cron.schedule(
 -- ============================================================================
 -- Cohort Calculation (runs weekly on Monday at 3 AM)
 -- ============================================================================
--- Recalculates retention metrics for all cohorts
 
 SELECT cron.schedule(
   'calculate-cohorts',
   '0 3 * * 1', -- Every Monday at 3 AM
   $$
   SELECT net.http_post(
-    url:=current_setting('app.settings.edge_function_base_url') || '/functions/v1/aggregate-analytics',
-    headers:='{"Content-Type": "application/json", "Authorization": "Bearer ' || current_setting('app.settings.service_role_key') || '"}'::jsonb,
+     url := (SELECT value FROM private_system.secrets WHERE key = 'EDGE_FUNCTION_BASE_URL') || '/functions/v1/aggregate-analytics',
+    headers := jsonb_build_object(
+        'Content-Type', 'application/json', 
+        'Authorization', 'Bearer ' || (SELECT value FROM private_system.secrets WHERE key = 'SERVICE_ROLE_KEY')
+    ),
     body:='{"mode": "cohorts"}'::jsonb
   ) as request_id;
   $$
@@ -76,8 +85,11 @@ SELECT cron.schedule(
   '30 2 * * *', -- Daily at 2:30 AM
   $$
   SELECT net.http_post(
-    url:=current_setting('app.settings.edge_function_base_url') || '/functions/v1/aggregate-analytics',
-    headers:='{"Content-Type": "application/json", "Authorization": "Bearer ' || current_setting('app.settings.service_role_key') || '"}'::jsonb,
+     url := (SELECT value FROM private_system.secrets WHERE key = 'EDGE_FUNCTION_BASE_URL') || '/functions/v1/aggregate-analytics',
+    headers := jsonb_build_object(
+        'Content-Type', 'application/json', 
+        'Authorization', 'Bearer ' || (SELECT value FROM private_system.secrets WHERE key = 'SERVICE_ROLE_KEY')
+    ),
     body:='{"mode": "features"}'::jsonb
   ) as request_id;
   $$
@@ -86,8 +98,6 @@ SELECT cron.schedule(
 -- ============================================================================
 -- Data Retention Cleanup (runs daily at 4 AM)
 -- ============================================================================
--- Deletes old raw analytics_events data (already aggregated)
--- Keeps last 90 days of raw events for debugging
 
 SELECT cron.schedule(
   'cleanup-raw-analytics',
