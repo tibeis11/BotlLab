@@ -93,10 +93,10 @@ export default function UsersView() {
         />
         <MetricCard
           title="Premium User"
-          value={(data.tierDist?.premium || 0).toLocaleString()}
+          value={((data.tierDist?.brewer || 0) + (data.tierDist?.brewery || 0) + (data.tierDist?.enterprise || 0)).toLocaleString()}
           icon="💎"
-          subValue={data.tierDist?.premium > 0 && data.summary?.totalUsers > 0
-            ? `${((data.tierDist.premium / data.summary.totalUsers) * 100).toFixed(1)}% vom Gesamt`
+          subValue={((data.tierDist?.brewer || 0) + (data.tierDist?.brewery || 0) + (data.tierDist?.enterprise || 0)) > 0 && data.summary?.totalUsers > 0
+            ? `${((((data.tierDist?.brewer || 0) + (data.tierDist?.brewery || 0) + (data.tierDist?.enterprise || 0)) / data.summary.totalUsers) * 100).toFixed(1)}% vom Gesamt`
             : '0% vom Gesamt'}
         />
         <MetricCard
@@ -123,8 +123,9 @@ export default function UsersView() {
           <PieChart
             data={[
               { name: 'Free', value: data.tierDist.free },
-              { name: 'Pro', value: data.tierDist.pro },
-              { name: 'Premium', value: data.tierDist.premium }
+              { name: 'Brewer', value: data.tierDist.brewer },
+              { name: 'Brewery', value: data.tierDist.brewery },
+              { name: 'Enterprise', value: data.tierDist.enterprise }
             ]}
             nameKey="name"
             valueKey="value"

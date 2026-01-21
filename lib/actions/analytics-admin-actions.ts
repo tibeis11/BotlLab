@@ -226,8 +226,9 @@ export async function getUserTierDistribution() {
 
   const distribution = {
     free: 0,
-    pro: 0,
-    premium: 0,
+    brewer: 0,
+    brewery: 0,
+    enterprise: 0,
   }
 
   data.forEach((profile) => {
@@ -235,6 +236,8 @@ export async function getUserTierDistribution() {
     if (tier in distribution) {
       distribution[tier as keyof typeof distribution]++
     } else {
+      // Logic for unknown tiers: fall back to free or log it?
+      // For now, let's count it as free to match previous logic
       distribution.free++
     }
   })
