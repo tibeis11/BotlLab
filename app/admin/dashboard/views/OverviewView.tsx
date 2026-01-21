@@ -43,7 +43,7 @@ export default function OverviewView() {
       setUserGrowth(growthData)
       setContentStats(contentData)
       setFeatureUsage(featureData.map(f => ({ name: f.feature, value: f.usageCount })))
-      setRatingDist(ratingData.map(r => ({ name: `${r.rating} ⭐`, value: r.count })))
+      setRatingDist(ratingData.map(r => ({ name: r.label, value: r.count })))
     } catch (error) {
       console.error('Error loading dashboard data:', error)
     } finally {
