@@ -805,7 +805,7 @@ export default function BreweryAnalyticsPage() {
             <h4 className="text-white font-bold mb-1">Datenschutz-freundliche Analytics</h4>
             <p className="text-sm text-zinc-500">
               Wir speichern keine IP-Adressen und verwenden tägliche Session-Hashes für anonyme Besucherzählung. 
-              Alle Daten sind GDPR-konform und werden nach {features?.maxDays || 30} Tagen automatisch gelöscht.
+              Rohdaten werden gemäß Datenschutzrichtlinie nach 12 Monaten automatisch gelöscht. Aggregierte Statistiken bleiben langfristig verfügbar.
             </p>
           </div>
         </div>

@@ -46,12 +46,18 @@ export function UserNotificationProvider({ children }: { children: React.ReactNo
       setSession(session);
       if (session) fetchNotifications(session.user.id);
       else setLoading(false);
+    }).catch((err) => {
+      console.error('Error getting session:', err);
+      setLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       if (session) fetchNotifications(session.user.id);
-      else setNotifications([]);
+      else {
+        setNotifications([]);
+        setLoading(false);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -71,10 +77,15 @@ export function UserNotificationProvider({ children }: { children: React.ReactNo
         .order('created_at', { ascending: false })
         .limit(50); // Cap at 50 for performance
 
-      if (error) console.error('Error fetching notifications:', error.message, error.details);
-      else setNotifications(data as unknown as NotificationItem[]);
+      if (error) {
+        console.error('Error fetching notifications:', error.message, error.details);
+      } else {
+        setNotifications(data as unknown as NotificationItem[]);
+      }
     } catch (err) {
-      console.error(err);
+      console.error('Error fetching notifications:', err);
+      // Gracefully handle the error - don't break the app
+      setNotifications([]);
     } finally {
       setLoading(false);
     }
@@ -103,7 +114,11 @@ export function UserNotificationProvider({ children }: { children: React.ReactNo
           fetchNotifications(session.user.id);
         }
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        if (status === 'CHANNEL_ERROR') {
+          console.warn('Realtime notifications subscription error:', err);
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);

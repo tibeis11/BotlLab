@@ -216,68 +216,82 @@ export default function AdminHeader() {
                   </button>
                   
                   {showBreweryMenu && (
-                      <div className="absolute left-0 top-full pt-4 w-64 z-50">
-                           <div className="bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-1">
+                      <div className="absolute left-0 top-full pt-4 w-56 z-50">
+                           <div className="bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-1 p-1">
                                
-                               {/* Active Team Section */}
-                               <div className="p-1">
-                                  <div className="p-3 rounded-lg bg-zinc-900 border border-zinc-800/50">
-                                      <p className="text-[10px] text-zinc-500 uppercase font-black tracking-wider mb-1">
-                                          Aktives Team
-                                      </p>
-                                      <p className="font-bold text-white text-sm truncate mb-3">
-                                          {activeBreweryName || 'Brauerei'}
-                                      </p>
-                                      <Link 
-                                          href={`/team/${breweryId}`} 
-                                          className="block w-full text-center py-2 rounded-lg bg-cyan-950 hover:bg-cyan-900 text-cyan-400 font-bold text-xs transition border border-cyan-900/50 hover:border-cyan-700"
-                                      >
-                                          Team-Dashboard öffnen
-                                      </Link>
-
-                                      <div className="mt-2 grid grid-cols-2 gap-1">
-                                          <Link href={`/team/${breweryId}/brews`} className="flex items-center gap-2 p-2 rounded hover:bg-zinc-800 text-zinc-400 hover:text-white transition group">
-                                              <span className="text-xs">🍺</span>
-                                              <span className="text-xs font-bold">Rezepte</span>
-                                          </Link>
-                                          <Link href={`/team/${breweryId}/sessions`} className="flex items-center gap-2 p-2 rounded hover:bg-zinc-800 text-zinc-400 hover:text-white transition group">
-                                              <span className="text-xs">🗓️</span>
-                                              <span className="text-xs font-bold">Sessions</span>
-                                          </Link>
-                                          <Link href={`/team/${breweryId}/inventory`} className="flex items-center gap-2 p-2 rounded hover:bg-zinc-800 text-zinc-400 hover:text-white transition group">
-                                              <span className="text-xs">📦</span>
-                                              <span className="text-xs font-bold">Lager</span>
-                                          </Link>
-                                          <Link href={`/team/${breweryId}/members`} className="flex items-center gap-2 p-2 rounded hover:bg-zinc-800 text-zinc-400 hover:text-white transition group">
-                                              <span className="text-xs">👥</span>
-                                              <span className="text-xs font-bold">Team</span>
-                                          </Link>
-                                          <Link href={`/team/${breweryId}/analytics`} className="flex items-center gap-2 p-2 rounded hover:bg-zinc-800 text-zinc-400 hover:text-white transition group">
-                                              <span className="text-xs">📊</span>
-                                              <span className="text-xs font-bold">Analytics</span>
-                                          </Link>
-                                          <Link href={`/team/${breweryId}/settings`} className="flex items-center gap-2 p-2 rounded hover:bg-zinc-800 text-zinc-400 hover:text-white transition group border-t border-zinc-800/50">
-                                              <span className="text-xs">⚙️</span>
-                                              <span className="text-xs font-bold">Settings</span>
-                                          </Link>
-                                      </div>
-                                  </div>
-                               </div>
+                               {/* Team Dashboard Link */}
+                               <Link 
+                                   href={`/team/${breweryId}`}
+                                   className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-300 hover:text-white hover:bg-zinc-900 rounded-lg"
+                               >
+                                   <span>📊</span> <span>Team-Dashboard</span>
+                               </Link>
+                               
+                               <div className="h-px bg-zinc-800 my-1 mx-2"></div>
+                               
+                               {/* Team Quick Links */}
+                               <Link 
+                                   href={`/team/${breweryId}/feed`}
+                                   className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
+                               >
+                                   <span>💬</span> <span>Feed</span>
+                               </Link>
+                               <Link 
+                                   href={`/team/${breweryId}/brews`}
+                                   className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
+                               >
+                                   <span>🍺</span> <span>Rezepte</span>
+                               </Link>
+                               <Link 
+                                   href={`/team/${breweryId}/sessions`}
+                                   className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
+                               >
+                                   <span>🌡️</span> <span>Sessions</span>
+                               </Link>
+                               <Link 
+                                   href={`/team/${breweryId}/inventory`}
+                                   className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
+                               >
+                                   <span>📦</span> <span>Inventar</span>
+                               </Link>
+                               <Link 
+                                   href={`/team/${breweryId}/analytics`}
+                                   className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
+                               >
+                                   <span>📈</span> <span>Analytics</span>
+                               </Link>
+                               
+                               <div className="h-px bg-zinc-800 my-1 mx-2"></div>
+                               
+                               {/* Team Settings */}
+                               <Link 
+                                   href={`/team/${breweryId}/members`}
+                                   className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
+                               >
+                                   <span>👥</span> <span>Mitglieder</span>
+                               </Link>
+                               <Link 
+                                   href={`/team/${breweryId}/settings`}
+                                   className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
+                               >
+                                   <span>⚙️</span> <span>Einstellungen</span>
+                               </Link>
 
                                {userBreweries.length > 1 && (
-                                  <div className="bg-zinc-900/50 border-t border-zinc-800 p-1">
-                                   <p className="px-3 py-2 text-[10px] text-zinc-600 uppercase font-bold">Zu anderem Team wechseln</p>
+                                  <>
+                                   <div className="h-px bg-zinc-800 my-1 mx-2"></div>
+                                   <p className="px-3 py-2 text-[10px] text-zinc-600 uppercase font-black tracking-wider">Team wechseln</p>
                                    {userBreweries.filter(b => b.id !== breweryId).map(b => (
                                        <button
                                           key={b.id}
                                           onClick={() => handleSwitchBrewery(b.id)}
-                                          className="w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-zinc-800 hover:text-white text-zinc-400 transition flex items-center gap-2 group"
+                                          className="w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-zinc-900 hover:text-white text-zinc-400 transition flex items-center gap-2 group font-bold"
                                        >
                                           <span className="opacity-50 group-hover:opacity-100 transition">↳</span>
                                           <span className="truncate">{b.name}</span>
                                        </button>
                                    ))}
-                                  </div>
+                                  </>
                                )}
                           </div>
                       </div>
@@ -540,6 +554,15 @@ export default function AdminHeader() {
                                   <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest px-1 mb-1">Aktionen</p>
                                   <div className="divide-y divide-zinc-900/50">
                                      <Link
+                                      href={`/team/${breweryId}/feed`}
+                                      onClick={() => setIsMobileMenuOpen(false)}
+                                      className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
+                                     >
+                                        <span className="text-xl">💬</span>
+                                        <span className="font-bold text-sm text-zinc-200">Feed</span>
+                                        <span className="ml-auto text-zinc-600">→</span>
+                                     </Link>
+                                     <Link
                                       href={`/team/${breweryId}/brews`}
                                       onClick={() => setIsMobileMenuOpen(false)}
                                       className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
@@ -553,7 +576,7 @@ export default function AdminHeader() {
                                       onClick={() => setIsMobileMenuOpen(false)}
                                       className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
                                      >
-                                        <span className="text-xl">🗓️</span>
+                                        <span className="text-xl">🌡️</span>
                                         <span className="font-bold text-sm text-zinc-200">Sessions</span>
                                         <span className="ml-auto text-zinc-600">→</span>
                                      </Link>
@@ -563,7 +586,16 @@ export default function AdminHeader() {
                                       className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
                                      >
                                         <span className="text-xl">📦</span>
-                                        <span className="font-bold text-sm text-zinc-200">Inventory</span>
+                                        <span className="font-bold text-sm text-zinc-200">Inventar</span>
+                                        <span className="ml-auto text-zinc-600">→</span>
+                                     </Link>
+                                     <Link
+                                      href={`/team/${breweryId}/analytics`}
+                                      onClick={() => setIsMobileMenuOpen(false)}
+                                      className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
+                                     >
+                                        <span className="text-xl">📈</span>
+                                        <span className="font-bold text-sm text-zinc-200">Analytics</span>
                                         <span className="ml-auto text-zinc-600">→</span>
                                      </Link>
                                      <Link
@@ -576,21 +608,12 @@ export default function AdminHeader() {
                                         <span className="ml-auto text-zinc-600">→</span>
                                      </Link>
                                      <Link
-                                      href={`/team/${breweryId}/analytics`}
-                                      onClick={() => setIsMobileMenuOpen(false)}
-                                      className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
-                                     >
-                                        <span className="text-xl">📊</span>
-                                        <span className="font-bold text-sm text-zinc-200">Analytics</span>
-                                        <span className="ml-auto text-zinc-600">→</span>
-                                     </Link>
-                                     <Link
                                       href={`/team/${breweryId}/settings`}
                                       onClick={() => setIsMobileMenuOpen(false)}
                                       className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
                                      >
                                         <span className="text-xl">⚙️</span>
-                                        <span className="font-bold text-sm text-zinc-200">Settings</span>
+                                        <span className="font-bold text-sm text-zinc-200">Einstellungen</span>
                                         <span className="ml-auto text-zinc-600">→</span>
                                      </Link>
                                   </div>

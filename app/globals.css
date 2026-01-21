@@ -5,6 +5,21 @@
   Based on Tailwind v4
 */
 
+/* Scrollbar Utilities for Admin Dashboard */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari, Opera */
+}
+
+/* Focus visible for accessibility */
+*:focus-visible {
+  outline: 2px solid theme('colors.cyan.400');
+  outline-offset: 2px;
+}
+
 :root {
   /* Default Branding (Dark Mode First) */
   --background: var(--color-zinc-950);
