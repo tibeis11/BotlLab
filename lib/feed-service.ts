@@ -21,6 +21,7 @@ export interface FeedItem {
   profiles?: {
     display_name: string;
     logo_url: string;
+    subscription_tier: string;
   }
 }
 
@@ -59,7 +60,8 @@ export async function getBreweryFeed(breweryId: string) {
       *,
       profiles (
         display_name,
-        logo_url
+        logo_url,
+        subscription_tier
       )
     `)
     .eq('brewery_id', breweryId)

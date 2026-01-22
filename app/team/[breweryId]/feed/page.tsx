@@ -14,6 +14,7 @@ export default function TeamFeedPage({ params }: { params: Promise<{ breweryId: 
   const [newPost, setNewPost] = useState('');
   const [isPosting, setIsPosting] = useState(false);
   const [breweryName, setBreweryName] = useState('');
+  const [memberRoles, setMemberRoles] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (user && breweryId) {
@@ -41,6 +42,14 @@ export default function TeamFeedPage({ params }: { params: Promise<{ breweryId: 
     const { data: b } = await supabase.from('breweries').select('name').eq('id', breweryId).single();
     if(b) setBreweryName(b.name);
 
+    // Load Member Roles for Badges
+    const { data: members } = await supabase.from('brewery_members').select('user_id, role').eq('brewery_id', breweryId);
+    if(members) {
+        const roles: Record<string, string> = {};
+        members.forEach(m => roles[m.user_id] = m.role);
+        setMemberRoles(roles);
+    }
+
     await loadFeedOnly();
     setLoading(false);
   }
@@ -66,6 +75,28 @@ export default function TeamFeedPage({ params }: { params: Promise<{ breweryId: 
     const date = new Date(item.created_at);
     const timeString = date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
     const dateString = date.toLocaleDateString('de-DE', { day: '2-digit', month: 'short' });
+
+    // Resolve Role & Avatar
+    const roleInBrewery = item.user_id ? (memberRoles[item.user_id]) : null;
+    const isOwner = roleInBrewery === 'owner';
+    const isAdmin = roleInBrewery === 'admin';
+
+    // Image Fallback Logic
+    // User notes that logo_url should be correct (assigned by level) or default to lehrling
+    const avatarUrl = item.profiles?.logo_url || '/tiers/lehrling.png';
+
+    // Badge Component
+    const OwnerBadge = () => (
+        <span className="bg-amber-500/10 text-amber-500 border border-amber-500/20 text-[10px] px-1.5 py-0.5 rounded uppercase font-bold tracking-wider ml-2 flex items-center gap-1">
+            <span>👑</span> Inhaber
+        </span>
+    );
+    const AdminBadge = () => (
+         <span className="bg-cyan-500/10 text-cyan-500 border border-cyan-500/20 text-[10px] px-1.5 py-0.5 rounded uppercase font-bold tracking-wider ml-2">
+            Admin
+        </span>
+    );
+
 
     // System Messages (Center aligned, slimmer)
     if (isSystem) {
@@ -104,14 +135,25 @@ export default function TeamFeedPage({ params }: { params: Promise<{ breweryId: 
         }
 
         return (
-            <div key={item.id} className="flex flex-col items-center justify-center gap-1 py-6 text-sm text-zinc-500 animate-in fade-in zoom-in-95 duration-300">
-                 <div className="flex items-center gap-2 bg-zinc-900/80 px-4 py-2 rounded-full border border-zinc-800 shadow-sm backdrop-blur-sm">
-                    <div className="w-5 h-5 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center overflow-hidden flex-shrink-0">
-                        {item.profiles?.logo_url ? <img src={item.profiles.logo_url} className="w-full h-full object-cover" alt="" /> : '👤'}
+            <div key={item.id} className="flex flex-col items-center justify-center gap-1 py-4 text-sm text-zinc-500 animate-in fade-in zoom-in-95 duration-300 w-full px-4">
+                 <div className="flex flex-col gap-2 bg-zinc-900/80 px-4 py-3 rounded-2xl border border-zinc-800 shadow-sm backdrop-blur-sm max-w-full md:max-w-xl w-full">
+                    {/* Header: User & Time */}
+                    <div className="flex items-center gap-2 border-b border-white/5 pb-2 mb-1">
+                        <div className="w-6 h-6 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center overflow-hidden flex-shrink-0">
+                            <img src={avatarUrl} className="w-full h-full object-cover" alt="" />
+                        </div>
+                        <span className="font-bold text-white truncate flex items-center">
+                            {item.profiles?.display_name || item.content.author || 'Botschafter'}
+                            {isOwner && <OwnerBadge />}
+                            {isAdmin && <AdminBadge />}
+                        </span>
+                        <span className="ml-auto text-[10px] text-zinc-600">{timeString}</span>
                     </div>
-                    <span className="font-bold text-white">{item.profiles?.display_name || item.content.author || 'Botschafter'}</span>
-                    {content}
-                    <span className="text-[10px] text-zinc-600 border-l border-zinc-700 pl-2 ml-1">{timeString}</span>
+                    
+                    {/* Content */}
+                    <div className="text-zinc-400 pl-1">
+                        {content}
+                    </div>
                  </div>
             </div>
         )
@@ -125,17 +167,32 @@ export default function TeamFeedPage({ params }: { params: Promise<{ breweryId: 
         {/* Avatar */}
         <div className="flex-shrink-0 -mt-1">
           <div className={`w-10 h-10 rounded-full bg-zinc-900 border-2 ${isMe ? 'border-cyan-500/50' : 'border-zinc-700'} overflow-hidden shadow-lg`}>
-             {item.profiles?.logo_url ? <img src={item.profiles.logo_url} className="w-full h-full object-cover" alt={item.profiles.display_name} /> : <div className="flex items-center justify-center h-full text-zinc-500 text-xs">?</div>}
+             <img src={avatarUrl} className="w-full h-full object-cover" alt={item.profiles?.display_name || ''} />
           </div>
         </div>
 
         {/* Content Bubble */}
         <div className={`flex flex-col max-w-[80%] ${isMe ? 'items-end' : 'items-start'}`}>
             <div className="flex items-baseline gap-2 mb-1 px-1">
-                <span className={`text-xs font-bold ${isMe ? 'text-cyan-500' : 'text-zinc-300'}`}>
-                    {item.profiles?.display_name || 'Unbekannt'}
-                </span>
-                <span className="text-[10px] text-zinc-600">{dateString} um {timeString}</span>
+                {isMe ? (
+                    <>
+                        <span className="text-[10px] text-zinc-600">{dateString} um {timeString}</span>
+                        <span className={`text-xs font-bold ${isMe ? 'text-cyan-500' : 'text-zinc-300'} flex items-center`}>
+                            {item.profiles?.display_name || 'Unbekannt'}
+                            {isOwner && <ScaleOwnerBadge />} 
+                            {isAdmin && <AdminBadge />}
+                        </span>
+                    </>
+                ) : (
+                    <>
+                        <span className={`text-xs font-bold ${isMe ? 'text-cyan-500' : 'text-zinc-300'} flex items-center`}>
+                            {item.profiles?.display_name || 'Unbekannt'}
+                            {isOwner && <OwnerBadge />} 
+                            {isAdmin && <AdminBadge />}
+                        </span>
+                        <span className="text-[10px] text-zinc-600">{dateString} um {timeString}</span>
+                    </>
+                )}
             </div>
             
             <div className={`
@@ -150,6 +207,13 @@ export default function TeamFeedPage({ params }: { params: Promise<{ breweryId: 
       </div>
     );
   }
+
+  // Small helper for badge in chat bubbles to prevent double definition or complex props
+  const ScaleOwnerBadge = () => (
+      <span className="bg-amber-500/10 text-amber-500 border border-amber-500/20 text-[10px] px-1.5 py-0.5 rounded uppercase font-bold tracking-wider ml-2 scale-90 origin-left flex items-center gap-1">
+          <span>👑</span> Inhaber
+      </span>
+  );
 
   return (
     <div className="w-full max-w-5xl mx-auto pb-20 space-y-12">
