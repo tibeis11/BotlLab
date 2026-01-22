@@ -57,17 +57,18 @@ export default function TeamBrewsPage({ params }: { params: Promise<{ breweryId:
       let currentUserId = user?.id;
 
       if (user) {
-        // Fetch Own Brews
-        const { data: ownBrews } = await supabase.from('brews').select('*, bottles(id, count)').eq('brewery_id', breweryId).order('created_at', { ascending: false });
+        // Fetch Own Brews - Added moderation status fields
+        const { data: ownBrews } = await supabase.from('brews').select('*, moderation_status, moderation_rejection_reason, bottles(id, count)').eq('brewery_id', breweryId).order('created_at', { ascending: false });
         setBrews(ownBrews || []);
 
-        // Fetch Saved Brews
+        // Fetch Saved Brews - Added moderation status fields
         const { data: savedData } = await supabase
             .from('brewery_saved_brews')
             .select(`
                 saved_at,
                 brew:brews (
                     id, name, style, image_url, is_public, created_at,
+                    moderation_status, moderation_rejection_reason,
                     profiles(display_name),
                     breweries(name)
                 )
@@ -207,12 +208,42 @@ export default function TeamBrewsPage({ params }: { params: Promise<{ breweryId:
               )}
            </div>
            <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight mb-4">Deine Brau-Bibliothek</h1>
-           <p className="text-zinc-400 text-lg leading-relaxed max-w-xl">
-             Verwalte deine Rezepte, dokumentiere Sude und behalte den Überblick über deine Kreationen.
-             <span className="block mt-2 text-sm font-bold text-zinc-500">
-                Status: {brews.length} / {tierConfig.limits.maxBrews} Slots belegt
-             </span>
-           </p>
+           <div className="text-zinc-400 text-lg leading-relaxed max-w-xl space-y-4">
+             <p>Verwalte deine Rezepte, dokumentiere Sude und behalte den Überblick über deine Kreationen.</p>
+             
+             <div className="text-base font-bold rounded-xl bg-zinc-900/50 border border-zinc-800 p-4 shadow-inner">
+                {bypassed ? (
+                   <span className="text-emerald-400 flex items-center gap-2">
+                      <span className="text-xl">∞</span> 
+                      <span>Unlimitierte Slots ({premiumStatus?.tier === 'enterprise' ? 'Enterprise' : 'Brewery'} Plan)</span>
+                   </span>
+                ) : (
+                   <div className="space-y-3">
+                       <div className="flex items-center justify-between text-zinc-400 text-sm">
+                           <span>Auslastung ({tierConfig.displayName}):</span>
+                           <span className={limitReached ? "text-amber-500" : "text-white"}>
+                             {brews.length} / {tierConfig.limits.maxBrews}
+                           </span>
+                       </div>
+                       
+                       {/* Progress bar */}
+                       <div className="h-2 w-full bg-black rounded-full overflow-hidden border border-zinc-800">
+                          <div 
+                             className={`h-full transition-all duration-500 ${limitReached ? 'bg-amber-500' : 'bg-cyan-500'}`} 
+                             style={{ width: `${Math.min(100, (brews.length / tierConfig.limits.maxBrews) * 100)}%` }}
+                          />
+                       </div>
+
+                       {premiumStatus?.tier === 'brewer' && (
+                           <div className="text-xs font-normal text-blue-300 bg-blue-950/40 border border-blue-500/20 p-3 rounded-lg leading-relaxed">
+                               <p><strong className="text-blue-200">Hinweis zum Abo:</strong> Dein 'Brewer'-Plan schaltet AI-Features frei, basiert aber weiterhin auf dem Level-System für Slots.</p>
+                               <p className="mt-1 opacity-75">Für unbegrenzte Slots wähle den <strong>Brewery</strong> Plan.</p>
+                           </div>
+                       )}
+                   </div>
+                )}
+             </div>
+           </div>
         </div>
 
         <div className="lg:justify-self-end">

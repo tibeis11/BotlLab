@@ -22,6 +22,27 @@ export async function getSpecificUserPremiumStatus(userId: string): Promise<Prem
 }
 
 /**
+ * Get premium status for a brewery (based on Owner's subscription)
+ */
+export async function getBreweryPremiumStatus(breweryId: string): Promise<PremiumStatus | null> {
+    const supabase = await createClient();
+    
+    // Find Owner
+    const { data: members, error } = await supabase
+      .from("brewery_members")
+      .select("user_id")
+      .eq("brewery_id", breweryId)
+      .eq("role", "owner")
+      .limit(1);
+
+    if (error || !members || members.length === 0) {
+        return null;
+    }
+
+    return getUserPremiumStatus(members[0].user_id);
+}
+
+/**
  * Get custom branding (slogan & logo) for brewery if premium features allow.
  */
 export async function getBreweryBranding(

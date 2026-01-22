@@ -150,10 +150,33 @@ export async function POST(req: Request) {
 
     // 5. URL in der Datenbank speichern, wenn eine brewId vorhanden ist
     if (brewId) {
+      // a) Standard Update (User permissions) -> Trigger sets this to 'pending'
       await supabase
         .from("brews")
         .update({ [dbField]: finalUrl })
         .eq("id", brewId);
+
+      // b) Auto-Approve AI Images (Trusted Source)
+      // We use a Service Role client to bypass the pending status.
+      // Since the image URL isn't changing in this second update, the trigger won't reset it to pending.
+      if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+          const { createClient: createAdminClient } = require('@supabase/supabase-js');
+          const adminSupabase = createAdminClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+          );
+
+          await adminSupabase
+            .from("brews")
+            .update({ 
+                moderation_status: 'approved',
+                moderated_by: null, // System
+                moderation_rejection_reason: null
+            })
+            .eq("id", brewId);
+      } else {
+        console.warn("[Generate Image] Missing SUPABASE_SERVICE_ROLE_KEY, image will remain pending.");
+      }
     }
 
     // 6. Track AI Usage (Premium)

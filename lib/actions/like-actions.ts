@@ -113,9 +113,9 @@ export async function toggleBrewLike(brewId: string) {
     }
   }
 
-  revalidatePath('/discover');
-  revalidatePath(`/brew/${brewId}`);
+  // revalidatePath('/discover'); // Removing this prevents client component remount/race-conditions on Discover page
+  // revalidatePath(`/brew/${brewId}`); // Keep this for the specific brew page (usually valid)
   // Add dashboard path when it exists
-  revalidatePath('/dashboard/favorites');
+  // revalidatePath('/dashboard/favorites');
 }
 

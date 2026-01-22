@@ -6,6 +6,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { AchievementNotificationProvider } from "./context/AchievementNotificationContext";
 import { UserNotificationProvider } from "./context/UserNotificationContext";
 import CookieBanner from "./components/CookieBanner";
+import AutoLogoutHandler from "./components/AutoLogoutHandler";
 
 export const metadata = {
   title: 'BotlLab | Digital Brew Lab',
@@ -44,6 +45,7 @@ export default function RootLayout({
         <AuthProvider>
           <UserNotificationProvider>
             <AchievementNotificationProvider>
+              <AutoLogoutHandler />
               {children}
               <CookieBanner />
             </AchievementNotificationProvider>

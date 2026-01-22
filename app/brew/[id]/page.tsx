@@ -15,6 +15,8 @@ import { Star } from 'lucide-react';
 import { saveBrewToLibrary } from '@/lib/actions/library-actions';
 import { useGlobalToast } from '@/app/context/AchievementNotificationContext';
 import { getPremiumStatus } from '@/lib/actions/premium-actions';
+import ReportButton from '@/app/components/reporting/ReportButton';
+import BrewDiscussionButton from '@/app/components/BrewDiscussionButton';
 
 // Helper: Ensure lists render correctly even if user didn't use double line breaks
 const formatMarkdown = (text: string) => {
@@ -408,7 +410,7 @@ export default function BrewDetailPage() {
         if (brewData.brewery_id) {
              const { data: breweryData } = await supabase
               .from('breweries')
-              .select('id, name, description, logo_url') 
+              .select('id, name, description, logo_url, moderation_status') 
               .eq('id', brewData.brewery_id)
               .maybeSingle();
 
@@ -416,7 +418,7 @@ export default function BrewDetailPage() {
                  setProfile({
                      id: breweryData.id,
                      display_name: breweryData.name,
-                     logo_url: breweryData.logo_url,
+                     logo_url: breweryData.moderation_status === 'pending' ? null : breweryData.logo_url,
                      bio: breweryData.description,
                      location: null
                  });
@@ -521,15 +523,23 @@ export default function BrewDetailPage() {
           <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-8">
              {/* Image Card */}
              <div className="relative w-full shadow-2xl rounded-3xl overflow-hidden border border-zinc-800 bg-zinc-900 aspect-square">
-                {brew.image_url ? (
+                {brew.image_url && (brew.moderation_status === 'approved' || brew.image_url.startsWith('/default_label/') || brew.image_url.startsWith('/brand/')) ? (
                   <img 
                     src={brew.image_url} 
                     alt={brew.name}
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-zinc-900 to-zinc-950 flex items-center justify-center">
-                    <span className="text-8xl opacity-20">🍺</span>
+                  <div className="w-full h-full bg-gradient-to-br from-zinc-900 to-zinc-950 flex flex-col items-center justify-center p-6 text-center">
+                    {brew.image_url && brew.moderation_status === 'pending' ? (
+                         <>
+                            <span className="text-6xl mb-4">⏳</span>
+                            <p className="text-yellow-500 font-bold uppercase tracking-wider text-xs">Wird geprüft</p>
+                            <p className="text-zinc-500 text-[10px] mt-2 max-w-[200px]">Das Bild wird gerade vom Support überprüft.</p>
+                        </>
+                    ) : (
+                        <span className="text-8xl opacity-20">🍺</span>
+                    )}
                   </div>
                 )}
                 
@@ -538,6 +548,9 @@ export default function BrewDetailPage() {
 
              {/* Share Button Component */}
              <ShareButton brew={brew} />
+             
+             <div className="h-4"></div>
+             <BrewDiscussionButton brewId={brew.id} brewName={brew.name} />
 
              {/* Save To Team Button */}
              {userBreweries.length > 0 && (
@@ -625,6 +638,7 @@ export default function BrewDetailPage() {
                     <span className="text-zinc-600 text-xs font-bold px-2 py-1 ml-auto md:ml-0 rounded-lg bg-zinc-900/0 border border-transparent">
                         {new Date(brew.created_at).toLocaleDateString()}
                     </span>
+                    <ReportButton targetId={brew.id} targetType="brew" />
                 </div>
                 <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-none tracking-tight">{brew.name}</h1>
                 

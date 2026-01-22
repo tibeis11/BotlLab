@@ -5,9 +5,10 @@ import { useEffect, useRef, useState } from "react";
 
 interface ScannerProps {
     onScanSuccess: (decodedText: string) => void;
+    autoStart?: boolean;
 }
 
-export default function Scanner({ onScanSuccess }: ScannerProps) {
+export default function Scanner({ onScanSuccess, autoStart = false }: ScannerProps) {
     const scannerRef = useRef<Html5Qrcode | null>(null);
     const isStartingRef = useRef(false); 
     const isMountedRef = useRef(true);
@@ -18,6 +19,9 @@ export default function Scanner({ onScanSuccess }: ScannerProps) {
 
     useEffect(() => {
         isMountedRef.current = true;
+        if (autoStart) {
+            startScanner();
+        }
         return () => {
             isMountedRef.current = false;
             if (scannerRef.current) {
@@ -129,12 +133,14 @@ export default function Scanner({ onScanSuccess }: ScannerProps) {
                         {!isStarting ? (
                             <>
                                 <div className="mb-4 text-4xl">📷</div>
-                                <button 
-                                    onClick={startScanner}
-                                    className="bg-cyan-500 hover:bg-cyan-400 text-black font-bold py-3 px-8 rounded-full transition shadow-lg shadow-cyan-500/20 active:scale-95"
-                                >
-                                    Scanner starten
-                                </button>
+                                {!autoStart && (
+                                    <button 
+                                        onClick={startScanner}
+                                        className="bg-cyan-500 hover:bg-cyan-400 text-black font-bold py-3 px-8 rounded-full transition shadow-lg shadow-cyan-500/20 active:scale-95"
+                                    >
+                                        Scanner starten
+                                    </button>
+                                )}
                             </>
                         ) : (
                             <>

@@ -20,16 +20,14 @@ export default function DiscoverWidget() {
     useEffect(() => {
         async function fetchTrending() {
             try {
-                // Fetch public brews with likes_count, ordered by newness first, 
-                // but we genuinely want "hot" ones. 
-                // For performance, let's just fetch the 10 newest PUBLIC brews 
-                // and show them as "New & Trending".
+                // Fetch public brews with likes_count...
                 
                 const { data, error } = await supabase
                     .from('brews')
-                    .select('id,name,style,image_url,likes_count,breweries(name,logo_url)')
+                    .select('id,name,style,image_url,likes_count,breweries(name,logo_url,moderation_status)')
                     .eq('is_public', true)
-                    .order('likes_count', { ascending: false }) // Try sorting by likes directly
+                    .neq('moderation_status', 'pending') 
+                    .order('likes_count', { ascending: false }) 
                     .limit(5);
 
                 if (error) throw error;
@@ -43,7 +41,7 @@ export default function DiscoverWidget() {
                     likes_count: b.likes_count || 0,
                     brewery: {
                         name: b.breweries?.name || 'Unbekannt',
-                        logo_url: b.breweries?.logo_url
+                        logo_url: (b.breweries?.moderation_status === 'pending') ? null : b.breweries?.logo_url
                     }
                 }));
 

@@ -261,7 +261,9 @@ export default function PublicScanPage() {
           brew_type,
           data,
           remix_parent_id,
-          cap_url
+          cap_url,
+          moderation_status,
+          moderation_rejection_reason
         `)
         .eq('id', bottle.brew_id)
         .maybeSingle();
@@ -636,21 +638,46 @@ export default function PublicScanPage() {
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col items-center">
+      {/* Moderation Alerts */}
+      {/* Pending Banner */}
+      {brew.moderation_status === 'pending' && (
+        <div className="w-full bg-yellow-500/10 border-b border-yellow-500/20 px-4 py-3 flex items-center justify-center gap-2 text-yellow-500 text-sm font-medium">
+             <span>⏳</span> Dieses Bild wird geprüft und ist noch nicht öffentlich sichtbar (Dauer ca. 24h).
+        </div>
+      )}
+      
+      {/* Rejected Banner */}
+      {brew.moderation_status === 'rejected' && (
+        <div className="w-full bg-red-900/20 border-b border-red-900/40 px-4 py-4 flex flex-col md:flex-row items-center justify-center gap-2 text-red-500 text-sm font-medium text-center">
+             <span className="font-bold flex items-center gap-2">
+                ⚠️ Bild abgelehnt: 
+             </span>
+             <span>{brew.moderation_rejection_reason || 'Verstoß gegen die Richtlinien'}</span>
+        </div>
+      )}
+
       {/* 1. Das KI-Label als Hero-Bild - GRÖSSER */}
       <div className="relative w-full max-w-2xl mx-auto overflow-hidden">
-        <div className="aspect-square w-full shadow-2xl">
+        <div className="aspect-square w-full shadow-2xl relative">
           {brew.image_url ? (
             <img 
               src={brew.image_url} 
               alt={brew.name} 
-              className="w-full h-full object-cover"
+              className={`w-full h-full object-cover ${(brew.moderation_status === 'pending' || brew.moderation_status === 'rejected') ? 'filter blur-md brightness-50' : ''}`}
             />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-zinc-900 to-zinc-950 flex items-center justify-center border-b border-zinc-800">
               <span className="text-9xl opacity-20">🍺</span>
             </div>
           )}
+
+           {brew.moderation_status === 'pending' && brew.image_url && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-xl font-bold text-white/50 tracking-widest uppercase">In Prüfung</span>
+                </div>
+            )}
         </div>
+
         {/* Badges */}
         <div className="absolute top-6 left-6 flex flex-col gap-2 items-start">
           <span className="bg-black/60 backdrop-blur-md border border-white/10 px-4 py-2 rounded-full text-white text-xs font-bold uppercase tracking-widest shadow-xl inline-flex items-center gap-2">
@@ -1155,7 +1182,7 @@ export default function PublicScanPage() {
             >
                <div className="flex items-center gap-4">
                   <div className="w-16 h-16 rounded-full bg-zinc-800 border-2 border-zinc-700 overflow-hidden shrink-0">
-                    {brewery.logo_url ? (
+                    {brewery.logo_url && brewery.moderation_status !== 'pending' ? (
                       <img src={brewery.logo_url} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-2xl">🏰</div>

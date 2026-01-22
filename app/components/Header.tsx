@@ -96,6 +96,20 @@ export default function Header({ breweryId }: { breweryId?: string }) {
         
         {/* Desktop Navigation */}
         <div className="hidden md:flex gap-4 items-center">
+          <Link 
+            href="/pricing"
+            className="text-sm font-bold text-zinc-400 hover:text-white px-4 py-2 transition"
+          >
+            Preise
+          </Link>
+
+          <Link 
+            href="/forum"
+            className="text-sm font-bold text-zinc-400 hover:text-white px-4 py-2 transition"
+          >
+            Forum
+          </Link>
+          
           {pathname === '/discover' ? (
             <Link 
               href="/" 
@@ -269,12 +283,12 @@ export default function Header({ breweryId }: { breweryId?: string }) {
                                       <span className="font-bold text-sm text-zinc-200">Entdecken</span>
                                   </Link>
                                   <Link
-                                      href="/"
+                                      href="/pricing"
                                       onClick={() => setIsMobileMenuOpen(false)}
                                       className="bg-zinc-900/50 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 p-4 rounded-xl flex flex-col items-center justify-center gap-2 text-center transition"
                                   >
-                                      <span className="text-2xl mb-1">🏠</span>
-                                      <span className="font-bold text-sm text-zinc-200">Startseite</span>
+                                      <span className="text-2xl mb-1">💎</span>
+                                      <span className="font-bold text-sm text-zinc-200">Preise</span>
                                   </Link>
                               </div>
                            </div>
@@ -317,12 +331,20 @@ export default function Header({ breweryId }: { breweryId?: string }) {
                                       <span className="font-bold text-sm text-zinc-200">Entdecken</span>
                                   </Link>
                                   <Link
-                                      href="/"
+                                      href="/forum"
                                       onClick={() => setIsMobileMenuOpen(false)}
                                       className="bg-zinc-900/50 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 p-4 rounded-xl flex flex-col items-center justify-center gap-2 text-center transition"
                                   >
-                                      <span className="text-2xl mb-1">🏠</span>
-                                      <span className="font-bold text-sm text-zinc-200">Startseite</span>
+                                      <span className="text-2xl mb-1">💬</span>
+                                      <span className="font-bold text-sm text-zinc-200">Forum</span>
+                                  </Link>
+                                  <Link
+                                      href="/pricing"
+                                      onClick={() => setIsMobileMenuOpen(false)}
+                                      className="bg-zinc-900/50 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 p-4 rounded-xl flex flex-col items-center justify-center gap-2 text-center transition"
+                                  >
+                                      <span className="text-2xl mb-1">💎</span>
+                                      <span className="font-bold text-sm text-zinc-200">Preise</span>
                                   </Link>
                               </div>
                            </div>

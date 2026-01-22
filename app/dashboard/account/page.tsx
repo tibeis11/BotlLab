@@ -490,32 +490,43 @@ export default function AccountPage() {
                                     
                                     {profile.subscription_tier === 'free' && (
                                         <div className="pt-4 border-t border-zinc-800">
+                                            <div className="mb-4 bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 text-center">
+                                                <p className="text-amber-200 text-xs font-semibold">
+                                                    🚧 Diese Funktionen befinden sich noch in der Entwicklung. Upgrades sind derzeit deaktiviert.
+                                                </p>
+                                            </div>
                                             <h3 className="font-bold text-white mb-2">Upgrade Möglichkeiten</h3>
                                             <div className="grid gap-3">
                                                 <div className="p-4 bg-gradient-to-br from-amber-500/10 to-transparent border border-amber-500/20 rounded-xl flex items-center justify-between">
                                                     <div>
-                                                        <h4 className="font-bold text-amber-500">Heimbrauer (Brewer)</h4>
-                                                        <p className="text-xs text-zinc-400">50 Credits, Custom Logos</p>
+                                                        <h4 className="font-bold text-amber-500">Brewer Plan <span className="text-zinc-500 text-xs font-normal">€4.99/Monat</span></h4>
+                                                        <div className="text-xs text-zinc-400 flex flex-col gap-0.5 mt-1">
+                                                            <span>✅ 50 AI Credits & Analytics</span>
+                                                            <span>⚠️ Keine Limit-Aufhebung (Slots nach Level)</span>
+                                                        </div>
                                                     </div>
                                                     <button 
-                                                        onClick={() => handleUpgrade('brewer')}
-                                                        disabled={upgradeLoading}
-                                                        className="px-4 py-2 bg-amber-500 text-black font-bold text-sm rounded-lg hover:bg-amber-400 transition disabled:opacity-50"
+                                                        disabled
+                                                        className="px-4 py-2 bg-zinc-800 text-zinc-500 font-bold text-sm rounded-lg border border-zinc-700 cursor-not-allowed"
                                                     >
-                                                        {upgradeLoading ? 'Laden...' : 'Upgrade'}
+                                                        Bald verfügbar
                                                     </button>
                                                 </div>
                                                 <div className="p-4 bg-gradient-to-br from-indigo-500/10 to-transparent border border-indigo-500/20 rounded-xl flex items-center justify-between">
                                                     <div>
-                                                        <h4 className="font-bold text-indigo-500">Brauerei (Business)</h4>
-                                                        <p className="text-xs text-zinc-400">Unbegrenzt Credits, Teams</p>
+                                                        <h4 className="font-bold text-indigo-500">Brewery Plan <span className="text-zinc-500 text-xs font-normal">€14.99/Monat</span></h4>
+                                                        <div className="text-xs text-zinc-400 flex flex-col gap-0.5 mt-1">
+                                                           <span className="text-emerald-400 font-bold">♾️ Unbegrenzte Rezepte & Flaschen</span>
+                                                           <span className="text-[10px] text-zinc-500 pl-6 block -mt-0.5 mb-1">(Gilt nur für Brauereien in deinem Besitz)</span>
+                                                           <span>✅ 200 AI Credits & Eigenes Branding</span>
+                                                           <span className="text-zinc-500 italic mt-0.5">👥 Gilt für das gesamte Team (Owner-Pays)</span>
+                                                        </div>
                                                     </div>
                                                     <button 
-                                                        onClick={() => handleUpgrade('brewery')}
-                                                        disabled={upgradeLoading}
-                                                        className="px-4 py-2 bg-indigo-500 text-white font-bold text-sm rounded-lg hover:bg-indigo-400 transition disabled:opacity-50"
+                                                        disabled
+                                                        className="px-4 py-2 bg-zinc-800 text-zinc-500 font-bold text-sm rounded-lg border border-zinc-700 cursor-not-allowed"
                                                     >
-                                                        {upgradeLoading ? 'Laden...' : 'Upgrade'}
+                                                        Bald verfügbar
                                                     </button>
                                                 </div>
                                             </div>

@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase';
 
-export type FeedItemType = 'POST' | 'BREW_CREATED' | 'BREW_UPDATED' | 'MEMBER_JOINED' | 'ACHIEVEMENT' | 'BREW_RATED';
+export type FeedItemType = 'POST' | 'BREW_CREATED' | 'BREW_UPDATED' | 'MEMBER_JOINED' | 'ACHIEVEMENT' | 'BREW_RATED' | 'FORUM_THREAD_CREATED';
 
 export interface FeedItem {
   id: string;
@@ -15,6 +15,7 @@ export interface FeedItem {
     title?: string;
     author?: string;
     rating?: number;
+    thread_id?: string;
   };
   created_at: string;
   profiles?: {

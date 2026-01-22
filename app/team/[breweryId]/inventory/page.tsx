@@ -16,6 +16,8 @@ import { useNotification } from '@/app/context/NotificationContext';
 import { generateSmartLabelPDF } from '@/lib/pdf-generator';
 import { renderLabelToDataUrl } from '@/lib/label-renderer';
 import { LABEL_FORMATS, DEFAULT_FORMAT_ID } from '@/lib/smart-labels-config';
+import { getBreweryPremiumStatus } from '@/lib/actions/premium-actions';
+import { type PremiumStatus } from '@/lib/premium-config';
 
 // Extracted List Item Component
 function BottleListItem({ 
@@ -212,6 +214,7 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 	const [isWorking, setIsWorking] = useState(false);
 	const [isMounted, setIsMounted] = useState(false);
 	const [breweryTier, setBreweryTier] = useState<BreweryTierName>('garage');
+    const [premiumStatus, setPremiumStatus] = useState<PremiumStatus | null>(null);
 	const { showAchievement } = useAchievementNotification();
 	const { showToast } = useNotification();
 
@@ -292,6 +295,10 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 		if (brewery) {
 			// Get Brewery Tier
 			setBreweryTier((brewery.tier as BreweryTierName) || 'garage');
+            
+            // Get Premium Status
+            const status = await getBreweryPremiumStatus(brewery.id);
+            setPremiumStatus(status);
 
 			const { data: btl } = await supabase
 				.from('bottles')
@@ -504,13 +511,20 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 		}
 
 		const tierConfig = getBreweryTierConfig(breweryTier);
-		if (bottles.length + amount > tierConfig.limits.maxBottles) {
-			alert(
-				`🔒 Limit erreicht!\n\n` +
+		const bypassed = premiumStatus?.features.bypassBottleLimits ?? false;
+
+        if (!bypassed && (bottles.length + amount > tierConfig.limits.maxBottles)) {
+            let errorMsg = `🔒 Limit erreicht!\n\n` +
 				`Der Brauerei-Status "${tierConfig.displayName}" erlaubt maximal ${tierConfig.limits.maxBottles} Flaschen.\n` +
-				`Aktuell: ${bottles.length} Flaschen. Noch möglich: ${tierConfig.limits.maxBottles - bottles.length}.\n\n` +
-				`Lösche alte Flaschen, um neue zu erstellen.`
-			);
+				`Aktuell: ${bottles.length}. Noch möglich: ${tierConfig.limits.maxBottles - bottles.length}.`;
+            
+            if (premiumStatus?.tier === 'brewer') {
+                errorMsg += `\n\nHINWEIS: Dein 'Brewer'-Plan schaltet AI-Features frei, hebt aber keine Flaschen-Limits auf. Upgrade auf 'Brewery' nötig.`;
+            } else {
+                errorMsg += `\n\nUpgrade auf den 'Brewery' Plan für unbegrenzte Flaschen oder steigere dein Brauerei-Level.`;
+            }
+			
+            alert(errorMsg);
 			return;
 		}
 
@@ -949,6 +963,10 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 		})
 	];
 
+    const tierConfig = getBreweryTierConfig(breweryTier);
+    const bypassed = premiumStatus?.features.bypassBottleLimits ?? false;
+    const limitReached = !bypassed && (stats.total >= tierConfig.limits.maxBottles);
+
 	return (
 		<div className="space-y-12 pb-32">
       
@@ -958,11 +976,49 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
               <span className="text-cyan-400 text-xs font-black uppercase tracking-widest px-3 py-1 rounded-lg bg-cyan-950/30 border border-cyan-500/20 shadow-sm shadow-cyan-900/20">
                   Inventar
               </span>
+              {limitReached && (
+                  <span className="text-amber-500 text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg bg-amber-950/30 border border-amber-500/20">
+                    Limit erreicht
+                  </span>
+              )}
            </div>
            <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight mb-4">Flaschen & QR-Codes</h1>
-           <p className="text-zinc-400 text-lg leading-relaxed max-w-xl">
-             Verwalte deine Mehrwegflaschen im Team. Generiere Codes für neue Flaschen oder scanne bestehende, um sie einem Rezept zuzuordnen.
-           </p>
+           
+           <div className="text-zinc-400 text-lg leading-relaxed max-w-xl space-y-4">
+             <p>Verwalte deine Mehrwegflaschen im Team. Generiere Codes für neue Flaschen oder scanne bestehende, um sie einem Rezept zuzuordnen.</p>
+             
+             <div className="text-base font-bold rounded-xl bg-zinc-900/50 border border-zinc-800 p-4 shadow-inner">
+                {bypassed ? (
+                   <span className="text-emerald-400 flex items-center gap-2">
+                      <span className="text-xl">∞</span> 
+                      <span>Unlimitierte Flaschen ({premiumStatus?.tier === 'enterprise' ? 'Enterprise' : 'Brewery'} Plan)</span>
+                   </span>
+                ) : (
+                   <div className="space-y-3">
+                       <div className="flex items-center justify-between text-zinc-400 text-sm">
+                           <span>Auslastung ({tierConfig.displayName}):</span>
+                           <span className={limitReached ? "text-amber-500" : "text-white"}>
+                             {stats.total} / {tierConfig.limits.maxBottles}
+                           </span>
+                       </div>
+                       
+                       <div className="h-2 w-full bg-black rounded-full overflow-hidden border border-zinc-800">
+                          <div 
+                             className={`h-full transition-all duration-500 ${limitReached ? 'bg-amber-500' : 'bg-cyan-500'}`} 
+                             style={{ width: `${Math.min(100, (stats.total / tierConfig.limits.maxBottles) * 100)}%` }}
+                          />
+                       </div>
+
+                       {premiumStatus?.tier === 'brewer' && (
+                           <div className="text-xs font-normal text-blue-300 bg-blue-950/40 border border-blue-500/20 p-3 rounded-lg leading-relaxed">
+                               <p><strong className="text-blue-200">Hinweis zum Abo:</strong> Dein 'Brewer'-Plan schaltet AI-Features frei, hebt aber keine Flaschen-Limits auf.</p>
+                               <p className="mt-1 opacity-75">Für unbegrenzte Flaschen-Slots wähle den <strong>Brewery</strong> Plan.</p>
+                           </div>
+                       )}
+                   </div>
+                )}
+             </div>
+           </div>
         </div>
         
         <div className="lg:justify-self-end flex flex-wrap gap-4">

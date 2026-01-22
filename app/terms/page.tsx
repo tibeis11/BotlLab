@@ -51,36 +51,52 @@ export default function TermsPage() {
           </div>
         </section>
 
-        {/* 4. Datenschutz */}
+        {/* 4. Community Forum & Inhalte (UGC) */}
         <section>
-          <h2 className="text-2xl font-bold text-foreground mb-4">4. Datenschutz</h2>
+          <h2 className="text-2xl font-bold text-foreground mb-4">4. Community Forum & Inhalte (UGC)</h2>
+           <div className="text-zinc-300 space-y-3">
+            <p>
+              <strong>4.1 Nutzungsrechte:</strong> Mit dem Erstellen von Beiträgen im Forum (Threads, Posts) räumst du BotlLab ein einfaches, räumlich und zeitlich unbeschränktes Nutzungsrecht an diesen Inhalten ein, um sie auf der Plattform anzuzeigen. Dies dient der langfristigen Lesbarkeit von Diskussionen. Dieses Recht bleibt auch nach Löschung des Benutzerkontos bestehen.
+            </p>
+            <p>
+              <strong>4.2 Moderation:</strong> Wir behalten uns das Recht vor, Inhalte zu löschen oder zu sperren, die gegen geltendes Recht, die guten Sitten oder diese AGB verstoßen (z.B. Beleidigungen, Spam, extremistische Inhalte).
+            </p>
+             <p>
+              <strong>4.3 Haftungsausschluss:</strong> Ratschläge und Rezepte im Forum werden von Nutzern für Nutzer erstellt. BotlLab übernimmt keine Haftung für die Richtigkeit oder Sicherheit von Anleitungen (z.B. Druckbehälter, Hygiene). Die Anwendung erfolgt auf eigene Gefahr.
+            </p>
+          </div>
+        </section>
+
+        {/* 5. Datenschutz */}
+        <section>
+          <h2 className="text-2xl font-bold text-foreground mb-4">5. Datenschutz</h2>
           <p className="text-zinc-300 leading-relaxed">
             Die Verarbeitung deiner persönlichen Daten erfolgt gemäß unserer Datenschutzerklärung. 
             Deine Daten werden nicht an Dritte weitergegeben, ohne dass du dies explizit genehmigt hast.
           </p>
         </section>
 
-        {/* 5. Haftungsausschluss */}
+        {/* 6. Haftungsausschluss */}
         <section>
-          <h2 className="text-2xl font-bold text-foreground mb-4">5. Haftungsausschluss</h2>
+          <h2 className="text-2xl font-bold text-foreground mb-4">6. Haftungsausschluss</h2>
           <div className="text-zinc-300 space-y-3">
             <p>
-              <strong>5.1 Verzicht auf Garantien:</strong> Die Plattform wird ohne Mängelgewähr bereitgestellt. 
+              <strong>6.1 Verzicht auf Garantien:</strong> Die Plattform wird ohne Mängelgewähr bereitgestellt. 
               Wir garantieren nicht für Verfügbarkeit, Genauigkeit oder Fehlerfreiheit.
             </p>
             <p>
-              <strong>5.2 Haftungsbegrenzung:</strong> Wir haften nicht für Datenverluste, Ausfallzeiten, indirekte Schäden oder Gewinnverluste, 
+              <strong>6.2 Haftungsbegrenzung:</strong> Wir haften nicht für Datenverluste, Ausfallzeiten, indirekte Schäden oder Gewinnverluste, 
               die durch die Nutzung oder Unmöglichkeit der Nutzung entstehen.
             </p>
             <p>
-              <strong>5.3 Third-Party-Inhalte:</strong> Verlinkungen zu externen Seiten implizieren keine Empfehlung oder Haftung für deren Inhalte.
+              <strong>6.3 Third-Party-Inhalte:</strong> Verlinkungen zu externen Seiten implizieren keine Empfehlung oder Haftung für deren Inhalte.
             </p>
           </div>
         </section>
 
-        {/* 6. Geistiges Eigentum */}
+        {/* 7. Geistiges Eigentum */}
         <section>
-          <h2 className="text-2xl font-bold text-foreground mb-4">6. Geistiges Eigentum</h2>
+          <h2 className="text-2xl font-bold text-foreground mb-4">7. Geistiges Eigentum</h2>
           <p className="text-zinc-300 leading-relaxed">
             Alle Inhalte, Logos, Grafiken und Software der Plattform sind unser Eigentum oder das unserer Lizenzgeber. 
             Du darfst diese nicht ohne Genehmigung reproduzieren, ändern oder verbreiten. Deine Rezepte und Inhalte bleiben dein Eigentum, 
@@ -88,35 +104,35 @@ export default function TermsPage() {
           </p>
         </section>
 
-        {/* 7. Änderungen der AGB */}
+        {/* 8. Änderungen der AGB */}
         <section>
-          <h2 className="text-2xl font-bold text-foreground mb-4">7. Änderungen der Bedingungen</h2>
+          <h2 className="text-2xl font-bold text-foreground mb-4">8. Änderungen der Bedingungen</h2>
           <p className="text-zinc-300 leading-relaxed">
             Wir können diese AGB jederzeit ändern. Bedeutsame Änderungen teilen wir dir mit. 
             Fortgesetzte Nutzung nach Änderungen bedeutet Akzeptanz.
           </p>
         </section>
 
-        {/* 8. Beendigung */}
+        {/* 9. Beendigung */}
         <section>
-          <h2 className="text-2xl font-bold text-foreground mb-4">8. Beendigung</h2>
+          <h2 className="text-2xl font-bold text-foreground mb-4">9. Beendigung</h2>
           <p className="text-zinc-300 leading-relaxed">
             Du kannst dein Konto jederzeit löschen. Wir können Konten bei Verstoß gegen diese AGB suspendieren oder löschen. 
             Nach Löschung werden Daten gemäß unserer Datenschutzrichtlinie verwaltet.
           </p>
         </section>
 
-        {/* 9. Geltung */}
+        {/* 10. Geltung */}
         <section>
-          <h2 className="text-2xl font-bold text-foreground mb-4">9. Rechtswahl und Gerichtsstand</h2>
+          <h2 className="text-2xl font-bold text-foreground mb-4">10. Rechtswahl und Gerichtsstand</h2>
           <p className="text-zinc-300 leading-relaxed">
             Diese AGB unterliegen deutschem Recht. Gerichtsstand ist der Ort deines Wohnsitzes oder unserer Niederlassung, falls anwendbar.
           </p>
         </section>
 
-        {/* 10. Kontakt */}
+        {/* 11. Kontakt */}
         <section>
-          <h2 className="text-2xl font-bold text-foreground mb-4">10. Kontakt</h2>
+          <h2 className="text-2xl font-bold text-foreground mb-4">11. Kontakt</h2>
           <p className="text-zinc-300 leading-relaxed">
             Bei Fragen zu diesen AGB oder zum Dienst, kontaktiere uns über die Kontaktseite oder per E-Mail.
           </p>

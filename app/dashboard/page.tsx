@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import TierProgressWidget from './components/TierProgressWidget';
 import DiscoverWidget from './components/DiscoverWidget';
+import ForumActivityWidget from './components/ForumActivityWidget';
+import TrendingForumWidget from './components/TrendingForumWidget';
 import { useAchievementNotification } from '../context/AchievementNotificationContext';
 import { supabase, getActiveBrewery } from '@/lib/supabase';
 import { useAuth } from '../context/AuthContext';
@@ -504,12 +506,14 @@ function DashboardContent() {
                     )}
 
                     {/* Discovery Widget */}
+                    <TrendingForumWidget />
                     <DiscoverWidget />
                 </div>
 
                 {/* Right Column: Widgets */}
                 <div className="space-y-6">
                     <TierProgressWidget />
+                    {userId && <ForumActivityWidget userId={userId} />}
 
                     {/* Collection Widget */}
                     <div className="bg-gradient-to-br from-purple-900/20 to-fuchsia-900/10 border border-purple-500/20 p-6 rounded-3xl flex flex-col justify-center relative overflow-hidden">

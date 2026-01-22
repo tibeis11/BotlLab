@@ -156,7 +156,7 @@ export default function BottleScanner({
                         </div>
                  </div>
                  
-                 <Scanner onScanSuccess={handleScan} />
+                 <Scanner onScanSuccess={handleScan} autoStart={true} />
                  
                  {/* Overlay Scanner Frame - Like in Inventory */}
                  <div className="absolute inset-0 border-[40px] border-black/50 pointer-events-none z-10">

@@ -6,6 +6,8 @@ import { supabase } from '@/lib/supabase';
 import { getBreweryTierConfig } from '@/lib/tier-system';
 import BreweryTierWidget from './components/BreweryTierWidget';
 import { trackEvent } from '@/lib/actions/analytics-actions';
+import { getBreweryPremiumStatus } from '@/lib/actions/premium-actions';
+import { type PremiumStatus } from '@/lib/premium-config';
 
 export default function TeamDashboardPage({ params }: { params: Promise<{ breweryId: string }> }) {
   const { breweryId } = use(params);
@@ -20,6 +22,7 @@ export default function TeamDashboardPage({ params }: { params: Promise<{ brewer
   // Tier & Limits
   const [brewCount, setBrewCount] = useState(0);
   const [tierLimit, setTierLimit] = useState(10); // Default safest
+  const [premiumStatus, setPremiumStatus] = useState<PremiumStatus | null>(null);
   const [isAdminMode, setIsAdminMode] = useState(false);
 
   useEffect(() => {
@@ -41,6 +44,10 @@ export default function TeamDashboardPage({ params }: { params: Promise<{ brewer
     const currentTier = brewery?.tier || 'garage';
     const config = getBreweryTierConfig(currentTier as any);
     setTierLimit(config.limits.maxBrews);
+
+    // 1.5 Get Premium Status
+    const pStatus = await getBreweryPremiumStatus(breweryId);
+    setPremiumStatus(pStatus);
 
     // 2. Get all brews for this brewery
     const { data: brews } = await supabase.from('brews').select('id').eq('brewery_id', breweryId);
@@ -138,7 +145,8 @@ export default function TeamDashboardPage({ params }: { params: Promise<{ brewer
                     {isAdminMode && <span className="text-[10px] bg-red-900/50 text-red-200 px-2 py-0.5 rounded border border-red-500/30 uppercase tracking-widest">Admin Mode</span>}
                 </h3>
                 <div className="flex flex-col gap-3">
-                    {(brewCount >= tierLimit && !isAdminMode) ? (
+                    {/* CHECK: Limit reached AND NOT Bypassed AND NOT Admin? */}
+                    {(!premiumStatus?.features.bypassBrewLimits && brewCount >= tierLimit && !isAdminMode) ? (
                         <div 
                             onClick={() => trackEvent({ 
                                 event_type: 'limit_reached_brews', 
@@ -147,7 +155,7 @@ export default function TeamDashboardPage({ params }: { params: Promise<{ brewer
                                 path: `/team/${breweryId}/dashboard`
                             })}
                             className="flex items-center gap-3 p-3 bg-zinc-900/50 rounded-xl border border-red-900/30 opacity-70 cursor-not-allowed relative overflow-hidden" 
-                            title="Du musst deine Brauerei upgraden, um mehr Rezepte anzulegen."
+                            title={premiumStatus?.tier === 'brewer' ? "Dein Brewer-Plan hebt das Sud-Limit nicht auf." : "Upgrade erforderlich für mehr Slots."}
                         >
                              <span className="text-2xl grayscale opacity-50">📝</span>
                              <div className="flex-1">
@@ -163,7 +171,7 @@ export default function TeamDashboardPage({ params }: { params: Promise<{ brewer
                                 <div className="text-xs text-zinc-500">
                                     {isAdminMode && brewCount >= tierLimit 
                                         ? <span className="text-red-400 font-bold">Limit Bypass ({brewCount}/{tierLimit})</span> 
-                                        : 'Neuen Sud planen'}
+                                        : (premiumStatus?.features.bypassBrewLimits ? 'Unlimitiert (Premium)' : 'Neuen Sud planen')}
                                 </div>
                             </div>
                         </Link>

@@ -47,6 +47,9 @@ export async function checkAndGrantAchievements(userId: string) {
     .select('brewery_id, role')
     .eq('user_id', userId);
 
+  const { count: threadCount } = await supabase.from('forum_threads').select('*', { count: 'exact', head: true }).eq('author_id', userId);
+  const { count: postCount } = await supabase.from('forum_posts').select('*', { count: 'exact', head: true }).eq('author_id', userId);
+
   const brewCount = brews?.length || 0;
   const publicBrewCount = brews?.filter(b => b.is_public).length || 0;
   const remixCount = brews?.filter(b => b.remix_parent_id).length || 0;
@@ -96,6 +99,11 @@ export async function checkAndGrantAchievements(userId: string) {
 
   // Quality Achievements
   if (highestAvg >= 4.5) toGrant.push('top_rated');
+
+  // Forum Achievements
+  if ((threadCount || 0) >= 1) toGrant.push('forum_voice');
+  if ((threadCount || 0) >= 10) toGrant.push('forum_starter');
+  if ((postCount || 0) >= 50) toGrant.push('forum_pillar');
 
   // Social Achievements
   if (ratingCount >= 50) toGrant.push('popular_50');

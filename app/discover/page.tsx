@@ -45,7 +45,7 @@ export default function DiscoverPage() {
     // 2. Fetch public brews
     const { data, error } = await supabase
       .from('brews')
-      .select('id,name,style,image_url,created_at,user_id,brew_type,data,remix_parent_id,breweries(name,logo_url),ratings(rating),likes_count')
+      .select('id,name,style,image_url,created_at,user_id,brew_type,data,remix_parent_id,moderation_status,breweries(name,logo_url),ratings(rating),likes_count')
       .eq('is_public', true)
       .order('created_at', { ascending: false });
     

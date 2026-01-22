@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import LikeButton from "./LikeButton";
-import { Star } from "lucide-react";
+import { Star, Clock, AlertTriangle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { de } from "date-fns/locale";
 
@@ -13,6 +13,7 @@ interface BrewData {
   image_url: string | null;
   created_at: string;
   user_id: string;
+  moderation_status?: 'pending' | 'approved' | 'rejected'; // Added
   
   // Joins
   ratings?: { rating: number }[] | null;
@@ -43,16 +44,23 @@ export default function BrewCard({ brew, currentUserId }: BrewCardProps) {
   const likeCount = brew.likes_count ?? (brew.likes ? brew.likes[0]?.count : 0);
   const isLiked = brew.user_has_liked ?? false; // This needs to be populated by the parent query
 
+  const isPending = brew.moderation_status === 'pending';
+  const isRejected = brew.moderation_status === 'rejected';
+
+  // If rejected, usually we hide. BUT if it's a default image (safe), show it.
+  const isDefaultImage = brew.image_url && (brew.image_url.startsWith('/default_label/') || brew.image_url.startsWith('/brand/'));
+  const showImage = brew.image_url && (!isRejected || isDefaultImage);
+
   return (
     <Link href={`/brew/${brew.id}`} className="group relative block h-full">
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden hover:border-zinc-700 transition-all h-full flex flex-col">
+        <div className={`bg-zinc-900 border rounded-2xl overflow-hidden transition-all h-full flex flex-col ${isPending ? 'border-yellow-900/50' : 'border-zinc-800 hover:border-zinc-700'}`}>
             {/* Image */}
-            <div className="aspect-[4/3] relative bg-zinc-950">
-                {brew.image_url ? (
+            <div className="aspect-[4/3] relative bg-zinc-950 overflow-hidden">
+                {showImage ? (
                     <img 
                         src={brew.image_url} 
                         alt={brew.name} 
-                        className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+                        className={`w-full h-full object-cover transition-opacity ${isPending ? 'opacity-40 blur-sm' : 'opacity-80 group-hover:opacity-100'}`}
                     />
                 ) : (
                     <div className="w-full h-full flex items-center justify-center text-zinc-800">
@@ -60,15 +68,27 @@ export default function BrewCard({ brew, currentUserId }: BrewCardProps) {
                     </div>
                 )}
                 
-                {/* Overlay Badges */}
-                <div className="absolute top-2 right-2 flex gap-1">
-                    {avgRating && (
-                        <div className="bg-black/60 backdrop-blur text-white text-xs font-bold px-2 py-1 rounded-lg flex items-center gap-1">
-                            <Star size={10} className="fill-yellow-500 text-yellow-500" />
-                            {avgRating}
+                {/* Moderation Overlays */}
+                {isPending && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="bg-yellow-500/10 backdrop-blur-md border border-yellow-500/50 px-3 py-1.5 rounded-full flex items-center gap-2 text-yellow-500 text-xs font-bold uppercase tracking-wider">
+                            <Clock size={12} />
+                            Prüfung
                         </div>
-                    )}
-                </div>
+                    </div>
+                )}
+
+                {/* Overlay Badges (Only show if not rejected) */}
+                {!isRejected && (
+                    <div className="absolute top-2 right-2 flex gap-1">
+                        {avgRating && (
+                            <div className="bg-black/60 backdrop-blur text-white text-xs font-bold px-2 py-1 rounded-lg flex items-center gap-1">
+                                <Star size={10} className="fill-yellow-500 text-yellow-500" />
+                                {avgRating}
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Content */}

@@ -134,13 +134,13 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                                                 <span>🍺</span>
                                                 <span>Rezepte</span>
                                             </Link>
-                                            <div className="px-3 py-2 text-sm font-bold flex items-center gap-3 text-zinc-600 cursor-not-allowed">
+                                            <Link 
+                                                href="/forum" 
+                                                className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
+                                            >
                                                 <span>💬</span>
-                                                <div>
-                                                    <span className="block">Forum</span>
-                                                    <span className="text-[9px] uppercase tracking-wider block font-black">Demnächst</span>
-                                                </div>
-                                            </div>
+                                                <span>Forum</span>
+                                            </Link>
                                         </div>
                                 </div>
                             )}
@@ -516,13 +516,15 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                                             <span className="font-bold text-sm text-zinc-200">Rezepte</span>
                                             <span className="ml-auto text-zinc-600">→</span>
                                         </Link>
-                                        <div className="w-full flex items-center gap-4 py-4 px-2 opacity-30 cursor-not-allowed">
+                                        <Link
+                                            href="/forum"
+                                            onClick={() => setIsMobileMenuOpen(false)}
+                                            className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
+                                        >
                                             <span className="text-xl">💬</span>
-                                            <div>
-                                                <span className="font-bold text-sm text-zinc-400 block">Forum</span>
-                                                <span className="text-[10px] text-zinc-600 uppercase font-bold tracking-wider">Demnächst</span>
-                                            </div>
-                                        </div>
+                                            <span className="font-bold text-sm text-zinc-200">Forum</span>
+                                            <span className="ml-auto text-zinc-600">→</span>
+                                        </Link>
                                     </div>
                                  </div>
                             </div>

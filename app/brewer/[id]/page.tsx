@@ -1,12 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { getTierConfig } from '@/lib/tier-system';
 import Header from '@/app/components/Header';
 import Logo from '@/app/components/Logo';
+import ReportButton from '@/app/components/reporting/ReportButton';
+import { MessageSquare, Calendar } from 'lucide-react';
 
 export default function PublicBrewerPage() {
   const params = useParams();
@@ -15,13 +17,9 @@ export default function PublicBrewerPage() {
   const [profile, setProfile] = useState<any>(null);
   const [brews, setBrews] = useState<any[]>([]);
   const [teams, setTeams] = useState<any[]>([]);
+  const [forumThreads, setForumThreads] = useState<any[]>([]);
   const [brewRatings, setBrewRatings] = useState<{[key: string]: {avg: number, count: number}}>({});
   const [loading, setLoading] = useState(true);
-
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
 
   useEffect(() => {
     if(id) loadData();
@@ -43,7 +41,7 @@ export default function PublicBrewerPage() {
         // 1b. Teams laden (via brewery_members)
         const { data: membersData } = await supabase
             .from('brewery_members')
-            .select('role, breweries(id, name, logo_url)')
+            .select('role, breweries(id, name, logo_url, moderation_status)')
             .eq('user_id', id); // Fetch ALL memberships
         
         if (membersData) {
@@ -83,6 +81,26 @@ export default function PublicBrewerPage() {
          }
          setBrewRatings(ratingsMap);
        }
+
+       // 4. Forum Threads laden
+       const { data: threadsData } = await supabase
+          .from('forum_threads')
+          .select(`
+            *,
+            category:forum_categories(title, slug),
+            posts:forum_posts(count)
+          `)
+          .eq('author_id', id)
+          .order('created_at', { ascending: false });
+
+       if (threadsData) {
+          const mappedThreads = threadsData.map((t: any) => ({
+              ...t,
+              reply_count: (t.posts?.[0]?.count || 0)
+          }));
+          setForumThreads(mappedThreads);
+       }
+
     } else {
         console.error("Profil nicht gefunden oder Fehler:", profileError);
     }
@@ -170,7 +188,7 @@ export default function PublicBrewerPage() {
                             <Link key={team.id} href={`/brewery/${team.id}`} className="block group">
                                 <div className="flex items-center gap-3 p-2 rounded-xl hover:bg-zinc-800/50 transition border border-transparent hover:border-cyan-500/20">
                                     <div className="w-8 h-8 rounded-full bg-zinc-800 overflow-hidden shrink-0 border border-zinc-700">
-                                        {team.logo_url ? (
+                                        {team.logo_url && team.moderation_status !== 'pending' ? (
                                             <img src={team.logo_url} className="w-full h-full object-cover" />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center text-xs">🏰</div>
@@ -201,6 +219,7 @@ export default function PublicBrewerPage() {
                     >
                         {tierConfig?.displayName || 'Brauer'}
                     </span>
+                    <ReportButton targetId={profile.id} targetType="user" />
                 </div>
                 <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-none tracking-tight">{profile.display_name}</h1>
             </div>
@@ -312,11 +331,41 @@ export default function PublicBrewerPage() {
 
             {/* Forum Posts Section */}
             <div className="pt-8 border-t border-zinc-800/50">
-               <h3 className="text-xs font-black uppercase tracking-[0.3em] text-zinc-500 mb-8">Forumsbeiträge (0)</h3>
+               <h3 className="text-xs font-black uppercase tracking-[0.3em] text-zinc-500 mb-8">Diskussionen ({forumThreads.length})</h3>
                
-               <div className="bg-zinc-900/30 border border-dashed border-zinc-800 rounded-2xl p-12 text-center">
-                  <p className="text-zinc-500">Keine öffentlichen Beiträge.</p>
-               </div>
+               {forumThreads.length === 0 ? (
+                   <div className="bg-zinc-900/30 border border-dashed border-zinc-800 rounded-2xl p-12 text-center">
+                      <p className="text-zinc-500">Keine öffentlichen Diskussionen gestartet.</p>
+                   </div>
+               ) : (
+                   <div className="space-y-3">
+                       {forumThreads.map(thread => (
+                           <Link 
+                               key={thread.id} 
+                               href={`/forum/thread/${thread.id}`}
+                               className="block bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 hover:bg-zinc-900 hover:border-zinc-700 transition group"
+                           >
+                               <div className="flex justify-between items-start mb-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-500/80 bg-emerald-950/30 px-2 py-0.5 rounded border border-emerald-500/20">
+                                            {thread.category?.title}
+                                        </span>
+                                        <span className="text-[10px] text-zinc-500 flex items-center gap-1">
+                                            <Calendar size={10} />
+                                            {new Date(thread.created_at).toLocaleDateString()}
+                                        </span>
+                                    </div>
+                                    <span className="text-[10px] text-zinc-500 flex items-center gap-1 bg-zinc-950 px-2 py-1 rounded-lg border border-zinc-900 group-hover:border-zinc-800 transition">
+                                        {thread.reply_count} <MessageSquare size={10} />
+                                    </span>
+                               </div>
+                               <h4 className="font-bold text-zinc-300 group-hover:text-white transition line-clamp-1">
+                                   {thread.title}
+                               </h4>
+                           </Link>
+                       ))}
+                   </div>
+               )}
             </div>
 
           </div>

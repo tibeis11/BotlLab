@@ -34,7 +34,10 @@ export default function NotificationBell() {
 
   const getNotificationLink = (n: NotificationItem) => {
       if (n.type === 'brew_like') return `/brew/${n.data.brew_id}`;
-      // Add other types here
+      // Forum types
+      if (n.type === 'forum_reply' || n.type === 'forum_mention') {
+          return `/forum/thread/${n.data.thread_id}`;
+      }
       return '#';
   };
 
@@ -44,6 +47,18 @@ export default function NotificationBell() {
               return (
                   <span>
                       <span className="font-bold text-white">{n.actor?.display_name || 'Jemand'}</span> gefällt dein Rezept <span className="text-cyan-400">"{n.data.brew_name}"</span>.
+                  </span>
+              );
+          case 'forum_reply':
+              return (
+                  <span>
+                      <span className="font-bold text-white">{n.actor?.display_name || 'Jemand'}</span> hat auf deine Diskussion <span className="text-emerald-400">"{n.data.thread_title || 'Unbekannt'}"</span> geantwortet.
+                  </span>
+              );
+          case 'forum_mention':
+              return (
+                  <span>
+                       <span className="font-bold text-white">{n.actor?.display_name || 'Jemand'}</span> hat dich in <span className="text-emerald-400">"{n.data.thread_title || 'Unbekannt'}"</span> mit <span className="text-blue-400 font-bold bg-blue-500/10 px-1 rounded text-[10px] inline-block">@Autor</span> erwähnt.
                   </span>
               );
           default:

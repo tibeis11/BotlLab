@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { getBreweryTierConfig } from '@/lib/tier-system';
 import Header from '@/app/components/Header';
 import Logo from '@/app/components/Logo';
+import ReportButton from '@/app/components/reporting/ReportButton';
 
 // Read-only Client für öffentliche Daten
 const supabase = createClient(
@@ -69,6 +70,7 @@ export default function PublicBreweryPage({ params }: { params: Promise<{ id: st
             .select('*')
             .eq('brewery_id', id)
             .eq('is_public', true)
+            .neq('moderation_status', 'pending') // Hide pending, show rest (approved or rejected defaults)
             .order('created_at', { ascending: false });
 
         if (brewsData) {
@@ -138,7 +140,7 @@ export default function PublicBreweryPage({ params }: { params: Promise<{ id: st
           <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-8">
              {/* Profile Image (Smaller) */}
              <div className="relative w-48 h-48 mx-auto shadow-2xl rounded-full overflow-hidden border border-zinc-800 bg-zinc-900">
-                {brewery.logo_url ? (
+                {brewery.logo_url && brewery.moderation_status !== 'pending' ? (
                   <img src={brewery.logo_url} className="w-full h-full object-cover" alt={brewery.name} />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-zinc-900 to-zinc-800 flex items-center justify-center text-6xl">
@@ -209,6 +211,7 @@ export default function PublicBreweryPage({ params }: { params: Promise<{ id: st
                     >
                         {tierConfig?.displayName || 'Brauerei'}
                     </span>
+                    <ReportButton targetId={brewery.id} targetType="brewery" />
                 </div>
                 <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-none tracking-tight">{brewery.name}</h1>
             </div>

@@ -20,6 +20,7 @@ import { calculateColorEBC, calculateIBU, calculateWaterProfile, calculateOG, ca
 import { FormulaInspector } from '@/app/components/FormulaInspector';
 import { SubscriptionTier, type PremiumStatus } from '@/lib/premium-config';
 import { getPremiumStatus } from '@/lib/actions/premium-actions';
+import LegalConsentModal from '@/app/components/LegalConsentModal';
 
 function formatIngredientsForPrompt(value: any): string {
     if (!value) return '';
@@ -61,6 +62,8 @@ interface BrewForm {
 	is_public: boolean;
 	data?: any;
 	remix_parent_id?: string | null;
+    moderation_status?: 'pending' | 'approved' | 'rejected';
+    moderation_rejection_reason?: string | null;
 }
 
 function NumberInput({ 
@@ -239,6 +242,8 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 	const [activeTab, setActiveTab] = useState<'input' | 'label' | 'caps' | 'optimization' | 'ratings'>('input');
     const [premiumStatus, setPremiumStatus] = useState<PremiumStatus | null>(null);
 	const [extraPrompt, setExtraPrompt] = useState('');
+    const [legalModalOpen, setLegalModalOpen] = useState(false);
+    const [legalModalType, setLegalModalType] = useState<'label' | 'cap' | null>(null);
 
     async function refreshPremium() {
         if (!user) return;
@@ -262,6 +267,8 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 		image_url: '/default_label/default.png',
 		cap_url: null,
 		is_public: true,
+        moderation_status: 'pending',
+        moderation_rejection_reason: null,
 		data: {
             batch_size_liters: '',
             og: '',
@@ -516,7 +523,13 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 			const shouldBypass = premiumStatus?.features.bypassBrewLimits ?? false;
 
 			if (!shouldBypass && (count || 0) >= tierConfig.limits.maxBrews) {
-				setMessage(`Brauerei-Limit erreicht: ${tierConfig.displayName} erlaubt ${tierConfig.limits.maxBrews} Rezepte.`);
+                let errorMsg = `Brauerei-Limit erreicht: ${tierConfig.displayName} erlaubt ${tierConfig.limits.maxBrews} Rezepte.`;
+                if (premiumStatus?.tier === 'brewer') {
+                    errorMsg = `Limit erreicht (${tierConfig.limits.maxBrews}). HINWEIS: Dein 'Brewer'-Abo enthält KEINE Slot-Erweiterung (nur AI). Upgrade auf 'Brewery' nötig.`;
+                } else if (premiumStatus?.tier === 'free') {
+                    errorMsg += " Upgrade auf 'Brewery' für unbegrenzte Slots.";
+                }
+				setMessage(errorMsg);
 				setSaving(false);
 				return;
 			}
@@ -584,6 +597,18 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 		if (error || !data) {
 			setMessage(error?.message || 'Speichern fehlgeschlagen.');
 		} else {
+            // Storage Hygiene: If we saved a default/external image/cap, clean up the custom files from storage to prevent pollution
+            if (data.id) {
+                // If not using a custom brew image (url doesn't contain brew-ID), clean up storage
+                if (!data.image_url || !data.image_url.includes(`brew-${data.id}`)) {
+                    cleanStorageAssets(`brew-${data.id}`).catch(e => console.error("Clean brew assets", e));
+                }
+                // If not using a custom cap image (url doesn't contain cap-ID), clean up storage
+                if (!data.cap_url || !data.cap_url.includes(`cap-${data.id}`)) {
+                    cleanStorageAssets(`cap-${data.id}`).catch(e => console.error("Clean cap assets", e));
+                }
+            }
+
 			setBrew({ ...data, data: data.data || {} });
 			setMessage('Gespeichert.');
 
@@ -661,16 +686,9 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 		
 		if (bottlesError) console.error('Fehler beim Zurücksetzen der Flaschen:', bottlesError);
 
-		// Remove Image if exists
-		if (brew.image_url) {
-			try {
-				const url = new URL(brew.image_url);
-				const fileName = url.pathname.split('/').pop();
-				if (fileName) await supabase.storage.from('labels').remove([fileName]);
-			} catch (e) {
-				console.warn('Konnte Bild-URL nicht parsen:', e);
-			}
-		}
+        // CLEANUP STORAGE: Remove all associated files (images & caps)
+        await cleanStorageAssets(`brew-${brew.id}`);
+        await cleanStorageAssets(`cap-${brew.id}`);
 
 		// Delete Brew
 		const { error } = await supabase.from('brews').delete().eq('id', brew.id);
@@ -1069,6 +1087,30 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 		}
 	}
 
+	// Helper to clean up old files for a specific brew/cap prefix
+    async function cleanStorageAssets(prefix: string) {
+        // List files in the root of 'labels' bucket
+        const { data, error } = await supabase.storage
+            .from('labels')
+            .list('', { search: prefix, limit: 10 }); // Search acts like a fuzzy match
+        
+        if (error) {
+            console.warn('Cleanup check failed:', error);
+            return;
+        }
+
+        // Filter to ensure we only delete files that strictly start with the prefix + dot or existing patterns
+        // We want to delete 'brew-{id}.png', 'brew-{id}.jpg', 'brew-{id}-timestamp.png'
+        const filesToDelete = data
+            .filter(f => f.name.startsWith(prefix))
+            .map(f => f.name);
+
+        if (filesToDelete.length > 0) {
+            console.log("Cleaning up old assets:", filesToDelete);
+            await supabase.storage.from('labels').remove(filesToDelete);
+        }
+    }
+
 	async function handleFileUpload(e: ChangeEvent<HTMLInputElement>) {
 		const file = e.target.files?.[0];
 		if (!file) return;
@@ -1087,20 +1129,26 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 		setMessage(null);
 
 		try {
-			const fileName = `${brew.id}-${Date.now()}.${file.name.split('.').pop()}`;
+            // 1. Clean up OLD images (ensure only one exists)
+            await cleanStorageAssets(`brew-${brew.id}`);
+
+            // 2. Upload NEW image (Standardized Name: brew-{id}.{ext})
+			const fileName = `brew-${brew.id}.${file.name.split('.').pop()}`;
 			const { data: uploadData, error: uploadError } = await supabase.storage
 				.from('labels')
 				.upload(fileName, file, { upsert: true });
 
 			if (uploadError) throw uploadError;
 
+            // Force cache bust
 			const { data: urlData } = supabase.storage.from('labels').getPublicUrl(fileName);
-			const imageUrl = urlData?.publicUrl;
+			const imageUrl = `${urlData?.publicUrl}?t=${Date.now()}`;
 
-			if (!imageUrl) throw new Error('Keine URL erhalten');
+			if (!urlData.publicUrl) throw new Error('Keine URL erhalten');
 
 			if (!user) throw new Error('Nicht authentifiziert');
-
+            
+            // Note: Trigger will reset moderation status to pending automatically!
 			const { data, error } = await supabase
 				.from('brews')
 				.update({ image_url: imageUrl })
@@ -1109,8 +1157,14 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 				.single();
 
 			if (error) throw error;
-
-			setBrew(prev => ({ ...prev, image_url: imageUrl }));
+            
+            // Update local state (including new moderation status from DB return)
+			setBrew(prev => ({ 
+                ...prev, 
+                image_url: imageUrl,
+                moderation_status: data.moderation_status,
+                moderation_rejection_reason: data.moderation_rejection_reason 
+            }));
 			setMessage('Label hochgeladen und gespeichert.');
 		} catch (err: any) {
 			setMessage(err?.message || 'Upload fehlgeschlagen.');
@@ -1131,7 +1185,11 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 
 		setUploadingCap(true);
 		try {
-			const fileName = `cap-${brew.id}-${Date.now()}.${file.name.split('.').pop()}`;
+            // 1. Clean up OLD caps
+            await cleanStorageAssets(`cap-${brew.id}`);
+
+            // 2. Upload NEW cap
+			const fileName = `cap-${brew.id}.${file.name.split('.').pop()}`;
 			const { data: uploadData, error: uploadError } = await supabase.storage
 				.from('labels')
 				.upload(fileName, file, { upsert: true });
@@ -1139,7 +1197,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 			if (uploadError) throw uploadError;
 
 			const { data: urlData } = supabase.storage.from('labels').getPublicUrl(fileName);
-			const imageUrl = urlData?.publicUrl;
+			const imageUrl = `${urlData?.publicUrl}?t=${Date.now()}`;
 
 			const { error } = await supabase
 				.from('brews')
@@ -1830,6 +1888,23 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 
                         {activeTab === 'label' && (
                             <div className="space-y-6">
+                                {/* Moderation Banner */}
+                                {brew.moderation_status === 'rejected' && (
+                                    <div className="bg-red-500/10 border border-red-500/50 rounded-xl p-4 flex gap-4 items-start">
+                                        <div className="text-2xl mt-1">⚠️</div>
+                                        <div>
+                                            <h3 className="text-red-500 font-bold text-sm uppercase tracking-wider mb-1">Bild wurde abgelehnt</h3>
+                                            <p className="text-zinc-300 text-sm">{brew.moderation_rejection_reason || 'Verstoß gegen die Richtlinien'}</p>
+                                        </div>
+                                    </div>
+                                )}
+                                {brew.moderation_status === 'pending' && brew.image_url && brew.image_url !== '/default_label/default.png' && (
+                                    <div className="bg-yellow-500/10 border border-yellow-500/50 rounded-xl p-4 flex gap-4 items-center">
+                                         <div className="text-2xl">⏳</div>
+                                         <p className="text-yellow-500 text-sm font-bold">Dein Bild wird überprüft. Es ist erst öffentlich sichtbar, wenn es freigegeben wurde.</p>
+                                    </div>
+                                )}
+
                                 <div className="flex items-center justify-between gap-4">
                                     <div>
                                         <p className="text-xs uppercase tracking-[0.2em] text-purple-400 font-bold mb-1">Label Design</p>
@@ -1899,7 +1974,10 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                         </button>
                                         <div className="grid grid-cols-2 sm:flex gap-3 w-full sm:w-auto">
                                             <button
-                                                onClick={() => fileInputRef.current?.click()}
+                                                onClick={() => {
+                                                    setLegalModalType('label');
+                                                    setLegalModalOpen(true);
+                                                }}
                                                 disabled={uploading || generating}
                                                 className="px-4 py-3 bg-zinc-800 border border-zinc-700 text-white rounded-xl text-sm font-bold hover:bg-zinc-700 transition disabled:opacity-60 flex items-center justify-center gap-2 min-h-[50px] whitespace-nowrap"
                                             >
@@ -1990,7 +2068,10 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                             
                                             <button 
                                                 className="bg-zinc-900 border border-zinc-800 hover:border-zinc-700 p-4 rounded-xl transition-all group flex items-center justify-center gap-3 text-zinc-400 hover:text-white disabled:opacity-50"
-                                                onClick={() => fileInputCapRef.current?.click()}
+                                                onClick={() => {
+                                                    setLegalModalType('cap');
+                                                    setLegalModalOpen(true);
+                                                }}
                                                 disabled={generatingCap || uploadingCap}
                                             >
                                                 {uploadingCap ? (
@@ -2142,6 +2223,20 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                         spargeWater: parseFloat(brew.data?.sparge_water_liters) || 0,
                         hops: brew.data?.hops || [],
                         malts: brew.data?.malts || []
+                    }}
+                />
+
+                <LegalConsentModal 
+                    isOpen={legalModalOpen}
+                    type={legalModalType}
+                    onClose={() => setLegalModalOpen(false)}
+                    onConfirm={() => {
+                        setLegalModalOpen(false);
+                        if (legalModalType === 'label') {
+                             fileInputRef.current?.click();
+                        } else if (legalModalType === 'cap') {
+                             fileInputCapRef.current?.click();
+                        }
                     }}
                 />
 

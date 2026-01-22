@@ -1,6 +1,6 @@
 'use client'
 
-export type Tab = 'overview' | 'users' | 'business' | 'content' | 'system' | 'settings'
+export type Tab = 'overview' | 'users' | 'business' | 'content' | 'moderation' | 'reports' | 'system' | 'settings'
 
 interface DashboardTabsProps {
   activeTab: Tab
@@ -10,6 +10,8 @@ interface DashboardTabsProps {
 export default function DashboardTabs({ activeTab, onTabChange }: DashboardTabsProps) {
   const tabs: { id: Tab; label: string; icon: string }[] = [
     { id: 'overview', label: 'Übersicht', icon: '📊' },
+    { id: 'moderation', label: 'Moderation', icon: '🛡️' },
+    { id: 'reports', label: 'Meldungen', icon: '🚨' },
     { id: 'users', label: 'User', icon: '👥' },
     { id: 'business', label: 'Business', icon: '💰' },
     { id: 'content', label: 'Content', icon: '🍺' },

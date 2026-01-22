@@ -12,7 +12,7 @@ export const impressumConfig = {
   // Kontakt
   contact: {
     phone: "",
-    email: "kontakt@botllab.de",
+    email: "info.botllab@gmail.com",
     website: "https://botllab.vercel.app"
   },
 

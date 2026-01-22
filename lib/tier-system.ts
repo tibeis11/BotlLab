@@ -196,21 +196,13 @@ export const REPUTATION_LEVELS: Record<ReputationLevelName, ReputationLevelConfi
 
 // --- Backward Compatibility & Helpers ---
 
-// Map old "TierName" to new ReputationLevelName for existing code not yet refactored
-export type TierName = ReputationLevelName | 'hobby' | 'craft' | 'braumeister'; // Mixed for compat
-
-// Compat Adapter for old keys to new keys
-const TIER_MAPPING: Record<string, ReputationLevelName> = {
-  'hobby': 'lehrling',
-  'craft': 'geselle',
-  'meister': 'meister',
-  'braumeister': 'legende'
-};
+// Legacy mapping removed. Using ReputationLevelName directly.
+export type TierName = ReputationLevelName;
 
 export function getTierConfig(tierName: string): ReputationLevelConfig {
-  // Normalize old names to new system
-  const key = (TIER_MAPPING[tierName] || tierName) as ReputationLevelName;
-  return REPUTATION_LEVELS[key] || REPUTATION_LEVELS['lehrling'];
+  // Check if the tier exists in the known levels
+  const lowerName = tierName.toLowerCase() as ReputationLevelName;
+  return REPUTATION_LEVELS[lowerName] || REPUTATION_LEVELS['lehrling'];
 }
 
 export function getBreweryTierConfig(tier: BreweryTierName) {
@@ -223,7 +215,7 @@ export function getDaysActive(joinedAt: string) {
   }
   
   export function getNextTier(currentTier: string): ReputationLevelConfig | null {
-    const normalizedCurrent = (TIER_MAPPING[currentTier] || currentTier) as ReputationLevelName;
+    const normalizedCurrent = currentTier.toLowerCase() as ReputationLevelName;
     const tiers: ReputationLevelName[] = ['lehrling', 'geselle', 'meister', 'legende'];
     const currentIndex = tiers.indexOf(normalizedCurrent);
     if (currentIndex === -1 || currentIndex >= tiers.length - 1) return null;
@@ -238,7 +230,7 @@ export function getDaysActive(joinedAt: string) {
     totalViews: number,  // Using globalCheers logic (mapped)
     brewsCreated?: number // Deprecated for individual
   ) {
-    const normalizedCurrent = (TIER_MAPPING[currentTier] || currentTier) as ReputationLevelName;
+    const normalizedCurrent = currentTier.toLowerCase() as ReputationLevelName;
     const next = getNextTier(normalizedCurrent);
     
     if (!next) return { progress: 100, unlockedRequirements: 3, totalRequirements: 3 };

@@ -14,11 +14,12 @@
   display: none;  /* Chrome, Safari, Opera */
 }
 
-/* Focus visible for accessibility */
+/* Focus visible for accessibility - REMOVED per user request to avoid double outlines
 *:focus-visible {
   outline: 2px solid theme('colors.cyan.400');
   outline-offset: 2px;
-}
+} 
+*/
 
 :root {
   /* Default Branding (Dark Mode First) */

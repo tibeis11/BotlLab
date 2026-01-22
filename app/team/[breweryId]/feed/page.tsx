@@ -92,6 +92,13 @@ export default function TeamFeedPage({ params }: { params: Promise<{ breweryId: 
                     </span>
                 );
                 break;
+            case 'FORUM_THREAD_CREATED':
+                content = (
+                    <span>
+                        hat eine Diskussion <Link href={`/forum/thread/${item.content.thread_id}`} className="text-emerald-400 hover:text-emerald-300 transition font-bold">{item.content.title}</Link> gestartet.
+                    </span>
+                );
+                break;
             default:
                 content = <span className="text-zinc-400">{item.content.message}</span>;
         }

@@ -237,6 +237,22 @@ function GeneralSettings({
         <form onSubmit={handleSaveSettings} className="space-y-8">
           <div className="bg-zinc-950/50 p-6 md:p-8 rounded-3xl border border-zinc-800 space-y-8 shadow-inner">
               
+              {/* Moderation Status Banner */}
+              {brewery.moderation_status === 'pending' && brewery.logo_url && (
+                  <div className="p-4 rounded-xl border border-yellow-500/30 bg-yellow-500/10 flex items-start gap-4 animate-in slide-in-from-top-2 fade-in">
+                      <div className="p-2 bg-yellow-500/20 rounded-full">
+                        <span className="text-xl block">⏳</span>
+                      </div>
+                      <div>
+                          <h4 className="font-bold text-yellow-400 text-sm">Profilbild wird geprüft</h4>
+                          <p className="text-xs text-yellow-200/60 mt-1 leading-relaxed">
+                            Dein hochgeladenes Logo wird derzeit von unserem Moderationsteam überprüft. 
+                            Bis zur Freigabe ist es nur für dich sichtbar – andere Nutzer sehen weiterhin dein altes Logo oder das Standard-Bild.
+                          </p>
+                      </div>
+                  </div>
+              )}
+
               {/* Logo Selection */}
               <div className="flex flex-col sm:flex-row items-center gap-8">
                 <div className="relative group cursor-pointer" onClick={() => document.getElementById('logo-upload')?.click()}>
@@ -259,19 +275,6 @@ function GeneralSettings({
                 <div className="flex-1 text-center sm:text-left">
                     <h3 className="font-bold text-white mb-1.5 text-lg">Brand Identity</h3>
                     <p className="text-xs font-medium text-zinc-500 mb-4 leading-relaxed">Das Logo erscheint auf deinen öffentlichen Rezepten und im Feed. <br className="hidden sm:block"/> Empfohlen: 500x500px (JPG/PNG).</p>
-                    
-                    {/* Logo on Labels Premium Hint */}
-                    <div className="mb-4">
-                      <PremiumFeatureLock 
-                        tier={ownerPremiumTier} 
-                        feature="brewery_logo_on_labels"
-                        compact
-                      >
-                        <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-lg w-fit">
-                          <span>✨ Logo erscheint auf Smart Labels</span>
-                        </div>
-                      </PremiumFeatureLock>
-                    </div>
 
                     <input 
                         id="logo-upload"
@@ -301,7 +304,7 @@ function GeneralSettings({
                     type="text"
                     value={breweryName}
                     onChange={e => setBreweryName(e.target.value)}
-                    className="bg-transparent border-none outline-none text-white w-full font-bold text-base placeholder-zinc-700"
+                    className="bg-transparent border-none outline-none focus:outline-none focus:ring-0 text-white w-full font-bold text-base placeholder-zinc-700"
                     placeholder="E.g. CyberBrew Labs"
                     />
                 </div>
@@ -324,7 +327,7 @@ function GeneralSettings({
                         type="text"
                         value={brewerySlogan}
                         onChange={e => setBrewerySlogan(e.target.value)}
-                        className="bg-transparent border-none outline-none text-white w-full font-bold text-base placeholder-zinc-700"
+                        className="bg-transparent border-none outline-none focus:outline-none focus:ring-0 text-white w-full font-bold text-base placeholder-zinc-700"
                         placeholder="E.g. Handbraukunst aus Berlin"
                       />
                   </div>
