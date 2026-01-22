@@ -40,7 +40,13 @@ export default function LoginPage() {
   // Redirect if already logged in
   useEffect(() => {
     if (!authLoading && user) {
-        router.push('/dashboard');
+        const params = new URLSearchParams(window.location.search);
+        const callbackUrl = params.get('callbackUrl');
+        if (callbackUrl) {
+            router.push(decodeURIComponent(callbackUrl));
+        } else {
+            router.push('/dashboard');
+        }
     }
   }, [user, authLoading, router]);
 
@@ -94,7 +100,17 @@ export default function LoginPage() {
             setMessage("⚠️ Bitte bestätige deine E-Mail-Adresse zuerst.");
             setAwaitingConfirmation(true);
           } else {
-            router.push("/dashboard");
+             if (typeof window !== 'undefined') {
+                const params = new URLSearchParams(window.location.search);
+                const callbackUrl = params.get('callbackUrl');
+                if (callbackUrl) {
+                    router.push(decodeURIComponent(callbackUrl));
+                } else {
+                    router.push("/dashboard");
+                }
+             } else {
+                router.push("/dashboard");
+             }
           }
         }
     }

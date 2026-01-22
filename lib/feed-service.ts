@@ -22,6 +22,7 @@ export interface FeedItem {
     display_name: string;
     logo_url: string;
     subscription_tier: string;
+    tier: string;
   }
 }
 
@@ -61,7 +62,8 @@ export async function getBreweryFeed(breweryId: string) {
       profiles (
         display_name,
         logo_url,
-        subscription_tier
+        subscription_tier,
+        tier
       )
     `)
     .eq('brewery_id', breweryId)
@@ -77,6 +79,10 @@ export async function getBreweryFeed(breweryId: string) {
   const formattedData = data.map((item: any) => {
     // Standard Relation Name ist "profiles"
     const profileData = item.profiles;
+    // Debug helper to trace missing profiles
+    if (!profileData && item.user_id) {
+       console.warn(`Feed item ${item.id} has user_id ${item.user_id} but no profile data found. Check foreign key or profiles existence.`);
+    }
     return {
       ...item,
       profiles: Array.isArray(profileData) ? profileData[0] : profileData

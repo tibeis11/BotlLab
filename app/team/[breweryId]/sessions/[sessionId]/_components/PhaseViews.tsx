@@ -1,7 +1,7 @@
 'use client';
 
 import { useSession } from '../SessionContext';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import Scanner from '@/app/components/Scanner';
 import BottleScanner from '@/app/components/BottleScanner';
@@ -9,6 +9,7 @@ import { TimelineEvent } from '@/lib/types/session-log';
 import { calculatePrimingSugar, calculateResidualCO2, platoToSG } from '@/lib/brewing-calculations';
 
 import { AddEventModal } from './AddEventModal';
+import BrewTimer from './BrewTimer';
 
 /* Shared UI Components for internal consistency */
 const PhaseCard = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
@@ -247,7 +248,11 @@ export function BrewingView() {
   const handleMashStep = async (step: any) => {
       // Normalize name for checking
       const stepName = step.name || step.step || step.title;
-      const desc = `${step.temperature || step.temp}°C für ${step.duration} min`;
+      const duration = parseFloat(step.duration || '0');
+      const desc = duration > 0 
+        ? `${step.temperature || step.temp}°C für ${step.duration} min`
+        : `${step.temperature || step.temp}°C erreicht`;
+        
       const existingEvent = findStepEvent(stepName, desc);
 
       if (existingEvent) {
@@ -258,7 +263,7 @@ export function BrewingView() {
           await addEvent({
               type: 'STATUS_CHANGE', // Or Note
               title: `Maischschritt: ${stepName}`,
-              description: desc + " erledigt.",
+              description: desc,
               data: { newStatus: 'mashing', previousStatus: 'mashing', stepName }
           });
       }
@@ -279,6 +284,21 @@ export function BrewingView() {
           });
       }
   };
+  
+  // Timer Data Prep (Memoized to prevent Timer resets on check)
+  const timerMashSteps = useMemo(() => mashSteps.map((step: any, i: number) => ({
+      label: step.name || step.step || step.title || `Rast ${i+1}`,
+      duration: parseFloat(step.duration || '0'), 
+      temperature: parseFloat(step.temperature || step.temp)
+  })), [mashSteps]); // mashSteps dep depends on data from session that might change, but BrewTimer ignores updates after init.
+
+  const timerBoilSteps = useMemo(() => hops.map((hop: any) => ({
+      label: `${hop.name} (${hop.amount}g)`,
+      duration: 0,
+      timePoint: parseFloat(hop.time)
+  })), [hops]);
+  
+  const totalBoilTime = useMemo(() => parseFloat(data.boil_time || "60"), [data.boil_time]);
 
   const lastOgEvent = session?.timeline
       .filter(e => e.type === 'MEASUREMENT_OG')
@@ -319,12 +339,19 @@ export function BrewingView() {
               <h3 className="text-xs font-bold text-amber-500 uppercase tracking-widest mb-4 flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-amber-500"></span> Maischplan
               </h3>
+              
+              <BrewTimer mode="MASH" steps={timerMashSteps} />
+
               <div className="space-y-3">
                   {mashSteps.map((step: any, i: number) => {
                        // Normalize properties
                        const name = step.name || step.step || step.title || `Rast ${i+1}`;
                        const temp = step.temperature || step.temp; // Support both
-                       const desc = `${temp}°C für ${step.duration} min`;
+                       const stepDuration = parseFloat(step.duration || '0');
+                       const desc = stepDuration > 0
+                        ? `${temp}°C für ${stepDuration} min`
+                        : `${temp}°C`;
+                        
                        const isCompleted = !!findStepEvent(name, desc);
 
                        return (
@@ -368,12 +395,19 @@ export function BrewingView() {
                                         </div>
 
                                         {/* 3 Duration (Time) */}
+                                        {stepDuration > 0 ? (
                                         <div className="text-right pl-4 border-l border-zinc-800/50">
                                             <div className={`text-2xl font-black ${isCompleted ? 'text-zinc-500' : 'text-white'}`}>
-                                                {step.duration}<span className="text-xs font-bold text-zinc-600 ml-1">min</span>
+                                                {stepDuration}<span className="text-xs font-bold text-zinc-600 ml-1">min</span>
                                             </div>
                                             <div className="text-[9px] uppercase font-bold text-zinc-600 tracking-wider">Halten</div>
                                         </div>
+                                        ) : (
+                                         <div className="text-right pl-4 border-l border-zinc-800/50 opacity-50">
+                                            <div className="text-xl font-black text-zinc-600">-</div>
+                                            <div className="text-[8px] uppercase font-bold text-zinc-700 tracking-wider">Ziel</div>
+                                         </div>
+                                        )}
                                     </div>
                                 </div>
                            </div>
@@ -403,6 +437,9 @@ export function BrewingView() {
                     </div>
                 </div>
               </div>
+              
+              <BrewTimer mode="BOIL" steps={timerBoilSteps} totalBoilTime={totalBoilTime} />
+              
               <div className="space-y-3">
                   {hops.sort((a: any, b: any) => b.time - a.time).map((hop: any, i: number) => {
                        const title = `${hop.name}`;

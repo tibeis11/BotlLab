@@ -308,14 +308,28 @@ export default function BreweryAnalyticsPage() {
                 <tr className="border-b border-zinc-800">
                   <th className="text-left py-3 text-zinc-400 font-bold">Feature</th>
                   <th className="text-center py-3 text-zinc-400 font-bold">Free</th>
-                  <th className="text-center py-3 text-cyan-400 font-bold">Brewer+</th>
-                  <th className="text-center py-3 text-purple-400 font-bold">Brewery</th>
-                  <th className="text-center py-3 text-blue-400 font-bold">Enterprise</th>
+                  <th className="text-center py-3 text-blue-400 font-bold">Brewer</th>
+                  <th className="text-center py-3 text-amber-400 font-bold">Brewery</th>
+                  <th className="text-center py-3 text-purple-400 font-bold">Enterprise</th>
                 </tr>
               </thead>
               <tbody className="text-zinc-300">
                 <tr className="border-b border-zinc-800">
                   <td className="py-3">Analytics Dashboard</td>
+                  <td className="text-center">❌</td>
+                  <td className="text-center">✅</td>
+                  <td className="text-center">✅</td>
+                  <td className="text-center">✅</td>
+                </tr>
+                <tr className="border-b border-zinc-800">
+                  <td className="py-3">Geschmacks-Details (1-10)</td>
+                  <td className="text-center">❌</td>
+                  <td className="text-center">✅</td>
+                  <td className="text-center">✅</td>
+                  <td className="text-center">✅</td>
+                </tr>
+                <tr className="border-b border-zinc-800">
+                  <td className="py-3">Trend-Analyse & Timeline</td>
                   <td className="text-center">❌</td>
                   <td className="text-center">✅</td>
                   <td className="text-center">✅</td>
@@ -773,9 +787,13 @@ export default function BreweryAnalyticsPage() {
                   return (
                     <div key={brewId}>
                       <div className="flex justify-between text-sm mb-1">
-                        <span className="text-zinc-400 truncate">
-                          {brew ? `${brew.name} (${brew.style})` : brewId.slice(0, 8)}
-                        </span>
+                        <Link 
+                            href={`/team/${breweryId}/analytics/brew/${brewId}`}
+                            className="text-zinc-400 truncate hover:text-cyan-400 transition flex items-center gap-1 group"
+                        >
+                          {brew ? `${brew.name} (${brew.style})` : brewId.slice(0, 8)} 
+                          <span className="opacity-0 group-hover:opacity-100 transition-opacity">↗</span>
+                        </Link>
                         <span className="text-white font-bold">{count}</span>
                       </div>
                       <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">

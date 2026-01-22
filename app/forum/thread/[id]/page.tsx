@@ -7,6 +7,7 @@ import { cookies } from 'next/headers';
 import ReplyInput from './ReplyInput';
 import ReportButton from './ReportButton';
 import { getTierConfig } from '@/lib/tier-system';
+import { getTierBorderColor } from '@/lib/premium-config';
 import ForumPost from './ForumPost';
 import ThreadInteractionWrapper from './ThreadInteractionWrapper';
 
@@ -38,6 +39,8 @@ export default async function ThreadPage({ params }: PageProps) {
         }
     );
     const { data: { user } } = await supabase.auth.getUser();
+
+    const tierBorderClass = getTierBorderColor(thread.author?.subscription_tier);
 
     return (
         <ThreadInteractionWrapper>
@@ -75,13 +78,13 @@ export default async function ThreadPage({ params }: PageProps) {
                     <div className="flex items-center gap-3 relative z-10">
                         {thread.author ? (
                             <Link href={`/brewer/${thread.author.id}`} className="flex items-center gap-3 group/author">
-                                {thread.author.avatar_url ? (
-                                    <img src={thread.author.avatar_url} alt="" className="w-10 h-10 rounded-full bg-zinc-800 object-cover ring-2 ring-black/50 group-hover/author:ring-emerald-500 group-hover/author:scale-105 transition duration-300" />
-                                ) : (
-                                    <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-500 ring-2 ring-black/50 group-hover/author:ring-emerald-500 group-hover/author:scale-105 transition duration-300">
-                                        <User size={16} />
-                                    </div>
-                                )}
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs overflow-hidden relative shadow-lg bg-zinc-900 border-2 transition ${tierBorderClass}`}>
+                                    <img 
+                                        src={thread.author.avatar_url || getTierConfig(thread.author.tier || 'lehrling').avatarPath} 
+                                        alt="Avatar" 
+                                        className="w-full h-full object-cover" 
+                                    />
+                                </div>
                                 <div>
                                     <div className="flex items-baseline gap-2">
                                         <span className="font-bold text-white text-base shadow-sm group-hover/author:text-emerald-400 transition">{thread.author.display_name}</span>

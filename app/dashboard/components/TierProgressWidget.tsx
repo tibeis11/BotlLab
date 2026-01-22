@@ -28,11 +28,17 @@ export default function TierProgressWidget() {
         .eq('id', user.id)
         .single();
 
+      // Fetch additional stats for "Actions"
+      const { count: brewCount } = await supabase.from('brews').select('id', { count: 'exact', head: true }).eq('created_by', user.id);
+      const { count: postCount } = await supabase.from('forum_posts').select('id', { count: 'exact', head: true }).eq('author_id', user.id);
+
       if (profile) {
+        const totalActions = (profile.total_bottle_fills || 0) + (brewCount || 0) + (postCount || 0);
+
         setTierData({
           currentTier: profile.tier || 'lehrling',
           daysActive: getDaysActive(profile.joined_at || new Date().toISOString()),
-          bottlesScanned: profile.total_bottle_fills || 0, // Mapping fills to scans/actions
+          bottlesScanned: totalActions, // Mapping fills + brews + posts to actions
           globalCheers: profile.total_profile_views || 0,   // Mapping views to reputation/cheers
         });
       }

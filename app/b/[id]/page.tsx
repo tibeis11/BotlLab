@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import confetti from 'canvas-confetti';
 import Logo from '../../components/Logo';
@@ -10,6 +10,8 @@ import { checkAndGrantAchievements } from '@/lib/achievements';
 import CrownCap from '../../components/CrownCap';
 import { trackBottleScan, trackConversion } from '@/lib/actions/analytics-actions';
 import { useAuth } from '@/app/context/AuthContext';
+import RateBrewModal from './components/RateBrewModal';
+import { RatingSubmission } from '@/lib/types/rating';
 
 const renderIngredientList = (items: any, mode: 'absolute' | 'percentage' | 'name_only' | { type: 'grams_per_liter', volume: number } = 'absolute') => {
   if (!items) return null;
@@ -156,6 +158,8 @@ const renderIngredientList = (items: any, mode: 'absolute' | 'percentage' | 'nam
 
 export default function PublicScanPage() {
   const params = useParams();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const id = params?.id as string; 
   const { user } = useAuth();
   
@@ -170,19 +174,9 @@ export default function PublicScanPage() {
   const [ratings, setRatings] = useState<any[]>([]);
   const [avgRating, setAvgRating] = useState(0);
   const [showRatingForm, setShowRatingForm] = useState(false);
-  const [newRating, setNewRating] = useState({
-    rating: 0,
-    comment: '',
-    author_name: ''
-  });
   const [submitting, setSubmitting] = useState(false);
-  const [hoverRating, setHoverRating] = useState(0);
   const [userIp, setUserIp] = useState<string | null>(null);
   const [hasAlreadyRated, setHasAlreadyRated] = useState(false);
-
-  // Bot Protection
-  const [honeypot, setHoneypot] = useState('');
-  const [formStartTime, setFormStartTime] = useState<number>(0);
 
   // Cap Collection
   const [collectingCap, setCollectingCap] = useState(false);
@@ -336,12 +330,6 @@ export default function PublicScanPage() {
     fetchBottleInfo();
   }, [id]); // Only re-run when bottle ID changes
 
-  useEffect(() => {
-    if (showRatingForm) {
-      setFormStartTime(Date.now());
-    }
-  }, [showRatingForm]);
-
   async function loadRatings(brewId: string) {
     const { data: ratingsData } = await supabase
       .from('ratings')
@@ -374,78 +362,38 @@ export default function PublicScanPage() {
     }
   }
 
-  async function submitRating() {
-    console.log('submitRating called', { newRating, data, userIp });
-    
-    // Bot Protection Check
-    if (honeypot) {
-      console.warn('Bot detected: Honeypot filled');
-      // Fake success
-      setNewRating({ rating: 0, comment: '', author_name: '' });
-      setShowRatingForm(false);
-      return;
-    }
-
-    if (Date.now() - formStartTime < 1000) {
-      console.warn('Bot detected: Too fast');
-      alert('Das ging zu schnell. Bist du ein Mensch? 🤖');
-      return;
-    }
-
-    if (!newRating.rating) {
-      console.warn('Keine Sterne gesetzt');
-      alert('Bitte Sterne auswählen!');
-      return;
-    }
-    
-    if (!newRating.author_name || !newRating.author_name.trim()) {
-      console.warn('Kein Name eingegeben');
-      alert('Bitte einen Namen eingeben!');
-      return;
-    }
-
+  async function submitRating(submissionData: RatingSubmission): Promise<string | null> {
     if (hasAlreadyRated) {
       alert('Du hast bereits eine Bewertung für dieses Rezept eingegeben! 🚫');
-      return;
+      return null;
     }
 
-    // FIX: Brew-ID korrekt abrufen
     const brewId = data?.brews?.id;
-    console.log('Brew-ID:', brewId, 'Data structure:', data);
-
     if (!brewId) {
-      console.warn('Keine Brew-ID vorhanden', { data });
       alert('Fehler: Rezept nicht geladen. Bitte Seite neu laden.');
-      return;
+      return null;
     }
 
     if (!userIp) {
       alert('Fehler: IP-Adresse konnte nicht ermittelt werden');
-      return;
+      return null;
     }
 
     try {
       setSubmitting(true);
-      console.log('Sende Rating:', {
-        brew_id: brewId,
-        rating: newRating.rating,
-        comment: newRating.comment.trim() || null,
-        author_name: newRating.author_name.trim(),
-        ip_address: userIp
-      });
+      const payload = {
+         ...submissionData,
+         brew_id: brewId,
+         ip_address: userIp
+      };
+      console.log('Sende Rating:', payload);
 
       const response = await fetch('/api/ratings/submit', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          brew_id: brewId,
-          rating: newRating.rating,
-          comment: newRating.comment.trim() || null,
-          author_name: newRating.author_name.trim(),
-          ip_address: userIp,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const result = await response.json();
@@ -459,13 +407,12 @@ export default function PublicScanPage() {
         } else {
           alert('Fehler: ' + result.error);
         }
+        return null;
       } else {
         console.log('Rating erfolgreich eingefügt:', result.rating);
-        setNewRating({ rating: 0, comment: '', author_name: '' });
-        setShowRatingForm(false);
+        // Removed setShowRatingForm(false) to allow success screen
         setHasAlreadyRated(true);
         await loadRatings(brewId);
-        alert('Danke für deine Bewertung! ⭐');
         
         // Track conversion for analytics (if user is logged in)
         if (user) {
@@ -476,14 +423,97 @@ export default function PublicScanPage() {
         if (data?.brews?.user_id) {
           checkAndGrantAchievements(data.brews.user_id).catch(console.error);
         }
+
+        return result.rating.id;
       }
     } catch (err: any) {
       console.error('Exception:', err);
       alert('Ein Fehler ist aufgetreten: ' + err.message);
+      return null;
     } finally {
       setSubmitting(false);
     }
   }
+
+  async function handleClaimCap(ratingId: string) {
+    if (!user) {
+        // Redirect to Login with Context - Preserve Params in Callback URL
+        const currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.set('action', 'claim_cap');
+        currentUrl.searchParams.set('rating_id', ratingId);
+        
+        const callbackUrl = encodeURIComponent(currentUrl.toString());
+        router.push(`/login?callbackUrl=${callbackUrl}`);
+        return;
+    }
+
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+            alert("Sitzung abgelaufen. Bitte neu einloggen.");
+            window.location.reload();
+            return;
+        }
+
+        const response = await fetch('/api/bottle-caps/claim', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({ brew_id: data.brews.id, rating_id: ratingId })
+        });
+        
+        const res = await response.json();
+        
+        if (response.ok) {
+            // Trigger Confetti
+            setShowRatingForm(false); // Close modal
+            setCapCollected(true);
+            
+            const duration = 3 * 1000;
+            const animationEnd = Date.now() + duration;
+            const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+            const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+            const interval: any = setInterval(function() {
+                const timeLeft = animationEnd - Date.now();
+                if (timeLeft <= 0) return clearInterval(interval);
+                const particleCount = 50 * (timeLeft / duration);
+                confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+                confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+            }, 250);
+            
+            alert("Kronkorken erfolgreich gesammelt!");
+        } else {
+            alert("Fehler beim Sammeln: " + res.error);
+        }
+
+    } catch (e: any) {
+        alert("Fehler: " + e.message);
+    }
+  }
+
+  // --- Auto-Claim Logic after Login ---
+  useEffect(() => {
+    if (!user || !data?.brews?.id) return;
+
+    const action = searchParams.get('action');
+    const claimRatingId = searchParams.get('rating_id');
+
+    if (action === 'claim_cap' && claimRatingId) {
+        console.log("Auto-claiming cap for rating:", claimRatingId);
+        
+        // Clean URL first
+        const newParams = new URLSearchParams(searchParams.toString());
+        newParams.delete('action');
+        newParams.delete('rating_id');
+        router.replace(`/b/${id}?${newParams.toString()}`, { scroll: false });
+
+        // Trigger Claim
+        handleClaimCap(claimRatingId);
+    }
+  }, [user, data, searchParams, id]);
 
   async function checkCapCollected(brewId: string) {
     const { data: { user } } = await supabase.auth.getUser();
@@ -1002,17 +1032,29 @@ export default function PublicScanPage() {
             </div>
             
             <div className="space-y-1 relative z-10 pt-4">
-              <p className="text-[10px] uppercase font-black tracking-[0.3em] text-cyan-500 mb-1">Digitale Sammlung</p>
-              <h3 className="text-xl font-black">{capCollected ? 'Abzeichen gesammelt!' : 'Dieses Abzeichen sammeln?'}</h3>
+              <p className="text-[10px] uppercase font-black tracking-[0.3em] text-cyan-500 mb-1">
+                {capCollected ? 'Digitale Sammlung' : 'Bewerten & Sammeln'}
+              </p>
+              <h3 className="text-xl font-black">
+                {capCollected ? 'Abzeichen gesammelt!' : 'Sichere dir den Kronkorken'}
+              </h3>
               <p className="text-zinc-500 text-xs max-w-[200px] mx-auto leading-relaxed">
-                Sammle den digitalen Kronkorken als Beweis für deine Verkostung.
+                {capCollected 
+                  ? 'Dieser Kronkorken ist sicher in deiner Sammlung verwahrt.'
+                  : 'Teile kurz deine Meinung zum Geschmack und erhalte als Belohnung diesen digitalen Kronkorken.'}
               </p>
             </div>
 
             <div className="relative z-10 pt-2">
               {!capCollected ? (
                 <button
-                  onClick={collectCap}
+                  onClick={() => {
+                      if (hasAlreadyRated && !capCollected) {
+                          collectCap();
+                      } else {
+                          setShowRatingForm(true);
+                      }
+                  }}
                   disabled={collectingCap}
                   className="w-full bg-white text-black hover:bg-cyan-400 font-black py-4 rounded-xl hover:scale-[1.02] active:scale-95 transition shadow-xl disabled:opacity-50 flex items-center justify-center gap-2"
                 >
@@ -1020,8 +1062,12 @@ export default function PublicScanPage() {
                     <span className="animate-spin text-xl">🧪</span>
                   ) : (
                     <>
-                      <span className="text-xl">🥇</span>
-                      <span>Sammeln</span>
+                      <span className="text-xl">
+                        {hasAlreadyRated ? '🥇' : '💬'}
+                      </span>
+                      <span>
+                        {hasAlreadyRated ? 'Jetzt Sammeln' : 'Bewerten & Sammeln'}
+                      </span>
                     </>
                   )}
                 </button>
@@ -1061,90 +1107,17 @@ export default function PublicScanPage() {
                 {avgRating === 0 && <p className="text-zinc-500 text-sm">Noch keine Bewertungen</p>}
               </div>
             </div>
-            <button 
-              onClick={() => !hasAlreadyRated && setShowRatingForm(!showRatingForm)}
-              disabled={hasAlreadyRated}
-              className={`px-6 py-2.5 rounded-xl font-bold text-sm transition shadow-lg ${
-                hasAlreadyRated 
-                  ? 'bg-zinc-700 text-zinc-400 cursor-not-allowed opacity-50' 
-                  : 'bg-cyan-500 hover:bg-cyan-400 text-black'
-              }`}
-            >
-              {hasAlreadyRated ? '✓ Du hast bewertet' : showRatingForm ? '✕ Abbrechen' : '💬 Bewerten'}
-            </button>
           </div>
 
           {/* Rating Form */}
           {showRatingForm && (
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4 animate-in fade-in slide-in-from-top-3 duration-300">
-              <h3 className="font-bold text-lg">Deine Bewertung</h3>
-              
-              {/* Honeypot Field (Invisible for humans) */}
-              <input 
-                type="text" 
-                name="website_url_check" 
-                value={honeypot}
-                onChange={e => setHoneypot(e.target.value)}
-                autoComplete="off"
-                tabIndex={-1}
-                className="opacity-0 absolute -z-10 h-0 w-0" 
-              />
-
-              {/* Stars */}
-              <div>
-                <label className="block text-xs font-bold uppercase text-zinc-500 mb-2">Sterne</label>
-                <div className="flex gap-2">
-                  {[1,2,3,4,5].map(star => (
-                    <button
-                      key={star}
-                      type="button"
-                      onClick={() => setNewRating({...newRating, rating: star})}
-                      onMouseEnter={() => setHoverRating(star)}
-                      onMouseLeave={() => setHoverRating(0)}
-                      className={`text-3xl transition ${
-                        star <= (hoverRating || newRating.rating) 
-                          ? 'text-yellow-500 scale-110' 
-                          : 'text-zinc-700'
-                      }`}
-                    >
-                      ★
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Name */}
-              <div>
-                <label className="block text-xs font-bold uppercase text-zinc-500 mb-2">Dein Name</label>
-                <input 
-                  type="text"
-                  placeholder="z.B. Tim"
-                  value={newRating.author_name}
-                  onChange={e => setNewRating({...newRating, author_name: e.target.value})}
-                  className="w-full bg-zinc-950/50 border border-zinc-800 p-3 rounded-xl focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition text-white"
-                />
-              </div>
-
-              {/* Comment */}
-              <div>
-                <label className="block text-xs font-bold uppercase text-zinc-500 mb-2">Kommentar (Optional)</label>
-                <textarea 
-                  placeholder="Was hast du gedacht?"
-                  value={newRating.comment}
-                  onChange={e => setNewRating({...newRating, comment: e.target.value})}
-                  rows={3}
-                  className="w-full bg-zinc-950/50 border border-zinc-800 p-3 rounded-xl focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition text-white resize-none"
-                />
-              </div>
-
-              <button
-                onClick={submitRating}
-                disabled={submitting || !newRating.rating || !newRating.author_name.trim()}
-                className="w-full bg-white text-black py-3 rounded-xl font-black hover:bg-cyan-400 transition disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {submitting ? 'Wird gesendet...' : 'Bewertung absenden'}
-              </button>
-            </div>
+            <RateBrewModal
+                brewId={data?.brews?.id || ''}
+                onSubmit={submitRating}
+                onCancel={() => setShowRatingForm(false)}
+                isSubmitting={submitting}
+                onClaimCap={handleClaimCap}
+            />
           )}
 
           {/* Ratings List */}

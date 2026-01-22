@@ -12,6 +12,7 @@ import { supabase, getActiveBrewery } from '@/lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { getBreweryFeed, addToFeed, type FeedItem } from '@/lib/feed-service';
 import { getTierConfig } from '@/lib/tier-system';
+import { getTierBorderColor } from '@/lib/premium-config';
 
 export default function DashboardPage() {
     return (
@@ -474,15 +475,24 @@ function DashboardContent() {
                                         <Link href={`/team/${activeBrewery.id}/feed`} className="text-cyan-500 underline">Schreib den ersten Post!</Link>
                                     </div>
                                 ) : (
-                                    dashboardFeed.map(item => (
+                                    dashboardFeed.map(item => {
+                                        const tierConfig = getTierConfig(item.profiles?.tier || 'lehrling');
+                                        const avatarUrl = item.profiles?.logo_url || tierConfig.avatarPath;
+                                        const tierBorderClass = getTierBorderColor(item.profiles?.subscription_tier);
+
+                                        return (
                                         <Link 
                                             key={item.id} 
                                             href={`/team/${activeBrewery.id}/feed`}
                                             className="block bg-zinc-950 border border-zinc-800/50 rounded-xl p-3 hover:border-zinc-700 transition group"
                                         >
                                             <div className="flex items-start gap-3">
-                                                <div className="w-8 h-8 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0 overflow-hidden text-xs">
-                                                    {item.profiles?.logo_url ? <img src={item.profiles.logo_url} className="w-full h-full object-cover"/> : item.type === 'BREW_RATED' ? '⭐' : '👤'}
+                                                <div className={`w-8 h-8 rounded-full bg-zinc-900 flex items-center justify-center shrink-0 overflow-hidden text-xs border-2 ${tierBorderClass}`}>
+                                                    {item.profiles ? (
+                                                        <img src={avatarUrl} className="w-full h-full object-cover" alt="" />
+                                                    ) : (
+                                                        <span>{item.type === 'BREW_RATED' ? '⭐' : '👤'}</span>
+                                                    )}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex justify-between items-center mb-0.5">
@@ -499,7 +509,8 @@ function DashboardContent() {
                                                 </div>
                                             </div>
                                         </Link>
-                                    ))
+                                        )
+                                    })
                                 )}
                             </div>
                         </div>

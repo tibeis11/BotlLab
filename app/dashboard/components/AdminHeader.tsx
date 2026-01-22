@@ -9,12 +9,13 @@ import { supabase, getActiveBrewery, getUserBreweries } from '@/lib/supabase';
 import { useAuth } from '@/app/context/AuthContext';
 import { getTierConfig } from '@/lib/tier-system';
 import { getBreweryBranding } from '@/lib/actions/premium-actions';
+import { getTierBorderColor } from '@/lib/premium-config';
 
 export default function AdminHeader() {
   const { user, signOut } = useAuth();
   const userId = user?.id;
   const [userName, setUserName] = useState<string | null>(null);
-  const [tierData, setTierData] = useState<{ path: string, color: string, name: string } | null>(null);
+  const [tierData, setTierData] = useState<{ path: string, color: string, name: string, borderColor: string } | null>(null);
   const [breweryId, setBreweryId] = useState<string | null>(null);
   const [activeBreweryName, setActiveBreweryName] = useState<string | null>(null);
   const [branding, setBranding] = useState<{ logoUrl: string | null; breweryName: string | null; isPremiumBranding: boolean }>({
@@ -61,7 +62,7 @@ export default function AdminHeader() {
         // Fetch User Profile
         const { data: profile } = await supabase
           .from('profiles')
-          .select('display_name, tier')
+          .select('display_name, tier, logo_url, subscription_tier')
           .eq('id', user.id)
           .single();
           
@@ -71,9 +72,10 @@ export default function AdminHeader() {
           setUserName(profile.display_name || user.email?.split('@')[0] || 'Brauer');
           const config = getTierConfig(profile.tier || 'lehrling');
           setTierData({
-              path: config.avatarPath,
+              path: profile.logo_url || config.avatarPath,
               color: config.color,
-              name: config.displayName
+              name: config.displayName,
+              borderColor: getTierBorderColor(profile.subscription_tier)
           });
         }
 
@@ -344,10 +346,8 @@ export default function AdminHeader() {
           >
             <button className="flex items-center gap-0 xl:gap-3 pl-1 pr-1 xl:pr-4 py-1 rounded-full bg-zinc-900 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800 transition group">
               <div 
-                className="w-8 h-8 rounded-full flex items-center justify-center text-xs overflow-hidden relative shadow-lg"
-                style={{ backgroundColor: tierData ? `${tierData.color}20` : '#333' }}
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs overflow-hidden relative shadow-lg bg-zinc-900 border-2 ${tierData?.borderColor || 'border-zinc-500'}`}
               >
-                  <div className="absolute inset-0 border-2 rounded-full opacity-50" style={{ borderColor: tierData?.color || '#555' }}></div>
                   <img src={tierData?.path || '/tiers/lehrling.png'} alt="Avatar" className="w-full h-full object-cover" />
               </div>
               <div className="hidden xl:flex flex-col items-start leading-none">
@@ -697,7 +697,7 @@ export default function AdminHeader() {
                 <div className="flex items-center justify-between bg-zinc-900/50 p-3 rounded-2xl mb-3">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full flex items-center justify-center text-xs overflow-hidden relative border border-zinc-700 bg-zinc-800">
-                            <div className="absolute inset-0 border-2 rounded-full opacity-50" style={{ borderColor: tierData.color }}></div>
+                            <div className={`absolute inset-0 border-2 rounded-full opacity-50 ${tierData.borderColor}`}></div>
                             <img src={tierData.path} alt="Avatar" className="w-full h-full object-cover" />
                         </div>
                         <div>

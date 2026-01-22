@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import Scanner from '@/app/components/Scanner';
+import { useAuth } from '@/app/context/AuthContext';
 
 interface BottleScannerProps {
   sessionId: string;
@@ -17,6 +18,7 @@ export default function BottleScanner({
   brewId,
   onBottleScanned 
 }: BottleScannerProps) {
+  const { user } = useAuth();
   const [showScanner, setShowScanner] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [scanFeedback, setScanFeedback] = useState<{ type: 'success' | 'error', msg: string } | null>(null);
@@ -51,6 +53,8 @@ export default function BottleScanner({
     setIsProcessing(true);
 
     try {
+      if (!user) throw new Error("Nicht eingeloggt. Bitte neu laden.");
+
       // 1. Check existing status
       const { data: existing, error: checkError } = await supabase
         .from('bottles')
@@ -78,7 +82,8 @@ export default function BottleScanner({
         .update({ 
           session_id: sessionId,
           brew_id: brewId,
-          filled_at: new Date(filledAtDate).toISOString()
+          filled_at: new Date(filledAtDate).toISOString(),
+          user_id: user?.id // Assign current user for "Actions" tracking
         })
         .eq('id', bottleId)
         .select('bottle_number');

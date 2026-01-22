@@ -87,6 +87,10 @@ export default function PricingPage() {
                 <ul className="space-y-4 mb-8 flex-1">
                     <FeatureItem active={true}>Alles aus Free</FeatureItem>
                     <FeatureItem active={true} highlight="text-blue-400">50 AI Credits / Monat</FeatureItem>
+                    <FeatureItem active={true} highlight="text-blue-400 font-bold">
+                        Detailed Analytics
+                        <span className="block text-blue-400/80 text-xs font-normal mt-0.5">Attribute-Verteilung & Timeline</span>
+                    </FeatureItem>
                     <FeatureItem active={true}>Detaillierte Analytics</FeatureItem>
                     <FeatureItem active={true}>Custom Slogans</FeatureItem>
                     <FeatureItem active={false} warning="Slots weiterhin limitiert">Unlimitierte Rezepte</FeatureItem>

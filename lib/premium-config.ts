@@ -33,6 +33,15 @@ export interface PremiumStatus {
   expiresAt: Date | null;
 }
 
+export function getTierBorderColor(tier?: string | null): string {
+  if (!tier) return 'border-zinc-500'; // Default/Free (Lehrling) => Gray
+  if (tier === 'free') return 'border-zinc-500';
+  if (tier === 'brewer') return 'border-blue-500'; // Geselle => Blue
+  if (tier === 'brewery') return 'border-amber-500'; // Meister => Gold/Amber
+  if (tier === 'enterprise') return 'border-purple-500'; // Legende => Purple
+  return 'border-zinc-500';
+}
+
 export const SUBSCRIPTION_TIERS: Record<SubscriptionTier, TierConfig> = {
   free: {
     name: "Free",

@@ -9,6 +9,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "../context/AuthContext";
 import { getTierConfig } from "@/lib/tier-system";
 import { getBreweryBranding } from "@/lib/actions/premium-actions";
+import { getTierBorderColor } from "@/lib/premium-config";
 
 export default function Header({ breweryId }: { breweryId?: string }) {
   const { user, loading, signOut } = useAuth();
@@ -46,7 +47,7 @@ export default function Header({ breweryId }: { breweryId?: string }) {
       if (user) {
         const { data: profileData } = await supabase
           .from('profiles')
-          .select('logo_url, tier, display_name')
+          .select('logo_url, tier, display_name, subscription_tier')
           .eq('id', user.id)
           .single();
         if (!cancelled && profileData) {
@@ -82,6 +83,8 @@ export default function Header({ breweryId }: { breweryId?: string }) {
   }
 
   const tierConfig = profile ? getTierConfig(profile.tier || 'lehrling') : getTierConfig('lehrling');
+  const avatarUrl = profile?.logo_url || tierConfig.avatarPath;
+  const tierBorderClass = getTierBorderColor(profile?.subscription_tier);
 
   return (
     <>
@@ -141,11 +144,9 @@ export default function Header({ breweryId }: { breweryId?: string }) {
                 className="group flex items-center gap-3 pl-1 pr-4 py-1 rounded-full bg-zinc-900 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800 transition"
               >
                 <div 
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-xs overflow-hidden relative shadow-lg"
-                    style={{ backgroundColor: `${tierConfig.color}20` }}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs overflow-hidden relative shadow-lg bg-zinc-900 border-2 ${tierBorderClass}`}
                 >
-                    <div className="absolute inset-0 border-2 rounded-full opacity-50" style={{ borderColor: tierConfig.color }}></div>
-                    <img src={tierConfig.avatarPath} alt="Avatar" className="w-full h-full object-cover" />
+                    <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                 </div>
                 <div className="flex flex-col items-start leading-none">
                     <span className="truncate max-w-[120px] font-bold text-white text-sm">
@@ -358,7 +359,7 @@ export default function Header({ breweryId }: { breweryId?: string }) {
                          <div className="flex items-center justify-between bg-zinc-900/50 p-3 rounded-2xl mb-3">
                              <div className="flex items-center gap-3">
                                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-xs overflow-hidden relative border border-zinc-700 bg-zinc-800">
-                                     <div className="absolute inset-0 border-2 rounded-full opacity-50" style={{ borderColor: tierConfig.color }}></div>
+                                     <div className={`absolute inset-0 border-2 rounded-full opacity-50 ${tierBorderClass}`}></div>
                                      <img src={tierConfig.avatarPath} alt="Avatar" className="w-full h-full object-cover" />
                                  </div>
                                  <div className="overflow-hidden">

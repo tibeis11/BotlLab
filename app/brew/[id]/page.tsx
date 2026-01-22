@@ -17,6 +17,9 @@ import { useGlobalToast } from '@/app/context/AchievementNotificationContext';
 import { getPremiumStatus } from '@/lib/actions/premium-actions';
 import ReportButton from '@/app/components/reporting/ReportButton';
 import BrewDiscussionButton from '@/app/components/BrewDiscussionButton';
+import { getBrewTasteProfile, getBrewFlavorDistribution, TasteProfile, FlavorDistribution } from '@/lib/rating-analytics';
+import TasteRadarChart from './components/TasteRadarChart';
+import FlavorTagCloud from './components/FlavorTagCloud';
 
 // Helper: Ensure lists render correctly even if user didn't use double line breaks
 const formatMarkdown = (text: string) => {
@@ -217,6 +220,8 @@ export default function BrewDetailPage() {
   const [profile, setProfile] = useState<any>(null);
   const [ratings, setRatings] = useState<any[]>([]);
   const [bottles, setBottles] = useState<any[]>([]);
+  const [tasteProfile, setTasteProfile] = useState<TasteProfile | null>(null);
+  const [flavorTags, setFlavorTags] = useState<FlavorDistribution[]>([]);
   const [parent, setParent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
@@ -472,6 +477,14 @@ export default function BrewDetailPage() {
           .eq('brew_id', brewData.id)
           .order('bottle_number');
         setBottles(bottleData || []);
+
+        // Analytics (Geschmacksprofil & Tags)
+        const [taste, tags] = await Promise.all([
+          getBrewTasteProfile(brewData.id),
+          getBrewFlavorDistribution(brewData.id),
+        ]);
+        setTasteProfile(taste);
+        setFlavorTags(tags);
 
         setLoading(false);
       } catch (err: any) {
@@ -964,6 +977,34 @@ export default function BrewDetailPage() {
                          </div>
                     )}
                 </div>
+            )}
+
+            {/* Analytics Section */}
+            {tasteProfile && tasteProfile.count > 0 && (
+              <div className="py-8 border-t border-zinc-800/50">
+                <div className="flex items-center gap-4 mb-8">
+                  <h3 className="text-xs font-black uppercase tracking-[0.3em] text-cyan-500">
+                    Geschmacksprofil
+                  </h3>
+                  <div className="h-px bg-zinc-800 flex-1"></div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                  <div className="bg-zinc-900/20 rounded-2xl p-6 border border-zinc-800/50 flex flex-col items-center">
+                    <h4 className="text-sm font-bold text-zinc-300 mb-4">
+                      Radar Chart
+                    </h4>
+                    <TasteRadarChart profile={tasteProfile} />
+                  </div>
+
+                  <div className="bg-zinc-900/20 rounded-2xl p-6 border border-zinc-800/50 h-full">
+                    <h4 className="text-sm font-bold text-zinc-300 mb-4 text-center">
+                      Häufigste Attribute
+                    </h4>
+                    <FlavorTagCloud tags={flavorTags} />
+                  </div>
+                </div>
+              </div>
             )}
 
             {/* Ratings Section */}

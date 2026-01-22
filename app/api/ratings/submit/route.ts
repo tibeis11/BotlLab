@@ -5,7 +5,11 @@ import { cleanText, isProfane } from '@/lib/profanity';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    let { brew_id, rating, comment, author_name, ip_address } = body;
+    let { 
+        brew_id, rating, comment, author_name, ip_address,
+        taste_bitterness, taste_sweetness, taste_body, taste_carbonation, taste_acidity,
+        flavor_tags, appearance_color, appearance_clarity, aroma_intensity
+    } = body;
 
     if (!brew_id || !rating || !author_name || !ip_address) {
         return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -55,6 +59,15 @@ export async function POST(req: NextRequest) {
             comment, // Cleaned comment
             author_name, // Cleaned name
             ip_address,
+            taste_bitterness,
+            taste_sweetness,
+            taste_body,
+            taste_carbonation,
+            taste_acidity,
+            flavor_tags,
+            appearance_color,
+            appearance_clarity,
+            aroma_intensity,
             moderation_status: 'auto_approved' // or 'pending' depending on settings, keeping 'auto_approved' as per original code
         }])
         .select()

@@ -13,7 +13,7 @@ export async function getRecentThreads(limit = 5) {
         .select(`
             *,
             category:forum_categories(title, slug),
-            author:profiles(id, display_name, avatar_url:logo_url),
+            author:profiles(id, display_name, avatar_url:logo_url, tier, subscription_tier),
             posts:forum_posts(count)
         `)
         .order('last_reply_at', { ascending: false })
@@ -53,7 +53,7 @@ export async function getThreadsByCategory(categoryId: string) {
         .from('forum_threads')
         .select(`
             *,
-            author:profiles(id, display_name, avatar_url:logo_url),
+            author:profiles(id, display_name, avatar_url:logo_url, tier, subscription_tier),
             category:forum_categories(title, slug),
             posts:forum_posts(count)
         `)
@@ -74,7 +74,7 @@ export async function getThread(id: string) {
         .from('forum_threads')
         .select(`
             *,
-            author:profiles(*),
+            author:profiles(id, display_name, avatar_url:logo_url, tier, subscription_tier),
             category:forum_categories(*),
             brew:brews(id, name, image_url, moderation_status, brewery_id, brewery:breweries(name))
         `)
@@ -89,7 +89,7 @@ export async function getPosts(threadId: string) {
         .from('forum_posts')
         .select(`
             *,
-            author:profiles(id, display_name, avatar_url:logo_url, tier, joined_at)
+            author:profiles(id, display_name, avatar_url:logo_url, tier, joined_at, subscription_tier)
         `)
         .eq('thread_id', threadId)
         .order('created_at', { ascending: true });

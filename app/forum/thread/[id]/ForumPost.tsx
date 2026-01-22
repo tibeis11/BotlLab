@@ -5,6 +5,7 @@ import Link from 'next/link';
 import ReportButton from './ReportButton';
 import PostReplyButton from './PostReplyButton';
 import { getTierConfig } from '@/lib/tier-system';
+import { getTierBorderColor } from '@/lib/premium-config';
 
 interface ForumPostProps {
     post: any;
@@ -31,6 +32,7 @@ export default async function ForumPost({ post, threadAuthorId }: ForumPostProps
     // Tier configuration logic
     const tierConfig = post.author?.tier ? getTierConfig(post.author.tier) : null;
     const showTierBadge = tierConfig && tierConfig.name !== 'lehrling';
+    const tierBorderClass = getTierBorderColor(post.author?.subscription_tier);
 
     // Quote Block Parsing
     let contentToRender = (post.content || '').trim();
@@ -80,13 +82,13 @@ export default async function ForumPost({ post, threadAuthorId }: ForumPostProps
                     {post.author ? (
                         <Link href={`/brewer/${post.author.id}`} className="flex items-center gap-3 group/author">
                             <div className="flex-shrink-0">
-                                {post.author.avatar_url ? (
-                                    <img src={post.author.avatar_url} alt="" className="w-8 h-8 rounded-full bg-zinc-800 object-cover ring-1 ring-white/10 group-hover/author:ring-emerald-500 transition" />
-                                ) : (
-                                    <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-500 ring-1 ring-white/10 group-hover/author:ring-emerald-500 transition">
-                                        <User size={14} />
-                                    </div>
-                                )}
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs overflow-hidden relative shadow-lg bg-zinc-900 border-2 transition ${tierBorderClass}`}>
+                                    <img 
+                                        src={post.author.avatar_url || getTierConfig(post.author.tier || 'lehrling').avatarPath} 
+                                        alt="" 
+                                        className="w-full h-full object-cover" 
+                                    />
+                                </div>
                             </div>
                         
                             <div className="flex items-baseline gap-2">
