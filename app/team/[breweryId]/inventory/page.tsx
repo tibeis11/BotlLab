@@ -20,31 +20,35 @@ import { getBreweryPremiumStatus } from '@/lib/actions/premium-actions';
 import { type PremiumStatus } from '@/lib/premium-config';
 
 const playBeep = (type: 'success' | 'error') => {
-    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContext) return;
-    
-    const ctx = new AudioContext();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
+    try {
+        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+        if (!AudioContext) return;
+        
+        const ctx = new AudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
 
-    osc.connect(gain);
-    gain.connect(ctx.destination);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
 
-    if (type === 'success') {
-        osc.frequency.setValueAtTime(880, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.1);
-        gain.gain.setValueAtTime(0.1, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.15);
-    } else {
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(150, ctx.currentTime);
-        osc.frequency.linearRampToValueAtTime(100, ctx.currentTime + 0.2);
-        gain.gain.setValueAtTime(0.2, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.25);
+        if (type === 'success') {
+            osc.frequency.setValueAtTime(880, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.15);
+        } else {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(150, ctx.currentTime);
+            osc.frequency.linearRampToValueAtTime(100, ctx.currentTime + 0.2);
+            gain.gain.setValueAtTime(0.2, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.25);
+        }
+    } catch(e) {
+        console.warn("AudioContext error:", e);
     }
 };
 
@@ -750,6 +754,8 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 
 		try {
             if (!user) throw new Error("Nicht eingeloggt");
+            if (!activeBrewery) throw new Error("Brauerei noch nicht geladen");
+            
 			// Find Bottle locally first
 			let existingBottle = bottles.find(b => b.id === bottleId);
 
