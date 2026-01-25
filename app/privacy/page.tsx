@@ -256,13 +256,7 @@ export default function PrivacyPage() {
           </p>
         </section>
 
-        {/* Disclaimer */}
-        <div className="bg-surface border border-amber-500/30 rounded-2xl p-6 mt-12">
-          <p className="text-amber-200 text-sm">
-            <strong>Rechtlicher Hinweis:</strong> Diese Datenschutzerklärung ist eine Basis-Struktur und keine vollständige Rechtsberatung. 
-            Konsultiere einen Datenschutzexperten oder Anwalt, um die Erklärung an deine spezifischen Anforderungen und geltende Gesetze anzupassen.
-          </p>
-        </div>
+        {/* Disclaimer removed per request */}
       </div>
     </div>
   );

@@ -138,13 +138,7 @@ export default function TermsPage() {
           </p>
         </section>
 
-        {/* Disclaimer */}
-        <div className="bg-surface border border-amber-500/30 rounded-2xl p-6 mt-12">
-          <p className="text-amber-200 text-sm">
-            <strong>Rechtlicher Hinweis:</strong> Diese AGB sind eine Basis-Struktur und keine vollständige Rechtsberatung. 
-            Bitte konsultiere einen Rechtsanwalt, um die AGB an deine spezifische Situation anzupassen und alle geltenden Gesetze einzuhalten.
-          </p>
-        </div>
+        {/* Disclaimer removed per request */}
       </div>
     </div>
   );
