@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { cleanText, isProfane } from '@/lib/profanity';
+import crypto from 'crypto';
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,6 +15,10 @@ export async function POST(req: NextRequest) {
     if (!brew_id || !rating || !author_name || !ip_address) {
         return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
+
+    // --- Privacy: Anonymize IP ---
+    // Store only the hash to prevent PII storage while maintaining duplicate check
+    const ipHash = crypto.createHash('sha256').update(ip_address).digest('hex');
 
     // --- Profanity Filter ---
     // Wir bereinigen den Namen und den Kommentar bevor wir speichern.
@@ -58,7 +63,7 @@ export async function POST(req: NextRequest) {
             rating,
             comment, // Cleaned comment
             author_name, // Cleaned name
-            ip_address,
+            ip_address: ipHash, // Store Hash instead of Plain IP
             taste_bitterness,
             taste_sweetness,
             taste_body,
@@ -68,7 +73,7 @@ export async function POST(req: NextRequest) {
             appearance_color,
             appearance_clarity,
             aroma_intensity,
-            moderation_status: 'auto_approved' // or 'pending' depending on settings, keeping 'auto_approved' as per original code
+            moderation_status: 'auto_approved' 
         }])
         .select()
         .single();

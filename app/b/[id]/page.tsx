@@ -348,16 +348,22 @@ export default function PublicScanPage() {
 
     // Checken ob dieser Nutzer (IP) bereits eine Bewertung hat
     if (userIp) {
-      const { data: existingRating } = await supabase
-        .from('ratings')
-        .select('id')
-        .eq('brew_id', brewId)
-        .eq('ip_address', userIp)
-        .maybeSingle();
-      
-      setHasAlreadyRated(!!existingRating);
-      if (existingRating) {
-        console.log('User hat bereits bewertet');
+      try {
+          const checkRes = await fetch('/api/ratings/check', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ brew_id: brewId, ip_address: userIp })
+          });
+          
+          if (checkRes.ok) {
+              const checkData = await checkRes.json();
+              if (checkData.hasRated) {
+                  setHasAlreadyRated(true);
+                  console.log('User hat bereits bewertet (Server Check)');
+              }
+          }
+      } catch (e) {
+          console.error("Failed to check rating status:", e);
       }
     }
   }
@@ -401,23 +407,22 @@ export default function PublicScanPage() {
       if (!response.ok) {
         // Special Handling for Duplicate Rating (409)
         if (response.status === 409) {
-            console.log("Benutzer hat bereits bewertet. Lade existierendes Rating...");
+            console.log("Benutzer hat bereits bewertet. Checke via API...");
             setHasAlreadyRated(true);
             
-            // Try to recover the existing rating ID so the user can still claim the cap
-            const { data: existing } = await supabase
-                .from('ratings')
-                .select('id')
-                .eq('brew_id', brewId)
-                .eq('ip_address', userIp)
-                .maybeSingle();
+            // Try to recover ID via safe API check
+            try {
+                const checkRes = await fetch('/api/ratings/check', {
+                    method: 'POST',
+                    body: JSON.stringify({ brew_id: brewId, ip_address: userIp })
+                });
+                const checkData = await checkRes.json();
+                if (checkData.hasRated && checkData.ratingId) {
+                    return checkData.ratingId;
+                }
+            } catch(e) { console.error(e); }
             
-            if (existing) {
-                // Return existing ID to simulate success -> Modal moves to "Cap Claim" screen
-                return existing.id;
-            }
-            
-            // Fallback if retrieval fails
+            // Fallback
             alert('Du hast bereits eine Bewertung für dieses Rezept eingegeben! 🚫');
             setShowRatingForm(false);
             return null;
