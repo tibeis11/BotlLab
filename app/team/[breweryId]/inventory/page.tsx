@@ -946,11 +946,16 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 			const brewStyle = b.brews ? b.brews.style.toLowerCase() : "";
 			const matchesSearch = term === "" || brewName.includes(term) || brewStyle.includes(term) || b.bottle_number.toString().includes(term);
 
-			const matchesStatus = 
-				filterStatus === "all" ? true :
-				filterStatus === "filled" ? !!b.brew_id :
-				!b.brew_id;
-
+			let matchesStatus = true;
+			if (filterStatus.startsWith("size_")) {
+				const size = parseFloat(filterStatus.replace("size_", ""));
+				matchesStatus = b.size_l === size;
+			} else if (filterStatus === "filled") {
+				matchesStatus = !!b.brew_id;
+			} else if (filterStatus === "empty") {
+				matchesStatus = !b.brew_id;
+			}
+			// 'all' bleibt true
 			return matchesSearch && matchesStatus;
 		})
 		.sort((a, b) => {
@@ -1010,8 +1015,11 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
         icon: "🏷️"
     }));
 
+	const bottleSizes = Array.from(new Set(bottles.map(b => b.size_l).filter(Boolean))).sort((a, b) => a - b);
+
 	const filterStatusOptions = [
-		{ value: "all", label: "Alle Flaschen" },
+		{ value: "all", label: "Alle" },
+		...bottleSizes.map(size => ({ value: `size_${size}`, label: `${size}L` })),
 		{ value: "filled", label: "Gefüllt" },
 		{ value: "empty", label: "Leer" }
 	];
@@ -1659,7 +1667,7 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 								) : (
 									<>
 										<span>📦 Generieren & Drucken</span>
-										<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+										<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V4a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
 									</>
 								)}
 							</button>

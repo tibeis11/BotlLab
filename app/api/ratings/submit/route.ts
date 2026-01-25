@@ -73,15 +73,6 @@ export async function POST(req: NextRequest) {
     }
     // ------------------------
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-    if (!serviceRoleKey) {
-        throw new Error('SUPABASE_SERVICE_ROLE_KEY is not defined');
-    }
-
-    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
-
     // 1. Get Brew Info (to find brewery_id)
     const { data: brew, error: brewError } = await supabaseAdmin
         .from('brews')

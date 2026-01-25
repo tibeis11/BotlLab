@@ -177,6 +177,7 @@ export default function PublicScanPage() {
   const [submitting, setSubmitting] = useState(false);
   const [userIp, setUserIp] = useState<string | null>(null);
   const [hasAlreadyRated, setHasAlreadyRated] = useState(false);
+  const [existingRatingId, setExistingRatingId] = useState<string | null>(null);
 
   // Cap Collection
   const [collectingCap, setCollectingCap] = useState(false);
@@ -594,6 +595,32 @@ export default function PublicScanPage() {
     } finally {
       setCollectingCap(false);
     }
+  }
+
+  function handleStartRating() {
+    if (!userIp || !data?.brews?.id) return;
+    fetch('/api/ratings/check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ brew_id: data.brews.id, ip_address: userIp })
+    })
+      .then(res => res.json())
+      .then(res => {
+        if (res.hasRated && res.ratingId) {
+          setExistingRatingId(res.ratingId);
+          setShowRatingForm(true);
+          // Modal direkt auf 'success' setzen
+          setTimeout(() => {
+            const modal = document.querySelector('.RateBrewModal');
+            if (modal) {
+              // Simuliere den Schrittwechsel
+              // Alternativ: setStep('success') im Modal per Prop
+            }
+          }, 100);
+        } else {
+          setShowRatingForm(true);
+        }
+      });
   }
 
   if (loading) {
@@ -1142,6 +1169,7 @@ export default function PublicScanPage() {
                 onCancel={() => setShowRatingForm(false)}
                 isSubmitting={submitting}
                 onClaimCap={handleClaimCap}
+                existingRatingId={existingRatingId}
             />
           )}
 

@@ -11,7 +11,7 @@ import Header from '@/app/components/Header';
 import Logo from '@/app/components/Logo';
 import LikeButton from '@/app/components/LikeButton';
 import { ebcToHex } from '@/lib/brewing-calculations';
-import { Star } from 'lucide-react';
+import { Star, Users, MessageCircle, Library, Shuffle } from 'lucide-react';
 import { saveBrewToLibrary } from '@/lib/actions/library-actions';
 import { useGlobalToast } from '@/app/context/AchievementNotificationContext';
 import { getPremiumStatus } from '@/lib/actions/premium-actions';
@@ -59,7 +59,7 @@ function ShareButton({ brew }: { brew: any }) {
     return (
         <button 
             onClick={handleShare}
-            className="w-full bg-zinc-900 border border-zinc-700/50 hover:border-zinc-500 text-zinc-300 hover:text-white rounded-2xl py-3 font-bold transition flex items-center justify-center gap-2 group mb-2"
+            className="w-full bg-zinc-900 border border-zinc-700/50 hover:border-zinc-500 text-zinc-300 hover:text-white rounded-2xl py-3 font-bold transition flex items-center justify-center gap-2 group mb-4"
         >
             {copied ? (
                  <>
@@ -68,7 +68,7 @@ function ShareButton({ brew }: { brew: any }) {
                  </>
             ) : (
                  <>
-                    <span className="group-hover:scale-110 transition">📤</span>
+                    <Users className="w-5 h-5 group-hover:scale-110 transition" />
                     <span>Mit Freunden teilen</span>
                  </>
             )}
@@ -172,7 +172,7 @@ function MashScheduleView({ steps, mashWater, spargeWater }: { steps: any, mashW
                                 </div>
                                 <div className="flex gap-4 mt-1 text-xs font-mono text-zinc-500 items-center">
                                     <span className="text-white bg-zinc-800 px-1.5 rounded w-[4.5rem] text-center inline-block">{step.temperature}°C</span>
-                                    <span>{step.duration} min</span>
+                                    {step.duration ? <span>{step.duration} min</span> : null}
                                 </div>
                             </div>
                         ))}
@@ -563,68 +563,55 @@ export default function BrewDetailPage() {
              <ShareButton brew={brew} />
              
              <div className="h-4"></div>
-             <BrewDiscussionButton brewId={brew.id} brewName={brew.name} />
-
-             {/* Save To Team Button */}
-             {userBreweries.length > 0 && (
-                 <button
-                   onClick={() => handleSaveToTeam()}
-                   disabled={saveLoading}
-                   className="w-full bg-zinc-900 border border-zinc-700/50 hover:border-zinc-500 text-zinc-300 hover:text-white rounded-2xl py-3 font-bold transition flex items-center justify-center gap-2 group mb-6"
-                 >
-                   {saveLoading ? 'Wird gespeichert...' : (
-                       <>
-                         <span className="group-hover:scale-110 transition">🏭</span>
-                         <span>Zur Team-Bibliothek</span>
-                       </>
-                   )}
-                 </button>
-             )}
-
-             {/* Action Button */}
-             <button
-              onClick={handleRemix}
-              disabled={remixLoading}
-              className="group w-full relative overflow-hidden rounded-2xl bg-gradient-to-br from-cyan-500 via-blue-600 to-purple-600 p-[1px] shadow-lg shadow-cyan-500/20 transition-all hover:shadow-cyan-500/40 hover:scale-[1.01] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
-            >
-              <div className="relative h-full w-full bg-zinc-950/40 group-hover:bg-transparent transition-colors rounded-2xl py-4 flex items-center justify-center gap-3 backdrop-blur-sm">
-                 <span className="font-black text-white uppercase tracking-widest text-sm drop-shadow-md">
-                    {remixLoading ? 'Wird kopiert...' : 'Rezept remixen'}
-                 </span>
-              </div>
-            </button>
-            {remixMessage && (
-              <p className="text-xs text-red-400 text-center bg-red-950/20 border border-red-900/30 p-3 rounded-xl">{remixMessage}</p>
-            )}
-
-             {/* Brewer Card */}
-             {profile && (
-              <Link href={brew.brewery_id ? `/brewery/${brew.brewery_id}` : `/brewer/${brew.user_id}`}  className="block">
-                <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-5 hover:border-zinc-700 transition group hover:bg-zinc-900 cursor-pointer">
-                  <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest mb-3 group-hover:text-cyan-400 transition-colors">Gebraut von</p>
-                  <div className="flex items-center gap-4">
-                    <div className="flex-shrink-0">
-                      {profile.logo_url ? (
-                        <img src={profile.logo_url} className="w-12 h-12 rounded-full object-cover border border-zinc-700" />
-                      ) : (
-                        <div className="w-12 h-12 rounded-full bg-zinc-800 flex items-center justify-center text-xl border border-zinc-700">
-                          {brew.brewery_id ? '🏰' : '👤'}
-                        </div>
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="text-base font-bold text-white truncate group-hover:text-cyan-400 transition-colors">{profile.display_name || 'Brauerei'}</h3>
-                      {profile.location && (
-                        <p className="text-xs text-zinc-400 mt-0.5 truncate">📍 {profile.location}</p>
-                      )}
-                    </div>
+             <div className="space-y-3 mb-6">
+                <BrewDiscussionButton brewId={brew.id} brewName={brew.name} />
+                {userBreweries.length > 0 && (
+                  <button
+                    onClick={() => handleSaveToTeam()}
+                    disabled={saveLoading}
+                    className="w-full bg-zinc-900 border border-zinc-700/50 hover:border-zinc-500 text-zinc-300 hover:text-white rounded-2xl py-3 font-bold transition flex items-center justify-center gap-2 group"
+                  >
+                    {saveLoading ? 'Wird gespeichert...' : (
+                      <>
+                        <Library className="w-5 h-5 group-hover:scale-110 transition" />
+                        <span>Zur Team-Bibliothek</span>
+                      </>
+                    )}
+                  </button>
+                )}
+                <button
+                  onClick={handleRemix}
+                  disabled={remixLoading}
+                  className="group w-full relative overflow-hidden rounded-2xl bg-gradient-to-br from-cyan-500 via-blue-600 to-purple-600 p-[1px] shadow-lg shadow-cyan-500/20 transition-all hover:shadow-cyan-500/40 hover:scale-[1.01] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
+                >
+                  <div className="relative h-full w-full bg-zinc-950/40 group-hover:bg-transparent transition-colors rounded-2xl py-4 flex items-center justify-center gap-3 backdrop-blur-sm">
+                    <Shuffle className="w-5 h-5 text-white" />
+                    <span className="font-black text-white uppercase tracking-widest text-sm drop-shadow-md">
+                      {remixLoading ? 'Wird kopiert...' : 'Rezept remixen'}
+                    </span>
                   </div>
-                  {profile.bio && (
-                    <p className="text-xs text-zinc-400 leading-relaxed mt-4 line-clamp-3">{profile.bio}</p>
-                  )}
-                </div>
-              </Link>
-            )}
+                </button>
+             </div>
+
+             {/* Brewery/Team Info unten links */}
+             {profile && profile.display_name && (
+               <Link
+                 href={`/brewery/${profile.id}`}
+                 className="block mt-10 group bg-zinc-900/60 border border-zinc-800 rounded-2xl px-4 py-3 transition hover:border-cyan-600 hover:bg-zinc-900/80 shadow flex items-center gap-3"
+                 style={{ textDecoration: 'none' }}
+               >
+                 {profile.logo_url ? (
+                   <img src={profile.logo_url} alt={profile.display_name} className="w-9 h-9 rounded-full border border-zinc-800 object-cover shadow group-hover:border-cyan-500 transition" />
+                 ) : (
+                   <div className="w-9 h-9 rounded-full bg-zinc-800 flex items-center justify-center text-xl text-zinc-500 border border-zinc-700">🏭</div>
+                 )}
+                 <div className="flex flex-col min-w-0">
+                   <span className="font-bold text-white text-sm truncate group-hover:text-cyan-400 transition">{profile.display_name}</span>
+                   {profile.bio && <span className="text-zinc-500 text-xs truncate">{profile.bio}</span>}
+                 </div>
+                 <span className="ml-auto text-cyan-500 text-xs font-bold group-hover:underline group-hover:text-cyan-300 transition">Team-Profil →</span>
+               </Link>
+             )}
           </div>
 
           {/* --- RIGHT COLUMN: Content (8 cols) --- */}
@@ -756,52 +743,61 @@ export default function BrewDetailPage() {
                     {/* BEER Structure */}
                     {(!brew.brew_type || brew.brew_type === 'beer') && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="bg-zinc-900/20 rounded-2xl p-6 border border-zinc-800/50">
-                                <h4 className="flex items-center gap-2 text-sm font-bold text-white mb-6 pb-4 border-b border-zinc-800/50">
-                                    <span>🌾</span> Schüttung
-                                </h4>
-                                <MaltView value={brew.data.malts} />
-                            </div>
+                        {/* Schüttung */}
+                        <div className="bg-zinc-900/20 rounded-2xl p-6 border border-zinc-800/50">
+                          <h4 className="flex items-center gap-2 text-sm font-bold text-white mb-6 pb-4 border-b border-zinc-800/50">
+                            <span>🌾</span> Schüttung
+                          </h4>
+                          <MaltView value={brew.data.malts} />
+                        </div>
 
-                            <div className="bg-zinc-900/20 rounded-2xl p-6 border border-zinc-800/50">
-                                <h4 className="flex items-center gap-2 text-sm font-bold text-white mb-6 pb-4 border-b border-zinc-800/50">
-                                    <span>🌡️</span> Maischen & Wasser
-                                </h4>
-                                <MashScheduleView 
-                                    steps={brew.data.mash_steps} 
-                                    mashWater={brew.data.mash_water_liters}
-                                    spargeWater={brew.data.sparge_water_liters}
-                                />
-                            </div>
+                        {/* Maischen & Wasser */}
+                        <div className="bg-zinc-900/20 rounded-2xl p-6 border border-zinc-800/50">
+                          <h4 className="flex items-center gap-2 text-sm font-bold text-white mb-6 pb-4 border-b border-zinc-800/50">
+                            <span>🌡️</span> Maischen & Wasser
+                          </h4>
+                          <MashScheduleView 
+                            steps={brew.data.mash_steps} 
+                            mashWater={brew.data.mash_water_liters}
+                            spargeWater={brew.data.sparge_water_liters}
+                          />
+                        </div>
 
-                            <div className="bg-zinc-900/20 rounded-2xl p-6 border border-zinc-800/50">
-                                <h4 className="flex items-center gap-2 text-sm font-bold text-white mb-6 pb-4 border-b border-zinc-800/50">
-                                    <span>🌿</span> Hopfen
-                                </h4>
-                                <HopView value={brew.data.hops} />
+                        {/* Kochen & Hopfen (Gruppiert) */}
+                        <div className="bg-zinc-900/20 rounded-2xl p-6 border border-zinc-800/50 md:col-span-2">
+                          <h4 className="flex items-center gap-2 text-sm font-bold text-white mb-6 pb-4 border-b border-zinc-800/50">
+                            <span>🔥</span> Kochen & Hopfen
+                          </h4>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div>
+                              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-2">Kochzeit</p>
+                              <p className="text-white font-mono text-lg">{brew.data.boil_time || 60} min</p>
                             </div>
+                            <div className="md:col-span-2">
+                              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-2">Hopfen</p>
+                              <HopView value={brew.data.hops} />
+                            </div>
+                          </div>
+                        </div>
 
-                             <div className="bg-zinc-900/20 rounded-2xl p-6 border border-zinc-800/50">
-                                <h4 className="flex items-center gap-2 text-sm font-bold text-white mb-6 pb-4 border-b border-zinc-800/50">
-                                    <span>🦠</span> Gärung & Kochen
-                                </h4>
-                                <div className="space-y-6">
-                                     <div>
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-2">Kochen</p>
-                                        <p className="text-white font-mono text-lg">{brew.data.boil_time || 60} min</p>
-                                     </div>
-                                    <div>
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-2">Hefe</p>
-                                        <IngredientView value={brew.data.yeast} />
-                                    </div>
-                                    {brew.data.carbonation_g_l && (
-                                         <div>
-                                            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-2">Karbonisierung</p>
-                                            <p className="text-white font-mono text-lg">{brew.data.carbonation_g_l} g/l</p>
-                                        </div>
-                                    )}
-                                </div>
+                        {/* Gärung & Hefe separat */}
+                        <div className="bg-zinc-900/20 rounded-2xl p-6 border border-zinc-800/50 md:col-span-2">
+                          <h4 className="flex items-center gap-2 text-sm font-bold text-white mb-6 pb-4 border-b border-zinc-800/50">
+                            <span>🦠</span> Gärung
+                          </h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-2">Hefe</p>
+                              <IngredientView value={brew.data.yeast} />
                             </div>
+                            {brew.data.carbonation_g_l && (
+                              <div>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-2">Karbonisierung</p>
+                                <p className="text-white font-mono text-lg">{brew.data.carbonation_g_l} g/l</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     )}
                     
@@ -983,7 +979,7 @@ export default function BrewDetailPage() {
             {tasteProfile && tasteProfile.count > 0 && (
               <div className="py-8 border-t border-zinc-800/50">
                 <div className="flex items-center gap-4 mb-8">
-                  <h3 className="text-xs font-black uppercase tracking-[0.3em] text-cyan-500">
+                  <h3 className="text-xs font-black uppercase tracking-[0.3em] text-zinc-500">
                     Geschmacksprofil
                   </h3>
                   <div className="h-px bg-zinc-800 flex-1"></div>

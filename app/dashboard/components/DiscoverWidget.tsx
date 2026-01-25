@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
+import BrewCard from '@/app/components/BrewCard';
 
 interface TrendingBrew {
     id: string;
@@ -24,7 +25,7 @@ export default function DiscoverWidget() {
                 
                 const { data, error } = await supabase
                     .from('brews')
-                    .select('id,name,style,image_url,likes_count,breweries(name,logo_url,moderation_status)')
+                    .select('id,name,style,image_url,created_at,likes_count,breweries(name,logo_url,moderation_status)')
                     .eq('is_public', true)
                     .neq('moderation_status', 'pending') 
                     .order('likes_count', { ascending: false }) 
@@ -38,6 +39,7 @@ export default function DiscoverWidget() {
                     name: b.name,
                     style: b.style,
                     image_url: b.image_url,
+                    created_at: b.created_at,
                     likes_count: b.likes_count || 0,
                     brewery: {
                         name: b.breweries?.name || 'Unbekannt',
@@ -80,35 +82,14 @@ export default function DiscoverWidget() {
             {/* Scroll Container */}
             <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory [scrollbar-width:none] md:scrollbar-thin [&::-webkit-scrollbar]:hidden md:[&::-webkit-scrollbar]:block md:scrollbar-thumb-zinc-700 md:scrollbar-track-transparent">
                 {trendingBrews.map(brew => (
-                    <Link 
-                        key={brew.id} 
-                        href={`/brew/${brew.id}`}
-                        className="min-w-[200px] w-[200px] snap-center bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden hover:border-zinc-600 transition group/card relative"
-                    >
-                        <div className="aspect-square bg-zinc-800 relative">
-                            {brew.image_url ? (
-                                <img src={brew.image_url} className="w-full h-full object-cover opacity-80 group-hover/card:opacity-100 transition" />
-                            ) : (
-                                <div className="w-full h-full flex items-center justify-center text-zinc-700 text-3xl">🍺</div>
-                            )}
-                            <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md px-2 py-1 rounded-lg text-[10px] font-bold text-white flex items-center gap-1">
-                                <span>❤️</span> {brew.likes_count}
-                            </div>
-                        </div>
-                        <div className="p-3">
-                            <h4 className="font-bold text-white text-sm truncate">{brew.name}</h4>
-                            <p className="text-xs text-zinc-500 truncate mb-2">{brew.style || 'Unbekannter Stil'}</p>
-                            
-                            <div className="flex items-center gap-2 mt-auto">
-                                <div className="w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center overflow-hidden border border-zinc-700">
-                                    {brew.brewery.logo_url ? <img src={brew.brewery.logo_url} className="w-full h-full object-cover"/> : <span className="text-[8px]">🏭</span>}
-                                </div>
-                                <span className="text-[10px] text-zinc-400 truncate max-w-[100px]">{brew.brewery.name}</span>
-                            </div>
-                        </div>
-                    </Link>
+                    <div key={brew.id} className="min-w-[200px] w-[200px] snap-center">
+                        <BrewCard brew={{
+                            ...brew,
+                            brewery: brew.brewery,
+                            likes_count: brew.likes_count,
+                        }} />
+                    </div>
                 ))}
-                
                 {/* View More Card */}
                 <Link 
                     href="/discover"

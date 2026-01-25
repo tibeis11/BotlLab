@@ -3,10 +3,14 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY! // Use service key to bypass potential RLS on orphaned ratings
-    );
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!serviceRoleKey) {
+        throw new Error('SUPABASE_SERVICE_ROLE_KEY is missing');
+    }
+
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
 
     // Get Session using standard method (or pass token)
     // Here we rely on the client sending the auth header, but we use Service Key for DB ops

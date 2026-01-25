@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import TasteSlider from './TasteSlider';
 import FlavorTagSelector from './FlavorTagSelector';
 import { TASTE_SLIDERS } from '@/lib/rating-config';
@@ -12,12 +12,13 @@ interface RateBrewModalProps {
   isSubmitting: boolean;
   initialAuthorName?: string;
   onClaimCap?: (ratingId: string) => Promise<void>; 
+  existingRatingId?: string | null;
 }
 
-export default function RateBrewModal({ brewId, onSubmit, onCancel, isSubmitting, initialAuthorName = '', onClaimCap }: RateBrewModalProps) {
+export default function RateBrewModal({ brewId, onSubmit, onCancel, isSubmitting, initialAuthorName = '', onClaimCap, existingRatingId }: RateBrewModalProps) {
   // Steps: 'rating' -> 'success'
-  const [step, setStep] = useState<'rating' | 'success'>('rating');
-  const [createdRatingId, setCreatedRatingId] = useState<string | null>(null);
+  const [step, setStep] = useState<'rating' | 'success'>(existingRatingId ? 'success' : 'rating');
+  const [createdRatingId, setCreatedRatingId] = useState<string | null>(existingRatingId || null);
 
   // Basic Rating State
   const [rating, setRating] = useState(0);
@@ -42,6 +43,13 @@ export default function RateBrewModal({ brewId, onSubmit, onCancel, isSubmitting
   // Appearance State
   const [appearanceColor, setAppearanceColor] = useState<string | undefined>(undefined);
   const [appearanceClarity, setAppearanceClarity] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (existingRatingId) {
+      setStep('success');
+      setCreatedRatingId(existingRatingId);
+    }
+  }, [existingRatingId]);
 
   const handleSubmit = async () => {
     if (honeypot) return; // Silent reject

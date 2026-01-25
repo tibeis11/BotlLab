@@ -66,13 +66,15 @@ export default function DiscoverPage() {
 
       brewsData = brewsData.map(b => ({
         ...b,
-        user_has_liked: likedIds.has(b.id)
+        user_has_liked: likedIds.has(b.id),
+        brewery: b.breweries ? { name: b.breweries.name, logo_url: b.breweries.logo_url } : undefined
       }));
     } else {
       // For guests, none are liked
       brewsData = brewsData.map(b => ({
         ...b,
-        user_has_liked: false
+        user_has_liked: false,
+        brewery: b.breweries ? { name: b.breweries.name, logo_url: b.breweries.logo_url } : undefined
       }));
     }
     
@@ -139,7 +141,7 @@ export default function DiscoverPage() {
         {title}
         <span className="text-xs bg-zinc-800 text-zinc-400 px-2 py-1 rounded-full font-normal">Top 10</span>
       </h2>
-      <div className="flex overflow-x-auto gap-4 pb-4 -mx-6 px-6 scrollbar-hide snap-x">
+      <div className="flex overflow-x-auto gap-4 pb-4 -mx-6 px-6 snap-x scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-zinc-900 md:scrollbar md:scrollbar-thumb-zinc-700 md:scrollbar-track-zinc-900 md:scrollbar-thin md:pb-2 md:mb-2 md:border-b md:border-zinc-800">
         {items.map(brew => (
           <div key={brew.id} className="min-w-[280px] w-[280px] snap-center">
             <BrewCard brew={brew} />
@@ -165,7 +167,7 @@ export default function DiscoverPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Suche nach Name oder Stil..."
-            className="bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2 outline-none focus:border-cyan-600 h-[42px]"
+            className="bg-zinc-950 border-2 border-zinc-800 rounded-xl px-4 py-3 outline-none focus:border-cyan-600 h-12 text-sm font-bold text-white transition-all"
           />
           <CustomSelect
             value={styleFilter}

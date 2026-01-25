@@ -18,13 +18,7 @@ export default function Header({ breweryId }: { breweryId?: string }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
 
-  const [branding, setBranding] = useState<{ logoUrl: string | null; breweryName: string | null; isPremiumBranding: boolean }>({
-    logoUrl: null,
-    breweryName: null,
-    isPremiumBranding: false
-  });
-
-  // Lock Scroll when Mobile Menu is open
+  // Branding-Feature entfernt: Immer BotlLab-Logo anzeigen
   useEffect(() => {
     if (isMobileMenuOpen) {
       const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
@@ -65,16 +59,7 @@ export default function Header({ breweryId }: { breweryId?: string }) {
     };
   }, [user]);
 
-  // Fetch Branding if breweryId provided
-  useEffect(() => {
-    if (breweryId) {
-        getBreweryBranding(breweryId).then(res => {
-            setBranding(res);
-        });
-    } else {
-        setBranding({ logoUrl: null, breweryName: null, isPremiumBranding: false });
-    }
-  }, [breweryId]);
+  // Branding-Feature entfernt
 
   async function handleLogout() {
     await signOut();
@@ -91,10 +76,7 @@ export default function Header({ breweryId }: { breweryId?: string }) {
     <nav className="fixed top-0 w-full z-50 bg-black/80 backdrop-blur-md border-b border-white/5">
       <div className="max-w-[1920px] w-full mx-auto px-6 h-20 flex items-center justify-between">
         <Link href="/">
-          <Logo 
-            overrideText={branding.breweryName || undefined}
-            imageSrc={branding.logoUrl || "/brand/logo.svg"}
-          />
+          <Logo />
         </Link>
         
         {/* Desktop Navigation */}
@@ -113,21 +95,12 @@ export default function Header({ breweryId }: { breweryId?: string }) {
             Forum
           </Link>
           
-          {pathname === '/discover' ? (
-            <Link 
-              href="/" 
-              className="text-sm font-bold text-zinc-400 hover:text-white px-4 py-2 transition"
-            >
-              Startseite
-            </Link>
-          ) : (
-            <Link 
-              href="/discover" 
-              className="text-sm font-bold text-zinc-400 hover:text-white px-4 py-2 transition"
-            >
-              Entdecken
-            </Link>
-          )}
+          <Link 
+            href="/discover" 
+            className="text-sm font-bold text-zinc-400 hover:text-white px-4 py-2 transition"
+          >
+            Entdecken
+          </Link>
           
           {loading ? (
             <div className="w-10 h-10 bg-zinc-800 rounded-full animate-pulse"></div>
