@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Update zu deiner Meldung — BotlLab</title>
+    <style>
+      body{margin:0;padding:0;background:#ffffff;font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Arial;color:#0f1720}
+      .button{display:inline-block;padding:12px 20px;background:#08b5d6;color:#041018;font-weight:700;border-radius:10px;text-decoration:none}
+      a{color:inherit}
+      img{border:0}
+    </style>
+  </head>
+  <body>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr><td align="center" style="padding:28px 16px">
+        <table width="620" style="max-width:100%">
+          <tr><td style="background:#fff;border-radius:12px;padding:28px;box-shadow:0 6px 30px rgba(2,6,23,0.06)">
+
+            <a href="https://botllab.de" target="_blank"><img src="https://botllab.de/brand/logo_withName.svg" alt="BotlLab" width="200" style="display:block;margin-bottom:18px"/></a>
+
+            <h1 style="margin:0 0 8px;font-size:20px;color:#041018">Update zu deiner Meldung</h1>
+            <p style="margin:0 0 14px;color:#334155;font-size:15px">Danke, dass du uns auf diesen Inhalt hingewiesen hast. Wir haben deine Meldung vom <strong>{{reportDate}}</strong> geprüft.</p>
+
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:12px 0">
+              <tr><td style="padding:12px;border-radius:10px;background:#f8fafc;border:1px solid rgba(2,6,23,0.04)">
+                <p style="margin:0;color:#0f1720;font-size:14px"><strong>Status:</strong> {{status}}</p>
+                <p style="margin:6px 0 0;color:#475569;font-size:13px">{{messageSummary}}</p>
+              </td></tr>
+            </table>
+
+            <!-- Optional action button (e.g., view report) -->
+            <p style="margin:16px 0 0">
+              <a href="{{reportUrl}}" class="button" target="_blank">Meldung anzeigen</a>
+            </p>
+
+            <p style="margin:18px 0 0;color:#64748b;font-size:13px">Wir geben aus Sicherheits- und Datenschutzgründen keine Details über Sanktionen bekannt. Danke für deine Mithilfe.</p>
+
+            <hr style="border:none;border-top:1px solid rgba(15,23,32,0.06);margin:20px 0" />
+            <p style="margin:0;color:#94a3b8;font-size:12px">BotlLab • https://botllab.de</p>
+
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </body>
+</html>
