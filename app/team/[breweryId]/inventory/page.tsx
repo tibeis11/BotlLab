@@ -791,10 +791,12 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 			let newBrewId: string | null = null;
 			
 			if (scanBrewId && scanBrewId !== "EMPTY_ACTION") {
-				// Find active session for brew
-				const s = sessions.find(sess => sess.brew_id === scanBrewId && sess.status === 'active');
-				newBrewId = scanBrewId;
-				if (s) newSessionId = s.id;
+				// scanBrewId holds the Session ID (from scanOptions)
+				const s = sessions.find(sess => sess.id === scanBrewId);
+				if (s) {
+					newSessionId = s.id;
+					newBrewId = s.brew_id;
+				}
 			} else {
 				// Emptying
 				newSessionId = null;
