@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, use } from 'react';
+import { useEffect, useState, use, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import QRCode from 'qrcode'; 
@@ -19,8 +19,36 @@ import { LABEL_FORMATS, DEFAULT_FORMAT_ID } from '@/lib/smart-labels-config';
 import { getBreweryPremiumStatus } from '@/lib/actions/premium-actions';
 import { type PremiumStatus } from '@/lib/premium-config';
 
-// Extracted List Item Component
-function BottleListItem({ 
+const playBeep = (type: 'success' | 'error') => {
+    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContext) return;
+    
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    if (type === 'success') {
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.15);
+    } else {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(150, ctx.currentTime);
+        osc.frequency.linearRampToValueAtTime(100, ctx.currentTime + 0.2);
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.25);
+    }
+};
+
+const BottleListItem = ({ 
     bottle, 
     isSelected, 
     onToggle, 
@@ -29,7 +57,7 @@ function BottleListItem({
     onDelete,
     openActionMenuId,
     setOpenActionMenuId
-}: any) {
+}: any) => {
     const [touchStart, setTouchStart] = useState<number | null>(null);
     const [touchEnd, setTouchEnd] = useState<number | null>(null);
     const [swipedLeft, setSwipedLeft] = useState(false);
@@ -234,9 +262,11 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 	const [showScanner, setShowScanner] = useState(false);
 	const [scanBrewId, setScanBrewId] = useState<string>(""); 
 	const [scanFilledDate, setScanFilledDate] = useState<string>(new Date().toISOString().split('T')[0]);
-	const [scanFeedback, setScanFeedback] = useState<{type: 'success' | 'error', msg: string} | null>(null);
+	const [scanFeedback, setScanFeedback] = useState<{type: 'success' | 'error', msg: string, id: number} | null>(null);
 	const [isProcessingScan, setIsProcessingScan] = useState(false);
 	const [lastScannedId, setLastScannedId] = useState<string | null>(null);
+    const [showFlash, setShowFlash] = useState<'success' | 'error' | null>(null);
+    const lastScanTime = useRef<number>(0);
 
 	const [viewQr, setViewQr] = useState<{ url: string, bottleNumber: number, id: string } | null>(null);
 	const [assignTargetBottle, setAssignTargetBottle] = useState<any>(null);
@@ -696,57 +726,88 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 	}
 
 	async function handleScan(decodedText: string) {
+        const now = Date.now();
+        if (now - lastScanTime.current < 800) return; // 0.8s cooldown
 		if (isProcessingScan) return;
 
 		const idMatch = decodedText.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
-		
 		if (!idMatch) {
-			if (scanFeedback?.type !== 'success') {
-				setScanFeedback({ type: 'error', msg: "❌ Kein gültiger Flaschen-QR erkannt." });
-			}
+            if (now - lastScanTime.current > 2000) {
+                lastScanTime.current = now;
+                playBeep('error');
+			    setScanFeedback({ type: 'error', msg: "❌ Ungültiger Code", id: now });
+            }
 			return;
 		}
 
 		const bottleId = idMatch[0];
 
-		if (bottleId === lastScannedId) return;
-
-		if (!scanBrewId) {
-			if (scanBrewId !== "EMPTY_ACTION") {
-				setScanFeedback({ type: 'error', msg: "⚠️ Bitte wähle eine Aktion (Rezept oder Leeren)!" });
-				return;
-			}
-		}
+        // Prevent duplicate scan in UI
+        if (scanFeedback?.type === 'success' && scanFeedback.msg.includes(bottleId)) return;
 
 		setIsProcessingScan(true);
-		
+        lastScanTime.current = now;
+
 		try {
-			if (!user) throw new Error("Nicht eingeloggt");
+            if (!user) throw new Error("Nicht eingeloggt");
+			// Find Bottle locally first
+			let existingBottle = bottles.find(b => b.id === bottleId);
 
-			const { data: maxResult } = await supabase
-				.from('bottles')
-				.select('bottle_number')
-				.eq('brewery_id', activeBrewery.id)
-				.order('bottle_number', { ascending: false })
-				.limit(1)
-				.single();
-			
-			const nextNumber = (maxResult?.bottle_number || 0) + 1;
-			const newSessionId = scanBrewId === "EMPTY_ACTION" ? null : scanBrewId;
-			let newBrewId = null;
-
-			if (newSessionId) {
-				const session = sessions.find(s => s.id === newSessionId);
-				if (session) newBrewId = session.brew_id;
+			if (!existingBottle) {
+				// If not loaded, check server
+				const { data, error } = await supabase
+					.from('bottles')
+					.select('*')
+					.eq('id', bottleId)
+					.single();
+				
+				if (error || !data) {
+                    playBeep('error');
+                    setShowFlash('error');
+					setScanFeedback({ type: 'error', msg: "❌ Flasche nicht gefunden", id: now });
+					setIsProcessingScan(false);
+					return;
+				}
+				existingBottle = data;
 			}
-			
-			const { data: existingBottle } = await supabase
-				.from('bottles')
-				.select('brewery_id, bottle_number')
-				.eq('id', bottleId)
-				.single();
 
-			let updatePayload: any = { 
+			// Check Ownership
+			if (existingBottle.brewery_id !== activeBrewery.id) {
+                playBeep('error');
+                setShowFlash('error');
+				setScanFeedback({ type: 'error', msg: "⚠️ Flasche gehört anderer Brauerei", id: now });
+				setIsProcessingScan(false);
+				return;
+			}
+
+			// Determine target state
+			let newSessionId: string | null = null;
+			let newBrewId: string | null = null;
+			
+			if (scanBrewId && scanBrewId !== "EMPTY_ACTION") {
+				// Find active session for brew
+				const s = sessions.find(sess => sess.brew_id === scanBrewId && sess.status === 'active');
+				newBrewId = scanBrewId;
+				if (s) newSessionId = s.id;
+			} else {
+				// Emptying
+				newSessionId = null;
+				newBrewId = null;
+			}
+            
+            // Check duplicate state (already in this state)
+            if (existingBottle.brew_id === newBrewId && existingBottle.session_id === newSessionId) {
+                 playBeep('error');
+                 setShowFlash('error');
+                 setScanFeedback({ type: 'error', msg: "ℹ️ Bereits erledigt", id: now });
+                 setIsProcessingScan(false);
+                 return;
+            }
+
+			// Get next bottle number if needed (not implemented here for speed, assuming existing keeps number)
+			let nextNumber = existingBottle.bottle_number;
+
+			const updatePayload: any = {
 				session_id: newSessionId,
 				brew_id: newBrewId,
 				brewery_id: activeBrewery.id
@@ -769,15 +830,19 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 
 			if (error) {
 				console.error(error);
-				setScanFeedback({ type: 'error', msg: "Fehler: " + error.message });
+                playBeep('error');
+                setShowFlash('error');
+				setScanFeedback({ type: 'error', msg: "Fehler: " + error.message, id: now });
 			} else {
 				setLastScannedId(bottleId);
+                playBeep('success');
+                setShowFlash('success');
 				
 				if (newSessionId === null) {
-					setScanFeedback({ type: 'success', msg: `✅ Flasche geleert` });
+					setScanFeedback({ type: 'success', msg: `✅ Flasche geleert`, id: now });
 				} else {
 					const bName = sessions.find(s => s.id === newSessionId)?.brews?.name || 'Sud';
-					setScanFeedback({ type: 'success', msg: `✅ Flasche zugewiesen -> ${bName}` });
+					setScanFeedback({ type: 'success', msg: `✅ Zugewiesen an ${bName}`, id: now });
 				}
 				
 				loadData();
@@ -792,9 +857,13 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 			}
 		} catch (e: any) {
 			console.error(e);
-			setScanFeedback({ type: 'error', msg: "Fehler: " + e.message });
+            playBeep('error');
+			setScanFeedback({ type: 'error', msg: "Fehler: " + e.message, id: now });
 		} finally {
-			setIsProcessingScan(false);
+            setTimeout(() => {
+			    setIsProcessingScan(false);
+                setShowFlash(null);
+            }, 500);
 		}
 	}
 
@@ -1090,17 +1159,25 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
                                                         </div>
 												 </div>
 												 <Scanner onScanSuccess={handleScan} />
+                                                 {/* Visual Flash Overlay */}
+                                                 {showFlash && (
+                                                    <div className={`absolute inset-0 z-20 pointer-events-none animate-out fade-out duration-300 ${
+                                                        showFlash === 'success' ? 'bg-emerald-500/50' : 'bg-red-500/50'
+                                                    }`} />
+                                                 )}
                                                  {/* Overlay Scanner Frame */}
-                                                 <div className="absolute inset-0 border-[40px] border-black/50 pointer-events-none z-10">
-                                                     <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-cyan-500 rounded-tl-xl -mt-1 -ml-1"></div>
-                                                     <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-cyan-500 rounded-tr-xl -mt-1 -mr-1"></div>
-                                                     <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-cyan-500 rounded-bl-xl -mb-1 -ml-1"></div>
-                                                     <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-cyan-500 rounded-br-xl -mb-1 -mr-1"></div>
+                                                 <div className="absolute inset-0 border-[40px] border-black/50 pointer-events-none z-10 transition-colors duration-300">
+                                                     <div className={`absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 rounded-tl-xl -mt-1 -ml-1 transition-colors duration-200 ${showFlash === 'success' ? 'border-emerald-400' : 'border-cyan-500'}`}></div>
+                                                    <div className={`absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 rounded-tr-xl -mt-1 -mr-1 transition-colors duration-200 ${showFlash === 'success' ? 'border-emerald-400' : 'border-cyan-500'}`}></div>
+                                                    <div className={`absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 rounded-bl-xl -mb-1 -ml-1 transition-colors duration-200 ${showFlash === 'success' ? 'border-emerald-400' : 'border-cyan-500'}`}></div>
+                                                    <div className={`absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 rounded-br-xl -mb-1 -mr-1 transition-colors duration-200 ${showFlash === 'success' ? 'border-emerald-400' : 'border-cyan-500'}`}></div>
                                                  </div>
 											</div>
 
 											{scanFeedback && (
-												<div className={`p-4 rounded-xl text-xs font-bold text-center border shadow-lg ${scanFeedback.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-emerald-900/20' : 'bg-red-500/10 text-red-400 border-red-500/20 shadow-red-900/20'}`}>
+												<div 
+                                                    key={scanFeedback.id}
+                                                    className={`p-4 rounded-xl text-xs font-bold text-center border shadow-lg animate-in zoom-in-95 slide-in-from-top-2 duration-300 ${scanFeedback.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-emerald-900/20' : 'bg-red-500/10 text-red-400 border-red-500/20 shadow-red-900/20'}`}>
 													 {scanFeedback.msg}
 												</div>
 											)}
