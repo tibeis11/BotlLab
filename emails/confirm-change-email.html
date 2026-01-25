@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>E-Mail Änderung bestätigen — BotlLab</title>
+    <style>
+      body { margin:0; padding:0; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }
+      table { border-collapse:collapse; }
+      img { border:0; line-height:100%; outline:none; text-decoration:none; }
+      a { color:inherit; }
+      .button { display:inline-block; padding:14px 22px; background:#08b5d6; color:#041018; font-weight:700; border-radius:12px; text-decoration:none; }
+      @media only screen and (max-width:600px) {
+        .container { width:100% !important; }
+        .content { padding:20px !important; }
+      }
+    </style>
+  </head>
+  <body style="background:#ffffff; font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Arial; color:#0f1720;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;">
+      <tr>
+        <td align="center" style="padding:28px 16px;">
+          <table role="presentation" class="container" width="620" cellpadding="0" cellspacing="0" style="width:620px; max-width:100%;">
+            <tr>
+              <td style="background:#ffffff; border-radius:12px; padding:32px; box-shadow:0 6px 30px rgba(2,6,23,0.06);">
+
+                <!-- Header / Logo -->
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="text-align:left; padding-bottom:20px;">
+                      <a href="https://botllab.de" target="_blank" rel="noreferrer">
+                        <img src="https://botllab.de/brand/logo_withName.svg" alt="BotlLab" width="220" style="display:block; max-width:100%; height:auto;" />
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- Hero -->
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:6px;">
+                  <tr>
+                    <td class="content" style="padding:28px; background:linear-gradient(180deg, rgba(8,20,30,0.03), rgba(8,20,30,0.01)); border-radius:10px;">
+                      <h1 style="margin:0 0 8px 0; font-size:20px; line-height:1.1; color:#041018;">E-Mail-Adresse ändern?</h1>
+                      <p style="margin:0 0 18px 0; color:#334155; font-size:15px;">Wir haben eine Anfrage erhalten, deine Kontoe-Mail auf <strong>{{newEmail}}</strong> zu ändern. Bitte bestätige die Änderung, indem du auf den Button klickst.</p>
+
+                      <!-- Primary CTA -->
+                      <p style="margin:18px 0 0 0;">
+                        <!-- Replace with your confirmation URL variable from your provider -->
+                        <a href="{{ .ConfirmationURL }}" class="button" target="_blank" rel="noreferrer">E-Mail-Änderung bestätigen</a>
+                      </p>
+
+                      <!-- Fallback link -->
+                      <p style="margin:18px 0 0 0; color:#475569; font-size:13px;">Falls der Button nicht funktioniert, kopiere bitte diesen Link in deinen Browser:</p>
+                      <p style="margin:6px 0 0 0; word-break:break-all; font-size:13px; color:#0f1720;">
+                        <a href="{{ .ConfirmationURL }}" target="_blank" rel="noreferrer" style="color:#0369a1; text-decoration:underline;">{{ .ConfirmationURL }}</a>
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- Info -->
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:18px;">
+                  <tr>
+                    <td style="padding:14px 0 0 0; color:#64748b; font-size:13px; line-height:1.4;">
+                      <p style="margin:0 0 8px 0;">Wenn du diese Änderung nicht angefordert hast, ignoriere diese E-Mail und dein Konto bleibt unverändert. Der Link verfällt aus Sicherheitsgründen nach kurzer Zeit.</p>
+                      <p style="margin:0;">Bei Fragen: <a href="mailto:info@botllab.de" style="color:#0369a1; text-decoration:underline;">info@botllab.de</a></p>
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- Footer -->
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;">
+                  <tr>
+                    <td style="border-top:1px solid rgba(15,23,32,0.06); padding-top:14px; color:#94a3b8; font-size:12px;">
+                      <p style="margin:0;">BotlLab • https://botllab.de</p>
+                    </td>
+                  </tr>
+                </table>
+
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
