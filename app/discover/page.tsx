@@ -144,7 +144,7 @@ export default function DiscoverPage() {
       <div className="flex overflow-x-auto gap-4 pb-4 snap-x scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-zinc-900 md:scrollbar md:scrollbar-thumb-zinc-700 md:scrollbar-track-zinc-900 md:scrollbar-thin md:pb-2 md:mb-2 md:border-b md:border-zinc-800 md:-mx-6 md:px-6">
         {items.map(brew => (
           <div key={brew.id} className="min-w-[280px] w-[280px] snap-center">
-            <BrewCard brew={brew} />
+            <BrewCard brew={brew} forceVertical />
           </div>
         ))}
       </div>
