@@ -79,6 +79,9 @@ export default function AccountPage() {
     const [myTeams, setMyTeams] = useState<any[]>([]);
     const [joinCode, setJoinCode] = useState('');
     const [joinLoading, setJoinLoading] = useState(false);
+    const [createName, setCreateName] = useState('');
+    const [createLoading, setCreateLoading] = useState(false);
+    const [createMessage, setCreateMessage] = useState<{ type: 'success' | 'error', msg: string } | null>(null);
 
     // Derived State
     const currentTier = getTierConfig(profile.tier || 'lehrling');
@@ -216,6 +219,54 @@ export default function AccountPage() {
             alert(err.message || "Fehler beim Beitreten.");
         } finally {
             setJoinLoading(false);
+        }
+    }
+
+    async function handleCreateTeam(e: React.FormEvent) {
+        e.preventDefault();
+        if (!createName.trim() || !user) return;
+        setCreateLoading(true);
+        setCreateMessage(null);
+
+        try {
+            // Owner check: user can only own one team
+            const alreadyOwner = myTeams.some(t => t.userRole === 'owner');
+            if (alreadyOwner) {
+                setCreateMessage({ type: 'error', msg: 'Du kannst nur ein Team gründen. Du bist bereits Besitzer eines Teams.' });
+                setCreateLoading(false);
+                return;
+            }
+
+            // Generate a short invite code
+            const inviteCode = ('LAB' + Math.random().toString(36).slice(2, 8)).toUpperCase();
+
+            // 1) Create brewery
+            const { data: newBrewery, error: brewErr } = await supabase
+                .from('breweries')
+                .insert({ name: createName.trim(), invite_code: inviteCode, created_at: new Date() })
+                .select('id, name')
+                .single();
+
+            if (brewErr || !newBrewery) throw new Error('Fehler beim Erstellen des Teams.');
+
+            // 2) Add membership as owner
+            const { error: memberErr } = await supabase
+                .from('brewery_members')
+                .insert({ brewery_id: newBrewery.id, user_id: user.id, role: 'owner' });
+
+            if (memberErr) throw memberErr;
+
+            setCreateMessage({ type: 'success', msg: `Team "${newBrewery.name}" erfolgreich erstellt!` });
+            setCreateName('');
+
+            // Refresh teams
+            const teams = await getUserBreweries(user.id);
+            setMyTeams(teams);
+
+        } catch (err: any) {
+            setCreateMessage({ type: 'error', msg: err?.message || 'Fehler beim Erstellen des Teams.' });
+        } finally {
+            setCreateLoading(false);
         }
     }
 
@@ -787,6 +838,42 @@ export default function AccountPage() {
                                      <p className="text-[10px] text-zinc-500 mt-2 pl-1">
                                         Frag den Admin eines Teams nach dem Code.
                                      </p>
+                                </div>
+
+                                {/* 1.5 Create Section */}
+                                <div className="bg-zinc-900/40 border border-zinc-800 rounded-2xl p-6">
+                                    <h3 className="text-lg font-bold text-white mb-2">Neues Team erstellen</h3>
+                                    <p className="text-sm text-zinc-400 mb-4">Gründe ein neues Team — du kannst nur ein Team besitzen.</p>
+
+                                    {createMessage && (
+                                        <div className={`text-xs font-bold px-4 py-2 rounded-lg mb-3 ${createMessage.type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400' : 'bg-rose-500/10 border border-rose-500/30 text-rose-400'}`}>
+                                            {createMessage.type === 'success' ? '✅ ' : '❌ '}
+                                            {createMessage.msg}
+                                        </div>
+                                    )}
+
+                                    <form onSubmit={handleCreateTeam} className="flex gap-3">
+                                        <input
+                                            type="text"
+                                            value={createName}
+                                            onChange={(e) => setCreateName(e.target.value)}
+                                            placeholder="Team-Name"
+                                            className="flex-1 bg-black/50 border border-zinc-700 px-4 py-3 rounded-xl focus:border-cyan-500 outline-none transition text-white placeholder-zinc-600"
+                                            disabled={createLoading}
+                                        />
+                                        <button
+                                            type="submit"
+                                            disabled={createLoading}
+                                            className="bg-emerald-500 text-black font-black px-6 py-3 rounded-xl hover:bg-emerald-400 transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                                        >
+                                            {createLoading ? 'Erstelle...' : 'Team erstellen'}
+                                        </button>
+                                    </form>
+
+                                    {/* If user already owns a team, show info */}
+                                    {myTeams.some(t => t.userRole === 'owner') && (
+                                        <p className="text-[12px] text-zinc-500 mt-3">Du bist bereits Besitzer eines Teams. Pro Benutzer ist nur ein eigenes Team erlaubt.</p>
+                                    )}
                                 </div>
 
                                 {/* 2. List Section */}
