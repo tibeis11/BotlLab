@@ -37,16 +37,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing brew_id or rating_id' }, { status: 400 });
     }
 
-    // 1. Check if rating exists (and matches brew?)
-    const { data: rating } = await supabase
+    // 1. Check if rating exists (first by ID to debug mismatches)
+    const { data: rating, error: fetchError } = await supabase
         .from('ratings')
-        .select('id, user_id')
+        .select('id, user_id, brew_id')
         .eq('id', rating_id)
-        .eq('brew_id', brew_id)
         .single();
 
-    if (!rating) {
+    if (fetchError || !rating) {
+        console.error("Rating lookup failed for ID:", rating_id);
         return NextResponse.json({ error: 'Rating not found' }, { status: 404 });
+    }
+
+    // Validate connection to brew
+    if (rating.brew_id !== brew_id) {
+         console.error(`Rating ${rating_id} is for brew ${rating.brew_id}, but requested claim for brew ${brew_id}`);
+         return NextResponse.json({ error: 'Rating mismatch: Wrong Brew ID' }, { status: 400 });
     }
 
     // 2. Adopt Rating (if orphaned)
