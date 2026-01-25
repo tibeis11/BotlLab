@@ -41,15 +41,15 @@ export default function TrendingForumWidget() {
         load();
     }, []);
 
-    if (loading) return <div className="animate-pulse h-48 bg-zinc-900/50 rounded-3xl"></div>;
+    if (loading) return <div className="animate-pulse h-48 md:bg-zinc-900/50 md:rounded-3xl"></div>;
 
     if (threads.length === 0) return null; // Or show empty state? User didn't specify, but "Trending" implies showing something usually.
 
     return (
-        <div className="bg-zinc-900/50 border border-zinc-800/50 p-6 rounded-3xl relative overflow-hidden">
+        <div className="bg-transparent md:bg-zinc-900/50 md:border md:border-zinc-800/50 md:p-6 md:rounded-3xl relative overflow-hidden">
             <div className="flex justify-between items-center mb-6 relative z-10">
                 <div className="flex items-center gap-2">
-                    <div className="p-2 bg-amber-500/10 rounded-xl text-amber-500">
+                    <div className="p-2 bg-emerald-500/10 rounded-xl text-emerald-500">
                         <Flame size={20} />
                     </div>
                     <h2 className="text-lg font-bold text-white">Trending (7 Tage)</h2>
@@ -92,7 +92,7 @@ export default function TrendingForumWidget() {
                                 </div>
                             </div>
                             <div className="flex flex-col items-end shrink-0 pointer-events-none">
-                                <div className="flex items-center gap-1 text-xs font-bold text-amber-500 bg-amber-500/10 px-2 py-1 rounded-lg">
+                                <div className="flex items-center gap-1 text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-lg">
                                     <MessageSquare size={12} />
                                     <span>{thread.reply_count}</span>
                                 </div>
@@ -102,8 +102,8 @@ export default function TrendingForumWidget() {
                 ))}
             </div>
             
-            {/* Background Gradient */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+            {/* Background Gradient (hidden on mobile) */}
+            <div className="hidden md:block absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
         </div>
     );
 }

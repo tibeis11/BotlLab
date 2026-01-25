@@ -43,12 +43,12 @@ export default function ForumActivityWidget({ userId }: { userId: string }) {
         load();
     }, [userId]);
 
-    if (loading) return <div className="animate-pulse h-48 bg-zinc-900/50 rounded-3xl"></div>;
+    if (loading) return <div className="animate-pulse h-48 md:bg-zinc-900/50 md:rounded-3xl"></div>;
 
     if (threads.length === 0) return null;
 
     return (
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-3xl p-6 flex flex-col">
+        <div className="bg-transparent md:bg-zinc-900/50 md:border md:border-zinc-800 md:rounded-3xl md:p-6 flex flex-col">
             <div className="flex items-center justify-between mb-4">
                 <h3 className="font-bold text-white flex items-center gap-2">
                     <MessageSquare size={18} className="text-emerald-500" />

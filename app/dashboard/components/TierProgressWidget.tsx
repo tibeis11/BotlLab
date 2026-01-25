@@ -51,8 +51,8 @@ export default function TierProgressWidget() {
 
   if (loading || !tierData) {
     return (
-      <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-xl animate-pulse">
-        <div className="h-24 bg-zinc-800 rounded-xl"></div>
+      <div className="bg-transparent md:bg-zinc-900 md:border md:border-zinc-800 md:rounded-3xl md:p-6 md:shadow-xl animate-pulse">
+        <div className="h-24 md:bg-zinc-800 rounded-xl"></div>
       </div>
     );
   }

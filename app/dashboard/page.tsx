@@ -7,6 +7,7 @@ import TierProgressWidget from './components/TierProgressWidget';
 import DiscoverWidget from './components/DiscoverWidget';
 import ForumActivityWidget from './components/ForumActivityWidget';
 import TrendingForumWidget from './components/TrendingForumWidget';
+import { Megaphone } from 'lucide-react';
 import { useAchievementNotification } from '../context/AchievementNotificationContext';
 import { supabase, getActiveBrewery } from '@/lib/supabase';
 import { useAuth } from '../context/AuthContext';
@@ -337,10 +338,10 @@ function DashboardContent() {
     // --- Onboarding Logic Integrated into Dashboard ---
 
 
-	return (
-		<div className="space-y-12">
+    return (
+        <div className="space-y-8 px-2 md:px-4">
 			{/* Header */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-end">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-end">
                 <div>
                     <div className="flex items-center gap-2 mb-4">
                         <span className="text-cyan-400 text-xs font-black uppercase tracking-widest px-3 py-1 rounded-lg bg-cyan-950/30 border border-cyan-500/20 shadow-sm shadow-cyan-900/20">
@@ -361,12 +362,12 @@ function DashboardContent() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left Column: Feeds */}
-                <div className="lg:col-span-2 space-y-8">
+                <div className="lg:col-span-2 space-y-6 divide-y divide-zinc-700/30 md:divide-y-0 [&>*]:py-4 md:[&>*]:py-6">
                      {/* Integration: Onboarding Widget if No ACTIVE Brewery */}
-                     {!loading && !activeBrewery && (
-                        <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-3xl text-left relative overflow-hidden shadow-xl">
+                            {!loading && !activeBrewery && (
+                                <div className="md:bg-zinc-900 md:border md:border-zinc-800 md:p-8 md:rounded-3xl text-left relative overflow-hidden md:shadow-xl">
                              <div className="absolute top-0 right-0 p-8 opacity-5 text-9xl pointer-events-none grayscale">🏰</div>
                              
                              {!isCreatingBrewery && !isJoiningBrewery && (
@@ -458,10 +459,12 @@ function DashboardContent() {
 
                     {/* Mini Team Feed */}
                     {activeBrewery && (
-                        <div className="bg-zinc-900/50 border border-zinc-800 rounded-3xl p-6 relative overflow-hidden">
+                        <div className="md:bg-zinc-900/50 md:border md:border-zinc-800 md:rounded-3xl md:p-6 relative overflow-hidden">
                             <div className="flex justify-between items-center mb-6">
                                 <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                                    <span>📢</span>
+                                    <div className="p-2 bg-cyan-500/10 rounded-xl text-cyan-400">
+                                        <Megaphone size={20} />
+                                    </div>
                                     Was ist neu im Team?
                                 </h3>
                             </div>
@@ -522,7 +525,7 @@ function DashboardContent() {
                 </div>
 
                 {/* Right Column: Widgets */}
-                <div className="space-y-6">
+                <div className="space-y-4 divide-y divide-zinc-700/30 md:divide-y-0 [&>*]:py-4 md:[&>*]:py-6">
                     <TierProgressWidget />
                     {userId && <ForumActivityWidget userId={userId} />}
 
