@@ -9,7 +9,7 @@ import { getBreweryTierConfig, type BreweryTierName } from '@/lib/tier-system';
 import BottlesModal from './components/BottlesModal';
 import { removeBrewFromLibrary } from '@/lib/actions/library-actions';
 import { useGlobalToast } from '@/app/context/AchievementNotificationContext';
-import { getPremiumStatus } from '@/lib/actions/premium-actions';
+import { getPremiumStatus, getBreweryPremiumStatus } from '@/lib/actions/premium-actions';
 import { type PremiumStatus } from '@/lib/premium-config';
 
 export default function TeamBrewsPage({ params }: { params: Promise<{ breweryId: string }> }) {
@@ -119,11 +119,10 @@ export default function TeamBrewsPage({ params }: { params: Promise<{ breweryId:
       if (error) throw error;
       setBrews(data || []);
 
-      // Load Premium Status
-      if (user) {
-        const status = await getPremiumStatus();
-        setPremiumStatus(status);
-      }
+            // Load Premium Status for the brewery (based on OWNER subscription)
+            // This ensures team members don't gain unlimited slots from their personal account.
+            const breweryStatus = await getBreweryPremiumStatus(breweryId);
+            setPremiumStatus(breweryStatus);
 
       // Load Ratings if we have brews
       if (data && data.length > 0) {
