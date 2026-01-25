@@ -339,7 +339,7 @@ function DashboardContent() {
 
 
     return (
-        <div className="space-y-8 px-2 md:px-4">
+        <div className="space-y-8 px-0 md:px-4">
 			{/* Header */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-end">
                 <div>
