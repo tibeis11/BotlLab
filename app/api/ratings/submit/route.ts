@@ -20,6 +20,44 @@ export async function POST(req: NextRequest) {
     // Store only the hash to prevent PII storage while maintaining duplicate check
     const ipHash = crypto.createHash('sha256').update(ip_address).digest('hex');
 
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+    if (!serviceRoleKey) {
+        throw new Error('SUPABASE_SERVICE_ROLE_KEY is not defined');
+    }
+
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+
+    // --- Spam Protection: IP Rate Limit (5 Minutes) ---
+    // Prevent mass-scanning/rating in stores
+    const { data: lastRating } = await supabaseAdmin
+        .from('ratings')
+        .select('created_at')
+        .eq('ip_address', ipHash)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+    if (lastRating) {
+        const lastDate = new Date(lastRating.created_at);
+        const now = new Date();
+        const diffMs = now.getTime() - lastDate.getTime();
+        const diffMinutes = diffMs / 1000 / 60;
+        const COOL_DOWN_MINUTES = 5;
+
+        // Skip logic if environment is development for testing? 
+        // No, user explicitly wants to test security.
+        
+        if (diffMinutes < COOL_DOWN_MINUTES) {
+            const minutesLeft = Math.ceil(COOL_DOWN_MINUTES - diffMinutes);
+            return NextResponse.json({ 
+                error: `Spam-Schutz: Bitte warte noch ${minutesLeft} Min. vor der nächsten Bewertung.`,
+                code: 'RATE_LIMIT_EXCEEDED'
+            }, { status: 429 });
+        }
+    }
+
     // --- Profanity Filter ---
     // Wir bereinigen den Namen und den Kommentar bevor wir speichern.
     if (isProfane(author_name)) {
