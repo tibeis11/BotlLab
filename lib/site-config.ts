@@ -12,8 +12,8 @@ export const impressumConfig = {
   // Kontakt
   contact: {
     phone: "",
-    email: "info.botllab@gmail.com",
-    website: "https://botllab.vercel.app"
+    email: "info@botllab.de",
+    website: "https://botllab.de"
   },
 
   // Redaktionell Verantwortlicher (§ 55 Abs. 2 RStV)

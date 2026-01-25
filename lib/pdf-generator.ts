@@ -263,7 +263,7 @@ export const generateSmartLabelPDF = async (bottles: BottleData[], options: Gene
 
         doc.setTextColor(0, 0, 0);
         doc.setFontSize(urlFontSize);
-        const footerText = options.isPremiumBranding && options.breweryName ? options.breweryName : "botllab.vercel.app";
+        const footerText = options.isPremiumBranding && options.breweryName ? options.breweryName : "botllab.de";
         doc.text(footerText, cX + contentW / 2, footerY, { align: 'center' });
 
 

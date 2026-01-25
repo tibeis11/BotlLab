@@ -48,7 +48,7 @@ export async function generateMetadata(
       siteName: 'BotlLab',
       images: [
         {
-          url: brew.image_url || 'https://botllab.vercel.app/brand/og-default.jpg', // Fallback or brew image
+          url: brew.image_url || 'https://botllab.de/brand/og-default.jpg', // Fallback or brew image
           width: 1200,
           height: 630,
           alt: brew.name,

@@ -429,7 +429,7 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 
 	async function generatePdfForBottles(bottlesList: any[], title: string) {
 		try {
-			const baseUrl = window.location.origin || process.env.NEXT_PUBLIC_APP_URL || 'https://botllab.vercel.app';
+			const baseUrl = window.location.origin || process.env.NEXT_PUBLIC_APP_URL || 'https://botllab.de';
             
             // Premium Branding - Fetch directly via client supabase
             let customSlogan: string | undefined;
@@ -491,7 +491,7 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 		const zip = new JSZip();
 		const folder = zip.folder(title.replace(/\s+/g, '_')) || zip;
 
-		const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://botllab.vercel.app';
+		const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://botllab.de';
 
         // Fetch Premium Branding - Directly via client supabase
         let brOptions: { customSlogan?: string; customLogo?: string; breweryName?: string; isPremiumBranding?: boolean } | undefined;
@@ -912,7 +912,7 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 	}
 
 	async function showQrModal(bottle: any) {
-		const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://botllab.vercel.app';
+		const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://botllab.de';
 		const scanUrl = `${baseUrl}/b/${bottle.id}`;
 		const qrDataUrl = await generateQRWithLogo(scanUrl);
 		setViewQr({ url: qrDataUrl, bottleNumber: bottle.bottle_number, id: bottle.id });

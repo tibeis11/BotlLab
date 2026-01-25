@@ -231,7 +231,7 @@ export const renderLabelToDataUrl = async (
 
     ctx.fillStyle = '#000000';
     ctx.font = `400 ${mmToPx(urlFontSize * 0.353)}px Helvetica, Arial, sans-serif`;
-    const footerText = options?.isPremiumBranding && options?.breweryName ? options.breweryName : "botllab.vercel.app";
+    const footerText = options?.isPremiumBranding && options?.breweryName ? options.breweryName : "botllab.de";
     ctx.fillText(footerText, cX + contentW / 2, footerY);
 
     return canvas.toDataURL('image/png');

@@ -11,11 +11,11 @@ import AutoLogoutHandler from "./components/AutoLogoutHandler";
 export const metadata = {
   title: 'BotlLab | Digital Brew Lab',
   description: 'Scanne den QR-Code auf meiner Flasche und entdecke das Geheimnis dieses Rezepts.',
-  metadataBase: new URL('https://botllab.vercel.app'), // Hier deine echte Vercel-URL rein
+  metadataBase: new URL('https://botllab.de'), // Hier deine echte Vercel-URL rein
   openGraph: {
     title: 'BotlLab – Handcrafted Beer',
     description: 'Entdecke KI-generierte Etiketten und Brau-Details in Echtzeit.',
-    url: 'https://botllab.vercel.app',
+    url: 'https://botllab.de',
     siteName: 'BotlLab',
     locale: 'de_DE',
     type: 'website',
