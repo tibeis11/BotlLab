@@ -28,14 +28,14 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 const RECIPE = {
   // Who is creating this?
-  user_id: 'a2e7b77d-b267-431a-802b-66d2521aef29', // REPLACE WITH YOUR USER ID
-  brewery_id: '0fc4048a-9683-438f-84cb-7e1d235c1553', // REPLACE WITH YOUR SQUAD ID
+  user_id: null, // 'a2e7b77d-b267-431a-802b-66d2521aef29', // REPLACE WITH YOUR USER ID
+  brewery_id: '11111111-2222-3333-4444-000000000001', // '0fc4048a-9683-438f-84cb-7e1d235c1553', // REPLACE WITH YOUR SQUAD ID
 
   // Basic Info
-  name: 'Summer Ale 2026',
+  name: 'La Ferme Blanche',
   brew_type: 'beer', // Options: 'beer', 'wine', 'softdrink', 'cider', 'mead'
-  style: 'Pale Ale',
-  description: 'Ein leichtes Sommerbier für heiße Tage.',
+  style: 'Saison',
+  description: 'Ein charaktervolles Saison mit fruchtigen Hopfennoten. Hallertau Blanc ist ein wunderbarer Hopfen für diesen Bierstil. Das Bier war der 2. Platz beim 14. mitteldeutschen Brauertreffen in Leipzig.',
   is_public: true, // Should everyone see this?
 
   // Visuals
@@ -45,45 +45,40 @@ const RECIPE = {
   // Technical Data (Flexible JSON)
   data: {
     // For BEER
-    abv: 5.2,          // Alcohol by Volume %
-    ibu: 35,           // Bitterness
-    og: 1.050,         // Original Gravity
-    fg: 1.010,         // Final Gravity
+    abv: 7.8,          // Alcohol by Volume %
+    ibu: 32,           // Bitterness
+    og: 1.061,         // Original Gravity (approx 15 Plato)
+    fg: 1.004,         // Final Gravity (94% attenuation)
+    color_ebc: 20,
     
     // Ingredients with Amounts
     hops: [
-      { name: 'Citra', amount: 20, unit: 'g' },
-      { name: 'Mosaic', amount: 15, unit: 'g' }
+      { name: 'Hallertau Blanc', amount: 20, unit: 'g', usage: '60 min' },
+      { name: 'Hallertau Blanc', amount: 20, unit: 'g', usage: '10 min' },
+      { name: 'Hallertau Blanc', amount: 20, unit: 'g', usage: '5 min' },
+      { name: 'Hallertau Blanc', amount: 40, unit: 'g', usage: 'Whirlpool' },
+      { name: 'Hallertau Blanc', amount: 40, unit: 'g', usage: 'Dry Hop' }
     ], 
     malts: [
-      { name: 'Maris Otter', amount: 4, unit: 'kg' },
-      { name: 'Caramel 20', amount: 0.5, unit: 'kg' }
+      { name: 'Pilsener Malz', amount: 2.92, unit: 'kg' },
+      { name: 'Weizenmalz', amount: 0.94, unit: 'kg' },
+      { name: 'Roggenmalz', amount: 0.55, unit: 'kg' },
+      { name: 'Spitzmalz', amount: 0.55, unit: 'kg' },
+      { name: 'Wiener Malz', amount: 0.55, unit: 'kg' }
     ],
-    yeast: 'US-05',
+    yeast: 'WHC Farmhouse Vibes',
     
+    // Structured Mash Schedule
+    mash_steps: [
+      { name: 'Kombirast', temperature: '67', duration: '70' }
+    ],
+
     // Brewing Steps
     steps: [
-      { title: 'Maischen', instruction: 'Malz bei 67°C für 60 Minuten rasten lassen.' },
       { title: 'Läutern', instruction: 'Vorderwürze abziehen und Nachguss geben.' },
-      { title: 'Kochen', instruction: 'Würze für 60 Minuten kochen. Hopfen nach Plan zugeben.' },
-      { title: 'Gärung', instruction: 'Hefe bei 20°C zugeben und gären lassen.' }
-    ],
-
-    // For WINE (comment out if beer)
-    // grapes: 'Riesling',
-    // vintage: 2025,
-    // region: 'Mosel',
-
-    // For CIDER
-    // apples: 'Braeburn, Granny Smith',
-
-    // For MEAD
-    // honey: 'Waldhonig',
-    // adjuncts: 'Zim, Nelken',
-
-    // For SOFTDRINK
-    // base: 'Lemon',
-    // sugar: 50, // g/l
+      { title: 'Kochen', instruction: 'Würze 60 Minuten kochen. Hopfengaben laut Plan.' },
+      { title: 'Gärung', instruction: 'Gärtemperatur: 17°C.' }
+    ]
   }
 };
 

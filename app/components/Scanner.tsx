@@ -43,6 +43,11 @@ export default function Scanner({ onScanSuccess, autoStart = false }: ScannerPro
         const errStr = err.toString();
         const errName = err.name || "";
 
+        // Check for Secure Context (HTTPS)
+        if (typeof window !== 'undefined' && !window.isSecureContext) {
+             return "Sicherheits-Warnung: Der Browser blockiert den Kamerazugriff, weil die Verbindung nicht sicher ist (kein HTTPS). Wenn du im lokalen Netzwerk testest, nutze 'localhost' oder aktiviere HTTPS im Dev-Server.";
+        }
+
         if (errName === "NotAllowedError" || errStr.includes("NotAllowedError")) {
             return "Der Browser blockiert die Kamera. Klicke oben links auf das Schloss-Symbol, erlaube die Kamera und lade die Seite neu (F5).";
         }
