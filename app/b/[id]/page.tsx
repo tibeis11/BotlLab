@@ -399,14 +399,32 @@ export default function PublicScanPage() {
       const result = await response.json();
 
       if (!response.ok) {
-        console.error('API Error:', result.error);
-        
+        // Special Handling for Duplicate Rating (409)
         if (response.status === 409) {
-          alert('Du hast bereits eine Bewertung für dieses Rezept eingegeben! 🚫');
-          setHasAlreadyRated(true);
-        } else {
-          alert('Fehler: ' + result.error);
+            console.log("Benutzer hat bereits bewertet. Lade existierendes Rating...");
+            setHasAlreadyRated(true);
+            
+            // Try to recover the existing rating ID so the user can still claim the cap
+            const { data: existing } = await supabase
+                .from('ratings')
+                .select('id')
+                .eq('brew_id', brewId)
+                .eq('ip_address', userIp)
+                .maybeSingle();
+            
+            if (existing) {
+                // Return existing ID to simulate success -> Modal moves to "Cap Claim" screen
+                return existing.id;
+            }
+            
+            // Fallback if retrieval fails
+            alert('Du hast bereits eine Bewertung für dieses Rezept eingegeben! 🚫');
+            setShowRatingForm(false);
+            return null;
         }
+
+        console.error('API Error:', result.error);
+        alert('Fehler: ' + result.error);
         return null;
       } else {
         console.log('Rating erfolgreich eingefügt:', result.rating);
@@ -454,6 +472,8 @@ export default function PublicScanPage() {
             window.location.reload();
             return;
         }
+
+        console.log("Claiming Cap - Sending:", { brew_id: data.brews.id, rating_id: ratingId });
 
         const response = await fetch('/api/bottle-caps/claim', {
             method: 'POST',

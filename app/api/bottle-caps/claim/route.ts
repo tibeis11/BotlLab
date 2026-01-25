@@ -34,8 +34,11 @@ export async function POST(request: Request) {
     const { brew_id, rating_id } = body;
 
     if (!brew_id || !rating_id) {
+      console.error("Claim Error: Missing fields", { brew_id, rating_id });
       return NextResponse.json({ error: 'Missing brew_id or rating_id' }, { status: 400 });
     }
+
+    console.log(`Attempting to claim cap: Brew ${brew_id}, Rating ${rating_id}, User ${user.id}`);
 
     // 1. Check if rating exists (first by ID to debug mismatches)
     const { data: rating, error: fetchError } = await supabase
@@ -45,8 +48,12 @@ export async function POST(request: Request) {
         .single();
 
     if (fetchError || !rating) {
-        console.error("Rating lookup failed for ID:", rating_id);
-        return NextResponse.json({ error: 'Rating not found' }, { status: 404 });
+        console.error("Claim Error: Rating lookup failed", { rating_id, fetchError });
+        return NextResponse.json({ 
+            error: `Rating not found (ID: ${rating_id})`,
+            details: fetchError ? fetchError.message : 'No data returned',
+            searched_id: rating_id
+        }, { status: 404 });
     }
 
     // Validate connection to brew
