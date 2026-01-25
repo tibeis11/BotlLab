@@ -141,7 +141,7 @@ export default function DiscoverPage() {
         {title}
         <span className="text-xs bg-zinc-800 text-zinc-400 px-2 py-1 rounded-full font-normal">Top 10</span>
       </h2>
-      <div className="flex overflow-x-auto gap-4 pb-4 -mx-6 px-6 snap-x scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-zinc-900 md:scrollbar md:scrollbar-thumb-zinc-700 md:scrollbar-track-zinc-900 md:scrollbar-thin md:pb-2 md:mb-2 md:border-b md:border-zinc-800">
+      <div className="flex overflow-x-auto gap-4 pb-4 snap-x scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-zinc-900 md:scrollbar md:scrollbar-thumb-zinc-700 md:scrollbar-track-zinc-900 md:scrollbar-thin md:pb-2 md:mb-2 md:border-b md:border-zinc-800 md:-mx-6 md:px-6">
         {items.map(brew => (
           <div key={brew.id} className="min-w-[280px] w-[280px] snap-center">
             <BrewCard brew={brew} />
