@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { getBreweryAnalytics, getBreweryAnalyticsSummary, exportAnalyticsCSV, getConversionRate } from '@/lib/actions/analytics-actions';
 import { supabase } from '@/lib/supabase';
+import { safeRemove } from '@/lib/safe-dom';
 import { getBreweryAnalyticsAccess, getAvailableTimeRanges, type UserTier, type AnalyticsFeatures } from '@/lib/analytics-tier-features';
 import ReportSettingsPanel from './components/ReportSettingsPanel';
 import BreweryHeatmap from './components/BreweryHeatmap';
@@ -213,7 +214,9 @@ export default function BreweryAnalyticsPage() {
         link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();
-        document.body.removeChild(link);
+        // Use safeRemove helper to avoid NotFoundError when node was already detached
+        safeRemove(link);
+        URL.revokeObjectURL(url);
       }
     } catch (error: any) {
       alert('Export fehlgeschlagen: ' + error.message);

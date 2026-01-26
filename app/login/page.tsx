@@ -17,7 +17,8 @@ export default function LoginPage() {
   const { user, loading: authLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [breweryName, setBreweryName] = useState("");
+  const [username, setUsername] = useState("");
+  const [birthdate, setBirthdate] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   
   const [isRegister, setIsRegister] = useState(false);
@@ -57,16 +58,40 @@ export default function LoginPage() {
 
     if (isRegister) {
         // --- SIGN UP ---
-        if(!breweryName) {
-            setMessage("Bitte gib deiner Brauerei einen Namen!");
+        if(!username) {
+          setMessage("Bitte gib einen Benutzernamen an!");
             setLoading(false);
             return;
         }
 
-        if (breweryName.trim().toLowerCase() === 'admin') {
-            setMessage("Der Name 'admin' ist nicht zulässig.");
+        if (username.trim().toLowerCase() === 'admin') {
+            setMessage("Der Benutzername 'admin' ist nicht zulässig.");
             setLoading(false);
             return;
+        }
+
+        if (!birthdate) {
+            setMessage('Bitte gib dein Geburtsdatum ein.');
+            setLoading(false);
+            return;
+        }
+
+        // Age check (>=18)
+        try {
+          const bd = new Date(birthdate);
+          const today = new Date();
+          let age = today.getFullYear() - bd.getFullYear();
+          const m = today.getMonth() - bd.getMonth();
+          if (m < 0 || (m === 0 && today.getDate() < bd.getDate())) age--;
+          if (isNaN(age) || age < 18) {
+            setMessage('Du musst mindestens 18 Jahre alt sein, um dich zu registrieren.');
+            setLoading(false);
+            return;
+          }
+        } catch (e) {
+          setMessage('Ungültiges Geburtsdatum.');
+          setLoading(false);
+          return;
         }
 
         const { data, error } = await supabase.auth.signUp({ 
@@ -76,8 +101,9 @@ export default function LoginPage() {
             emailRedirectTo: getRedirectUrl(),
             // Brauerei-Name wird auch als Display-Name gesetzt (User = Brauerei)
             data: {
-                display_name: breweryName 
-            }
+            display_name: username,
+            birthdate: birthdate
+          }
           }
         });
         
@@ -229,30 +255,44 @@ export default function LoginPage() {
               )}
             </div>
 
-            {/* Brewery Name (nur bei Registrierung) */}
+            {/* Username & Birthdate (nur bei Registrierung) */}
             {isRegister && (
-              <div className="animate-in fade-in slide-in-from-top-3 duration-300">
-                <label className="block text-xs font-bold uppercase tracking-widest text-cyan-500 mb-2">
-                  Dein Brauer-Name
-                </label>
-                <div className="relative">
-                  <input 
-                    type="text" 
-                    placeholder="z.B. Tims Craft Lab" 
-                    required
-                    value={breweryName}
-                    className="w-full bg-cyan-950/10 border border-cyan-500/30 p-4 pl-12 rounded-xl focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 outline-none transition text-white placeholder:text-zinc-600 font-medium"
-                    onChange={(e) => setBreweryName(e.target.value)}
-                  />
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-cyan-500 pointer-events-none">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-                      <path fillRule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clipRule="evenodd" />
-                    </svg>
+              <div className="animate-in fade-in slide-in-from-top-3 duration-300 space-y-3">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-widest text-cyan-500 mb-2">
+                    Username
+                  </label>
+                  <div className="relative">
+                    <input 
+                      type="text" 
+                      placeholder="z.B. tims_craft" 
+                      required
+                      value={username}
+                      className="w-full bg-cyan-950/10 border border-cyan-500/30 p-4 pl-12 rounded-xl focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 outline-none transition text-white placeholder:text-zinc-600 font-medium"
+                      onChange={(e) => setUsername(e.target.value)}
+                    />
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-cyan-500 pointer-events-none">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                        <path fillRule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clipRule="evenodd" />
+                      </svg>
+                    </div>
                   </div>
+                  <p className="text-[10px] text-zinc-500 mt-2 px-1">
+                    So wirst du in der Community genannt.
+                  </p>
                 </div>
-                <p className="text-[10px] text-zinc-500 mt-2 px-1">
-                  So wirst du in der Community und auf deinen Labels genannt.
-                </p>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-widest text-cyan-500 mb-2">Geburtsdatum</label>
+                  <input
+                    type="date"
+                    required
+                    value={birthdate}
+                    onChange={(e) => setBirthdate(e.target.value)}
+                    className="w-full bg-cyan-950/10 border border-cyan-500/30 p-3 rounded-xl focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 outline-none transition text-white"
+                  />
+                  <p className="text-[10px] text-zinc-500 mt-2 px-1">Wir benötigen dein Geburtsdatum, um sicherzustellen, dass du 18+ bist.</p>
+                </div>
               </div>
             )}
             
@@ -284,7 +324,8 @@ export default function LoginPage() {
                 setMessage(""); 
                 setEmail(""); 
                 setPassword(""); 
-                setBreweryName(""); 
+                setUsername(""); 
+                setBirthdate(""); 
               }}
               className="text-sm font-bold text-cyan-400 hover:text-cyan-300 transition underline decoration-cyan-400/30 underline-offset-4 hover:decoration-cyan-300"
             >

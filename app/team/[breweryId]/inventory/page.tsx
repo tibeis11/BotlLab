@@ -9,6 +9,7 @@ import JSZip from 'jszip';
 import Scanner from '@/app/components/Scanner';
 import CustomSelect from '@/app/components/CustomSelect';
 import { getBreweryTierConfig, type BreweryTierName } from '@/lib/tier-system';
+import { safeRemove } from '@/lib/safe-dom';
 import { checkAndGrantAchievements } from '@/lib/achievements';
 import { useAchievementNotification } from '@/app/context/AchievementNotificationContext';
 import { useAuth } from '@/app/context/AuthContext';
@@ -481,9 +482,10 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 		const a = document.createElement('a');
 		a.href = url;
 		a.download = fileName;
+		// append -> click -> remove: use helper to avoid NotFoundError when node was already detached
 		document.body.appendChild(a);
 		a.click();
-		document.body.removeChild(a);
+		safeRemove(a);
 		URL.revokeObjectURL(url);
 	}
 

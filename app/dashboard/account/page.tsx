@@ -38,11 +38,12 @@ export default function AccountPage() {
 
     // --- PROFILE STATE ---
     const [savingProfile, setSavingProfile] = useState(false);
-	const [profile, setProfile] = useState<{
+    const [profile, setProfile] = useState<{
         display_name: string,
         location: string,
         founded_year: string,
         bio: string,
+        birthdate?: string,
         website: string,
         tier?: string,
         analytics_opt_out: boolean,
@@ -52,7 +53,8 @@ export default function AccountPage() {
 		display_name: '',
 		location: '',
 		founded_year: new Date().getFullYear().toString(),
-		bio: '',
+        bio: '',
+        birthdate: '',
 		website: '',
         tier: 'lehrling',
         analytics_opt_out: false,
@@ -124,7 +126,9 @@ export default function AccountPage() {
 				display_name: data.display_name || '',
 				location: data.location || '',
 				founded_year: data.founded_year?.toString() || '',
-				bio: data.bio || '',
+                bio: data.bio || '',
+                    // Normalize birthdate to YYYY-MM-DD so <input type="date"> shows it correctly
+                    birthdate: data.birthdate ? (typeof data.birthdate === 'string' ? data.birthdate.split('T')[0] : new Date(data.birthdate).toISOString().split('T')[0]) : '',
 				website: data.website || '',
                 tier: data.tier || 'lehrling',
                 analytics_opt_out: data.analytics_opt_out || false,
@@ -156,7 +160,8 @@ export default function AccountPage() {
 			display_name: profile.display_name,
 			location: profile.location,
 			founded_year: parseInt(profile.founded_year) || null,
-			bio: profile.bio,
+            bio: profile.bio,
+            birthdate: profile.birthdate || null,
 			website: profile.website,
 			updated_at: new Date(),
 		};
@@ -737,6 +742,17 @@ export default function AccountPage() {
                                                     onChange={(e) => setProfile({ ...profile, founded_year: e.target.value })}
                                                     className="w-full bg-zinc-900/50 border border-zinc-700/50 focus:border-cyan-500 rounded-xl px-4 py-3 text-white outline-none transition placeholder:text-zinc-600"
                                                     placeholder="2024"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 block">Geburtsdatum</label>
+                                                <input
+                                                    type="date"
+                                                    value={profile.birthdate || ''}
+                                                    onChange={(e) => setProfile({ ...profile, birthdate: e.target.value })}
+                                                    className="w-full bg-zinc-900/50 border border-zinc-700/50 focus:border-cyan-500 rounded-xl px-4 py-3 text-white outline-none transition placeholder:text-zinc-600"
+                                                    placeholder=""
                                                 />
                                             </div>
 

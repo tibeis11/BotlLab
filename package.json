@@ -7,7 +7,8 @@
     "dev:https": "next dev --experimental-https",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "supabase": "supabase"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
