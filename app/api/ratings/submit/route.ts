@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { cleanText, isProfane } from '@/lib/profanity';
 import crypto from 'crypto';
+import { trackEvent } from '@/lib/actions/analytics-actions';
 
 export async function POST(req: NextRequest) {
   try {
@@ -133,6 +134,22 @@ export async function POST(req: NextRequest) {
                 }
             });
     }
+
+        // Track analytics event (non-blocking but await to ensure insert)
+        try {
+            await trackEvent({
+                event_type: 'rating_submitted',
+                category: 'engagement',
+                payload: {
+                    brew_id: brew.id,
+                    rating_id: ratingData?.id || null,
+                    rating: rating,
+                    author_name: author_name
+                }
+            });
+        } catch (e) {
+            console.error('Failed to track rating_submitted event:', e);
+        }
 
     return NextResponse.json({ success: true, rating: ratingData });
 

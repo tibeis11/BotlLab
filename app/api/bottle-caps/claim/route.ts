@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { trackEvent } from '@/lib/actions/analytics-actions';
 
 export async function POST(request: Request) {
   try {
@@ -96,7 +97,22 @@ export async function POST(request: Request) {
         throw insertError;
     }
 
-    return NextResponse.json({ success: true, message: 'Bottle Cap collected!' });
+        // Track cap claim event
+        try {
+            await trackEvent({
+                event_type: 'cap_claimed',
+                category: 'engagement',
+                payload: {
+                    brew_id: brew_id,
+                    rating_id: rating_id,
+                    user_id: user.id
+                }
+            });
+        } catch (e) {
+            console.error('Failed to track cap_claimed event:', e);
+        }
+
+        return NextResponse.json({ success: true, message: 'Bottle Cap collected!' });
 
   } catch (e: any) {
     console.error("Error claiming cap:", e);

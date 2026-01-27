@@ -4,6 +4,7 @@ import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 import { AuthProvider } from "./context/AuthContext";
 import SafeDOMPatch from "./components/SafeDOMPatch";
+import AnalyticsPingClient from './components/AnalyticsPingClient';
 import { AchievementNotificationProvider } from "./context/AchievementNotificationContext";
 import { UserNotificationProvider } from "./context/UserNotificationContext";
 import CookieBanner from "./components/CookieBanner";
@@ -46,6 +47,7 @@ export default function RootLayout({
         <AuthProvider>
           <UserNotificationProvider>
             <AchievementNotificationProvider>
+              <AnalyticsPingClient />
               <AutoLogoutHandler />
               <SafeDOMPatch />
               {children}
