@@ -17,7 +17,7 @@ type Brew = {
   brew_type?: string | null;
   data?: any;
   remix_parent_id?: string | null;
-  breweries?: { name: string, logo_url?: string } | null; 
+  brewery?: { id?: string; name: string; team_name?: string; logo_url?: string | null } | null; 
   ratings?: { rating: number }[] | null;
   likes_count?: number; 
   user_has_liked?: boolean;
@@ -66,6 +66,7 @@ export default function FavoritesPage() {
         // 3. Format data (we know user_has_liked is true for all these)
         const formattedBrews: Brew[] = (brewsData || []).map((b: any) => ({
             ...b,
+            brewery: Array.isArray(b.breweries) ? b.breweries[0] : b.breweries,
             user_has_liked: true
         }));
 
