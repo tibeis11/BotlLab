@@ -9,6 +9,7 @@ import { AchievementNotificationProvider } from "./context/AchievementNotificati
 import { UserNotificationProvider } from "./context/UserNotificationContext";
 import CookieBanner from "./components/CookieBanner";
 import AutoLogoutHandler from "./components/AutoLogoutHandler";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 export const metadata = {
   title: 'BotlLab | Digital Brew Lab',
@@ -52,6 +53,7 @@ export default function RootLayout({
               <SafeDOMPatch />
               {children}
               <CookieBanner />
+              <SpeedInsights />
             </AchievementNotificationProvider>
           </UserNotificationProvider>
         </AuthProvider>
