@@ -144,7 +144,12 @@ export default function CrownCap({
       {/* Content Layer (Emoji or Image) */}
       <div className="absolute inset-0 flex items-center justify-center p-[20%]">
         {content ? (
-          content.length < 5 ? (
+          // If content is a hex color string, render a filled circle with that color.
+          (typeof content === 'string' && content.startsWith('#')) ? (
+            <div className="w-full h-full rounded-full overflow-hidden border border-zinc-800 shadow-inner">
+              <div className="w-full h-full" style={{ background: content }} />
+            </div>
+          ) : content.length < 5 ? (
             <span 
               className="font-bold drop-shadow-md transition-all duration-300 animate-in zoom-in-50"
               style={{ fontSize: size === 'sm' ? '1.2rem' : size === 'md' ? '2.5rem' : size === 'lg' ? '4rem' : '6rem' }}

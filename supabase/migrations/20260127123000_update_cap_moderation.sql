@@ -1,5 +1,6 @@
--- Migration: Fix Moderation Logic for Default Images & Inserts
--- Description: Auto-approves brews with no images/caps. Updates trigger to handle INSERTs. Cleans up existing data.
+-- Migration: Update cap moderation logic to ignore hex colors
+-- This migration replaces the existing trigger function to ensure cap hex colors (e.g. '#F97316')
+-- do NOT trigger moderation.
 
 CREATE OR REPLACE FUNCTION public.handle_brew_image_change()
 RETURNS TRIGGER AS $$
@@ -12,17 +13,17 @@ BEGIN
       IF (OLD.image_url IS DISTINCT FROM NEW.image_url AND NEW.image_url IS NOT NULL) THEN
          needs_review := true;
       END IF;
-      
-        -- If Cap changed value AND is not null AND is not a plain hex color (we treat '#...' as local color)
-        IF (OLD.cap_url IS DISTINCT FROM NEW.cap_url AND NEW.cap_url IS NOT NULL AND NOT (NEW.cap_url LIKE '#%')) THEN
-            needs_review := true;
-        END IF;
-      
-        -- If item was previously REJECTED, any change to images should reset to pending for re-evaluation
-        -- (Even removing an image might make it valid). Changes to cap colors (hex strings) are ignored.
-        IF (OLD.moderation_status = 'rejected' AND (OLD.image_url IS DISTINCT FROM NEW.image_url OR (OLD.cap_url IS DISTINCT FROM NEW.cap_url AND NOT (NEW.cap_url LIKE '#%')))) THEN
-            needs_review := true;
-        END IF;
+
+      -- If Cap changed value AND is not null AND is not a plain hex color (we treat '#...' as local color)
+      IF (OLD.cap_url IS DISTINCT FROM NEW.cap_url AND NEW.cap_url IS NOT NULL AND NOT (NEW.cap_url LIKE '#%')) THEN
+         needs_review := true;
+      END IF;
+
+      -- If item was previously REJECTED, any change to images should reset to pending for re-evaluation
+      -- (Even removing an image might make it valid). Changes to cap colors (hex strings) are ignored.
+      IF (OLD.moderation_status = 'rejected' AND (OLD.image_url IS DISTINCT FROM NEW.image_url OR (OLD.cap_url IS DISTINCT FROM NEW.cap_url AND NOT (NEW.cap_url LIKE '#%')))) THEN
+         needs_review := true;
+      END IF;
   ELSIF (TG_OP = 'INSERT') THEN
       -- On Insert, if there is content that is an actual image (not a hex color), it needs review
       IF (NEW.image_url IS NOT NULL OR (NEW.cap_url IS NOT NULL AND NOT (NEW.cap_url LIKE '#%'))) THEN
@@ -58,8 +59,3 @@ CREATE TRIGGER on_brew_image_change
 BEFORE INSERT OR UPDATE ON public.brews
 FOR EACH ROW
 EXECUTE FUNCTION public.handle_brew_image_change();
-
--- Cleanup: Approve all existing brews with no images that are pending
-UPDATE public.brews
-SET moderation_status = 'approved', moderated_at = NOW()
-WHERE image_url IS NULL AND cap_url IS NULL AND moderation_status = 'pending';

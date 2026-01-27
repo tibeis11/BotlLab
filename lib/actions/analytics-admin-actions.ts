@@ -173,35 +173,48 @@ export async function getUserGrowthChart(dateRange: DateRange = '30d'): Promise<
   const cutoffDate = getCutoffDate(dateRange)
 
   await logAdminAction('view_user_growth', null, { dateRange })
-
-  // Get daily new user signups
-  const { data } = await supabase
+  // Try to build growth chart from profile join date (some schemas use `joined_at`)
+  const { data: profiles } = await supabase
     .from('profiles')
-    .select('created_at')
-    .gte('created_at', cutoffDate.toISOString())
-    .order('created_at', { ascending: true })
+    .select('joined_at')
+    .gte('joined_at', cutoffDate.toISOString())
+    .order('joined_at', { ascending: true })
 
-  if (!data) return []
-
-  // Group by date
-  const groupedByDate: Record<string, number> = {}
-  data.forEach((profile) => {
-    const date = profile.created_at.split('T')[0]
-    groupedByDate[date] = (groupedByDate[date] || 0) + 1
-  })
-
-  // Calculate cumulative total
-  let totalUsers = 0
-  return Object.entries(groupedByDate)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, count]) => {
-      totalUsers += count
-      return {
-        date,
-        newUsers: count,
-        totalUsers,
-      }
+  if (profiles && profiles.length > 0) {
+    const groupedByDate: Record<string, number> = {}
+    profiles.forEach((p: any) => {
+      const date = (p.joined_at || '').split('T')[0]
+      if (!date) return
+      groupedByDate[date] = (groupedByDate[date] || 0) + 1
     })
+
+    let totalUsers = 0
+    return Object.entries(groupedByDate)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, count]) => {
+        totalUsers += count
+        return {
+          date,
+          newUsers: count,
+          totalUsers,
+        }
+      })
+  }
+
+  // Fallback: use pre-aggregated table `analytics_user_daily` if profiles don't have recent joins
+  const { data: aggData } = await supabase
+    .from('analytics_user_daily')
+    .select('date, new_users, total_users')
+    .gte('date', cutoffDate.toISOString().split('T')[0])
+    .order('date', { ascending: true })
+
+  if (!aggData || aggData.length === 0) return []
+
+  return aggData.map((row: any) => ({
+    date: row.date,
+    newUsers: Number(row.new_users) || 0,
+    totalUsers: Number(row.total_users) || 0,
+  }))
 }
 
 export async function getActiveUsersCount(dateRange: DateRange = '30d'): Promise<number> {
@@ -579,7 +592,10 @@ export async function triggerAggregation(
   )
 
   if (!response.ok) {
-    throw new Error(`Aggregation failed: ${response.statusText}`)
+    const bodyText = await response.text().catch(() => '')
+    throw new Error(
+      `Aggregation failed: ${response.status} ${response.statusText} - ${bodyText}`
+    )
   }
 
   return await response.json()

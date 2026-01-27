@@ -51,7 +51,7 @@ export default function PricingPage() {
                 <ul className="space-y-4 mb-8 flex-1">
                     <FeatureItem active={true}>Community Rezepte</FeatureItem>
                     <FeatureItem active={true}>Basis Brau-Tools</FeatureItem>
-                    <FeatureItem active={true} warning="Limitiert durch Level">Bis zu 10 Rezepte</FeatureItem>
+                    <FeatureItem active={true} description="Erstelle & speichere eigene Rezepte">Rezepte Editor</FeatureItem>
                     <FeatureItem active={false}>AI Assistent</FeatureItem>
                     <FeatureItem active={false}>Erweiterte Analytics</FeatureItem>
                     <FeatureItem active={false}>Eigenes Branding</FeatureItem>
@@ -233,7 +233,7 @@ export default function PricingPage() {
   );
 }
 
-function FeatureItem({ children, active, highlight, warning }: { children: React.ReactNode, active: boolean, highlight?: string, warning?: string }) {
+function FeatureItem({ children, active, highlight, warning, description }: { children: React.ReactNode, active: boolean, highlight?: string, warning?: string, description?: string }) {
     return (
         <li className="flex items-start gap-3 text-sm">
             <span className={`mt-0.5 text-lg leading-none ${active ? 'text-emerald-500' : 'text-zinc-700'}`}>
@@ -243,6 +243,9 @@ function FeatureItem({ children, active, highlight, warning }: { children: React
                 <span className={`${!active ? 'text-zinc-600 line-through decoration-zinc-800' : highlight ? highlight : 'text-zinc-300'}`}>
                     {children}
                 </span>
+                {description && (
+                    <p className="text-xs text-zinc-500 mt-0.5">{description}</p>
+                )}
                 {warning && (
                     <p className="text-[10px] text-amber-500 font-bold uppercase tracking-wide mt-0.5">{warning}</p>
                 )}

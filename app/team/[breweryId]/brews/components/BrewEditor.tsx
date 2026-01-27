@@ -210,7 +210,15 @@ function Toggle({
   );
 }
 
+// Restore original emoji icons for compatibility (not used for selection anymore).
 const CAP_ICONS = ['🍺', '🍷', '🍎', '🍯', '🥤', '🔥', '🌊', '🧬', '🚀', '🧪', '💎', '🎨', '🦴', '🌿', '🍄', '🍋'];
+
+// Palette of pleasant default center colors (hex). A random one is assigned by default.
+const CAP_COLOR_PALETTE = ['#F97316','#FB7185','#EF4444','#F59E0B','#FDE047','#34D399','#10B981','#06B6D4','#3B82F6','#60A5FA','#7C3AED','#A78BFA','#F472B6','#FCA5A5','#FCD34D','#FDBA74'];
+
+function pickRandomCapColor() {
+    return CAP_COLOR_PALETTE[Math.floor(Math.random() * CAP_COLOR_PALETTE.length)];
+}
 
 export default function BrewEditor({ breweryId, brewId }: { breweryId: string, brewId?: string }) {
 	const router = useRouter();
@@ -254,6 +262,16 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
     useEffect(() => {
         if (user) refreshPremium();
     }, [user]);
+
+    // Ensure a random cap color is assigned by default when editor loads
+    useEffect(() => {
+        if (!brew.cap_url) {
+            const c = pickRandomCapColor();
+            setBrew(prev => ({ ...prev, cap_url: c }));
+        }
+    // We only want to run this when component mounts or when brew is reset
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 	const [ratings, setRatings] = useState<any[]>([]);
 	const [ratingsLoading, setRatingsLoading] = useState(false);
 	const [ratingsMessage, setRatingsMessage] = useState<string | null>(null);
@@ -1303,6 +1321,15 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 					</div>
 				)}
 
+                        {/* Global moderation banner: show when a label or uploaded cap is pending review */}
+                        {brew.moderation_status === 'pending' && (
+                            ((brew.image_url && brew.image_url !== '/default_label/default.png') || (brew.cap_url && !(typeof brew.cap_url === 'string' && brew.cap_url.startsWith('#')))) && (
+                                <div className="bg-yellow-500/10 border border-amber-500/30 rounded-xl px-4 py-3 text-sm text-amber-300 mt-3">
+                                    <strong className="font-bold">Prüfung läuft:</strong> Dein Label oder Kronkorken wird aktuell überprüft und ist vorübergehend eingeschränkt.
+                                </div>
+                            )
+                        )}
+
 				<div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-start mt-4">
                     {/* Sidebar */}
                     <nav className="w-full lg:w-64 flex-shrink-0 flex lg:flex-col overflow-x-auto lg:overflow-visible gap-2 lg:sticky lg:top-32 bg-zinc-900/50 backdrop-blur-md border border-zinc-800 rounded-2xl p-1 lg:p-3 shadow-xl z-40 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
@@ -1898,12 +1925,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                         </div>
                                     </div>
                                 )}
-                                {brew.moderation_status === 'pending' && brew.image_url && brew.image_url !== '/default_label/default.png' && (
-                                    <div className="bg-yellow-500/10 border border-yellow-500/50 rounded-xl p-4 flex gap-4 items-center">
-                                         <div className="text-2xl">⏳</div>
-                                         <p className="text-yellow-500 text-sm font-bold">Dein Bild wird überprüft. Es ist erst öffentlich sichtbar, wenn es freigegeben wurde.</p>
-                                    </div>
-                                )}
+                                {/* Pending banner removed here because a global moderation banner is shown across the editor */}
 
                                 <div className="flex items-center justify-between gap-4">
                                     <div>
@@ -2026,25 +2048,19 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                     </div>
 
                                     <div className="space-y-8 relative z-10 text-left">
-                                        <div>
-                                            <p className="text-[10px] uppercase font-black text-zinc-500 tracking-widest mb-4">Standard Symbole</p>
-                                            <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-3 p-2 -ml-2">
-                                                {CAP_ICONS.map(icon => (
-                                                    <button
-                                                        key={icon}
-                                                        onClick={() => setBrew(prev => ({ ...prev, cap_url: icon }))
-                                                        }
-                                                        className={`h-12 w-12 flex items-center justify-center rounded-2xl transition-all duration-300 ${
-                                                            brew.cap_url === icon 
-                                                                ? 'bg-cyan-500 text-black scale-110 shadow-lg shadow-cyan-500/20' 
-                                                                : 'bg-zinc-900 border border-zinc-800 text-zinc-500 hover:border-zinc-600 hover:text-zinc-300'
-                                                        }`}
-                                                    >
-                                                        <span className="text-xl">{icon}</span>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
+                                                                <div>
+                                                                    <p className="text-[10px] uppercase font-black text-zinc-500 tracking-widest mb-4">Farbe</p>
+                                                                    <div className="flex items-center gap-4 p-2 -ml-2">
+                                                                        <div className="w-12 h-12 rounded-full border" style={{ background: brew.cap_url || '#111827' }} />
+                                                                        <div className="flex flex-col">
+                                                                            <span className="text-sm font-bold text-white">Automatisch zugewiesen</span>
+                                                                            <button
+                                                                                onClick={() => setBrew(prev => ({ ...prev, cap_url: pickRandomCapColor() }))}
+                                                                                className="text-xs mt-1 px-3 py-1 rounded-md bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white transition"
+                                                                            >Neue Farbe</button>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
                                         
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <button 

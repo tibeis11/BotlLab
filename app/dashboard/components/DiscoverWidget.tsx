@@ -48,7 +48,28 @@ export default function DiscoverWidget() {
                     }
                 }));
 
-                setTrendingBrews(formatted);
+                // If user is logged in, fetch which of these brews the user has liked
+                try {
+                    const { data: userData } = await supabase.auth.getUser();
+                    const user = userData?.user;
+                    if (user) {
+                        const ids = formatted.map(f => f.id);
+                        const { data: likes } = await supabase
+                            .from('likes')
+                            .select('brew_id')
+                            .in('brew_id', ids);
+
+                        const likedIds = new Set((likes || []).map((l: any) => l.brew_id));
+
+                        const withLikes = formatted.map(f => ({ ...f, user_has_liked: likedIds.has(f.id) }));
+                        setTrendingBrews(withLikes as TrendingBrew[] & { user_has_liked?: boolean }[]);
+                    } else {
+                        setTrendingBrews(formatted);
+                    }
+                } catch (e) {
+                    console.error('Error fetching user likes for trending:', e);
+                    setTrendingBrews(formatted);
+                }
             } catch (e) {
                 console.error("Error fetching trending brews", e);
             } finally {

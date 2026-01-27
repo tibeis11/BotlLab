@@ -11,6 +11,7 @@ import {
   getActiveUsersCount,
   getCohortAnalysis,
   getUserTierDistribution,
+  triggerAggregation,
   getAdminDashboardSummary
 } from '@/lib/actions/analytics-admin-actions'
 import { DateRange } from '@/lib/types/admin-analytics'
@@ -18,6 +19,8 @@ import { DateRange } from '@/lib/types/admin-analytics'
 export default function UsersView() {
   const [dateRange, setDateRange] = useState<DateRange>('30d')
   const [loading, setLoading] = useState(true)
+  const [aggLoading, setAggLoading] = useState(false)
+  const [aggMessage, setAggMessage] = useState<string | null>(null)
   const [data, setData] = useState<any>(null)
 
   useEffect(() => {
@@ -49,6 +52,25 @@ export default function UsersView() {
     }
   }
 
+  async function handleRunAggregation() {
+    try {
+      setAggLoading(true)
+      setAggMessage(null)
+      // Run daily and cohort aggregations to populate analytics tables
+      await triggerAggregation('daily')
+      await triggerAggregation('cohorts')
+      setAggMessage('Aggregation abgeschlossen — lade Daten neu...')
+      await loadData()
+      setAggMessage('Daten aktualisiert')
+    } catch (error) {
+      console.error('Aggregation failed', error)
+      setAggMessage('Aggregation fehlgeschlagen — siehe Konsole')
+    } finally {
+      setAggLoading(false)
+      setTimeout(() => setAggMessage(null), 6000)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
@@ -77,6 +99,7 @@ export default function UsersView() {
           onChange={setDateRange} 
           availableRanges={['7d', '30d', '90d']}
         />
+        {/* Aggregation button removed (already available under Einstellungen) */}
       </div>
 
       {/* KPI Cards */}
