@@ -327,15 +327,15 @@ async function aggregateHourlyMetrics(supabase: any) {
 async function calculateCohorts(supabase: any) {
   console.log('Calculating cohorts...')
 
-  // Get all users grouped by signup month
+  // Get all users grouped by signup month (use `joined_at` as signup timestamp)
   const { data: users } = await supabase
     .from('profiles')
-    .select('id, created_at')
+    .select('id, joined_at')
 
   const cohortMap = new Map()
 
   users?.forEach((user: any) => {
-    const signupDate = new Date(user.created_at)
+    const signupDate = new Date(user.joined_at)
     const cohortId = `${signupDate.getFullYear()}-${String(signupDate.getMonth() + 1).padStart(2, '0')}`
 
     if (!cohortMap.has(cohortId)) {
