@@ -11,7 +11,7 @@ interface TrendingBrew {
     name: string;
     style: string;
     image_url: string;
-    brewery: { name: string, logo_url: string };
+    brewery: { id: string, name: string, logo_url: string | null };
     likes_count: number;
 }
 
@@ -26,7 +26,7 @@ export default function DiscoverWidget() {
                 
                 const { data, error } = await supabase
                     .from('brews')
-                    .select('id,name,style,image_url,created_at,likes_count,breweries(name,logo_url,moderation_status)')
+                    .select('id,name,style,image_url,created_at,likes_count,breweries(id,name,logo_url,moderation_status)')
                     .eq('is_public', true)
                     .neq('moderation_status', 'pending') 
                     .order('likes_count', { ascending: false }) 
@@ -43,6 +43,7 @@ export default function DiscoverWidget() {
                     created_at: b.created_at,
                     likes_count: b.likes_count || 0,
                     brewery: {
+                        id: b.breweries?.id || '',
                         name: b.breweries?.name || 'Unbekannt',
                         logo_url: (b.breweries?.moderation_status === 'pending') ? null : b.breweries?.logo_url
                     }

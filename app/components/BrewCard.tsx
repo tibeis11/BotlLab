@@ -25,7 +25,7 @@ interface BrewData {
     likes?: { count: number }[];
     likes_count?: number; // Add this if it comes from some queries
     user_has_liked?: boolean;
-    brewery?: { id: string; name: string; team_name?: string; logo_url?: string } | null;
+    brewery?: { id?: string; name: string; team_name?: string; logo_url?: string | null } | null;
 }
 
 interface BrewCardProps {
