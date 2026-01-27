@@ -722,33 +722,41 @@ export default function BreweryAnalyticsPage() {
                 const count = data.scansByHour![hour.toString()] || 0;
                 const maxCount = Math.max(...Object.values(data.scansByHour!));
                 const height = maxCount > 0 ? (count / maxCount) * 100 : 0;
-                
+
                 // Highlight peak hours (18-23)
                 const isPeakHour = hour >= 18 && hour <= 23;
-                
+
                 return (
-                  <div key={hour} className="flex-1 flex flex-col items-center gap-1">
-                    {/* Value label for non-zero hours */}
-                    {count > 0 && height > 30 && (
-                      <div className="text-[10px] font-bold text-amber-400">
-                        {count}
-                      </div>
-                    )}
-                    {/* Bar */}
-                    <div
-                      className={`w-full rounded-t transition-all ${
-                        isPeakHour 
-                          ? 'bg-gradient-to-t from-amber-600 to-amber-400 hover:from-amber-500 hover:to-amber-300' 
-                          : 'bg-gradient-to-t from-cyan-600 to-cyan-400 hover:from-cyan-500 hover:to-cyan-300'
-                      }`}
-                      style={{ height: `${height}%`, minHeight: count > 0 ? '2px' : '0' }}
-                      title={`${hour}:00 Uhr - ${count} Scans`}
-                    ></div>
+                  <div key={hour} className="flex-1 flex flex-col items-center gap-1 h-full">
+                    {/* Reserve fixed space for the value label so bars calculate from uniform area */}
+                    <div className="h-4 flex items-center justify-center">
+                      {count > 0 && height > 30 ? (
+                        <div className="text-[10px] font-bold text-amber-400">
+                          {count}
+                        </div>
+                      ) : null}
+                    </div>
+
+                    {/* Bar area occupies remaining vertical space */}
+                    <div className="w-full flex-1 flex items-end">
+                      <div
+                        className={`w-full rounded-t transition-all ${
+                          isPeakHour
+                            ? 'bg-gradient-to-t from-amber-600 to-amber-400 hover:from-amber-500 hover:to-amber-300'
+                            : 'bg-gradient-to-t from-cyan-600 to-cyan-400 hover:from-cyan-500 hover:to-cyan-300'
+                        }`}
+                        style={{ height: `${height}%`, minHeight: count > 0 ? '2px' : '0' }}
+                        title={`${hour}:00 Uhr - ${count} Scans`}
+                      ></div>
+                    </div>
+
                     {/* Hour label (show every 3 hours) */}
-                    {hour % 3 === 0 && (
-                      <div className="text-[9px] text-zinc-600 mt-1">
+                    {hour % 3 === 0 ? (
+                      <div className="text-[9px] text-zinc-600 mt-1 h-4 flex items-center">
                         {hour}h
                       </div>
+                    ) : (
+                      <div className="h-4" />
                     )}
                   </div>
                 );
@@ -790,14 +798,18 @@ export default function BreweryAnalyticsPage() {
                   return (
                     <div key={brewId}>
                       <div className="flex justify-between text-sm mb-1">
-                        <Link 
+                        <span className="text-zinc-400 truncate flex items-center gap-1">
+                          {brew ? `${brew.name} (${brew.style})` : brewId.slice(0, 8)}
+                        </span>
+                        <div className="flex items-center gap-3">
+                          <span className="text-white font-bold">{count}</span>
+                          <Link
                             href={`/team/${breweryId}/analytics/brew/${brewId}`}
-                            className="text-zinc-400 truncate hover:text-cyan-400 transition flex items-center gap-1 group"
-                        >
-                          {brew ? `${brew.name} (${brew.style})` : brewId.slice(0, 8)} 
-                          <span className="opacity-0 group-hover:opacity-100 transition-opacity">↗</span>
-                        </Link>
-                        <span className="text-white font-bold">{count}</span>
+                            className="px-2 py-1 rounded-md text-xs text-cyan-400 bg-zinc-800/40 hover:bg-zinc-800 transition"
+                          >
+                            Details ↗
+                          </Link>
+                        </div>
                       </div>
                       <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
                         <div
