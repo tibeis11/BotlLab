@@ -114,15 +114,13 @@ export default function TeamSessionsPage({ params }: { params: Promise<{ brewery
                         href={`/team/${breweryId}/sessions/new-quick`}
                         className="group relative flex items-center justify-center gap-3 px-6 py-4 rounded-2xl font-black transition-all duration-300 bg-blue-600 hover:bg-blue-500 text-white shadow-[0_0_20px_rgba(37,99,235,0.3)] hover:shadow-[0_0_30px_rgba(37,99,235,0.5)] active:scale-95"
                     >
-                        <span>⚡</span>
                         <span>Quick Session</span>
                     </Link>
                     <Link 
                         href={`/team/${breweryId}/sessions/new`}
                         className="group relative flex items-center justify-center gap-3 px-6 py-4 rounded-2xl font-black text-black transition-all duration-300 bg-cyan-400 hover:bg-cyan-300 shadow-[0_0_20px_rgba(34,211,238,0.3)] hover:shadow-[0_0_30px_rgba(34,211,238,0.5)] active:scale-95"
                     >
-                        <span>🔥</span>
-                        <span>Neuer Sud</span>
+                        <span>Neue Session</span>
                     </Link>
                 </div>
              )}
@@ -248,7 +246,7 @@ function SessionCard({ session, breweryId }: { session: any, breweryId: string }
                         {brew?.name || 'Unbekanntes Rezept'}
                     </h3>
                     <div className="flex items-center gap-2 text-zinc-500 text-xs font-bold uppercase tracking-wider">
-                        <span>📅 {date}</span>
+                        <span>{date}</span>
                         {brew?.style && (
                             <>
                                 <span>•</span>

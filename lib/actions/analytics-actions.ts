@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase-server'
 import { headers } from 'next/headers'
 import crypto from 'crypto'
 
-type AnalyticsCategory = 'monetization' | 'ux' | 'system' | 'engagement';
+type AnalyticsCategory = 'monetization' | 'ux' | 'system' | 'engagement' | 'ai' | 'content';
 
 type AnalyticsEvent = {
   event_type: string

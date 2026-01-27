@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createClient } from "@/lib/supabase-server";
 import { canUseAI, trackAIUsage } from "@/lib/premium-checks";
+import { trackEvent } from "@/lib/actions/analytics-actions";
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY || "");
 
@@ -163,8 +164,18 @@ WICHTIG: Antworte NUR mit dem JSON-Array, keine zusätzlichen Erklärungen!`;
 
         const suggestions = JSON.parse(jsonText);
 
-        // Track usage for analysis too
+        // Track usage for analytics (Admin Dashboard)
+        await trackEvent({
+            event_type: 'generate_text_success',
+            category: 'ai',
+            payload: { type: 'optimization', model: "gemini-2.0-flash-exp", user_id: user.id }
+        });
+
+        // Track usage for billing
         await trackAIUsage(user.id, "text");
+
+        // Decrement credit via RPC
+        await supabase.rpc("increment_ai_usage", { p_user_id: user.id });
 
         if (Array.isArray(suggestions)) {
           return NextResponse.json({ suggestions });
@@ -190,12 +201,36 @@ WICHTIG: Antworte NUR mit dem JSON-Array, keine zusätzlichen Erklärungen!`;
       .replace(/^#+\s*/g, "") // Remove markdown headers
       .trim();
 
-    // Track usage for other text types
+    // Track usage for analytics (Admin Dashboard)
+    await trackEvent({
+        event_type: 'generate_text_success',
+        category: 'ai',
+        payload: { type: type, model: "gemini-2.0-flash-exp", user_id: user.id }
+    });
+
+    // Track usage for billing
     await trackAIUsage(user.id, "text");
+    
+    // Decrement credit via RPC
+    await supabase.rpc("increment_ai_usage", { p_user_id: user.id });
 
     return NextResponse.json({ text: cleanText });
   } catch (error: any) {
     console.error("Text generation error:", error);
+    
+    // Track failure
+    try {
+        const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if(user) {
+            await trackEvent({
+                event_type: 'generate_text_error',
+                category: 'ai',
+                payload: { error: error.message, user_id: user.id }
+            });
+        }
+    } catch(e) {}
+
     return NextResponse.json(
       { error: error.message || "Generierung fehlgeschlagen" },
       { status: 500 }

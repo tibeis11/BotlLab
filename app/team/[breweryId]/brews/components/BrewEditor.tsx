@@ -21,6 +21,7 @@ import { FormulaInspector } from '@/app/components/FormulaInspector';
 import { SubscriptionTier, type PremiumStatus } from '@/lib/premium-config';
 import { getPremiumStatus } from '@/lib/actions/premium-actions';
 import LegalConsentModal from '@/app/components/LegalConsentModal';
+import { trackEvent } from '@/lib/actions/analytics-actions'; // This will need to be safe for client side usage or moved to API call wrapper
 
 function formatIngredientsForPrompt(value: any): string {
     if (!value) return '';
@@ -582,6 +583,26 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 				brew_id: data.id,
 				brew_name: data.name
 			});
+
+            // Analytics
+            try {
+                // Tracking creation event for analytics
+                // Note: Since this is a client component, we might face issues if trackEvent uses server-only modules like 'headers'.
+                // If trackEvent is marked 'use server', Next.js handles the RPC call automatically.
+                await trackEvent({
+                    event_type: 'create_brew',
+                    category: 'content',
+                    payload: {
+                        brew_id: data.id,
+                        brew_name: data.name,
+                        brewery_id: breweryId,
+                        style: brew.style,
+                        type: brew.brew_type
+                    }
+                });
+            } catch (e) {
+                console.warn('Analytics tracking failed (non-critical):', e);
+            }
 
 			setBrew({ ...data, data: data.data || {} });
 			setSaving(false);

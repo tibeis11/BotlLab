@@ -138,6 +138,7 @@ export default function SystemView() {
             <thead>
               <tr className="border-b border-zinc-800">
                 <th className="text-left py-3 px-4 text-zinc-400 font-medium">Feature</th>
+                <th className="text-left py-3 px-4 text-zinc-400 font-medium">Kategorie</th>
                 <th className="text-right py-3 px-4 text-zinc-400 font-medium">Gesamt</th>
                 <th className="text-right py-3 px-4 text-zinc-400 font-medium">Unique Users</th>
                 <th className="text-right py-3 px-4 text-zinc-400 font-medium">Success Rate</th>
@@ -148,23 +149,30 @@ export default function SystemView() {
                 const successRate = feature.usage_count > 0
                   ? ((feature.success_count / feature.usage_count) * 100).toFixed(1)
                   : '0.0'
+                
+                let badgeClass = "bg-zinc-800 text-zinc-400 border-zinc-700";
+                let categoryLabel = "Core";
+
+                if (feature.category === 'premium_ai') {
+                    badgeClass = "bg-purple-900/30 text-purple-400 border-purple-500/30";
+                    categoryLabel = "AI Premium";
+                } else if (feature.category === 'monetization') {
+                    badgeClass = "bg-yellow-900/30 text-yellow-400 border-yellow-500/30";
+                    categoryLabel = "System/Limit";
+                }
+
                 return (
-                  <tr key={feature.feature} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
-                    <td className="py-3 px-4 text-white font-medium capitalize">
-                      {feature.feature}
+                  <tr key={feature.feature} className="border-b border-zinc-800/50 hover:bg-zinc-800/20">
+                    <td className="py-3 px-4 text-zinc-300 font-mono text-xs">{feature.feature}</td>
+                    <td className="py-3 px-4">
+                        <span className={`text-[10px] px-2 py-0.5 rounded border uppercase font-bold tracking-wider ${badgeClass}`}>
+                            {categoryLabel}
+                        </span>
                     </td>
-                    <td className="py-3 px-4 text-right text-white font-bold">
-                      {feature.usage_count.toLocaleString()}
-                    </td>
-                    <td className="py-3 px-4 text-right text-cyan-400">
-                      {feature.unique_users.toLocaleString()}
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <span className={`font-bold ${
-                        parseFloat(successRate) > 95 ? 'text-green-400' :
-                        parseFloat(successRate) > 80 ? 'text-yellow-400' :
-                        'text-red-400'
-                      }`}>
+                    <td className="text-right py-3 px-4 text-white font-medium">{feature.usage_count}</td>
+                    <td className="text-right py-3 px-4 text-zinc-400">{feature.unique_users}</td>
+                    <td className="text-right py-3 px-4">
+                      <span className={Number(successRate) > 90 ? 'text-green-400' : Number(successRate) > 75 ? 'text-yellow-400' : 'text-red-400'}>
                         {successRate}%
                       </span>
                     </td>
@@ -175,7 +183,6 @@ export default function SystemView() {
           </table>
         </div>
       </div>
-
       {/* Database Health */}
       <div className="bg-gradient-to-br from-green-900/20 to-emerald-900/20 border border-green-800/50 rounded-xl p-6">
         <div className="flex items-center gap-3 mb-4">

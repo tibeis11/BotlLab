@@ -147,6 +147,22 @@ export async function createQuickSession(input: unknown) {
   revalidatePath(`/team/${breweryId}/sessions`);
   revalidatePath(`/team/${breweryId}/dashboard`);
 
+  // 10. Analytics
+  try {
+    const { trackEvent } = await import('@/lib/actions/analytics-actions');
+    await trackEvent({
+        event_type: 'create_session',
+        category: 'engagement',
+        payload: {
+            brewery_id: breweryId,
+            brew_id: brewId,
+            session_type: 'quick'
+        }
+    });
+  } catch(e) {
+      console.error('Analytics tracking failed', e);
+  }
+
   return { 
     success: true, 
     sessionId: session.id 

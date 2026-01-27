@@ -516,9 +516,21 @@ export async function getFeatureUsageStats(dateRange: DateRange = '7d') {
   // Aggregate by feature
   const featureMap: Record<string, any> = {}
   data.forEach((row) => {
+    // Normalize feature name (remove _success/_error suffix for grouping, or keep distinct?)
+    // Keeping distinct gives better error rate analysis per specific action type
+    
     if (!featureMap[row.feature]) {
+      // Determine category based on prefix/name
+      let category = 'core';
+      if (row.feature.includes('generate_') || row.feature.includes('ai')) {
+          category = 'premium_ai';
+      } else if (row.feature.includes('limit_reached')) {
+          category = 'monetization';
+      }
+
       featureMap[row.feature] = {
         feature: row.feature,
+        category: category,
         usage_count: 0,
         unique_users: 0,
         success_count: 0,
@@ -538,15 +550,23 @@ export async function getFeatureUsageSummary(dateRange: DateRange = '30d'): Prom
   const data = await getFeatureUsage(dateRange)
 
   // Group by feature
-  const featureMap: Record<string, { usage: number; users: Set<number>; success: number; error: number }> = {}
+  const featureMap: Record<string, { usage: number; users: Set<number>; success: number; error: number; category: string }> = {}
 
   data.forEach((row) => {
     if (!featureMap[row.feature]) {
+      let category = 'core';
+      if (row.feature.includes('generate_') || row.feature.includes('ai')) {
+          category = 'premium_ai';
+      } else if (row.feature.includes('limit_reached')) {
+          category = 'monetization';
+      }
+
       featureMap[row.feature] = {
         usage: 0,
         users: new Set(),
         success: 0,
         error: 0,
+        category
       }
     }
     featureMap[row.feature].usage += row.usage_count
@@ -556,6 +576,7 @@ export async function getFeatureUsageSummary(dateRange: DateRange = '30d'): Prom
 
   return Object.entries(featureMap).map(([feature, stats]) => ({
     feature,
+    category: stats.category, // Pass this through to UI
     usageCount: stats.usage,
     uniqueUsers: stats.users.size,
     successRate: stats.usage > 0 ? (stats.success / stats.usage) * 100 : 0,

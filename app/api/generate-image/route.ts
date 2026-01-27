@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import { canUseAI, trackAIUsage } from "@/lib/premium-checks";
+import { trackEvent } from "@/lib/actions/analytics-actions";
 
 export async function POST(req: Request) {
   try {
@@ -179,12 +180,41 @@ export async function POST(req: Request) {
       }
     }
 
-    // 6. Track AI Usage (Premium)
+    // 6. Track AI Usage (Premium) & Analytics
+    // Track event for feature usage analytics (Admin Dashboard)
+    await trackEvent({
+        event_type: 'generate_image_success',
+        category: 'ai',
+        payload: {
+            type: type, // 'label' or 'cap'
+            model: modelName,
+            user_id: user.id
+        }
+    });
+
+    // Decrement credits
     await trackAIUsage(user.id, "image");
 
     return NextResponse.json({ imageUrl: finalUrl });
   } catch (error: any) {
     console.error("[Generate Image Route Error]:", error.message);
+    
+    // Track failure for analytics
+    try {
+        const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            await trackEvent({
+                event_type: 'generate_image_error',
+                category: 'ai',
+                payload: {
+                    error: error.message,
+                    user_id: user.id
+                }
+            });
+        }
+    } catch (e) { /* ignore tracking error */ }
+
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

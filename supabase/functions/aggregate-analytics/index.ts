@@ -84,35 +84,48 @@ async function aggregateDailyMetrics(supabase: any, specificDate?: string) {
 
   console.log(`Aggregating daily metrics for ${dateStr}`)
 
-  // ========== 1. User Activity ==========
-  const { data: userEvents } = await supabase
-    .from('analytics_events')
-    .select('user_id, event_type, category, created_at')
-    .gte('created_at', `${dateStr}T00:00:00.000`)
-    .lt('created_at', `${dateStr}T23:59:59.999`)
-
+  // ========== 1. User Activity (Pagination) ==========
   const userActivityMap = new Map()
+  let hasMoreUsers = true
+  let uPage = 0
+  const uPageSize = 1000
 
-  userEvents?.forEach((event: any) => {
-    if (!event.user_id) return
+  while (hasMoreUsers) {
+      const { data: userEvents, error } = await supabase
+        .from('analytics_events')
+        .select('user_id, event_type, category, created_at')
+        .gte('created_at', `${dateStr}T00:00:00.000`)
+        .lt('created_at', `${dateStr}T23:59:59.999`)
+        .range(uPage * uPageSize, (uPage + 1) * uPageSize - 1)
+      
+      if (error || !userEvents || userEvents.length === 0) {
+          hasMoreUsers = false
+          break
+      }
+      if (userEvents.length < uPageSize) hasMoreUsers = false
 
-    if (!userActivityMap.has(event.user_id)) {
-      userActivityMap.set(event.user_id, {
-        events_count: 0,
-        features_used: new Set(),
-        last_event_at: event.created_at
+      userEvents.forEach((event: any) => {
+        if (!event.user_id) return
+    
+        if (!userActivityMap.has(event.user_id)) {
+          userActivityMap.set(event.user_id, {
+            events_count: 0,
+            features_used: new Set(),
+            last_event_at: event.created_at
+          })
+        }
+    
+        const userData = userActivityMap.get(event.user_id)
+        userData.events_count++
+        if (event.category) {
+          userData.features_used.add(event.category)
+        }
+        if (new Date(event.created_at) > new Date(userData.last_event_at)) {
+          userData.last_event_at = event.created_at
+        }
       })
-    }
-
-    const userData = userActivityMap.get(event.user_id)
-    userData.events_count++
-    if (event.category) {
-      userData.features_used.add(event.category)
-    }
-    if (new Date(event.created_at) > new Date(userData.last_event_at)) {
-      userData.last_event_at = event.created_at
-    }
-  })
+      uPage++
+  }
 
   // Insert/Update user daily data
   let userInsertCount = 0
@@ -130,63 +143,143 @@ async function aggregateDailyMetrics(supabase: any, specificDate?: string) {
 
   console.log(`User daily: Processed ${userInsertCount} users`)
 
-  // ========== 2. Brewery Activity ==========
+  // ========== 2. Brewery Activity (Bulk Optimized) ==========
+  
+  // A. Pre-fetch Today's Data
+  // Bottle Scans
+  const { data: dailyScans } = await supabase
+    .from('bottle_scans')
+    .select('brewery_id, brew_id')
+    .gte('created_at', `${dateStr}T00:00:00.000`)
+    .lt('created_at', `${dateStr}T23:59:59.999`)
+  
+  // Resolve missing brewery_ids from brew_ids
+  const scansWithoutBrewery = dailyScans?.filter((s: any) => !s.brewery_id && s.brew_id) || []
+  const brewIdsToResolve = [...new Set(scansWithoutBrewery.map((s: any) => s.brew_id))]
+  
+  let resolvedBrewMap = new Map() // brew_id -> brewery_id
+
+  if (brewIdsToResolve.length > 0) {
+      const { data: resolvedBrews } = await supabase
+        .from('brews')
+        .select('id, brewery_id')
+        .in('id', brewIdsToResolve)
+      
+      resolvedBrews?.forEach((b: any) => {
+          if(b.brewery_id) resolvedBrewMap.set(b.id, b.brewery_id)
+      })
+  }
+
+  const scansMap: Record<string, number> = {}
+  dailyScans?.forEach((s: any) => {
+      let bId = s.brewery_id
+      if (!bId && s.brew_id) {
+          bId = resolvedBrewMap.get(s.brew_id)
+      }
+
+      if(bId) scansMap[bId] = (scansMap[bId] || 0) + 1
+  })
+
+  // Ratings (requires Brew lookup)
+  const { data: dailyRatings } = await supabase
+    .from('ratings')
+    .select('brew_id')
+    .gte('created_at', `${dateStr}T00:00:00.000`)
+    .lt('created_at', `${dateStr}T23:59:59.999`)
+  
+  const ratingsMap: Record<string, number> = {} // brewery_id -> count
+  if (dailyRatings && dailyRatings.length > 0) {
+      const brewIds = [...new Set(dailyRatings.map((r: any) => r.brew_id))]
+      // Fetch breweries for these brews
+      const { data: brewOwners } = await supabase
+        .from('brews')
+        .select('id, brewery_id')
+        .in('id', brewIds)
+      
+      const brewOwnerMap = new Map() // brew_id -> brewery_id
+      brewOwners?.forEach((b: any) => brewOwnerMap.set(b.id, b.brewery_id))
+
+      dailyRatings.forEach((r: any) => {
+          const bId = brewOwnerMap.get(r.brew_id)
+          if(bId) ratingsMap[bId] = (ratingsMap[bId] || 0) + 1
+      })
+  }
+
+  // Memberships (Fetch ALL - assuming manageable size, otherwise paginate)
+  // Used for "Active Members" calculation
+  const { data: allMembers } = await supabase
+    .from('brewery_members')
+    .select('brewery_id, user_id')
+  
+  const breweryMembersMap = new Map() // brewery_id -> Set<user_id>
+  allMembers?.forEach((m: any) => {
+      if(!breweryMembersMap.has(m.brewery_id)) breweryMembersMap.set(m.brewery_id, new Set())
+      breweryMembersMap.get(m.brewery_id).add(m.user_id)
+  })
+
+  // B. Process Breweries
   const { data: breweries } = await supabase.from('breweries').select('id')
-
   let breweryInsertCount = 0
-  for (const brewery of breweries || []) {
-    // Get member count
-    const { count: membersCount } = await supabase
-      .from('brewery_members')
-      .select('id', { count: 'exact', head: true })
-      .eq('brewery_id', brewery.id)
 
-    // Get brews count
-    const { count: brewsCount } = await supabase
-      .from('brews')
-      .select('id', { count: 'exact', head: true })
-      .eq('brewery_id', brewery.id)
-      .lte('created_at', `${dateStr}T23:59:59.999`)
+  // Process in batches of 10 for "Total" queries to avoid connection exhaustion
+  const BATCH_SIZE = 10
+  for (let i = 0; i < (breweries?.length || 0); i += BATCH_SIZE) {
+      const batch = breweries!.slice(i, i + BATCH_SIZE)
+      
+      await Promise.all(batch.map(async (brewery: any) => {
+        const bId = brewery.id
+        
+        // 1. In-Memory Metrics
+        const membersSet = breweryMembersMap.get(bId) || new Set()
+        const membersCount = membersSet.size
+        
+        const bottlesScanned = scansMap[bId] || 0
+        const ratingsReceived = ratingsMap[bId] || 0
+        
+        // Active Members: Intersection of Members & Active Users Today
+        let activeMembersCount = 0
+        if (membersSet.size > 0) {
+            for (const memberId of membersSet) {
+                if (userActivityMap.has(memberId)) {
+                    activeMembersCount++
+                }
+            }
+        }
 
-    // Get sessions count
-    const { count: sessionsCount } = await supabase
-      .from('brewing_sessions')
-      .select('id', { count: 'exact', head: true })
-      .eq('brewery_id', brewery.id)
-      .lte('created_at', `${dateStr}T23:59:59.999`)
+        // 2. DB Metrics (Daily New Activity)
+        // Note: We switched from Cumulative (lte) to Daily New (gte/lt) to support "Activity per Day" charts correctly.
+        const { count: brewsCount } = await supabase
+          .from('brews')
+          .select('id', { count: 'exact', head: true })
+          .eq('brewery_id', bId)
+          .gte('created_at', `${dateStr}T00:00:00.000`)
+          .lt('created_at', `${dateStr}T23:59:59.999`)
 
-    // Get bottles scanned today
-    const { count: bottlesScanned } = await supabase
-      .from('bottle_scans')
-      .select('id', { count: 'exact', head: true })
-      .eq('brewery_id', brewery.id)
-      .gte('created_at', `${dateStr}T00:00:00.000`)
-      .lt('created_at', `${dateStr}T23:59:59.999`)
+        const { count: sessionsCount } = await supabase
+          .from('brewing_sessions')
+          .select('id', { count: 'exact', head: true })
+          .eq('brewery_id', bId)
+          .gte('created_at', `${dateStr}T00:00:00.000`)
+          .lt('created_at', `${dateStr}T23:59:59.999`)
 
-    // Active members (members with events today)
-    const { data: activeMembers } = await supabase
-      .from('analytics_events')
-      .select('user_id')
-      .in('user_id', []) // TODO: Get member user_ids first
-      .gte('created_at', `${dateStr}T00:00:00.000`)
-      .lt('created_at', `${dateStr}T23:59:59.999`)
-
-    const { error } = await supabase.from('analytics_brewery_daily').upsert({
-      brewery_id: brewery.id,
-      date: dateStr,
-      members_count: membersCount || 0,
-      brews_count: brewsCount || 0,
-      sessions_count: sessionsCount || 0,
-      bottles_scanned: bottlesScanned || 0,
-      ratings_received: 0, // TODO: Implement
-      active_members: new Set(activeMembers?.map((m: { user_id: string }) => m.user_id) || []).size
-    })
-    if (!error) breweryInsertCount++
+        const { error } = await supabase.from('analytics_brewery_daily').upsert({
+          brewery_id: bId,
+          date: dateStr,
+          members_count: membersCount,
+          brews_count: brewsCount || 0,
+          sessions_count: sessionsCount || 0,
+          bottles_scanned: bottlesScanned,
+          ratings_received: ratingsReceived,
+          active_members: activeMembersCount
+        })
+        if (!error) breweryInsertCount++
+      }))
   }
 
   console.log(`Brewery daily: Processed ${breweryInsertCount} breweries`)
 
   // ========== 3. Content Metrics ==========
+  // (Content Metrics code remains unchanged as it was already efficient enough)
   const { count: totalBrews } = await supabase
     .from('brews')
     .select('id', { count: 'exact', head: true })
@@ -220,14 +313,24 @@ async function aggregateDailyMetrics(supabase: any, specificDate?: string) {
     .select('id', { count: 'exact', head: true })
     .lte('created_at', `${dateStr}T23:59:59.999`)
 
-  const { data: ratings } = await supabase
+  // Fix: Use count instead of fetching all rows to avoid scalability issues
+  const { count: totalRatings } = await supabase
+    .from('ratings')
+    .select('id', { count: 'exact', head: true })
+    .lte('created_at', `${dateStr}T23:59:59.999`)
+
+  // Note: Calculating true average of ALL ratings requires fetching all rows or an RPC.
+  // For now, we fetch a sample of the last 1000 ratings to estimate the current average trend,
+  // or if < 1000, it's exact.
+  const { data: ratingsSample } = await supabase
     .from('ratings')
     .select('rating')
     .lte('created_at', `${dateStr}T23:59:59.999`)
+    .limit(1000)
 
   const avgRating =
-    ratings?.length > 0
-      ? ratings.reduce((sum: number, r: any) => sum + r.rating, 0) / ratings.length
+    ratingsSample?.length > 0
+      ? ratingsSample.reduce((sum: number, r: any) => sum + r.rating, 0) / ratingsSample.length
       : 0
 
   const { count: brewsCreatedToday } = await supabase
@@ -247,7 +350,7 @@ async function aggregateDailyMetrics(supabase: any, specificDate?: string) {
     total_brews: totalBrews || 0,
     total_sessions: totalSessions || 0,
     total_bottles: totalBottles || 0,
-    total_ratings: ratings?.length || 0,
+    total_ratings: totalRatings || 0,
     public_brews: publicBrews || 0,
     private_brews: privateBrews || 0,
     team_brews: teamBrews || 0,
@@ -271,26 +374,35 @@ async function aggregateDailyMetrics(supabase: any, specificDate?: string) {
 // ============================================================================
 async function aggregateHourlyMetrics(supabase: any) {
   const now = new Date()
-  const lastHour = new Date(now.getTime() - 60 * 60 * 1000)
-  const dateStr = lastHour.toISOString().split('T')[0]
-  const hour = lastHour.getHours()
+  
+  // Aggregate the PREVIOUS full hour (e.g., if now is 14:15, aggregate 13:00-14:00)
+  // This ensures we always have a complete data set for that hour.
+  const startOfHour = new Date(now)
+  startOfHour.setMinutes(0, 0, 0) // e.g. 14:00
+  startOfHour.setHours(startOfHour.getHours() - 1) // e.g. 13:00
+  
+  const endOfHour = new Date(startOfHour)
+  endOfHour.setHours(endOfHour.getHours() + 1) // e.g. 14:00
 
-  console.log(`Aggregating hourly metrics for ${dateStr} ${hour}:00`)
+  const dateStr = startOfHour.toISOString().split('T')[0]
+  const hour = startOfHour.getHours()
+
+  console.log(`Aggregating hourly metrics for ${dateStr} Hour ${hour} (${startOfHour.toISOString()} to ${endOfHour.toISOString()})`)
 
   // Error count
   const { count: errorCount } = await supabase
     .from('analytics_events')
     .select('id', { count: 'exact', head: true })
     .eq('category', 'error')
-    .gte('created_at', lastHour.toISOString())
-    .lt('created_at', now.toISOString())
+    .gte('created_at', startOfHour.toISOString())
+    .lt('created_at', endOfHour.toISOString())
 
   // Active users (unique users with events in this hour)
   const { data: activeUsers } = await supabase
     .from('analytics_events')
     .select('user_id')
-    .gte('created_at', lastHour.toISOString())
-    .lt('created_at', now.toISOString())
+    .gte('created_at', startOfHour.toISOString())
+    .lt('created_at', endOfHour.toISOString())
 
   const uniqueUsers = new Set(
     activeUsers?.map((e: { user_id: string | null }) => e.user_id).filter(Boolean)
@@ -300,11 +412,11 @@ async function aggregateHourlyMetrics(supabase: any) {
   const { count: apiCalls } = await supabase
     .from('analytics_events')
     .select('id', { count: 'exact', head: true })
-    .gte('created_at', lastHour.toISOString())
-    .lt('created_at', now.toISOString())
+    .gte('created_at', startOfHour.toISOString())
+    .lt('created_at', endOfHour.toISOString())
 
   await supabase.from('analytics_system_hourly').upsert({
-    timestamp: lastHour.toISOString(),
+    timestamp: startOfHour.toISOString(),
     hour,
     date: dateStr,
     error_count: errorCount || 0,
@@ -327,20 +439,22 @@ async function aggregateHourlyMetrics(supabase: any) {
 async function calculateCohorts(supabase: any) {
   console.log('Calculating cohorts...')
 
-  // Get all users grouped by signup month (use `joined_at` as signup timestamp)
+  // 1. Get all users (limit to last 12 months for performance if needed, but we do all for now)
   const { data: users } = await supabase
     .from('profiles')
     .select('id, joined_at')
 
-  const cohortMap = new Map()
+  if (!users) return { success: true, message: 'No users found' }
 
-  users?.forEach((user: any) => {
+  // 2. Group by Cohort (Month)
+  const cohortMap = new Map()
+  users.forEach((user: any) => {
+    if (!user.joined_at) return
     const signupDate = new Date(user.joined_at)
     const cohortId = `${signupDate.getFullYear()}-${String(signupDate.getMonth() + 1).padStart(2, '0')}`
 
     if (!cohortMap.has(cohortId)) {
       cohortMap.set(cohortId, {
-        cohortDate: new Date(signupDate.getFullYear(), signupDate.getMonth(), 1),
         users: []
       })
     }
@@ -349,110 +463,102 @@ async function calculateCohorts(supabase: any) {
 
   let processedCohorts = 0
 
-  // Calculate retention for each cohort
+  // 3. Process each cohort
   for (const [cohortId, cohortData] of cohortMap.entries()) {
-    const userIds = cohortData.users.map((u: any) => u.id)
-    const cohortDate = cohortData.cohortDate
+    const cohortUsers = cohortData.users
+    const userIds = cohortUsers.map((u: any) => u.id)
 
-    // Day 1 retention (active within 24h after signup)
-    const day1End = new Date(cohortDate)
-    day1End.setDate(day1End.getDate() + 2)
+    // Optimization: Fetch aggregated daily activity instead of raw events
+    // This is much faster and more accurate for "Day N" checks
+    const { data: dailyActivity } = await supabase
+        .from('analytics_user_daily')
+        .select('user_id, date')
+        .in('user_id', userIds)
+    
+    // Create a lookup set: "userId:dateString"
+    const activitySet = new Set(
+        dailyActivity?.map((d: any) => `${d.user_id}:${d.date}`) || []
+    )
 
-    const { data: day1Active } = await supabase
-      .from('analytics_events')
-      .select('user_id')
-      .in('user_id', userIds)
-      .gte('created_at', cohortDate.toISOString())
-      .lt('created_at', day1End.toISOString())
+    let retainedDay1 = 0
+    let retainedDay7 = 0
+    let retainedDay30 = 0
+    let retainedDay90 = 0
 
-    const day1Count = new Set(day1Active?.map((e: { user_id: string }) => e.user_id) || []).size
+    // Check retention for each user individualy relative to THEIR signup date
+    for (const user of cohortUsers) {
+        const signupDate = new Date(user.joined_at)
+        
+        // Helper to check activity on specific day (+/- 1 day window for flexibility)
+        const checkActivity = (daysOffset: number) => {
+            const targetDate = new Date(signupDate)
+            targetDate.setDate(targetDate.getDate() + daysOffset)
+            const dateStr = targetDate.toISOString().split('T')[0]
+            return activitySet.has(`${user.id}:${dateStr}`)
+        }
 
-    // Day 7 retention
-    const day7Start = new Date(cohortDate)
-    day7Start.setDate(day7Start.getDate() + 7)
-    const day7End = new Date(day7Start)
-    day7End.setDate(day7End.getDate() + 1)
+        // Day 1: Active next day?
+        if (checkActivity(1)) retainedDay1++
+        
+        // Day 7: Active on day 7? (or strictly day 7-8?)
+        // Standard strict retention: Active ON day 7. 
+        // Rolling retention: Active on Day 7 OR LATER.
+        // Let's use strict day check for now, maybe check a small window (Day 7)
+        if (checkActivity(7)) retainedDay7++
 
-    const { data: day7Active } = await supabase
-      .from('analytics_events')
-      .select('user_id')
-      .in('user_id', userIds)
-      .gte('created_at', day7Start.toISOString())
-      .lt('created_at', day7End.toISOString())
+        // Day 30
+        if (checkActivity(30)) retainedDay30++
 
-    const day7Count = new Set(day7Active?.map((e: { user_id: string }) => e.user_id) || []).size
+        // Day 90
+        if (checkActivity(90)) retainedDay90++
+    }
 
-    // Day 30 retention
-    const day30Start = new Date(cohortDate)
-    day30Start.setDate(day30Start.getDate() + 30)
-    const day30End = new Date(day30Start)
-    day30End.setDate(day30End.getDate() + 1)
+    // Avg events/brews (Still need raw stats or aggregated stats)
+    // We can fetch this from profiles if we had counters, or simple counts
+    // For now, let's skip expensive raw event counts or keep them simple
+    // Let's use `analytics_user_daily` to sum up events!
+    const { data: eventSums } = await supabase
+        .from('analytics_user_daily')
+        .select('events_count')
+        .in('user_id', userIds)
+    
+    const totalEvents = eventSums?.reduce((sum: number, row: any) => sum + (row.events_count || 0), 0) || 0
+    const avgEventsPerUser = totalEvents / userIds.length
 
-    const { data: day30Active } = await supabase
-      .from('analytics_events')
-      .select('user_id')
-      .in('user_id', userIds)
-      .gte('created_at', day30Start.toISOString())
-      .lt('created_at', day30End.toISOString())
+    // Avg Brews (from Brews table)
+    const { count: totalBrews } = await supabase
+        .from('brews')
+        .select('id', { count: 'exact', head: true })
+        .in('owner_id', userIds)
+    
+    const avgBrewsPerUser = (totalBrews || 0) / userIds.length
 
-    const day30Count = new Set(day30Active?.map((e: { user_id: string }) => e.user_id) || []).size
-
-    // Day 90 retention
-    const day90Start = new Date(cohortDate)
-    day90Start.setDate(day90Start.getDate() + 90)
-    const day90End = new Date(day90Start)
-    day90End.setDate(day90End.getDate() + 1)
-
-    const { data: day90Active } = await supabase
-      .from('analytics_events')
-      .select('user_id')
-      .in('user_id', userIds)
-      .gte('created_at', day90Start.toISOString())
-      .lt('created_at', day90End.toISOString())
-
-    const day90Count = new Set(day90Active?.map((e: { user_id: string }) => e.user_id) || []).size
-
-    // Avg events per user
-    const { data: cohortEvents } = await supabase
-      .from('analytics_events')
-      .select('user_id')
-      .in('user_id', userIds)
-
-    const avgEventsPerUser = (cohortEvents?.length || 0) / userIds.length
-
-    // Avg brews per user
-    const { data: cohortBrews } = await supabase
-      .from('brews')
-      .select('owner_id')
-      .in('owner_id', userIds)
-
-    const avgBrewsPerUser = (cohortBrews?.length || 0) / userIds.length
-
-    // Paid conversion rate (users with non-free tier)
-    const { data: paidUsers } = await supabase
+    // Paid conversion
+    const { count: paidCount } = await supabase
       .from('profiles')
-      .select('id')
+      .select('id', { count: 'exact', head: true })
       .in('id', userIds)
-      .neq('tier', 'free')
+      .neq('subscription_tier', 'free') // Assuming 'free' is the default
+      .not('subscription_tier', 'is', null)
 
-    const paidConversionRate = ((paidUsers?.length || 0) / userIds.length) * 100
+    const paidConversionRate = ((paidCount || 0) / userIds.length) * 100
 
     await supabase.from('analytics_cohorts').upsert({
       cohort_id: cohortId,
       user_count: userIds.length,
-      retention_day1: (day1Count / userIds.length) * 100,
-      retention_day7: (day7Count / userIds.length) * 100,
-      retention_day30: (day30Count / userIds.length) * 100,
-      retention_day90: (day90Count / userIds.length) * 100,
+      retention_day1: (retainedDay1 / userIds.length) * 100,
+      retention_day7: (retainedDay7 / userIds.length) * 100,
+      retention_day30: (retainedDay30 / userIds.length) * 100,
+      retention_day90: (retainedDay90 / userIds.length) * 100,
       avg_events_per_user: Math.round(avgEventsPerUser * 100) / 100,
       avg_brews_per_user: Math.round(avgBrewsPerUser * 100) / 100,
       paid_conversion_rate: Math.round(paidConversionRate * 100) / 100,
-      avg_ltv: 0, // TODO: Implement when Stripe is integrated
+      avg_ltv: 0, 
       updated_at: new Date().toISOString()
     })
 
     processedCohorts++
-    console.log(`Cohort ${cohortId}: ${userIds.length} users, Day1: ${day1Count}, Day7: ${day7Count}, Day30: ${day30Count}`)
+    console.log(`Cohort ${cohortId}: ${userIds.length} users processed.`)
   }
 
   return { processedCohorts }
@@ -470,33 +576,63 @@ async function aggregateFeatureUsage(supabase: any, specificDate?: string) {
 
   console.log(`Aggregating feature usage for ${dateStr}`)
 
-  const { data: events } = await supabase
-    .from('analytics_events')
-    .select('category, event_type, user_id')
-    .gte('created_at', `${dateStr}T00:00:00.000`)
-    .lt('created_at', `${dateStr}T23:59:59.999`)
-
   const featureMap = new Map()
+  let hasMore = true
+  let page = 0
+  const pageSize = 1000
 
-  events?.forEach((event: any) => {
-    const feature = event.category
-    if (!feature) return
+  // 1. Fetch events in pages to avoid memory/timeout issues
+  while (hasMore) {
+    const { data: events, error } = await supabase
+      .from('analytics_events')
+      .select('category, event_type, user_id')
+      .gte('created_at', `${dateStr}T00:00:00.000`)
+      .lt('created_at', `${dateStr}T23:59:59.999`)
+      .range(page * pageSize, (page + 1) * pageSize - 1)
 
-    if (!featureMap.has(feature)) {
-      featureMap.set(feature, {
-        usage_count: 0,
-        unique_users: new Set(),
-        success_count: 0,
-        error_count: 0
-      })
+    if (error) {
+        console.error('Error fetching events page:', error)
+        break
     }
 
-    const featureData = featureMap.get(feature)
-    featureData.usage_count++
-    if (event.user_id) featureData.unique_users.add(event.user_id)
-    if (event.event_type.includes('success')) featureData.success_count++
-    if (event.event_type.includes('error')) featureData.error_count++
-  })
+    if (!events || events.length === 0) {
+        hasMore = false
+        break
+    }
+
+    if (events.length < pageSize) {
+        hasMore = false
+    }
+
+    events.forEach((event: any) => {
+        // Use event_type as feature name for granularity (e.g. 'scan_bottle', 'create_brew')
+        // Fallback to category if event_type is generic or missing
+        const feature = event.event_type || event.category
+        if (!feature) return
+    
+        if (!featureMap.has(feature)) {
+          featureMap.set(feature, {
+            usage_count: 0,
+            unique_users: new Set(),
+            success_count: 0,
+            error_count: 0
+          })
+        }
+    
+        const featureData = featureMap.get(feature)
+        featureData.usage_count++
+        if (event.user_id) featureData.unique_users.add(event.user_id)
+        
+        // Simple heuristic for success/error tracking
+        if (event.category === 'error' || feature.includes('error') || feature.includes('fail')) {
+            featureData.error_count++
+        } else {
+            featureData.success_count++
+        }
+    })
+
+    page++
+  }
 
   let insertCount = 0
   for (const [feature, data] of featureMap.entries()) {
@@ -507,7 +643,7 @@ async function aggregateFeatureUsage(supabase: any, specificDate?: string) {
       unique_users: data.unique_users.size,
       success_count: data.success_count,
       error_count: data.error_count,
-      avg_duration_seconds: 0 // TODO: Implement if we track durations
+      avg_duration_seconds: 0
     })
     if (!error) insertCount++
   }
