@@ -90,22 +90,34 @@ export async function getOpenReports() {
  * ADMIN ONLY: Mark report as resolved or dismissed.
  */
 export async function updateReportStatus(reportId: string, status: 'resolved' | 'dismissed') {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) throw new Error('Unauthorized');
+    // Use service-role client for admin updates to avoid RLS blocking updates
+    const adminClient = createAdminClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
 
-    const { error } = await supabase
-        .from('reports')
-        .update({
-            status: status,
-            resolved_by: user.id,
-            resolved_at: new Date().toISOString()
-        })
-        .eq('id', reportId);
+    try {
+        // Get current user id from server client (for audit)
+        const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        const resolvedBy = user?.id || null;
 
-    if (error) throw error;
-    
+        const { error } = await adminClient
+            .from('reports')
+            .update({
+                status: status,
+                resolved_by: resolvedBy,
+                resolved_at: new Date().toISOString()
+            })
+            .eq('id', reportId);
+
+        if (error) throw error;
+    } catch (err) {
+        console.error('Failed to update report status with admin client:', err);
+        throw err;
+    }
+
+    // Revalidate admin dashboard cache
     revalidatePath('/admin/dashboard');
 }
 

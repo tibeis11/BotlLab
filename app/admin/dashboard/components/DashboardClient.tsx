@@ -16,40 +16,46 @@ export default function DashboardClient({ userId }: { userId: string }) {
   const [activeTab, setActiveTab] = useState<Tab>('overview')
 
   return (
-    <div className="space-y-6">
-      <DashboardTabs activeTab={activeTab} onTabChange={setActiveTab} />
+    <div className="flex gap-6">
+      {/* Left sidebar */}
+      <aside className="w-56 hidden lg:block">
+        <DashboardTabs activeTab={activeTab} onTabChange={setActiveTab} />
+      </aside>
 
-      <ErrorBoundary>
-        {activeTab === 'overview' && <OverviewView />}
-      </ErrorBoundary>
+      {/* Main content */}
+      <main className="flex-1">
+        <ErrorBoundary>
+          {activeTab === 'overview' && <OverviewView />}
+        </ErrorBoundary>
 
-      <ErrorBoundary>
-        {activeTab === 'moderation' && <ModerationView />}
-      </ErrorBoundary>
+        <ErrorBoundary>
+          {activeTab === 'moderation' && <ModerationView />}
+        </ErrorBoundary>
 
-      <ErrorBoundary>
-        {activeTab === 'reports' && <ReportsView />}
-      </ErrorBoundary>
-      
-      <ErrorBoundary>
-        {activeTab === 'users' && <UsersView />}
-      </ErrorBoundary>
-      
-      <ErrorBoundary>
-        {activeTab === 'business' && <BusinessView />}
-      </ErrorBoundary>
-      
-      <ErrorBoundary>
-        {activeTab === 'content' && <ContentView />}
-      </ErrorBoundary>
-      
-      <ErrorBoundary>
-        {activeTab === 'system' && <SystemView />}
-      </ErrorBoundary>
-      
-      <ErrorBoundary>
-        {activeTab === 'settings' && <SettingsView />}
-      </ErrorBoundary>
+        <ErrorBoundary>
+          {activeTab === 'reports' && <ReportsView />}
+        </ErrorBoundary>
+        
+        <ErrorBoundary>
+          {activeTab === 'users' && <UsersView />}
+        </ErrorBoundary>
+        
+        <ErrorBoundary>
+          {activeTab === 'business' && <BusinessView />}
+        </ErrorBoundary>
+        
+        <ErrorBoundary>
+          {activeTab === 'content' && <ContentView />}
+        </ErrorBoundary>
+        
+        <ErrorBoundary>
+          {activeTab === 'system' && <SystemView />}
+        </ErrorBoundary>
+        
+        <ErrorBoundary>
+          {activeTab === 'settings' && <SettingsView />}
+        </ErrorBoundary>
+      </main>
     </div>
   )
 }

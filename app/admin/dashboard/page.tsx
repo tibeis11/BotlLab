@@ -42,8 +42,8 @@ export default async function AdminDashboardPage() {
   return (
     <>
       <SkipLink />
-      <div className="min-h-screen bg-black text-white p-4 sm:p-6 md:p-12">
-        <div className="max-w-7xl mx-auto space-y-6 sm:space-y-10">
+      <div className="min-h-screen bg-black text-white p-4 sm:p-6 md:p-8">
+        <div className="w-full space-y-6 sm:space-y-10">
           <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6 border-b border-zinc-900 pb-6 sm:pb-8">
             <div>
               <div className="flex items-center gap-3 mb-2">
