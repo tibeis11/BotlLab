@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useRef, useState, useLayoutEffect } from "react";
+import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import LikeButton from "./LikeButton";
-import { Star, Heart, Tag, Clock } from "lucide-react";
+import { Star, Clock } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { de } from "date-fns/locale";
+import { ebcToHex } from "@/lib/brewing-calculations";
 
 interface BrewData {
     id: string;
@@ -15,186 +16,144 @@ interface BrewData {
     image_url: string | null;
     created_at: string;
     user_id: string;
+    abv?: number;
+    ibu?: number;
+    ebc?: number;
+    original_gravity?: number;
     moderation_status?: 'pending' | 'approved' | 'rejected';
     ratings?: { rating: number }[] | null;
     likes?: { count: number }[];
+    likes_count?: number; // Add this if it comes from some queries
     user_has_liked?: boolean;
-    brewery?: { id: string; name: string; logo_url?: string } | null;
+    brewery?: { id: string; name: string; team_name?: string; logo_url?: string } | null;
 }
 
 interface BrewCardProps {
-    brew: any; // Using any for flexibility during refactor, but preferably BrewData
-    currentUserId?: string; // To check if liked if not pre-calculated
-    forceVertical?: boolean; // when true, render desktop (vertical) layout even on small screens
+    brew: BrewData;
+    currentUserId?: string;
+    forceVertical?: boolean;
 }
 
 export default function BrewCard({ brew, currentUserId, forceVertical = false }: BrewCardProps) {
-  // Calculate Avg Rating
-  const ratings = brew.ratings || [];
-  const avgRating = ratings.length > 0 
-    ? Math.round((ratings.reduce((s:number, r:any) => s + r.rating, 0) / ratings.length) * 10) / 10
-    : null;
-
-  // Calculate Likes
-  // Note: Depending on how we fetch (in Discover vs Favorites), data shape might vary.
-  // For now, let's assume we pass enriched data OR handle defaults.
-  // If use client fetching:
-  const likeCount = brew.likes_count ?? (brew.likes ? brew.likes[0]?.count : 0);
-  const isLiked = brew.user_has_liked ?? false; // This needs to be populated by the parent query
-
-  const isPending = brew.moderation_status === 'pending';
-  const isRejected = brew.moderation_status === 'rejected';
-
-  // If rejected, usually we hide. BUT if it's a default image (safe), show it.
-  const isDefaultImage = brew.image_url && (brew.image_url.startsWith('/default_label/') || brew.image_url.startsWith('/brand/'));
-  const showImage = brew.image_url && (!isRejected || isDefaultImage);
-
     const router = useRouter();
-        const contentRef = useRef<HTMLDivElement | null>(null);
-        const [imageSize, setImageSize] = useState<number | null>(null);
-        const [isDesktop, setIsDesktop] = useState<boolean>(false);
 
-        useLayoutEffect(() => {
-            if (forceVertical) return; // when forcing vertical layout, don't measure / control image size
-            if (typeof window === 'undefined') return;
-            const mq = window.matchMedia('(min-width: 768px)');
-            const handleMq = () => {
-                setIsDesktop(mq.matches);
-            };
-            handleMq();
+    // Data Preparation
+    const ratings = brew.ratings || [];
+    const avgRating = ratings.length > 0 
+        ? Math.round((ratings.reduce((s, r) => s + r.rating, 0) / ratings.length) * 10) / 10
+        : null;
 
-            const el = contentRef.current;
-            if (!el) return;
+    const likeCount = brew.likes_count ?? (brew.likes?.[0]?.count ?? 0);
+    const isLiked = brew.user_has_liked ?? false;
 
-            const measure = () => {
-                // only measure when not desktop (small screens)
-                if (mq.matches) {
-                    setImageSize(null);
-                    return;
-                }
-                setImageSize(Math.round(el.getBoundingClientRect().height));
-            };
+    const isPending = brew.moderation_status === 'pending';
+    const isRejected = brew.moderation_status === 'rejected';
+    
+    // Show image logic
+    const isDefaultImage = brew.image_url && (brew.image_url.startsWith('/default_label/') || brew.image_url.startsWith('/brand/'));
+    const showImage = brew.image_url && (!isRejected || isDefaultImage);
 
-            measure();
-            let ro: ResizeObserver | null = null;
-            if (typeof ResizeObserver !== 'undefined') {
-                ro = new ResizeObserver(() => measure());
-                ro.observe(el);
-            }
+    // Event Handlers for nested interactables to prevent navigation
+    const handleBreweryClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (brew.brewery?.id) {
+            router.push(`/brewery/${brew.brewery.id}`);
+        }
+    };
 
-            window.addEventListener('resize', measure);
-            mq.addEventListener?.('change', handleMq);
+    return (
+        <Link href={`/brew/${brew.id}`} className="group relative block bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden transition-all hover:border-cyan-500 hover:shadow-xl hover:shadow-cyan-900/20 w-full sm:max-w-sm h-80">
+            {/* Background Image */}
+            {showImage && (
+                <img 
+                    src={brew.image_url!} 
+                    alt={brew.name} 
+                    className={`absolute inset-0 w-full h-full object-cover transition-all duration-300 ${isPending ? 'opacity-30 blur-md' : 'opacity-40 group-hover:opacity-50 group-hover:scale-105'}`}
+                />
+            )}
+            
+            {/* Blur & Gradient Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/70 to-transparent backdrop-blur-md [mask-image:linear-gradient(to_top,black_50%,transparent_100%)]" />
 
-            return () => {
-                if (ro) ro.disconnect();
-                window.removeEventListener('resize', measure);
-                mq.removeEventListener?.('change', handleMq);
-            };
-        }, [forceVertical, brew.name, brew.style, brew.brewery, brew.ratings, brew.likes_count]);
-
-        // When forcing vertical (used in horizontal scrollers), use a fixed card and label size
-        const imageClass = forceVertical
-            ? 'relative bg-zinc-950 overflow-hidden w-full aspect-square rounded-t-lg'
-            : 'relative bg-zinc-950 overflow-hidden flex-shrink-0 md:w-full md:aspect-square md:h-auto';
-        const imageStyle = forceVertical || isDesktop ? undefined : (imageSize ? { width: `${imageSize}px`, height: `${imageSize}px` } : { width: '120px', height: '120px' });
-
-        const containerClass = forceVertical
-            ? `bg-zinc-900 border rounded-2xl overflow-hidden transition-all flex flex-col items-stretch md:max-w-[340px] w-[280px] ${isPending ? 'border-yellow-900/50' : 'border-zinc-800 hover:border-cyan-600'}`
-            : `bg-zinc-900 border rounded-2xl overflow-hidden transition-all flex flex-row md:flex-col items-stretch md:max-w-[340px] w-full ${isPending ? 'border-yellow-900/50' : 'border-zinc-800 hover:border-cyan-600'}`;
-
-        return (
-            <Link href={`/brew/${brew.id}`} className="group relative block">
-                <div className={containerClass} style={{ minWidth: 0 }}>
-                {/* Image & Top Tags */}
-                                <div className={imageClass} style={imageStyle}>
-                    {showImage ? (
-                        <img 
-                            src={brew.image_url} 
-                            alt={brew.name} 
-                            className={`w-full h-full object-cover transition-opacity ${isPending ? 'opacity-40 blur-sm' : 'opacity-80 group-hover:opacity-100'}`}
-                        />
-                    ) : (
-                        <div className="w-full h-full flex items-center justify-center text-zinc-800">
-                            <span className="text-4xl opacity-20">🍺</span>
-                        </div>
-                    )}
-
-                    {/* Moderation Overlays */}
-                    {isPending && (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="bg-yellow-500/10 backdrop-blur-md border border-yellow-500/50 px-3 py-1.5 rounded-full flex items-center gap-2 text-yellow-500 text-xs font-bold uppercase tracking-wider">
-                                <Clock size={12} />
-                                Prüfung
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Top Left: Type Tag (desktop or forced-vertical) */}
-                    <div className={forceVertical ? 'absolute top-2 left-2 flex gap-1' : 'hidden md:flex absolute top-2 left-2 flex gap-1'}>
-                        <span className="bg-black/60 backdrop-blur text-white text-xs font-bold px-2 py-1 rounded-lg flex items-center gap-1">
-                            {brew.style || 'Unbekannter Stil'}
+            {/* Content Container */}
+            <div className="relative z-10 flex flex-col justify-between h-full p-4 text-white">
+                {/* Top Section: Badges & Moderation */}
+                <div>
+                    <div className="flex justify-between items-start">
+                        <span className="bg-black/50 backdrop-blur text-white text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5">
+                            {brew.style || 'Unbekannt'}
                         </span>
+                        {!isRejected && avgRating && (
+                            <div className="bg-black/50 backdrop-blur text-white text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5">
+                                <Star size={12} className="fill-yellow-400 text-yellow-400" />
+                                {avgRating.toFixed(1)}
+                            </div>
+                        )}
                     </div>
-
-                    {/* Top Right: Rating (desktop or forced-vertical) */}
-                    {!isRejected && avgRating && (
-                        <div className={forceVertical ? 'absolute top-2 right-2 flex gap-1' : 'hidden md:flex absolute top-2 right-2 flex gap-1'}>
-                            <div className="bg-black/60 backdrop-blur text-white text-xs font-bold px-2 py-1 rounded-lg flex items-center gap-1">
-                                <Star size={10} className="fill-yellow-500 text-yellow-500" />
-                                {avgRating}
+                    {isPending && (
+                        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
+                            <div className="bg-yellow-500/10 backdrop-blur-md border border-yellow-500/50 px-3 py-1.5 rounded-full flex items-center gap-2 text-yellow-500 text-sm font-bold uppercase tracking-wider">
+                                <Clock size={14} />
+                                In Prüfung
                             </div>
                         </div>
                     )}
                 </div>
 
-                {/* Content */}
-                <div ref={contentRef} className="p-3 flex flex-col flex-1 min-w-0">
-                    {/* Small-screen badges: style + rating, moved to content for space */}
-                    {!forceVertical && (
-                      <div className="flex items-center justify-between mb-2 md:hidden">
-                        <span className="bg-black/60 backdrop-blur text-white text-xs font-bold px-2 py-1 rounded-lg flex items-center gap-1">
-                            {brew.style || 'Unbekannter Stil'}
-                        </span>
-                        {!isRejected && avgRating && (
-                            <div className="bg-black/60 backdrop-blur text-white text-xs font-bold px-2 py-1 rounded-lg flex items-center gap-1">
-                                <Star size={12} className="fill-yellow-500 text-yellow-500" />
-                                {avgRating}
+                {/* Bottom Section: Info, Stats & Footer */}
+                <div className="text-left">
+                    {/* Title & Brewery */}
+                    <div>
+                        <h3 className="text-2xl font-bold text-white group-hover:text-cyan-300 transition-colors line-clamp-2 leading-tight">
+                            {brew.name}
+                        </h3>
+                        {brew.brewery && (
+                            <div 
+                                onClick={handleBreweryClick}
+                                className="inline-flex items-center gap-2 text-sm text-zinc-300 font-medium mt-1 hover:text-cyan-300 transition cursor-pointer"
+                            >
+                                {brew.brewery.logo_url ? (
+                                    <img src={brew.brewery.logo_url} alt={brew.brewery.name} className="w-5 h-5 rounded-full border border-zinc-700 object-cover" />
+                                ) : (
+                                    <span className="w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center text-xs">🏭</span>
+                                )}
+                                <span className="truncate max-w-[200px]">{brew.brewery.team_name || brew.brewery.name}</span>
                             </div>
                         )}
-                      </div>
-                    )}
+                    </div>
 
-                    <h3 className="text-base font-bold text-white group-hover:text-cyan-400 transition-colors line-clamp-2 mb-1">
-                        {brew.name}
-                    </h3>
+                    {/* Stats Section */}
+                    <div className="grid grid-cols-4 gap-2 mt-4">
+                        <StatBox 
+                            value={brew.ebc?.toFixed(1) ?? '-'} 
+                            unit="EBC"
+                            colorValue={brew.ebc ? ebcToHex(brew.ebc) : undefined}
+                        />
+                        <StatBox 
+                            value={brew.original_gravity?.toFixed(1) ?? '-'} 
+                            unit="°P" 
+                        />
+                        <StatBox 
+                            value={brew.ibu?.toFixed(0) ?? '-'} 
+                            unit="IBU" 
+                        />
+                        <StatBox 
+                            value={brew.abv?.toFixed(1) ?? '-'} 
+                            unit="%" 
+                            highlight
+                        />
+                    </div>
 
-                    {/* Brewery Team Info unter dem Namen, dezent */}
-                    {brew.brewery && (
-                        <button
-                            type="button"
-                            className="flex items-center gap-2 text-xs text-zinc-400 font-medium mb-2 hover:text-cyan-400 transition bg-transparent border-none p-0 cursor-pointer"
-                            onClick={e => {
-                                e.stopPropagation();
-                                router.push(`/brewery/${brew.brewery.id}`);
-                            }}
-                        >
-                            {brew.brewery.logo_url ? (
-                                <img src={brew.brewery.logo_url} alt={brew.brewery.name} className="w-4 h-4 rounded-full border border-zinc-700 object-cover" />
-                            ) : (
-                                <span className="w-4 h-4 rounded-full bg-zinc-800 flex items-center justify-center text-[11px]">🏭</span>
-                            )}
-                            <span className="truncate max-w-[90px]">{brew.brewery.team_name || brew.brewery.name}</span>
-                        </button>
-                    )}
-
-                    <div className="flex items-center justify-between mt-auto pt-2 border-t border-zinc-800">
-                        <span className="text-xs text-zinc-600">
+                    {/* Footer: Date & Like */}
+                    <div className="mt-4 flex items-center justify-between pt-3 border-t border-white/10">
+                        <span className="text-xs text-zinc-400 truncate">
                             {brew.created_at && !isNaN(new Date(brew.created_at).getTime())
                                 ? formatDistanceToNow(new Date(brew.created_at), { addSuffix: true, locale: de })
                                 : "-"}
                         </span>
-                        <div className="flex items-center gap-2">
-                            {/* LikeButton wieder klickbar */}
+                        
+                        <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
                             <LikeButton 
                                 brewId={brew.id} 
                                 initialCount={likeCount} 
@@ -205,5 +164,25 @@ export default function BrewCard({ brew, currentUserId, forceVertical = false }:
                 </div>
             </div>
         </Link>
-  );
+    );
 }
+
+// Helper component for stats
+const StatBox = ({ value, unit, colorValue, highlight = false }: { 
+    value: React.ReactNode;
+    unit: string;
+    colorValue?: string;
+    highlight?: boolean;
+}) => (
+    <div className={`bg-black/30 rounded-xl p-2 backdrop-blur-sm border ${highlight ? 'border-cyan-500/20' : 'border-white/10'} flex flex-col justify-center text-center h-full`}>
+        <div className="flex items-center justify-center gap-1.5">
+            {colorValue && (
+                <div className="w-2.5 h-2.5 rounded-full border border-black/50 shadow-sm" style={{ backgroundColor: colorValue }} />
+            )}
+            <p className={`text-xl font-bold tracking-tight ${highlight ? 'text-cyan-400' : 'text-white'}`}>
+                {value}
+            </p>
+        </div>
+        <p className="text-[9px] font-medium text-zinc-400 uppercase tracking-wider mt-0.5">{unit}</p>
+    </div>
+);

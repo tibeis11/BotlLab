@@ -16,7 +16,6 @@ import { saveBrewToLibrary } from '@/lib/actions/library-actions';
 import { useGlobalToast } from '@/app/context/AchievementNotificationContext';
 import { getPremiumStatus } from '@/lib/actions/premium-actions';
 import ReportButton from '@/app/components/reporting/ReportButton';
-import BrewDiscussionButton from '@/app/components/BrewDiscussionButton';
 import { getBrewTasteProfile, getBrewFlavorDistribution, TasteProfile, FlavorDistribution } from '@/lib/rating-analytics';
 import TasteRadarChart from './components/TasteRadarChart';
 import FlavorTagCloud from './components/FlavorTagCloud';
@@ -27,54 +26,7 @@ const formatMarkdown = (text: string) => {
   return text.replace(/([^\n])\n(\s*-[ \t])/g, '$1\n\n$2');
 };
 
-// Share Button Component (Local)
-function ShareButton({ brew }: { brew: any }) {
-    const [copied, setCopied] = useState(false);
-
-    const handleShare = async () => {
-        const shareData = {
-            title: `BotlLab: ${brew.name}`,
-            text: `Schau dir dieses Rezept an: ${brew.name} (${brew.style}).`,
-            url: window.location.href
-        };
-
-        if (navigator.share && /mobile|android|iphone/i.test(navigator.userAgent)) {
-             try {
-                 await navigator.share(shareData);
-             } catch (e) {
-                 console.log('Share cancelled');
-             }
-        } else {
-             // Desktop Fallback
-             try {
-                 await navigator.clipboard.writeText(window.location.href);
-                 setCopied(true);
-                 setTimeout(() => setCopied(false), 2000);
-             } catch (e) {
-                 console.error('Clipboard failed');
-             }
-        }
-    };
-
-    return (
-        <button 
-            onClick={handleShare}
-            className="w-full bg-zinc-900 border border-zinc-700/50 hover:border-zinc-500 text-zinc-300 hover:text-white rounded-2xl py-3 font-bold transition flex items-center justify-center gap-2 group mb-4"
-        >
-            {copied ? (
-                 <>
-                    <span>✅</span>
-                    <span>Link kopiert!</span>
-                 </>
-            ) : (
-                 <>
-                    <Users className="w-5 h-5 group-hover:scale-110 transition" />
-                    <span>Mit Freunden teilen</span>
-                 </>
-            )}
-        </button>
-    );
-}
+// Share Button logic is now integrated into the main component
 
 // Helper Component for Ingredients
 function MaltView({ value }: { value: any }) {
@@ -227,6 +179,7 @@ export default function BrewDetailPage() {
   const [errorMsg, setErrorMsg] = useState("");
   const [remixLoading, setRemixLoading] = useState(false);
   const [remixMessage, setRemixMessage] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const { showToast } = useGlobalToast();
 
@@ -238,6 +191,31 @@ export default function BrewDetailPage() {
   // Like System State
   const [likesCount, setLikesCount] = useState(0);
   const [userHasLiked, setUserHasLiked] = useState(false);
+
+  const handleShare = async () => {
+    const shareData = {
+        title: `BotlLab: ${brew.name}`,
+        text: `Schau dir dieses Rezept an: ${brew.name} (${brew.style}).`,
+        url: window.location.href
+    };
+
+    if (navigator.share && /mobile|android|iphone/i.test(navigator.userAgent)) {
+         try {
+             await navigator.share(shareData);
+         } catch (e) {
+             console.log('Share cancelled');
+         }
+    } else {
+         // Desktop Fallback
+         try {
+             await navigator.clipboard.writeText(window.location.href);
+             setCopied(true);
+             setTimeout(() => setCopied(false), 2000);
+         } catch (e) {
+             console.error('Clipboard failed');
+         }
+    }
+  };
 
   useEffect(() => {
     async function loadBreweries() {
@@ -559,37 +537,37 @@ export default function BrewDetailPage() {
                 {/* Badges Overlay */}
              </div>
 
-             {/* Share Button Component */}
-             <ShareButton brew={brew} />
-             
-             <div className="h-4"></div>
-             <div className="space-y-3 mb-6">
-                <BrewDiscussionButton brewId={brew.id} brewName={brew.name} />
-                {userBreweries.length > 0 && (
-                  <button
-                    onClick={() => handleSaveToTeam()}
-                    disabled={saveLoading}
-                    className="w-full bg-zinc-900 border border-zinc-700/50 hover:border-zinc-500 text-zinc-300 hover:text-white rounded-2xl py-3 font-bold transition flex items-center justify-center gap-2 group"
-                  >
-                    {saveLoading ? 'Wird gespeichert...' : (
-                      <>
-                        <Library className="w-5 h-5 group-hover:scale-110 transition" />
-                        <span>Zur Team-Bibliothek</span>
-                      </>
-                    )}
-                  </button>
-                )}
-                <button
-                  onClick={handleRemix}
-                  disabled={remixLoading}
-                  className="group w-full relative overflow-hidden rounded-2xl bg-gradient-to-br from-cyan-500 via-blue-600 to-purple-600 p-[1px] shadow-lg shadow-cyan-500/20 transition-all hover:shadow-cyan-500/40 hover:scale-[1.01] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
+             {/* Action Buttons */}
+             <div className="flex justify-around gap-2 text-zinc-300">
+                <button 
+                    onClick={handleShare}
+                    title={copied ? "Link kopiert!" : "Mit Freunden teilen"}
+                    className="h-14 w-14 flex items-center justify-center bg-zinc-900 border border-zinc-700/50 hover:border-zinc-500 hover:text-white rounded-full transition"
                 >
-                  <div className="relative h-full w-full bg-zinc-950/40 group-hover:bg-transparent transition-colors rounded-2xl py-4 flex items-center justify-center gap-3 backdrop-blur-sm">
-                    <Shuffle className="w-5 h-5 text-white" />
-                    <span className="font-black text-white uppercase tracking-widest text-sm drop-shadow-md">
-                      {remixLoading ? 'Wird kopiert...' : 'Rezept remixen'}
-                    </span>
-                  </div>
+                    {copied ? <span className="text-lg">✅</span> : <Users className="w-5 h-5" />}
+                </button>
+                <Link 
+                    href={`/forum/t/new?brew_id=${brew.id}&title=Diskussion%20zu%20${encodeURIComponent(brew.name)}`}
+                    title="Rezept diskutieren"
+                    className="h-14 w-14 flex items-center justify-center bg-zinc-900 border border-zinc-700/50 hover:border-zinc-500 hover:text-white rounded-full transition"
+                >
+                    <MessageCircle className="w-5 h-5" />
+                </Link>
+                <button
+                    onClick={() => handleSaveToTeam()}
+                    disabled={saveLoading || userBreweries.length === 0}
+                    title={userBreweries.length > 0 ? "Zur Team-Bibliothek" : "Du musst Mitglied einer Brauerei sein"}
+                    className="h-14 w-14 flex items-center justify-center bg-zinc-900 border border-zinc-700/50 hover:border-zinc-500 hover:text-white rounded-full transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    {saveLoading ? <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-zinc-400"></div> : <Library className="w-5 h-5" />}
+                </button>
+                <button
+                    onClick={handleRemix}
+                    disabled={remixLoading}
+                    title="Rezept remixen"
+                    className="h-14 w-14 flex items-center justify-center bg-gradient-to-br from-cyan-500 to-blue-600 text-white rounded-full transition hover:opacity-90 disabled:opacity-50"
+                >
+                    {remixLoading ? <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-white"></div> : <Shuffle className="w-5 h-5" />}
                 </button>
              </div>
 

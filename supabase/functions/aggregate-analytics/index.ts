@@ -288,19 +288,21 @@ async function aggregateDailyMetrics(supabase: any, specificDate?: string) {
   const { count: publicBrews } = await supabase
     .from('brews')
     .select('id', { count: 'exact', head: true })
-    .eq('visibility', 'public')
+    .eq('is_public', true)
     .lte('created_at', `${dateStr}T23:59:59.999`)
 
   const { count: privateBrews } = await supabase
     .from('brews')
     .select('id', { count: 'exact', head: true })
-    .eq('visibility', 'private')
+    .eq('is_public', false)
+    .is('brewery_id', null)
     .lte('created_at', `${dateStr}T23:59:59.999`)
 
   const { count: teamBrews } = await supabase
     .from('brews')
     .select('id', { count: 'exact', head: true })
-    .eq('visibility', 'team')
+    .eq('is_public', false)
+    .not('brewery_id', 'is', null)
     .lte('created_at', `${dateStr}T23:59:59.999`)
 
   const { count: totalSessions } = await supabase

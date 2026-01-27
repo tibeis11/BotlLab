@@ -100,8 +100,8 @@ export default function SystemView() {
       </div>
 
       {/* Error Tracking */}
-      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
-        <h3 className="text-xl font-bold text-white mb-4">❌ Error-Rate</h3>
+      <div className="bg-black border border-zinc-800 rounded-lg p-6">
+        <h3 className="text-sm font-medium text-white mb-6">Error Rate</h3>
         <LineChart
           data={data.systemStats.slice(0, 48).reverse()}
           xKey="hour"
@@ -111,37 +111,37 @@ export default function SystemView() {
 
       {/* System Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
-          <h3 className="text-xl font-bold text-white mb-4">📡 API Calls/Stunde</h3>
+        <div className="bg-black border border-zinc-800 rounded-lg p-6">
+          <h3 className="text-sm font-medium text-white mb-6">API Calls (Hourly)</h3>
           <BarChart
             data={data.systemStats.slice(0, 24).reverse()}
             xKey="hour"
-            yKeys={[{ key: 'api_calls_count', color: '#06b6d4', label: 'API Calls' }]}
+            yKeys={[{ key: 'api_calls_count', color: '#333', label: 'API Calls' }]} 
           />
         </div>
 
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
-          <h3 className="text-xl font-bold text-white mb-4">👥 Aktive User/Stunde</h3>
+        <div className="bg-black border border-zinc-800 rounded-lg p-6">
+          <h3 className="text-sm font-medium text-white mb-6">Active Users (Hourly)</h3>
           <BarChart
             data={data.systemStats.slice(0, 24).reverse()}
             xKey="hour"
-            yKeys={[{ key: 'active_users_count', color: '#10b981', label: 'User' }]}
+            yKeys={[{ key: 'active_users_count', color: '#fff', label: 'User' }]}
           />
         </div>
       </div>
 
       {/* Feature Usage */}
-      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
-        <h3 className="text-xl font-bold text-white mb-4">🔧 Feature-Nutzung (letzte 7 Tage)</h3>
+      <div className="bg-black border border-zinc-800 rounded-lg p-6">
+        <h3 className="text-sm font-medium text-white mb-6">Feature Usage (7d)</h3>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm border-collapse">
             <thead>
-              <tr className="border-b border-zinc-800">
-                <th className="text-left py-3 px-4 text-zinc-400 font-medium">Feature</th>
-                <th className="text-left py-3 px-4 text-zinc-400 font-medium">Kategorie</th>
-                <th className="text-right py-3 px-4 text-zinc-400 font-medium">Gesamt</th>
-                <th className="text-right py-3 px-4 text-zinc-400 font-medium">Unique Users</th>
-                <th className="text-right py-3 px-4 text-zinc-400 font-medium">Success Rate</th>
+              <tr className="border-b border-zinc-800 text-left">
+                <th className="py-3 px-4 text-zinc-500 font-medium">Feature</th>
+                <th className="py-3 px-4 text-zinc-500 font-medium">Category</th>
+                <th className="text-right py-3 px-4 text-zinc-500 font-medium">Total</th>
+                <th className="text-right py-3 px-4 text-zinc-500 font-medium">Unique Users</th>
+                <th className="text-right py-3 px-4 text-zinc-500 font-medium">Success Rate</th>
               </tr>
             </thead>
             <tbody>

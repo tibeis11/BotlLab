@@ -93,34 +93,34 @@ export default function OverviewView() {
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* User Growth */}
-        <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800">
-          <h3 className="text-lg font-bold text-white mb-4">User Growth</h3>
+        <div className="bg-black border border-zinc-800 rounded-lg p-6">
+          <h3 className="text-sm font-medium text-white mb-6">User Growth</h3>
           <LineChart
             data={userGrowth}
             xKey="date"
             yKeys={[
-              { key: 'newUsers', color: '#06b6d4', label: 'Neue User' },
-              { key: 'totalUsers', color: '#8b5cf6', label: 'Gesamt' }
+              { key: 'newUsers', color: '#0070f3', label: 'New Users' }, // Vercel Blue
+              { key: 'totalUsers', color: '#666', label: 'Total' }
             ]}
           />
         </div>
 
         {/* Content Growth */}
-        <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800">
-          <h3 className="text-lg font-bold text-white mb-4">Content Erstellung</h3>
+        <div className="bg-black border border-zinc-800 rounded-lg p-6">
+          <h3 className="text-sm font-medium text-white mb-6">Content Creation</h3>
           <BarChart
             data={contentStats.slice(-14)}
             xKey="date"
             yKeys={[
-              { key: 'brews_created_today', color: '#f59e0b', label: 'Brews' },
-              { key: 'sessions_created_today', color: '#10b981', label: 'Sessions' }
+              { key: 'brews_created_today', color: '#fff', label: 'Brews' },
+              { key: 'sessions_created_today', color: '#333', label: 'Sessions' }
             ]}
           />
         </div>
 
         {/* Feature Usage */}
-        <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800">
-          <h3 className="text-lg font-bold text-white mb-4">Feature Nutzung</h3>
+        <div className="bg-black border border-zinc-800 rounded-lg p-6">
+          <h3 className="text-sm font-medium text-white mb-6">Feature Usage</h3>
           <PieChart
             data={featureUsage}
             nameKey="name"
@@ -129,25 +129,26 @@ export default function OverviewView() {
         </div>
 
         {/* Rating Distribution */}
-        <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800">
-          <h3 className="text-lg font-bold text-white mb-4">Rating Verteilung</h3>
+        <div className="bg-black border border-zinc-800 rounded-lg p-6">
+          <h3 className="text-sm font-medium text-white mb-6">Ratings</h3>
           <BarChart
             data={ratingDist}
             xKey="name"
             yKeys={[
-              { key: 'value', color: '#ec4899', label: 'Anzahl' }
+              { key: 'value', color: '#0070f3', label: 'Count' }
             ]}
           />
         </div>
       </div>
 
       {/* System Health Quick Stats */}
-      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
-        <h3 className="text-lg font-bold text-white mb-4">System Health</h3>
+      <div className="bg-black border border-zinc-800 rounded-lg p-6">
+        <h3 className="text-sm font-medium text-white mb-6">System Health</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           <div>
-            <p className="text-zinc-500 text-sm mb-1">Errors (24h)</p>
-            <p className="text-2xl font-black text-white">{summary?.errorCount || 0}</p>
+            <p className="text-xs text-zinc-500 uppercase mb-1">Errors (24h)</p>
+            <p className="text-2xl font-mono text-white">{summary?.errorCount || 0}</p>
+
           </div>
           <div>
             <p className="text-zinc-500 text-sm mb-1">Avg Rating</p>

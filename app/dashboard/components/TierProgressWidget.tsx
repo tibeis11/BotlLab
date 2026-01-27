@@ -70,7 +70,7 @@ export default function TierProgressWidget() {
   const isMaxTier = !nextTier;
 
   return (
-    <div className="bg-gradient-to-br from-cyan-900/20 to-blue-900/10 border border-cyan-500/20 rounded-3xl p-6 shadow-xl relative overflow-hidden">
+    <div className="bg-gradient-to-br from-cyan-900/20 to-blue-900/10 border border-cyan-500/20 rounded-3xl p-4 md:p-6 shadow-xl relative overflow-hidden">
       <div 
         className="absolute inset-0 opacity-10 blur-3xl pointer-events-none"
         style={{ background: `radial-gradient(circle at top right, ${currentConfig.color}, transparent)` }}
@@ -80,14 +80,14 @@ export default function TierProgressWidget() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div 
-              className="w-20 h-20 rounded-2xl flex items-center justify-center shadow-2xl p-0.5"
+              className="w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center shadow-2xl p-0.5"
               style={{ backgroundColor: `${currentConfig.color}20`, borderColor: `${currentConfig.color}40`, borderWidth: 1 }}
             >
               <img src={currentConfig.avatarPath} alt="Current" className="w-full h-full object-cover rounded-xl" />
             </div>
             <div>
               <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Dein Ruf</div>
-              <h3 className="text-3xl font-black text-white leading-none">{currentConfig.displayName}</h3>
+              <h3 className="text-2xl md:text-3xl font-black text-white leading-none">{currentConfig.displayName}</h3>
               <p className="text-sm text-zinc-400 mt-1 flex items-center gap-1">
                  <span style={{ color: currentConfig.color }}>●</span> Aktiver Status
               </p>
@@ -113,7 +113,7 @@ export default function TierProgressWidget() {
         )}
 
         {!isMaxTier && nextTier && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-2 md:gap-3">
             <RequirementCard
               label="Tage aktiv"
               current={tierData.daysActive}
@@ -188,7 +188,7 @@ function RequirementCard({ label, current, required, icon, color }: { label: str
 
   return (
     <div 
-      className="relative rounded-2xl p-3 transition-all duration-300 overflow-hidden group"
+      className="relative rounded-xl md:rounded-2xl p-2 md:p-3 transition-all duration-300 overflow-hidden group"
       style={{
         background: `linear-gradient(135deg, ${cardColor}15, ${cardColor}05)`,
         border: `1px solid ${cardColor}30`,
@@ -197,18 +197,18 @@ function RequirementCard({ label, current, required, icon, color }: { label: str
     >
       <div className="relative z-10 flex flex-col items-center text-center">
         <div 
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-lg shadow-lg mb-2"
+            className="w-6 h-6 md:w-8 md:h-8 rounded-lg flex items-center justify-center text-sm md:text-lg shadow-lg mb-1 md:mb-2"
             style={{ backgroundColor: `${cardColor}30` }}
         >
           {icon}
         </div>
         
-        <div className="text-[10px] uppercase font-bold tracking-wider text-zinc-400 mb-0.5 whitespace-nowrap">
+        <div className="text-[9px] md:text-[10px] uppercase font-bold tracking-wider text-zinc-400 mb-0.5 whitespace-nowrap">
             {label}
         </div>
         
-        <div className="text-lg font-black text-white mb-2 leading-none">
-            {current} <span className="text-zinc-500 text-[10px] font-normal">/ {required}</span>
+        <div className="text-sm md:text-lg font-black text-white mb-1.5 md:mb-2 leading-none">
+            {current} <span className="text-zinc-500 text-[9px] md:text-[10px] font-normal">/ {required}</span>
         </div>
         
         <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">

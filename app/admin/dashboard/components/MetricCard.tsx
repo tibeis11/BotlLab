@@ -19,17 +19,17 @@ export default function MetricCard({ title, value, change, subValue, icon, trend
 
   return (
     <article 
-      className="bg-zinc-900 rounded-xl p-4 sm:p-6 border border-zinc-800 hover:border-zinc-700 transition-all"
+      className="bg-black rounded-lg p-5 border border-zinc-800 hover:border-zinc-600 transition-colors"
       role="region"
       aria-label={`${title} metric`}
     >
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1 min-w-0">
-          <h3 className="text-zinc-500 text-xs sm:text-sm font-bold mb-2 uppercase tracking-wide truncate">{title}</h3>
-          <p className="text-2xl sm:text-4xl font-black text-white break-words">{value}</p>
+          <h3 className="text-zinc-500 text-xs font-medium uppercase tracking-wider mb-1 truncate">{title}</h3>
+          <p className="text-3xl font-medium text-white tracking-tight break-words font-mono">{value}</p>
         </div>
         {icon && (
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-zinc-800 flex items-center justify-center text-xl sm:text-2xl flex-shrink-0 ml-2" aria-hidden="true">
+          <div className="text-zinc-500 text-lg ml-4 opacity-50">
             {icon}
           </div>
         )}

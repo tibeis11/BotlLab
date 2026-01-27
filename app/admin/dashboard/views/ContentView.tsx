@@ -98,20 +98,20 @@ export default function ContentView() {
       </div>
 
       {/* Content Growth */}
-      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
-        <h3 className="text-xl font-bold text-white mb-4">📈 Content-Wachstum</h3>
+      <div className="bg-black border border-zinc-800 rounded-lg p-6">
+        <h3 className="text-sm font-medium text-white mb-6">Content Growth</h3>
         <LineChart
           data={data.contentStats.slice(0, 30).reverse()}
           xKey="date"
-          yKeys={[{ key: 'brews_created_today', color: '#06b6d4', label: 'Neue Brews' }]}
+          yKeys={[{ key: 'brews_created_today', color: '#0070f3', label: 'New Brews' }]}
         />
       </div>
 
       {/* Charts Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Visibility Distribution */}
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
-          <h3 className="text-xl font-bold text-white mb-4">🔒 Sichtbarkeit</h3>
+        <div className="bg-black border border-zinc-800 rounded-lg p-6">
+          <h3 className="text-sm font-medium text-white mb-6">Visibility</h3>
           <PieChart
             data={[
               { name: 'Public', value: data.latestStats.public_brews || 0 },
@@ -124,8 +124,8 @@ export default function ContentView() {
         </div>
 
         {/* Rating Distribution */}
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
-          <h3 className="text-xl font-bold text-white mb-4">⭐ Rating-Verteilung</h3>
+        <div className="bg-black border border-zinc-800 rounded-lg p-6">
+          <h3 className="text-sm font-medium text-white mb-6">Ratings</h3>
           <PieChart
             data={data.ratingDist}
             nameKey="label"
@@ -135,17 +135,17 @@ export default function ContentView() {
       </div>
 
       {/* Top Brews */}
-      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
-        <h3 className="text-xl font-bold text-white mb-4">🏆 Top Brews (nach Bottles)</h3>
+      <div className="bg-black border border-zinc-800 rounded-lg p-6">
+        <h3 className="text-sm font-medium text-white mb-6">Top Brews (by Bottles)</h3>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-zinc-800">
-                <th className="text-left py-3 px-4 text-zinc-400 font-medium">#</th>
-                <th className="text-left py-3 px-4 text-zinc-400 font-medium">Name</th>
-                <th className="text-left py-3 px-4 text-zinc-400 font-medium">Stil</th>
-                <th className="text-center py-3 px-4 text-zinc-400 font-medium">Sichtbarkeit</th>
-                <th className="text-right py-3 px-4 text-zinc-400 font-medium">Bottles</th>
+              <tr className="border-b border-zinc-800 text-left">
+                <th className="py-3 px-4 text-zinc-500 font-medium">#</th>
+                <th className="py-3 px-4 text-zinc-500 font-medium">Name</th>
+                <th className="py-3 px-4 text-zinc-500 font-medium">Style</th>
+                <th className="text-center py-3 px-4 text-zinc-500 font-medium">Visibility</th>
+                <th className="text-right py-3 px-4 text-zinc-500 font-medium">Bottles</th>
               </tr>
             </thead>
             <tbody>

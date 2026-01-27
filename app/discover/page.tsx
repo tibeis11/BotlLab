@@ -14,6 +14,10 @@ type Brew = {
   created_at: string;
   user_id: string;
   brew_type?: string | null;
+  abv?: number;
+  ibu?: number;
+  ebc?: number;
+  original_gravity?: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data?: any;
   remix_parent_id?: string | null;
@@ -22,6 +26,7 @@ type Brew = {
   ratings?: { rating: number }[] | null;
   likes_count?: number; 
   user_has_liked?: boolean;
+  brewery?: { id: string; name: string; team_name?: string; logo_url?: string } | null;
 };
 
 export default function DiscoverPage() {
@@ -45,7 +50,7 @@ export default function DiscoverPage() {
     // 2. Fetch public brews
     const { data, error } = await supabase
       .from('brews')
-      .select('id,name,style,image_url,created_at,user_id,brew_type,data,remix_parent_id,moderation_status,breweries(name,logo_url),ratings(rating),likes_count')
+      .select('id,name,style,image_url,created_at,user_id,brew_type,data,remix_parent_id,moderation_status,breweries!left(id,name,logo_url),ratings(rating),likes_count')
       .eq('is_public', true)
       .order('created_at', { ascending: false });
     
@@ -53,7 +58,16 @@ export default function DiscoverPage() {
       console.error('Error loading brews:', JSON.stringify(error, null, 2));
     }
 
-    let brewsData = (data || []) as Brew[];
+    let brewsData = (data || []).map(b => {
+      return {
+        ...b,
+        abv: b.data?.abv ? parseFloat(b.data.abv) : undefined,
+        ibu: b.data?.ibu ? parseInt(b.data.ibu, 10) : undefined,
+        ebc: b.data?.color ? parseInt(b.data.color, 10) : undefined,
+        original_gravity: b.data?.original_gravity || b.data?.og || b.data?.plato ? parseFloat(String(b.data.original_gravity || b.data.og || b.data.plato)) : undefined,
+        brewery: Array.isArray(b.breweries) ? b.breweries[0] : b.breweries,
+      };
+    }) as Brew[];
 
     // 3. If logged in, cross-reference likes
     if (user) {
@@ -67,14 +81,12 @@ export default function DiscoverPage() {
       brewsData = brewsData.map(b => ({
         ...b,
         user_has_liked: likedIds.has(b.id),
-        brewery: b.breweries ? { name: b.breweries.name, logo_url: b.breweries.logo_url } : undefined
       }));
     } else {
       // For guests, none are liked
       brewsData = brewsData.map(b => ({
         ...b,
         user_has_liked: false,
-        brewery: b.breweries ? { name: b.breweries.name, logo_url: b.breweries.logo_url } : undefined
       }));
     }
     

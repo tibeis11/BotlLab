@@ -396,7 +396,7 @@ export async function getTopBrews(limit: number = 10) {
   // Fetch brew details
   const { data: brews } = await supabase
     .from('brews')
-    .select('id, name, style, visibility, created_at')
+    .select('id, name, style, is_public, created_at')
     .in('id', topBrewIds)
 
   if (!brews) return []
@@ -404,6 +404,7 @@ export async function getTopBrews(limit: number = 10) {
   // Combine with counts
   return brews.map((brew) => ({
     ...brew,
+    visibility: brew.is_public ? 'public' : 'private', // Map for UI compatibility
     bottle_count: brewCounts[brew.id] || 0,
   }))
 }

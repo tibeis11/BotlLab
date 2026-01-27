@@ -33,13 +33,40 @@ export default function BusinessView() {
         ? breweryStats.reduce((sum, stat) => sum + (stat.active_members || 0), 0) / breweryStats.length 
         : 0
 
+      // Aggregate stats per brewery for the Top Table
+      const breweryAggregation: Record<string, any> = {};
+      
+      breweryStats.forEach((stat: any) => {
+          if (!breweryAggregation[stat.brewery_id]) {
+              breweryAggregation[stat.brewery_id] = {
+                  brewery_id: stat.brewery_id,
+                  members_count: stat.members_count || 0, // Assuming this is snapshot data, take max or latest? Usually snapshot is stable per day.
+                  brews_count: 0, // Sum up daily activity
+                  sessions_count: 0,
+                  bottles_scanned: 0
+              };
+          }
+          // Use Math.max for snapshot values like members
+          breweryAggregation[stat.brewery_id].members_count = Math.max(breweryAggregation[stat.brewery_id].members_count, stat.members_count || 0);
+          
+          // Sum up activity metrics
+          breweryAggregation[stat.brewery_id].brews_count += (stat.brews_count || 0);
+          breweryAggregation[stat.brewery_id].sessions_count += (stat.sessions_count || 0);
+          breweryAggregation[stat.brewery_id].bottles_scanned += (stat.bottles_scanned || 0);
+      });
+
+      const topBreweries = Object.values(breweryAggregation)
+          .sort((a: any, b: any) => b.sessions_count - a.sessions_count)
+          .slice(0, 10);
+
       setData({
         summary,
         breweryStats,
         growthChart,
         totalSessions,
         totalScans,
-        avgActiveMembers
+        avgActiveMembers,
+        topBreweries
       })
     } catch (error) {
       console.error('Failed to load business data:', error)
@@ -103,71 +130,68 @@ export default function BusinessView() {
       </div>
 
       {/* Brewery Growth Chart */}
-      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
-        <h3 className="text-xl font-bold text-white mb-4">📈 Brewery-Wachstum</h3>
+      <div className="bg-black border border-zinc-800 rounded-lg p-6">
+        <h3 className="text-sm font-medium text-white mb-6">Growth</h3>
         <LineChart
           data={data.growthChart}
           xKey="date"
-          yKeys={[{ key: 'newBreweries', color: '#06b6d4', label: 'Neue Brauereien' }]}
+          yKeys={[{ key: 'newBreweries', color: '#0070f3', label: 'New Breweries' }]}
         />
       </div>
 
       {/* Activity Charts */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
-          <h3 className="text-xl font-bold text-white mb-4">🍺 Sessions pro Tag</h3>
+        <div className="bg-black border border-zinc-800 rounded-lg p-6">
+          <h3 className="text-sm font-medium text-white mb-6">Sessions / Day</h3>
           <BarChart
             data={data.breweryStats.slice(0, 14).reverse()}
             xKey="date"
-            yKeys={[{ key: 'sessions_count', color: '#06b6d4', label: 'Sessions' }]}
+            yKeys={[{ key: 'sessions_count', color: '#fff', label: 'Sessions' }]}
           />
         </div>
 
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
-          <h3 className="text-xl font-bold text-white mb-4">📱 Bottle Scans pro Tag</h3>
+        <div className="bg-black border border-zinc-800 rounded-lg p-6">
+          <h3 className="text-sm font-medium text-white mb-6">Bottle Scans / Day</h3>
           <BarChart
             data={data.breweryStats.slice(0, 14).reverse()}
             xKey="date"
-            yKeys={[{ key: 'bottles_scanned', color: '#10b981', label: 'Scans' }]}
+            yKeys={[{ key: 'bottles_scanned', color: '#333', label: 'Scans' }]}
           />
         </div>
       </div>
 
       {/* Top Performing Breweries */}
-      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
-        <h3 className="text-xl font-bold text-white mb-4">🏆 Top Brauereien (nach Aktivität)</h3>
+      <div className="bg-black border border-zinc-800 rounded-lg p-6">
+        <h3 className="text-sm font-medium text-white mb-6">Top Breweries</h3>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-zinc-800">
-                <th className="text-left py-3 px-4 text-zinc-400 font-medium">#</th>
-                <th className="text-left py-3 px-4 text-zinc-400 font-medium">Brewery ID</th>
-                <th className="text-right py-3 px-4 text-zinc-400 font-medium">Mitglieder</th>
-                <th className="text-right py-3 px-4 text-zinc-400 font-medium">Brews</th>
-                <th className="text-right py-3 px-4 text-zinc-400 font-medium">Sessions</th>
-                <th className="text-right py-3 px-4 text-zinc-400 font-medium">Scans</th>
+              <tr className="border-b border-zinc-800 text-left">
+                <th className="py-3 px-4 text-zinc-500 font-medium">#</th>
+                <th className="py-3 px-4 text-zinc-500 font-medium">Brewery ID</th>
+                <th className="text-right py-3 px-4 text-zinc-500 font-medium">Members</th>
+                <th className="text-right py-3 px-4 text-zinc-500 font-medium">Brews</th>
+                <th className="text-right py-3 px-4 text-zinc-500 font-medium">Sessions</th>
+                <th className="text-right py-3 px-4 text-zinc-500 font-medium">Scans</th>
               </tr>
             </thead>
             <tbody>
-              {data.breweryStats
-                .sort((a: any, b: any) => (b.sessions_count || 0) - (a.sessions_count || 0))
-                .slice(0, 10)
-                .map((stat: any, index: number) => (
-                  <tr key={stat.brewery_id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
+              {data.topBreweries.map((stat: any, index: number) => (
+                  <tr key={stat.brewery_id} className="border-b border-zinc-800 last:border-0 hover:bg-zinc-900/50">
                     <td className="py-3 px-4 text-zinc-500">{index + 1}</td>
-                    <td className="py-3 px-4 font-mono text-xs text-cyan-400">
+                    <td className="py-3 px-4 font-mono text-xs text-white">
                       {stat.brewery_id.slice(0, 8)}...
                     </td>
-                    <td className="py-3 px-4 text-right text-white font-medium">
+                    <td className="py-3 px-4 text-right text-white font-mono">
                       {stat.members_count || 0}
                     </td>
-                    <td className="py-3 px-4 text-right text-white font-medium">
+                    <td className="py-3 px-4 text-right text-white font-mono">
                       {stat.brews_count || 0}
                     </td>
-                    <td className="py-3 px-4 text-right text-white font-bold">
+                    <td className="py-3 px-4 text-right text-white font-mono">
                       {stat.sessions_count || 0}
                     </td>
-                    <td className="py-3 px-4 text-right text-green-400 font-medium">
+                    <td className="py-3 px-4 text-right text-white font-mono">
                       {stat.bottles_scanned || 0}
                     </td>
                   </tr>
@@ -178,15 +202,12 @@ export default function BusinessView() {
       </div>
 
       {/* Premium Insights */}
-      <div className="bg-gradient-to-br from-purple-900/20 to-pink-900/20 border border-purple-800/50 rounded-xl p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <span className="text-2xl">💎</span>
-          <h3 className="text-xl font-bold text-white">Premium Insights</h3>
-        </div>
+      <div className="bg-black border border-zinc-800 rounded-lg p-6">
+        <h3 className="text-sm font-medium text-white mb-6">Premium Insights</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-black/30 rounded-lg p-4">
-            <p className="text-xs text-zinc-400 uppercase mb-1">Premium Conversion</p>
-            <p className="text-2xl font-bold text-purple-400">Coming Soon</p>
+          <div className="p-4 border border-zinc-800 rounded-md">
+            <p className="text-xs text-zinc-500 uppercase mb-2">Premium Conversion</p>
+            <p className="text-xl font-mono text-white">Coming Soon</p>
           </div>
           <div className="bg-black/30 rounded-lg p-4">
             <p className="text-xs text-zinc-400 uppercase mb-1">Ø Revenue / Brewery</p>

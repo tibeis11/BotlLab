@@ -34,11 +34,11 @@ export default function DashboardTabs({ activeTab, onTabChange }: DashboardTabsP
               role="tab"
               aria-selected={isActive}
               aria-label={`${tab.label} tab`}
-              className={`w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 font-semibold text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-400 ${
-                isActive ? 'bg-cyan-500/10 text-cyan-300 border border-cyan-800' : 'text-zinc-400 hover:bg-zinc-900/40'
+              className={`w-full text-left px-3 py-2 rounded-md flex items-center gap-3 font-medium text-sm transition-all outline-none focus-visible:ring-2 focus-visible:ring-white/20 ${
+                isActive ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
               }`}
             >
-              <Icon className="w-5 h-5" aria-hidden="true" />
+              <Icon className="w-4 h-4" aria-hidden="true" />
               <span className="truncate">{tab.label}</span>
             </button>
           )

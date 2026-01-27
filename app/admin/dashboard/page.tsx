@@ -42,30 +42,35 @@ export default async function AdminDashboardPage() {
   return (
     <>
       <SkipLink />
-      <div className="min-h-screen bg-black text-white p-4 sm:p-6 md:p-8">
-        <div className="w-full space-y-6 sm:space-y-10">
-          <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6 border-b border-zinc-900 pb-6 sm:pb-8">
+      <div className="min-h-screen bg-black text-white p-4 sm:p-6 md:p-8 font-sans antialiased">
+        <div className="max-w-[1600px] mx-auto w-full space-y-8">
+          <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800 pb-6">
             <div>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-3 h-3 rounded-full bg-cyan-500 animate-pulse"></div>
-                <h1 className="text-2xl sm:text-3xl font-black bg-gradient-to-r from-white to-zinc-500 bg-clip-text text-transparent">
-                  Mission Control
+              <div className="flex items-center gap-3 mb-1">
+                <h1 className="text-2xl font-bold text-white tracking-tight">
+                  Overview
                 </h1>
+                <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-zinc-800 text-zinc-400 border border-zinc-700 uppercase tracking-wide">
+                  Admin
+                </span>
               </div>
-              <p className="text-sm sm:text-base text-zinc-500 font-medium">BotlLab Analytics & Insights</p>
+              <p className="text-sm text-zinc-500">BotlLab Analytics & Insights</p>
             </div>
             
             <div className="flex items-center gap-4">
               <div className="text-right hidden md:block">
-                <p className="text-xs uppercase font-bold text-zinc-600 tracking-widest">Environment</p>
-                <p className="text-zinc-300 font-mono text-sm">Production</p>
+                <p className="text-[10px] uppercase font-bold text-zinc-600 tracking-wider mb-0.5">Environment</p>
+                <div className="flex items-center gap-1.5 justify-end">
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                    <p className="text-zinc-300 font-mono text-xs">Production</p>
+                </div>
               </div>
-              <div className="h-10 w-px bg-zinc-800 hidden md:block"></div>
+              <div className="h-8 w-px bg-zinc-800 hidden md:block"></div>
               <a 
                 href="/dashboard" 
-                className="bg-zinc-900 hover:bg-zinc-800 text-white px-4 sm:px-5 py-2.5 rounded-xl font-bold border border-zinc-800 transition flex items-center gap-2 text-xs sm:text-sm"
+                className="bg-black hover:bg-zinc-900 text-zinc-300 hover:text-white px-4 py-2 rounded-md text-sm font-medium border border-zinc-800 transition-colors flex items-center gap-2"
               >
-                <span>⬅️</span> <span className="hidden sm:inline">App</span>
+                <span>←</span> <span className="hidden sm:inline">Back to App</span>
               </a>
             </div>
           </header>
