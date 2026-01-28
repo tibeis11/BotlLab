@@ -15,6 +15,10 @@ interface TrendingBrew {
     user_id: string;
     brewery: { id: string, name: string, logo_url: string | null };
     likes_count: number;
+    abv?: number;
+    ibu?: number;
+    ebc?: number;
+    original_gravity?: number;
 }
 
 export default function DiscoverWidget() {
@@ -28,7 +32,7 @@ export default function DiscoverWidget() {
                 
                 const { data, error } = await supabase
                     .from('brews')
-                    .select('id,name,style,image_url,created_at,user_id,likes_count,breweries(id,name,logo_url,moderation_status)')
+                    .select('id,name,style,image_url,created_at,user_id,likes_count,data,breweries(id,name,logo_url,moderation_status)')
                     .eq('is_public', true)
                     .neq('moderation_status', 'pending') 
                     .order('likes_count', { ascending: false }) 
@@ -45,6 +49,10 @@ export default function DiscoverWidget() {
                     created_at: b.created_at,
                     user_id: b.user_id,
                     likes_count: b.likes_count || 0,
+                    abv: b.data?.abv ? parseFloat(b.data.abv) : undefined,
+                    ibu: b.data?.ibu ? parseInt(b.data.ibu, 10) : undefined,
+                    ebc: b.data?.color ? parseInt(b.data.color, 10) : undefined,
+                    original_gravity: b.data?.original_gravity || b.data?.og || b.data?.plato ? parseFloat(String(b.data.original_gravity || b.data.og || b.data.plato)) : undefined,
                     brewery: {
                         id: b.breweries?.id || '',
                         name: b.breweries?.name || 'Unbekannt',

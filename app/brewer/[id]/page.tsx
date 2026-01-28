@@ -55,19 +55,13 @@ export default function PublicBrewerPage() {
        // 2. Sude laden (nur wenn Profil gefunden wurde)
        const { data: brewsData } = await supabase
           .from('brews')
-          .select('*, data') // Include 'data' column
+          .select('*')
           .eq('user_id', id)
           .eq('is_public', true)
           .order('created_at', { ascending: false });
        
        if (brewsData) {
-         setBrews(brewsData.map((b: any) => ({ // Map to include specific data properties
-            ...b,
-            abv: b.data?.abv ? parseFloat(b.data.abv) : undefined,
-            ibu: b.data?.ibu ? parseInt(b.data.ibu, 10) : undefined,
-            ebc: b.data?.color ? parseInt(b.data.color, 10) : undefined,
-            original_gravity: b.data?.original_gravity || b.data?.og || b.data?.plato ? parseFloat(String(b.data.original_gravity || b.data.og || b.data.plato)) : undefined,
-         })));
+         setBrews(brewsData);
          
          // 3. Bewertungen für alle Rezepte laden
          const ratingsMap: {[key: string]: {avg: number, count: number}} = {};
@@ -269,6 +263,10 @@ export default function PublicBrewerPage() {
                       key={brew.id}
                       brew={{
                         ...brew,
+                        abv: brew.data?.abv ? parseFloat(brew.data.abv) : undefined,
+                        ibu: brew.data?.ibu ? parseInt(brew.data.ibu, 10) : undefined,
+                        ebc: brew.data?.color ? parseInt(brew.data.color, 10) : undefined,
+                        original_gravity: brew.data?.original_gravity || brew.data?.og || brew.data?.plato ? parseFloat(String(brew.data.original_gravity || brew.data.og || brew.data.plato)) : undefined,
                         brewery: profile ? {
                           id: profile.id,
                           name: profile.display_name,

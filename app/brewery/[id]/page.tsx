@@ -67,50 +67,37 @@ export default function PublicBreweryPage({ params }: { params: Promise<{ id: st
         }
 
         // 3. Öffentliche Rezepte laden
-        let query = supabase
-          .from('brews')
-          .select('*, data, bottles(count)') // Include 'data' column
-          .eq('brewery_id', breweryId);
+        const { data: brewsData } = await supabase
+            .from('brews')
+            .select('*')
+            .eq('brewery_id', id)
+            .eq('is_public', true)
+            .neq('moderation_status', 'pending') // Hide pending, show rest (approved or rejected defaults)
+            .order('created_at', { ascending: false });
 
-        const { data: brewsData, error } = await query;
+        if (brewsData) {
+            setBrews(brewsData);
 
-        if (error) throw error;
-        setBrews(data.map((b: any) => ({ // Map to include specific data properties
-            ...b,
-            abv: b.data?.abv ? parseFloat(b.data.abv) : undefined,
-            ibu: b.data?.ibu ? parseInt(b.data.ibu, 10) : undefined,
-            ebc: b.data?.color ? parseInt(b.data.color, 10) : undefined,
-            original_gravity: b.data?.original_gravity || b.data?.og || b.data?.plato ? parseFloat(String(b.data.original_gravity || b.data.og || b.data.plato)) : undefined,
-        })) || []);
-
-        // 4. Ratings für die Rezepte holen
-        const ratingsMap: {[key: string]: {avg: number, count: number}} = {};
+            // 4. Ratings für die Rezepte holen
+            const ratingsMap: {[key: string]: {avg: number, count: number}} = {};
             
-        // Parallel fetch ratings to save time
-        await Promise.all(brewsData.map(async (brew) => {
-            const { data: ratings } = await supabase
-                .from('ratings')
-                .select('rating')
-                .eq('brew_id', brew.id)
-                .eq('moderation_status', 'auto_approved'); // Nur bestätigte Bewertungen
+            // Parallel fetch ratings to save time
+            await Promise.all(brewsData.map(async (brew) => {
+                const { data: ratings } = await supabase
+                    .from('ratings')
+                    .select('rating')
+                    .eq('brew_id', brew.id)
+                    .eq('moderation_status', 'auto_approved'); // Nur bestätigte Bewertungen
 
-            if (ratings && ratings.length > 0) {
-                const avg = ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length;
-                ratingsMap[brew.id] = {
-                    avg: Math.round(avg * 10) / 10,
-                    count: ratings.length
-                };
-            }
-        }));
-        setBrewRatings(ratingsMap);
-        // Load Premium Status for the brewery (based on OWNER subscription)
-        const { data: premiumStatus } = await supabase
-          .from('breweries')
-          .select('premium_status')
-          .eq('id', breweryId);
-
-        if (premiumStatus && premiumStatus[0]?.premium_status) {
-          setBrewery(prev => ({ ...prev, premium_status: premiumStatus[0].premium_status }));
+                if (ratings && ratings.length > 0) {
+                    const avg = ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length;
+                    ratingsMap[brew.id] = {
+                        avg: Math.round(avg * 10) / 10,
+                        count: ratings.length
+                    };
+                }
+            }));
+            setBrewRatings(ratingsMap);
         }
 
     } catch (err) {
@@ -269,6 +256,10 @@ export default function PublicBreweryPage({ params }: { params: Promise<{ id: st
                       key={brew.id}
                       brew={{
                         ...brew,
+                        abv: brew.data?.abv ? parseFloat(brew.data.abv) : undefined,
+                        ibu: brew.data?.ibu ? parseInt(brew.data.ibu, 10) : undefined,
+                        ebc: brew.data?.color ? parseInt(brew.data.color, 10) : undefined,
+                        original_gravity: brew.data?.original_gravity || brew.data?.og || brew.data?.plato ? parseFloat(String(brew.data.original_gravity || brew.data.og || brew.data.plato)) : undefined,
                         brewery: brewery ? {
                           id: brewery.id,
                           name: brewery.name,

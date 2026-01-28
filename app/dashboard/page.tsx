@@ -182,19 +182,26 @@ function DashboardContent() {
 
 				const { data: recents } = await supabase
 					.from('brews')
-					.select('*, data') // Include 'data' column
+					.select('*')
 					.eq('brewery_id', brewery.id)
 					.order('created_at', { ascending: false })
 					.limit(3);
 				
 				if (recents) {
-					setRecentBrews(recents.map((b: any) => ({ // Map to include specific data properties
-                        ...b,
-                        abv: b.data?.abv ? parseFloat(b.data.abv) : undefined,
-                        ibu: b.data?.ibu ? parseInt(b.data.ibu, 10) : undefined,
-                        ebc: b.data?.color ? parseInt(b.data.color, 10) : undefined,
-                        original_gravity: b.data?.original_gravity || b.data?.og || b.data?.plato ? parseFloat(String(b.data.original_gravity || b.data.og || b.data.plato)) : undefined,
-                    })));
+					setRecentBrews(recents);
+					const ratingsMap: {[key: string]: {avg: number, count: number}} = {};
+					for (const b of recents) {
+						const { data: ratings } = await supabase
+							.from('ratings')
+							.select('rating')
+							.eq('brew_id', b.id)
+							.eq('moderation_status', 'auto_approved');
+						if (ratings && ratings.length > 0) {
+							const avg = ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length;
+							ratingsMap[b.id] = { avg: Math.round(avg * 10) / 10, count: ratings.length };
+						}
+					}
+					setBrewRatings(ratingsMap);
 				}
 
                 // 4. Feed für Dashboard laden (Mini Preview)
