@@ -55,13 +55,19 @@ export default function PublicBrewerPage() {
        // 2. Sude laden (nur wenn Profil gefunden wurde)
        const { data: brewsData } = await supabase
           .from('brews')
-          .select('*')
+          .select('*, data') // Include 'data' column
           .eq('user_id', id)
           .eq('is_public', true)
           .order('created_at', { ascending: false });
        
        if (brewsData) {
-         setBrews(brewsData);
+         setBrews(brewsData.map((b: any) => ({ // Map to include specific data properties
+            ...b,
+            abv: b.data?.abv ? parseFloat(b.data.abv) : undefined,
+            ibu: b.data?.ibu ? parseInt(b.data.ibu, 10) : undefined,
+            ebc: b.data?.color ? parseInt(b.data.color, 10) : undefined,
+            original_gravity: b.data?.original_gravity || b.data?.og || b.data?.plato ? parseFloat(String(b.data.original_gravity || b.data.og || b.data.plato)) : undefined,
+         })));
          
          // 3. Bewertungen für alle Rezepte laden
          const ratingsMap: {[key: string]: {avg: number, count: number}} = {};
