@@ -35,7 +35,7 @@ export async function getBreweryPremiumStatus(breweryId: string): Promise<Premiu
       .eq("role", "owner")
       .limit(1);
 
-    if (error || !members || members.length === 0) {
+    if (error || !members || members.length === 0 || !members[0].user_id) {
         return null;
     }
 
