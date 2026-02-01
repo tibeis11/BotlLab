@@ -38,6 +38,11 @@ export default function NotificationBell() {
       if (n.type === 'forum_reply' || n.type === 'forum_mention') {
           return `/forum/thread/${n.data.thread_id}`;
       }
+      if (n.type === 'image_approved' || n.type === 'image_rejected') {
+          if (n.data.type === 'brew') return `/brew/${n.data.id}`;
+          return `/brewery/${n.data.id}`;
+      }
+      if (n.type === 'report_resolved') return '#';
       return '#';
   };
 
@@ -59,6 +64,24 @@ export default function NotificationBell() {
               return (
                   <span>
                        <span className="font-bold text-white">{n.actor?.display_name || 'Jemand'}</span> hat dich in <span className="text-emerald-400">"{n.data.thread_title || 'Unbekannt'}"</span> mit <span className="text-blue-400 font-bold bg-blue-500/10 px-1 rounded text-[10px] inline-block">@Autor</span> erwähnt.
+                  </span>
+              );
+          case 'image_approved':
+              return (
+                  <span>
+                      🎉 Dein Bild für <span className="font-bold text-white">{n.data.name}</span> wurde genehmigt und ist jetzt live.
+                  </span>
+              );
+          case 'image_rejected':
+              return (
+                  <span>
+                      ⚠️ Dein Bild für <span className="font-bold text-white">{n.data.name}</span> wurde abgelehnt: <span className="text-amber-500 italic">"{n.data.reason}"</span>.
+                  </span>
+              );
+          case 'report_resolved':
+              return (
+                  <span>
+                      👮 Update zu deiner Meldung: Wir haben den Fall geprüft und Maßnahmen ergriffen. Danke für deine Mithilfe!
                   </span>
               );
           default:

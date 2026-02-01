@@ -129,6 +129,12 @@ export async function checkAndGrantAchievements(userId: string) {
   const newAchievements = toGrant.filter(id => !existingIds.has(id));
 
   if (newAchievements.length > 0) {
+    const { data: session } = await supabase.auth.getSession();
+    if (!session?.session) {
+      console.warn('Cannot grant achievements: No active session');
+      return [];
+    }
+
     const { error } = await supabase
       .from('user_achievements')
       .insert(

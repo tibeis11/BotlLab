@@ -1,43 +1,79 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="de">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Dein Bild konnte nicht veröffentlicht werden — BotlLab</title>
-    <style>
-      body{margin:0;padding:0;background:#ffffff;font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Arial;color:#0f1720}
-      .button{display:inline-block;padding:12px 20px;background:#0ea5a5;color:#041018;font-weight:700;border-radius:10px;text-decoration:none}
-      img{border:0}
-    </style>
-  </head>
-  <body>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bild abgelehnt — BotlLab</title>
+  <style>
+    body { margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+    .wrapper { width: 100%; background-color: #f8fafc; padding: 40px 0; }
+    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .header { background-color: #f8fafc; padding: 32px; border-bottom: 1px solid #e2e8f0; }
+    .content { padding: 40px; }
+    .heading { font-size: 24px; font-weight: 700; color: #0f172a; margin: 0 0 16px 0; letter-spacing: -0.025em; }
+    .text { font-size: 15px; line-height: 1.6; color: #475569; margin: 0 0 24px 0; }
+    .button-container { text-align: left; margin-top: 32px; }
+    .button { display: inline-block; background-color: #000000; color: #ffffff; font-weight: 600; font-size: 14px; padding: 14px 32px; border-radius: 6px; text-decoration: none; }
+    .footer { padding: 24px; background-color: #f8fafc; text-align: center; border-top: 1px solid #f1f5f9; }
+    .footer-text { font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0; }
+    
+    .status-badge { display: inline-block; padding: 4px 12px; background-color: #fef2f2; color: #b91c1c; border: 1px solid #fee2e2; border-radius: 100px; font-size: 12px; font-weight: 700; margin-bottom: 16px; }
+    .reason-box { background-color: #fff7ed; border: 1px solid #fed7aa; border-radius: 6px; padding: 16px; margin-bottom: 24px; }
+    .reason-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #9a3412; font-weight: 700; margin-bottom: 4px; display: block; }
+    .reason-text { color: #7c2d12; font-size: 14px; margin: 0; }
+
+    @media only screen and (max-width: 600px) {
+      .content { padding: 24px !important; }
+      .wrapper { padding: 0 !important; }
+      .container { border-radius: 0 !important; box-shadow: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-      <tr><td align="center" style="padding:28px 16px">
-        <table width="620" style="max-width:100%">
-          <tr><td style="background:#fff;border-radius:12px;padding:28px;box-shadow:0 6px 30px rgba(2,6,23,0.06)">
+      <tr>
+        <td align="center">
+          <div class="container">
+            <!-- Header -->
+            <div class="header">
+               <a href="https://botllab.de" target="_blank">
+                  <img src="https://botllab.de/brand/logo_withName.svg" alt="BotlLab" width="140" style="display: block; opacity: 0.9;">
+               </a>
+            </div>
 
-            <a href="https://botllab.de" target="_blank"><img src="https://botllab.de/brand/logo_withName.svg" alt="BotlLab" width="200" style="display:block;margin-bottom:18px"/></a>
+            <!-- Content -->
+            <div class="content">
+              <span class="status-badge">Abgelehnt</span>
+              <h1 class="heading">Bild nicht veröffentlicht</h1>
+              <p class="text">
+                 Leider entspricht dein Bild für <strong>{{itemName}}</strong> nicht unseren Richtlinien.
+              </p>
+              
+              <div class="reason-box">
+                 <span class="reason-label">Begründung</span>
+                 <p class="reason-text">{{moderatorNote}}</p>
+              </div>
 
-            <h1 style="margin:0 0 8px;font-size:20px;color:#041018">Dein Bild konnte nicht veröffentlicht werden</h1>
-            <p style="margin:0 0 14px;color:#334155;font-size:15px">Leider entspricht dein hochgeladenes Bild für <strong>{{itemName}}</strong> nicht unseren Richtlinien und wurde abgelehnt.</p>
-
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:12px 0">
-              <tr><td style="padding:12px;border-radius:10px;background:#fff7ed;border:1px solid rgba(245,158,11,0.06)">
-                <p style="margin:0;color:#0f1720;font-size:14px"><strong>Grund:</strong> {{moderatorNote}}</p>
-                <p style="margin:6px 0 0;color:#475569;font-size:13px">Du kannst das Bild anpassen und erneut hochladen. Achte auf unsere Veröffentlichungsrichtlinien.</p>
-              </td></tr>
-            </table>
-
-            <p style="margin:16px 0 0"><a href="{{editUrl}}" class="button" target="_blank">Bild bearbeiten / erneut hochladen</a></p>
-
-            <p style="margin:18px 0 0;color:#64748b;font-size:13px">Bei Fragen antworte bitte auf diese E-Mail oder kontaktiere uns unter <a href="mailto:info@botllab.de">info@botllab.de</a>.</p>
-
-            <hr style="border:none;border-top:1px solid rgba(15,23,32,0.06);margin:20px 0" />
-            <p style="margin:0;color:#94a3b8;font-size:12px">BotlLab • https://botllab.de</p>
-
-          </td></tr>
-        </table>
-      </td></tr>
+              <p class="text">
+                 Du kannst das Bild korrigieren und erneut hochladen.
+              </p>
+              
+              <div class="button-container">
+                <a href="{{editUrl}}" class="button" target="_blank">Bild bearbeiten</a>
+              </div>
+            </div>
+             
+             <!-- Footer -->
+             <div class="footer">
+                <p class="footer-text">
+                  BotlLab • <a href="https://botllab.de" target="_blank" style="color: #94a3b8; text-decoration: none;">botllab.de</a>
+                </p>
+             </div>
+          </div>
+        </td>
+      </tr>
     </table>
-  </body>
+  </div>
+</body>
 </html>

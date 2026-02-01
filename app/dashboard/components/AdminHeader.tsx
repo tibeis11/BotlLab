@@ -1,6 +1,27 @@
 'use client';
 
 import Link from 'next/link';
+import { 
+  Beer, 
+  FlaskConical, 
+  Factory, 
+  Globe, 
+  LayoutDashboard, 
+  LogOut, 
+  Menu, 
+  MessageSquare, 
+  Package, 
+  Search, 
+  Settings, 
+  Tag, 
+  Thermometer, 
+  TrendingUp, 
+  Users, 
+  X,
+  Medal,
+  Heart,
+  Trophy
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import Logo from '../../components/Logo';
@@ -144,9 +165,9 @@ export default function AdminHeader() {
   }
 
   const tabs = [
-    { name: 'Sammlung', path: '/dashboard/collection', icon: '🏅' },
-    { name: 'Favoriten', path: '/dashboard/favorites', icon: '❤️' },
-    { name: 'Achievements', path: '/dashboard/achievements', icon: '🏆' },
+    { name: 'Sammlung', path: '/dashboard/collection', icon: FlaskConical },
+    { name: 'Favoriten', path: '/dashboard/favorites', icon: Heart },
+    { name: 'Achievements', path: '/dashboard/achievements', icon: Trophy },
   ];
 
   return (
@@ -171,7 +192,7 @@ export default function AdminHeader() {
                   title="Entdecken"
                   className={`rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${pathname.startsWith('/discover') ? 'text-cyan-400' : 'text-zinc-500 hover:text-white'}`}
               >
-                  <span>🌍</span>
+                  <Globe className="w-4 h-4" />
                   <span className="hidden xl:inline">Entdecken</span>
                   <span className="text-[10px] ml-1">▼</span>
               </button>
@@ -183,20 +204,22 @@ export default function AdminHeader() {
                                   href="/discover" 
                                   className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
                               >
-                                  <span>🍺</span>
+                                  <Beer className="w-4 h-4" />
                                   <span>Rezepte</span>
                               </Link>
                               <Link 
                                   href="/forum" 
                                   className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
                               >
-                                  <span>💬</span>
+                                  <MessageSquare className="w-4 h-4" />
                                   <span>Forum</span>
                               </Link>
                           </div>
                   </div>
               )}
             </div>
+
+            {/* Label Studio Link */}
 
             {/* Team Dropdown */}
             {breweryId && (
@@ -209,7 +232,7 @@ export default function AdminHeader() {
                     title="Team"
                     className={`rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${pathname.startsWith('/team') ? 'text-cyan-400' : 'text-zinc-500 hover:text-white'}`}
                   >
-                      <span>🏭</span>
+                      <Factory className="w-4 h-4" />
                       <span className="hidden xl:inline">Team</span>
                       <span className="text-[10px] ml-1">▼</span>
                   </button>
@@ -223,7 +246,7 @@ export default function AdminHeader() {
                                    href={`/team/${breweryId}`}
                                    className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-300 hover:text-white hover:bg-zinc-900 rounded-lg"
                                >
-                                   <span>📊</span> <span>Team-Dashboard</span>
+                                   <LayoutDashboard className="w-4 h-4" /> <span>Team-Dashboard</span>
                                </Link>
                                
                                <div className="h-px bg-zinc-800 my-1 mx-2"></div>
@@ -233,31 +256,38 @@ export default function AdminHeader() {
                                    href={`/team/${breweryId}/feed`}
                                    className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
                                >
-                                   <span>💬</span> <span>Feed</span>
+                                   <MessageSquare className="w-4 h-4" /> <span>Feed</span>
                                </Link>
                                <Link 
                                    href={`/team/${breweryId}/brews`}
                                    className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
                                >
-                                   <span>🍺</span> <span>Rezepte</span>
+                                   <Beer className="w-4 h-4" /> <span>Rezepte</span>
                                </Link>
                                <Link 
                                    href={`/team/${breweryId}/sessions`}
                                    className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
                                >
-                                   <span>🌡️</span> <span>Sessions</span>
+                                   <Thermometer className="w-4 h-4" /> <span>Sessions</span>
                                </Link>
                                <Link 
-                                   href={`/team/${breweryId}/inventory`}
+                                     href={`/team/${breweryId}/inventory`}
+                                     className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
+                                   >
+                                     <Package className="w-4 h-4" /> <span>Inventar</span>
+                               </Link>
+                               <Link
+                                   href={`/team/${breweryId}/labels`}
                                    className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
+                                   title="Etiketten"
                                >
-                                   <span>📦</span> <span>Inventar</span>
+                                   <Tag className="w-4 h-4" /> <span>Etiketten</span>
                                </Link>
                                <Link 
                                    href={`/team/${breweryId}/analytics`}
                                    className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
                                >
-                                   <span>📈</span> <span>Analytics</span>
+                                   <TrendingUp className="w-4 h-4" /> <span>Analytics</span>
                                </Link>
                                
                                <div className="h-px bg-zinc-800 my-1 mx-2"></div>
@@ -267,13 +297,13 @@ export default function AdminHeader() {
                                    href={`/team/${breweryId}/members`}
                                    className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
                                >
-                                   <span>👥</span> <span>Mitglieder</span>
+                                   <Users className="w-4 h-4" /> <span>Mitglieder</span>
                                </Link>
                                <Link 
                                    href={`/team/${breweryId}/settings`}
                                    className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
                                >
-                                   <span>⚙️</span> <span>Einstellungen</span>
+                                   <Settings className="w-4 h-4" /> <span>Einstellungen</span>
                                </Link>
 
                                {userBreweries.length > 1 && (
@@ -311,7 +341,7 @@ export default function AdminHeader() {
             title="Dashboard"
             className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${pathname === '/dashboard' ? 'bg-cyan-950/50 text-cyan-400' : 'text-zinc-500 hover:text-white hover:bg-zinc-800/50'}`}
           >
-            <span>📊</span>
+            <LayoutDashboard className="w-4 h-4" />
             <span className="hidden xl:inline">Dashboard</span>
           </Link>
 
@@ -328,7 +358,7 @@ export default function AdminHeader() {
                 title={tab.name}
                 className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${isActive ? 'bg-cyan-950/50 text-cyan-400' : 'text-zinc-500 hover:text-white hover:bg-zinc-800/50'}`}
               >
-                <span>{tab.icon}</span>
+                <tab.icon className="w-4 h-4" />
                 <span className="hidden xl:inline">{tab.name}</span>
               </Link>
             );
@@ -374,7 +404,7 @@ export default function AdminHeader() {
                     href="/dashboard/account"
                     className="block w-full px-4 py-3 text-white hover:bg-zinc-800 transition text-sm font-medium flex items-center gap-2"
                   >
-                    ⚙️ Einstellungen
+                    <Settings className="w-4 h-4" /> Einstellungen
                   </Link>
 
                   {userId && (
@@ -383,7 +413,7 @@ export default function AdminHeader() {
                       target="_blank"
                       className="block w-full px-4 py-3 text-white hover:bg-zinc-800 transition text-sm font-medium flex items-center gap-2"
                     >
-                      🌐 Öffentliches Profil
+                      <Globe className="w-4 h-4" /> Öffentliches Profil
                     </Link>
                   )}
 
@@ -391,7 +421,7 @@ export default function AdminHeader() {
                     onClick={handleLogout}
                     className="block w-full px-4 py-3 text-red-400 hover:bg-zinc-800 transition text-sm font-medium flex items-center gap-2 text-left border-t border-zinc-800"
                   >
-                    🚪 Abmelden
+                    <LogOut className="w-4 h-4" /> Abmelden
                   </button>
                 </div>
               </div>
@@ -456,21 +486,21 @@ export default function AdminHeader() {
                       onClick={() => setMobileTab('personal')}
                       className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${mobileTab === 'personal' ? 'bg-zinc-800 text-white shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
                     >
-                      <span className={mobileTab === 'personal' ? 'grayscale-0' : 'grayscale'}>🧪</span>
+                      <FlaskConical className={`w-4 h-4 ${mobileTab === 'personal' ? 'grayscale-0' : 'grayscale'}`} />
                       Labor
                     </button>
                     <button 
                       onClick={() => setMobileTab('team')}
                       className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${mobileTab === 'team' ? 'bg-cyan-950 text-cyan-400 shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
                     >
-                      <span>🏭</span>
+                      <Factory className="w-4 h-4" />
                       Brauerei
                     </button>
                     <button 
                       onClick={() => setMobileTab('discover')}
                       className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${mobileTab === 'discover' ? 'bg-purple-900/50 text-purple-300 shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
                     >
-                      <span>🌍</span>
+                      <Globe className="w-4 h-4" />
                       Entdecken
                     </button>
                </div>
@@ -489,7 +519,7 @@ export default function AdminHeader() {
                           className="block bg-gradient-to-br from-zinc-800 to-zinc-900 border border-zinc-700 p-5 rounded-2xl relative overflow-hidden group"
                        >
                           <div className="absolute right-0 top-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                             <span className="text-6xl">📊</span>
+                             <LayoutDashboard className="w-16 h-16" />
                           </div>
                           <p className="text-xs text-zinc-400 uppercase font-black tracking-widest mb-1">Übersicht</p>
                           <h3 className="text-2xl font-black text-white mb-2">Dashboard</h3>
@@ -510,7 +540,7 @@ export default function AdminHeader() {
                                    onClick={() => setIsMobileMenuOpen(false)}
                                    className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
                                 >
-                                   <span className="text-xl">{tab.icon}</span>
+                                   <tab.icon className="w-5 h-5" />
                                    <span className="font-bold text-sm text-zinc-200">{tab.name}</span>
                                    <span className="ml-auto text-zinc-600">→</span>
                                 </Link>
@@ -531,7 +561,9 @@ export default function AdminHeader() {
                                         <p className="text-[10px] text-cyan-400 font-black uppercase tracking-widest mb-1">Aktives Team</p>
                                         <h3 className="text-xl font-bold text-white leading-tight">{activeBreweryName}</h3>
                                      </div>
-                                     <span className="bg-cyan-500/10 text-cyan-400 p-2 rounded-lg">🏭</span>
+                                     <div className="bg-cyan-500/10 text-cyan-400 p-2 rounded-lg">
+                                        <Factory className="w-5 h-5" />
+                                     </div>
                                   </div>
                                   
                                   <Link 
@@ -552,7 +584,7 @@ export default function AdminHeader() {
                                       onClick={() => setIsMobileMenuOpen(false)}
                                       className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
                                      >
-                                        <span className="text-xl">💬</span>
+                                        <MessageSquare className="w-5 h-5 text-zinc-400" />
                                         <span className="font-bold text-sm text-zinc-200">Feed</span>
                                         <span className="ml-auto text-zinc-600">→</span>
                                      </Link>
@@ -561,7 +593,7 @@ export default function AdminHeader() {
                                       onClick={() => setIsMobileMenuOpen(false)}
                                       className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
                                      >
-                                        <span className="text-xl">🍺</span>
+                                        <Beer className="w-5 h-5 text-zinc-400" />
                                         <span className="font-bold text-sm text-zinc-200">Rezepte</span>
                                         <span className="ml-auto text-zinc-600">→</span>
                                      </Link>
@@ -570,7 +602,7 @@ export default function AdminHeader() {
                                       onClick={() => setIsMobileMenuOpen(false)}
                                       className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
                                      >
-                                        <span className="text-xl">🌡️</span>
+                                        <Thermometer className="w-5 h-5 text-zinc-400" />
                                         <span className="font-bold text-sm text-zinc-200">Sessions</span>
                                         <span className="ml-auto text-zinc-600">→</span>
                                      </Link>
@@ -579,8 +611,18 @@ export default function AdminHeader() {
                                       onClick={() => setIsMobileMenuOpen(false)}
                                       className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
                                      >
-                                        <span className="text-xl">📦</span>
+                                        <Package className="w-5 h-5 text-zinc-400" />
                                         <span className="font-bold text-sm text-zinc-200">Inventar</span>
+                                        <span className="ml-auto text-zinc-600">→</span>
+                                     </Link>
+                                     <Link
+                                      href={`/team/${breweryId}/labels`}
+                                      onClick={() => setIsMobileMenuOpen(false)}
+                                      className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
+                                      title="Etiketten"
+                                     >
+                                        <Tag className="w-5 h-5 text-zinc-400" />
+                                        <span className="font-bold text-sm text-zinc-200">Etiketten</span>
                                         <span className="ml-auto text-zinc-600">→</span>
                                      </Link>
                                      <Link
@@ -588,7 +630,7 @@ export default function AdminHeader() {
                                       onClick={() => setIsMobileMenuOpen(false)}
                                       className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
                                      >
-                                        <span className="text-xl">📈</span>
+                                        <TrendingUp className="w-5 h-5 text-zinc-400" />
                                         <span className="font-bold text-sm text-zinc-200">Analytics</span>
                                         <span className="ml-auto text-zinc-600">→</span>
                                      </Link>
@@ -597,7 +639,7 @@ export default function AdminHeader() {
                                       onClick={() => setIsMobileMenuOpen(false)}
                                       className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
                                      >
-                                        <span className="text-xl">👥</span>
+                                        <Users className="w-5 h-5 text-zinc-400" />
                                         <span className="font-bold text-sm text-zinc-200">Mitglieder</span>
                                         <span className="ml-auto text-zinc-600">→</span>
                                      </Link>
@@ -606,7 +648,7 @@ export default function AdminHeader() {
                                       onClick={() => setIsMobileMenuOpen(false)}
                                       className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
                                      >
-                                        <span className="text-xl">⚙️</span>
+                                        <Settings className="w-5 h-5 text-zinc-400" />
                                         <span className="font-bold text-sm text-zinc-200">Einstellungen</span>
                                         <span className="ml-auto text-zinc-600">→</span>
                                      </Link>
@@ -633,8 +675,8 @@ export default function AdminHeader() {
                                )}
                              </>
                          ) : (
-                             <div className="text-center py-12 px-6 bg-zinc-900/30 rounded-2xl border border-zinc-800 border-dashed">
-                                 <span className="text-4xl mb-4 block opacity-50">🏚️</span>
+                             <div className="text-center py-12 px-6 bg-zinc-900/30 rounded-2xl border border-zinc-800 border-dashed flex flex-col items-center">
+                                 <Factory className="w-10 h-10 opacity-50 mb-4" />
                                  <h3 className="font-bold text-white mb-2">Kein Team</h3>
                                  <p className="text-sm text-zinc-500 mb-6">Du bist aktuell keinem Brauerei-Team zugeordnet.</p>
                                  <Link
@@ -658,7 +700,9 @@ export default function AdminHeader() {
                                     <p className="text-[10px] text-purple-400 font-black uppercase tracking-widest mb-1">BotlLab Community</p>
                                     <h3 className="text-xl font-bold text-white leading-tight">Entdecken</h3>
                                  </div>
-                                 <span className="bg-purple-500/10 text-purple-400 p-2 rounded-lg">🌍</span>
+                                 <div className="bg-purple-500/10 text-purple-400 p-2 rounded-lg">
+                                    <Globe className="w-5 h-5" />
+                                 </div>
                               </div>
                               <p className="text-sm text-zinc-400 mb-4">Finde Inspiration, tausche dich aus und entdecke neue Rezepte.</p>
                         </div>
@@ -671,7 +715,7 @@ export default function AdminHeader() {
                                     onClick={() => setIsMobileMenuOpen(false)}
                                     className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
                                 >
-                                    <span className="text-xl">🌍</span>
+                                    <Globe className="w-5 h-5 text-zinc-400" />
                                     <span className="font-bold text-sm text-zinc-200">Rezepte</span>
                                     <span className="ml-auto text-zinc-600">→</span>
                                 </Link>
@@ -680,7 +724,7 @@ export default function AdminHeader() {
                                     onClick={() => setIsMobileMenuOpen(false)}
                                     className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
                                 >
-                                    <span className="text-xl">💬</span>
+                                    <MessageSquare className="w-5 h-5 text-zinc-400" />
                                     <span className="font-bold text-sm text-zinc-200">Forum</span>
                                     <span className="ml-auto text-zinc-600">→</span>
                                 </Link>
@@ -710,7 +754,7 @@ export default function AdminHeader() {
                        onClick={() => setIsMobileMenuOpen(false)}
                        className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-white transition"
                     >
-                       ⚙️
+                       <Settings className="w-5 h-5" />
                     </Link>
                 </div>
                )}
@@ -719,7 +763,7 @@ export default function AdminHeader() {
                 onClick={() => { handleLogout(); setIsMobileMenuOpen(false); }}
                 className="w-full flex items-center justify-center gap-2 p-3 rounded-xl text-xs font-bold text-red-400/80 hover:bg-red-500/10 hover:text-red-400 transition"
                >
-                <span>🚪</span> Abmelden
+                <LogOut className="w-4 h-4" /> Abmelden
                </button>
          </div>
           </div>

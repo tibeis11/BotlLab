@@ -1,12 +1,42 @@
 'use server';
 
-import { createClient } from '@supabase/supabase-js'; 
-// However, since we might not have a clean server-client setup in lib/supabase.ts (it might be client-side only), 
-// let's check lib/supabase.ts first to see if it exports a helper, or just use process.env directly.
+import { createAdminClient } from '@/lib/supabase-server';
+import { NotificationType } from '@/app/context/UserNotificationContext';
 
-/*
- * This is a placeholder for the server-side email dispatch logic.
- * It is called when a key event happens (New Brew within a Team).
+interface CreateNotificationOptions {
+    userId: string;
+    actorId?: string | null;
+    type: NotificationType;
+    data: any;
+}
+
+/**
+ * Creates a notification in the database.
+ * Uses Admin Client to bypass RLS.
+ */
+export async function createNotification({ userId, actorId = null, type, data }: CreateNotificationOptions) {
+    const supabase = createAdminClient();
+
+    const { error } = await supabase
+        .from('notifications')
+        .insert({
+            user_id: userId,
+            actor_id: actorId,
+            type,
+            data
+        });
+
+    if (error) {
+        console.error('Error creating notification:', error);
+        return { success: false, error };
+    }
+
+    return { success: true };
+}
+
+/**
+ * DEPRECATED: Use createNotification instead for internal app logic.
+ * This was a placeholder for email-only notifications.
  */
 export async function sendNotificationEmail(
     type: 'NEW_BREW' | 'NEW_RATING' | 'NEW_MESSAGE',
@@ -14,12 +44,5 @@ export async function sendNotificationEmail(
     payload: any
 ) {
     console.log(`[Mock Mail Service] Would send '${type}' email for brewery ${breweryId}. Payload:`, payload);
-    
-    // 1. Get List of Members who have { preferences: { notifications: { [type]: true } } }
-    
-    // 2. Filter out the actor (the person who did the action)
-    
-    // 3. Loop and send (via Resend, Postmark, etc.)
-    
     return { success: true, mocked: true };
 }

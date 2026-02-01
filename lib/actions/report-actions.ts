@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase-server";
+import { sendAnalyticsReportEmail } from "@/lib/email";
 
 // =====================================================
 // TYPES
@@ -82,7 +83,15 @@ export async function getReportSettings(breweryId: string): Promise<ReportSettin
     throw error;
   }
 
-  return data;
+  return {
+    ...data,
+    frequency: data.frequency as ReportFrequency,
+    send_count: data.send_count || 0,
+    include_top_brews: data.include_top_brews ?? true,
+    include_geographic_data: data.include_geographic_data ?? true,
+    include_device_stats: data.include_device_stats ?? true,
+    include_time_analysis: data.include_time_analysis ?? true,
+  };
 }
 
 /**
@@ -112,29 +121,41 @@ export async function upsertReportSettings(
   // Get user email if not provided
   let email = settings.email;
   if (!email) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("email")
-      .eq("id", user.id)
-      .single();
-    email = profile?.email || "";
+    email = user.email || "";
   }
+
+  // Default values for required fields that might be missing in partial settings
+  const upsertData = {
+    user_id: user.id,
+    brewery_id: breweryId,
+    email,
+    frequency: settings.frequency || 'weekly', // Provide default
+    send_day: settings.send_day || 1, // Default to Monday/1st
+    enabled: settings.enabled ?? true,
+    include_top_brews: settings.include_top_brews,
+    include_geographic_data: settings.include_geographic_data,
+    include_device_stats: settings.include_device_stats,
+    include_time_analysis: settings.include_time_analysis,
+  };
 
   const { data, error } = await supabase
     .from("analytics_report_settings")
-    .upsert({
-      user_id: user.id,
-      brewery_id: breweryId,
-      email,
-      ...settings,
-    }, {
+    .upsert(upsertData, {
       onConflict: "user_id,brewery_id"
     })
     .select()
     .single();
 
   if (error) throw error;
-  return data;
+  return {
+    ...data,
+    frequency: data.frequency as ReportFrequency,
+    send_count: data.send_count || 0,
+    include_top_brews: data.include_top_brews ?? true,
+    include_geographic_data: data.include_geographic_data ?? true,
+    include_device_stats: data.include_device_stats ?? true,
+    include_time_analysis: data.include_time_analysis ?? true,
+  };
 }
 
 /**
@@ -355,4 +376,70 @@ function getCountryName(code: string): string {
     CZ: "Tschechien",
   };
   return countries[code] || code;
+}
+
+/**
+ * Send a test report immediately
+ */
+export async function sendTestReport(breweryId: string, email: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  // Verify access (basic check)
+  const { data: member } = await supabase
+    .from("brewery_members")
+    .select("role")
+    .eq("brewery_id", breweryId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!member) throw new Error("Not authorized");
+
+  // Generate data for last 30 days
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 30);
+
+  const reportData = await generateReportData(breweryId, startDate, endDate);
+
+  // Format HTML for brew list
+  const topBrewsList = reportData.top_brews.map(b => 
+    `<div class="brew-row">
+      <div style="display:flex;justify-content:space-between;">
+        <span style="font-weight:600;color:#0f1720">${b.brew_name}</span>
+        <span style="font-weight:700;color:#08b5d6">${b.scan_count}</span>
+      </div>
+      <div style="font-size:12px;color:#64748b">${b.brew_style}</div>
+    </div>`
+  ).join("");
+
+  // Send email
+  const result = await sendAnalyticsReportEmail(
+    email,
+    reportData.brewery_name,
+    `${reportData.period_start} - ${reportData.period_end}`,
+    reportData.summary.total_scans,
+    reportData.summary.unique_visitors,
+    topBrewsList || '<p style="color:#64748b;font-style:italic">Keine Daten verfügbar</p>',
+    breweryId
+  );
+
+  if (!result.success) {
+    throw new Error("Fehler beim Senden der E-Mail: " + result.error);
+  }
+
+  // Log it (optional: skip if we don't have settings id easily, or fetch it)
+  /*
+  await supabase.from("analytics_report_logs").insert({
+    brewery_id: breweryId,
+    email_sent_to: email,
+    status: "sent",
+    period_start: reportData.period_start,
+    period_end: reportData.period_end,
+    report_setting_id: "...", // Required but we don't have it here without extra fetch
+  });
+  */
+
+  return { success: true };
 }

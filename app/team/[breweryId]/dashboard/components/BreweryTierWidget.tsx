@@ -23,6 +23,18 @@ export default function BreweryTierWidget({ breweryId }: { breweryId: string }) 
     brewCount: number; // Current Usage
     bottleCount: number; // Current Usage
   } | null>(null);
+  // LabelCount Hook immer oben!
+  const [labelCount, setLabelCount] = useState(0);
+  useEffect(() => {
+    async function fetchLabels() {
+      const { count } = await supabase
+        .from('label_templates')
+        .select('*', { count: 'exact', head: true })
+        .eq('brewery_id', breweryId);
+      setLabelCount(count || 0);
+    }
+    fetchLabels();
+  }, [breweryId]);
 
   useEffect(() => {
     if (breweryId) loadData();
@@ -108,6 +120,8 @@ export default function BreweryTierWidget({ breweryId }: { breweryId: string }) 
   }
 
   const currentConfig = getBreweryTierConfig(data.tier);
+  // Etiketten-Limit aus tier-system
+  const labelLimit = currentConfig.limits.maxLabels ?? 1;
   const nextTier = getNextBreweryTier(data.tier);
   
   const { progress, unlockedRequirements, totalRequirements } = calculateBreweryTierProgress(
@@ -220,22 +234,29 @@ export default function BreweryTierWidget({ breweryId }: { breweryId: string }) 
           </div>
           
            {/* Limits Overview (Mini) */}
-           <div className="hidden sm:flex items-center gap-4">
-                <Limitpill 
-                    icon="📝" 
-                    current={data.brewCount} 
-                    max={currentConfig.limits.maxBrews} 
-                    label="Rezepte" 
-                    bypassed={premiumStatus?.features.bypassBrewLimits}
-                />
-                <Limitpill 
-                    icon="🍾" 
-                    current={data.bottleCount} 
-                    max={currentConfig.limits.maxBottles} 
-                    label="Flaschen" 
-                    bypassed={premiumStatus?.features.bypassBottleLimits}
-                />
-           </div>
+             <div className="hidden sm:flex items-center gap-4">
+              <Limitpill 
+                icon="📝" 
+                current={data.brewCount} 
+                max={currentConfig.limits.maxBrews} 
+                label="Rezepte" 
+                bypassed={premiumStatus?.features.bypassBrewLimits}
+              />
+              <Limitpill 
+                icon="🍾" 
+                current={data.bottleCount} 
+                max={currentConfig.limits.maxBottles} 
+                label="Flaschen" 
+                bypassed={premiumStatus?.features.bypassBottleLimits}
+              />
+              <Limitpill 
+                icon="🏷️" 
+                current={labelCount} 
+                max={labelLimit} 
+                label="Etiketten" 
+                bypassed={premiumStatus?.tier === 'brewery' || premiumStatus?.tier === 'enterprise'}
+              />
+             </div>
         </div>
 
         {/* Premium/Enterprise Notice */}

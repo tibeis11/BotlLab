@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import Scanner from '@/app/components/Scanner';
 import { useAuth } from '@/app/context/AuthContext';
+import { Camera, CheckCircle2, AlertTriangle, XCircle, Calendar, X } from 'lucide-react';
 
 interface BottleScannerProps {
   sessionId: string;
@@ -13,32 +14,35 @@ interface BottleScannerProps {
 }
 
 const playBeep = (type: 'success' | 'error') => {
-    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContext) return;
-    
-    const ctx = new AudioContext();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
+    // ... audio code (unchanged logic) ...
+    try {
+        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+        if (!AudioContext) return;
+        
+        const ctx = new AudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
 
-    osc.connect(gain);
-    gain.connect(ctx.destination);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
 
-    if (type === 'success') {
-        osc.frequency.setValueAtTime(880, ctx.currentTime); // High pitch
-        osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.1);
-        gain.gain.setValueAtTime(0.1, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.15);
-    } else {
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(150, ctx.currentTime); // Low pitch
-        osc.frequency.linearRampToValueAtTime(100, ctx.currentTime + 0.2);
-        gain.gain.setValueAtTime(0.2, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.25);
-    }
+        if (type === 'success') {
+            osc.frequency.setValueAtTime(880, ctx.currentTime); 
+            osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.15);
+        } else {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(150, ctx.currentTime);
+            osc.frequency.linearRampToValueAtTime(100, ctx.currentTime + 0.2);
+            gain.gain.setValueAtTime(0.2, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.25);
+        }
+    } catch(e) { console.error(e); }
 };
 
 export default function BottleScanner({ 
@@ -80,19 +84,16 @@ export default function BottleScanner({
     // Match UUID
     const idMatch = decodedText.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
     if (!idMatch) {
-        // Only show error feedback + sound if wait time passed (avoids spamming error on random text)
         if (now - lastScanTime.current > 2000) {
             lastScanTime.current = now;
             playBeep('error');
-            setScanFeedback({ type: 'error', msg: "❌ Ungültiger QR-Code (Keine Flaschen-ID)", id: now });
+            setScanFeedback({ type: 'error', msg: "Ungültiger QR-Code (Keine Flaschen-ID)", id: now });
         }
         return;
     }
 
     const bottleId = idMatch[0];
     
-    // Prevent scanning same bottle twice in rapid succession locally
-    // (Optimization before checking DB)
     if (scanFeedback?.type === 'success' && scanFeedback.msg.includes(bottleId)) { 
          return; 
     }
@@ -112,16 +113,14 @@ export default function BottleScanner({
 
       if (checkError) throw new Error("Flasche nicht gefunden.");
       
-      // Check ownership
       if (existing.brewery_id !== breweryId) {
         throw new Error("Fremde Flasche! Gehört nicht zur Brauerei.");
       }
 
-      // Check duplicate scan
       if (existing.session_id === sessionId) {
         setLastScannedNumber(existing.bottle_number);
         playBeep('error');
-        setScanFeedback({ type: 'error', msg: `⚠️ Flasche #${existing.bottle_number} bereits hier erfasst!`, id: Date.now() });
+        setScanFeedback({ type: 'error', msg: `Flasche #${existing.bottle_number} bereits hier erfasst!`, id: Date.now() });
         setShowFlash('error');
         return;
       }
@@ -146,20 +145,18 @@ export default function BottleScanner({
       
       const updatedBottle = data[0];
       
-      // SUCCESS!
       playBeep('success');
       setShowFlash('success');
       setLastScannedNumber(updatedBottle.bottle_number);
-      setScanFeedback({ type: 'success', msg: `✅ Flasche #${updatedBottle.bottle_number} erfasst!`, id: Date.now() });
+      setScanFeedback({ type: 'success', msg: `Flasche #${updatedBottle.bottle_number} erfasst!`, id: Date.now() });
       setFilledCount(prev => prev + 1);
       
       if (onBottleScanned) onBottleScanned(updatedBottle.bottle_number);
     } catch (e: any) {
       playBeep('error');
       setShowFlash('error');
-      setScanFeedback({ type: 'error', msg: "Fehler: " + e.message, id: Date.now() });
+      setScanFeedback({ type: 'error', msg: e.message, id: Date.now() });
     } finally {
-      // Small delay before allowing next scan processing (UI feedback time)
       setTimeout(() => {
         setIsProcessing(false);
         setShowFlash(null);
@@ -168,53 +165,58 @@ export default function BottleScanner({
   };
 
   return (
-    <div className="bg-zinc-950 p-6 rounded-2xl border border-zinc-800">
-      <div className="flex justify-between items-center mb-4">
-        <div>
-          <h3 className="text-lg font-bold text-white">Flaschen scannen</h3>
-          <p className="text-zinc-500 text-sm">Flaschen diesem Sud zuweisen</p>
-        </div>
-        <div className="flex items-center gap-6 text-right">
-          {lastScannedNumber && (
-            <div className="hidden md:block">
-              <div className="text-xl font-black text-white">#{lastScannedNumber}</div>
-              <div className="text-[10px] font-bold uppercase text-zinc-600 tracking-widest">Zuletzt</div>
+    <div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden">
+      {/* Header */}
+      <div className="p-4 border-b border-zinc-800 bg-zinc-950/50 flex justify-between items-center">
+         <div>
+             <h3 className="text-zinc-200 font-bold text-sm tracking-tight flex items-center gap-2">
+                <Camera className="w-4 h-4 text-zinc-400" /> Flaschen scannen
+             </h3>
+             <p className="text-xs text-zinc-500 mt-0.5">Weise Flaschen diesem Sud zu</p>
+         </div>
+         <div className="flex items-center gap-4">
+            {lastScannedNumber && (
+                <div className="hidden md:block text-right">
+                    <div className="text-[10px] font-bold uppercase text-zinc-600 tracking-wider">Zuletzt</div>
+                    <div className="text-zinc-300 font-mono font-bold">#{lastScannedNumber}</div>
+                </div>
+            )}
+            <div className="text-right">
+                <div className="text-[10px] font-bold uppercase text-zinc-600 tracking-wider">Erfasst</div>
+                <div className="text-xl font-black text-cyan-400 font-mono leading-none">{filledCount}</div>
             </div>
-          )}
-          <div>
-            <div className="text-2xl font-black text-cyan-400">{filledCount}</div>
-            <div className="text-[10px] font-bold uppercase text-zinc-600 tracking-widest">Erfasst</div>
-          </div>
-        </div>
+         </div>
       </div>
 
-      <div className="space-y-4">
-        <div>
-          <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-2 block">
-            Abgefüllt am
+      <div className="p-4 space-y-4">
+        {/* Date Selector */}
+        <div className="relative">
+          <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1.5 block flex items-center gap-1">
+             <Calendar className="w-3 h-3" /> Abfülltatum
           </label>
           <input 
             type="date" 
             value={filledAtDate}
             onChange={(e) => setFilledAtDate(e.target.value)}
-            className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-white outline-none focus:border-cyan-600 transition text-lg font-mono"
+            className="w-full bg-black border border-zinc-800 rounded-lg px-3 py-2 text-white outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 transition text-sm font-mono h-10"
           />
         </div>
 
         {!showScanner ? (
           <button 
             onClick={() => setShowScanner(true)}
-            className="w-full py-4 bg-zinc-900 border border-zinc-800 hover:border-cyan-500/50 text-zinc-300 rounded-2xl font-black uppercase tracking-widest flex items-center justify-center gap-3 transition-all shadow-lg hover:shadow-cyan-900/10 group"
+            className="w-full py-4 bg-zinc-950 hover:bg-black border border-zinc-800 hover:border-zinc-700 text-zinc-300 rounded-lg font-bold uppercase tracking-wide flex items-center justify-center gap-3 transition-all group"
           >
-            <span className="text-xl group-hover:scale-110 transition-transform">📷</span> Scanner starten
+            <Camera className="w-5 h-5 group-hover:scale-110 transition-transform group-hover:text-white" /> 
+            <span>Scanner starten</span>
           </button>
         ) : (
           <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
-            <div className="rounded-2xl overflow-hidden border-2 border-zinc-800 relative bg-black aspect-square shadow-inner max-w-[320px] mx-auto">
+            <div className="rounded-lg overflow-hidden border border-zinc-700 relative bg-black aspect-square shadow-2xl max-w-[320px] mx-auto">
                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-                        <div className="flex flex-col items-center gap-2 opacity-30">
-                            <span className="text-4xl animate-pulse">📷</span>
-                            <span className="text-xs font-mono text-zinc-500">Kamera wird vorbereitet...</span>
+                        <div className="flex flex-col items-center gap-2 opacity-50">
+                            <Camera className="w-8 h-8 text-zinc-600" />
+                            <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Kamera lädt...</span>
                         </div>
                  </div>
                  
@@ -223,36 +225,37 @@ export default function BottleScanner({
                  {/* Visual Flash Overlay */}
                  {showFlash && (
                     <div className={`absolute inset-0 z-20 pointer-events-none animate-out fade-out duration-300 ${
-                        showFlash === 'success' ? 'bg-emerald-500/50' : 'bg-red-500/50'
+                        showFlash === 'success' ? 'bg-emerald-500/30' : 'bg-red-500/30'
                     }`} />
                  )}
 
-                 {/* Overlay Scanner Frame - Like in Inventory */}
-                 <div className="absolute inset-0 border-[40px] border-black/50 pointer-events-none z-10">
-                     <div className={`absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 rounded-tl-xl -mt-1 -ml-1 transition-colors duration-200 ${showFlash === 'success' ? 'border-emerald-400' : 'border-cyan-500'}`}></div>
-                     <div className={`absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 rounded-tr-xl -mt-1 -mr-1 transition-colors duration-200 ${showFlash === 'success' ? 'border-emerald-400' : 'border-cyan-500'}`}></div>
-                     <div className={`absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 rounded-bl-xl -mb-1 -ml-1 transition-colors duration-200 ${showFlash === 'success' ? 'border-emerald-400' : 'border-cyan-500'}`}></div>
-                     <div className={`absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 rounded-br-xl -mb-1 -mr-1 transition-colors duration-200 ${showFlash === 'success' ? 'border-emerald-400' : 'border-cyan-500'}`}></div>
+                 {/* Overlay Scanner Frame */}
+                 <div className="absolute inset-0 border-[40px] border-black/60 pointer-events-none z-10 transition-colors duration-300">
+                     <div className={`absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 rounded-tl-lg -mt-1 -ml-1 transition-colors duration-200 ${showFlash === 'success' ? 'border-emerald-400' : 'border-zinc-500'}`}></div>
+                     <div className={`absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 rounded-tr-lg -mt-1 -mr-1 transition-colors duration-200 ${showFlash === 'success' ? 'border-emerald-400' : 'border-zinc-500'}`}></div>
+                     <div className={`absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 rounded-bl-lg -mb-1 -ml-1 transition-colors duration-200 ${showFlash === 'success' ? 'border-emerald-400' : 'border-zinc-500'}`}></div>
+                     <div className={`absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 rounded-br-lg -mb-1 -mr-1 transition-colors duration-200 ${showFlash === 'success' ? 'border-emerald-400' : 'border-zinc-500'}`}></div>
                  </div>
             </div>
             
             {scanFeedback && (
               <div 
-                key={scanFeedback.id} // Forces re-animation on new scan
-                className={`p-4 rounded-xl text-center font-bold text-sm animate-in zoom-in-95 slide-in-from-top-2 duration-300 ${
+                key={scanFeedback.id}
+                className={`p-3 rounded-lg text-center font-bold text-xs flex items-center justify-center gap-2 animate-in zoom-in-95 slide-in-from-top-2 duration-300 ${
                 scanFeedback.type === 'success' 
-                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-lg shadow-emerald-900/10' 
-                  : 'bg-red-500/10 text-red-400 border border-red-500/20 shadow-lg shadow-red-900/10'
+                  ? 'bg-emerald-950/30 text-emerald-400 border border-emerald-500/20' 
+                  : 'bg-red-950/30 text-red-400 border border-red-500/20'
               }`}>
+                {scanFeedback.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
                 {scanFeedback.msg}
               </div>
             )}
 
             <button 
               onClick={() => setShowScanner(false)}
-              className="w-full py-2 text-zinc-500 text-xs font-bold uppercase tracking-widest hover:text-white transition-colors"
+              className="w-full py-2 text-zinc-500 hover:text-white text-[10px] font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
             >
-              Abbrechen / Schließen
+              <X className="w-4 h-4" /> Schließen
             </button>
           </div>
         )}

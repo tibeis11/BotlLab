@@ -1,291 +1,495 @@
 import jsPDF from 'jspdf';
 import QRCode from 'qrcode';
-import { getSmartLabelConfig, SLOGANS, LABEL_FORMATS } from './smart-labels-config';
-import { loadLogoAsBase64, loadLogoWithTextAsBase64, renderBrandTextAsImage, renderStyledTextAsImage } from './pdf-utils';
-import { BRAND } from './brand';
+import { LabelDesign, LabelElement, LabelVariables } from './types/label-system';
+import { LABEL_FORMATS } from './smart-labels-config'; // Assuming format definitions are here
+import { mmToPx } from './unit-converter';
 
-export interface BottleData {
-  id: string;
-  bottle_number: number;
-  qrUrl?: string; 
-}
+// --- FONT MANAGEMENT ---
+const FONT_CACHE: Record<string, { regular: ArrayBuffer | null, bold: ArrayBuffer | null, italic: ArrayBuffer | null, bolditalic: ArrayBuffer | null }> = {};
+const IMAGE_CACHE: Record<string, string> = {}; // Cache for base64 images
 
-export interface GeneratorOptions {
-    baseUrl: string;
-    useHighResQR?: boolean;
-    formatId?: string;
-    onProgress?: (current: number, total: number) => void;
-    customSlogan?: string;
-    customLogo?: string;
-    breweryName?: string;
-    isPremiumBranding?: boolean;
-}
+const SUPPORTED_FONTS = [
+  'Roboto',
+  'OpenSans',
+  'Montserrat',
+  'PlayfairDisplay',
+  // Add other fonts from the "Safe List" here
+];
 
-export const generateSmartLabelPDF = async (bottles: BottleData[], options: GeneratorOptions): Promise<jsPDF> => {
-    const config = getSmartLabelConfig(options.formatId);
-    const logoBase64 = options.customLogo || await loadLogoAsBase64();
-    const logoWithTextBase64 = await loadLogoWithTextAsBase64(); // Fallback wenn Canvas fehlschlägt
-    
-    // Load Background if available
-    const bgImageBase64 = config.bgImage ? await loadLogoAsBase64(config.bgImage) : null;
-
-    // Pre-render text image once to save performance
-    let sharedHeaderImage: { dataUrl: string; width: number; height: number; ratio: number } | null = null;
+async function fetchFont(url: string): Promise<ArrayBuffer | null> {
     try {
-        if (options.isPremiumBranding && options.breweryName) {
-            sharedHeaderImage = await renderBrandTextAsImage([
-                { text: options.breweryName, color: BRAND.colors.textDark }
-            ], BRAND.print.textSize);
-        } else {
-            sharedHeaderImage = await renderBrandTextAsImage([
-                { text: "Botl", color: BRAND.colors.textDark },
-                { text: "Lab", color: BRAND.colors.primary }
-            ], BRAND.print.textSize);
-        }
+        const res = await fetch(url);
+        if (!res.ok) return null;
+        return await res.arrayBuffer();
     } catch (e) {
-        console.warn("Pre-render failed", e);
+        console.warn(`Failed to fetch font: ${url}`);
+        return null;
     }
+}
 
-    const safeZone = config.safeZone || 5;
+async function loadFont(fontName: string): Promise<void> {
+  if (FONT_CACHE[fontName]) return;
 
-    // Use A4 Landscape
-    const doc = new jsPDF({
-        orientation: 'l',
-        unit: 'mm',
-        format: 'a4'
-    });
+  // Attempt to load all variants, but don't fail if some are missing.
+  // Standard naming convention: FontName-Regular.ttf, FontName-Bold.ttf, etc.
+  const [regular, bold, italic, bolditalic] = await Promise.all([
+    fetchFont(`/fonts/${fontName}-Regular.ttf`),
+    fetchFont(`/fonts/${fontName}-Bold.ttf`),
+    fetchFont(`/fonts/${fontName}-Italic.ttf`),
+    fetchFont(`/fonts/${fontName}-BoldItalic.ttf`),
+  ]);
 
-    const totalBottles = bottles.length;
-    let processed = 0;
+  FONT_CACHE[fontName] = { regular, bold, italic, bolditalic };
+}
 
-    // Generate QR Codes in Parallel
-    const bottlesWithQr = await Promise.all(bottles.map(async (b) => {
-        const url = `${options.baseUrl}/b/${b.id}`;
-        let qrData: string | null = null;
-        try {
-            qrData = await QRCode.toDataURL(url, {
-                errorCorrectionLevel: 'H',
-                margin: 0,
-                width: options.useHighResQR ? 1000 : 500,
-                color: { dark: '#000000', light: '#ffffff' }
-            });
-        } catch (e) {
-            console.error("QR Generation failed for", b.id);
-        }
-        
-        processed++;
-        if(options.onProgress) options.onProgress(processed, totalBottles);
+async function registerFontsInDoc(doc: jsPDF, design: LabelDesign): Promise<void> {
+  const fontsToLoad = new Set<string>();
+  design.elements.forEach(el => {
+    if (el.style.fontFamily) {
+      fontsToLoad.add(el.style.fontFamily);
+    }
+  });
 
-        return { ...b, qrData };
-    }));
+  for (const fontName of Array.from(fontsToLoad)) {
+    if (SUPPORTED_FONTS.includes(fontName)) {
+      await loadFont(fontName);
+      if (FONT_CACHE[fontName]?.regular) {
+        doc.addFileToVFS(`${fontName}-Regular.ttf`, Buffer.from(FONT_CACHE[fontName].regular!).toString('base64'));
+        doc.addFont(`${fontName}-Regular.ttf`, fontName, 'normal');
+      }
+      if (FONT_CACHE[fontName]?.bold) {
+        doc.addFileToVFS(`${fontName}-Bold.ttf`, Buffer.from(FONT_CACHE[fontName].bold!).toString('base64'));
+        doc.addFont(`${fontName}-Bold.ttf`, fontName, 'bold');
+      }
+       if (FONT_CACHE[fontName]?.italic) {
+        doc.addFileToVFS(`${fontName}-Italic.ttf`, Buffer.from(FONT_CACHE[fontName].italic!).toString('base64'));
+        doc.addFont(`${fontName}-Italic.ttf`, fontName, 'italic');
+      }
+      if (FONT_CACHE[fontName]?.bolditalic) {
+        doc.addFileToVFS(`${fontName}-BoldItalic.ttf`, Buffer.from(FONT_CACHE[fontName].bolditalic!).toString('base64'));
+        doc.addFont(`${fontName}-BoldItalic.ttf`, fontName, 'bolditalic');
+      }
+    }
+  }
+}
 
-    let pageCount = 1;
-    let col = 0;
-    let row = 0;
 
-    doc.setFont("helvetica", "normal");
-
-    for (let i = 0; i < bottlesWithQr.length; i++) {
-        const bottle = bottlesWithQr[i];
-        if (!bottle.qrData) {
-            console.warn(`Skipping bottle ${i+1}/${bottlesWithQr.length} - no QR code`);
-            continue;
-        }
-
-        console.log(`Drawing bottle ${i+1}/${bottlesWithQr.length} at col=${col}, row=${row}, page=${pageCount}`);
-
-        // Calculate position in Landscape mode
-        // x moves right (cols), y moves down (rows)
-        const x = config.marginLeft + (col * config.width);
-        const y = config.marginTop + (row * config.height);
-
-        // Draw Background First (covering the full label slot)
-        if (bgImageBase64) {
-            // Check if rotation is needed? 
-            // We assume the image provided fits the slot dimensions (w/h)
-            // But if the user provided a "Landscape" image (105x57) for a "Portrait" slot (57x105)
-            // we should probably rotate it 90 degrees to fit better?
-            // However, jspdf addImage with rotation is tricky with x,y coords.
-            // Let's rely on standard fit first.
-            doc.addImage(bgImageBase64, 'PNG', x, y, config.width, config.height);
-        }
-
-        // Define content box (Portrait style inside the slot)
-
-        // Define content box (Portrait style inside the slot)
-        const contentW = config.width - (safeZone * 2);
-        const contentH = config.height - (safeZone * 2);
-        const cX = x + safeZone;
-        const cY = y + safeZone;
-
-        // Detect if this is the compact 6605 format
-        const isCompactFormat = config.id === '6605';
-
-        // 1. Header (Logo + Brand Name) - Scaled down for compact format
-        const { iconSize: baseIconSize, gap: baseGap, textSize: baseTextSize } = BRAND.print;
-        const iconSize = isCompactFormat ? baseIconSize * 0.7 : baseIconSize; // 70% smaller for compact
-        const gap = isCompactFormat ? baseGap * 0.7 : baseGap;
-        const textSize = isCompactFormat ? baseTextSize * 0.7 : baseTextSize;
-        
-        // Calculate layout with Image
-        const headerTextH = isCompactFormat ? 3.5 : 5; // Smaller text height for compact
-        const headerTextW = sharedHeaderImage ? (sharedHeaderImage.width * (headerTextH / sharedHeaderImage.height)) : 28; 
-        
-        const totalHeaderW = iconSize + gap + headerTextW;
-        const headerX = cX + (contentW - totalHeaderW) / 2; // Center in Landscape Slot
-        const headerY = cY;
-
-        // Draw Icon
-        if (logoBase64) {
-            doc.addImage(logoBase64, 'PNG', headerX, headerY, iconSize, iconSize, undefined, 'FAST');
-        }
-
-        // Draw Text Image
-        if (sharedHeaderImage) {
-            // Vertically center text relative to icon
-            const textY = headerY + (iconSize - headerTextH) / 2;
-            doc.addImage(sharedHeaderImage.dataUrl, 'PNG', headerX + iconSize + gap, textY, headerTextW, headerTextH, undefined, 'FAST');
-        } else if (logoWithTextBase64) {
-            // Fallback: Use logo_withName.svg instead of Helvetica
-            // Calculate dimensions to fit both icon and text
-            const fallbackW = totalHeaderW;
-            const fallbackH = iconSize; // Same height as icon
-            const fallbackX = headerX;
-            const fallbackY = headerY;
-            doc.addImage(logoWithTextBase64, 'SVG', fallbackX, fallbackY, fallbackW, fallbackH, undefined, 'FAST');
-        }
-
-        // 2. QR Code (Center) - Optimized for compact format
-        // Available height between header and footer
-        const headerBlockH = isCompactFormat ? 8 : 12; // Reduced header space for compact
-        const footerH = isCompactFormat ? 12 : 18; // Reduced footer space for compact
-        const qrPadding = isCompactFormat ? 2 : 5; // Less padding for compact
-        const qrAvailableH = contentH - headerBlockH - footerH - qrPadding;
-        const maxQrSize = isCompactFormat ? 28 : 38; // Smaller QR for compact format
-        const qrSize = Math.min(contentW, qrAvailableH, maxQrSize);
-        
-        const qrX = cX + (contentW - qrSize) / 2;
-        const qrY = cY + headerBlockH + (isCompactFormat ? 1 : 2); 
-
-        doc.addImage(bottle.qrData, 'PNG', qrX, qrY, qrSize, qrSize);
-
-        // 3. Slogan (Below QR) - Scaled for compact format
-        // Calculate dynamic center between QR bottom and Footer top
-        const qrBottom = qrY + qrSize;
-        const scanFooterOffset = isCompactFormat ? 4 : 6;
-        const scanForContentY = cY + contentH - scanFooterOffset;
-        const footerVisualTop = scanForContentY - (isCompactFormat ? 1.5 : 2);
-        
-        // Use actual geometric center between QR bottom and footer top
-        const centerV = qrBottom + (footerVisualTop - qrBottom) / 2;
-
-        const slogan = options.customSlogan || SLOGANS[bottle.bottle_number % SLOGANS.length];
-        
-        // Calculate available width
-        const maxW = contentW - (isCompactFormat ? 3 : 6);
-
-        // Use dummy font to calculate line breaks for the slogan
-        const sloganFontSize = isCompactFormat ? 9 : 14; // Smaller font for compact
-        doc.setFontSize(sloganFontSize);
-        doc.setFont("helvetica", "bold"); 
-        const lines = doc.splitTextToSize(slogan.toUpperCase(), maxW);
-        const maxLines = 2; // Always allow 2 lines for multiline slogans
-        const limitedLines = lines.slice(0, maxLines);
-        
-        // Prepare Line Images
-        type PreparedLine = 
-           | { type: 'img'; text: string; data: { width: number; height: number; dataUrl: string; ratio: number } }
-           | { type: 'text'; text: string };
-           
-        const preparedLines: PreparedLine[] = [];
-        for (const line of limitedLines) {
-            try {
-                 const lineImg = await renderStyledTextAsImage(line, BRAND.colors.textDark, sloganFontSize, {
-                    fontWeight: '900',
-                    uppercase: true,
-                    letterSpacing: isCompactFormat ? 0.03 : 0.05 // Less letter spacing for compact
-                });
-                preparedLines.push({ type: 'img', data: lineImg, text: line });
-            } catch (e) {
-                preparedLines.push({ type: 'text', text: line });
-            }
-        }
-
-        // Pre-calculate actual render dimensions (in mm) for centering
-        const renderInfo = preparedLines.map(l => {
-            if (l.type === 'img') {
-                let drawW = l.data.width;
-                let drawH = l.data.height;
-                // Scale down if too wide
-                if (drawW > maxW) {
-                    const ratio = maxW / drawW;
-                    drawW = maxW;
-                    drawH = drawH * ratio;
-                }
-                return { drawW, drawH };
-            } else {
-                return { drawW: maxW, drawH: 5 };
-            }
+/** Preloads image from a URL and converts it to a base64 data URL. */
+async function loadImage(url: string): Promise<string> {
+    if (IMAGE_CACHE[url]) return IMAGE_CACHE[url];
+    try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
         });
+        IMAGE_CACHE[url] = dataUrl;
+        return dataUrl;
+    } catch (e) {
+        console.error(`Failed to load image: ${url}`, e);
+        return ''; // Return empty string on failure
+    }
+}
+// --- END FONT MANAGEMENT ---
 
-        // Calculate total height using ACTUAL render heights
-        const totalH = renderInfo.reduce((acc, info, idx) => {
-             return acc + (idx === 0 ? info.drawH : info.drawH * 0.65);
-        }, 0);
-
-        // Center around the calculated midpoint
-        let currentLineY = centerV - (totalH / 2);
-
-        for (let i = 0; i < preparedLines.length; i++) {
-            const lineObj = preparedLines[i];
-            const { drawW, drawH } = renderInfo[i];
-            
-            if (lineObj.type === 'img') {
-                doc.addImage(lineObj.data.dataUrl, 'PNG', cX + (contentW - drawW) / 2, currentLineY, drawW, drawH);
-                currentLineY += drawH * 0.65; 
-            } else {
-                doc.setTextColor(50, 50, 50);
-                doc.text(lineObj.text, cX + contentW / 2, currentLineY + 3.5, { align: 'center' });
-                currentLineY += drawH * 0.65;
-            }
-        }
-
-        // 4. Footer (Bottom) - Compact version for small format
-        const footerY = cY + contentH - 2;
-        const footerFontSize = isCompactFormat ? 5 : 6; // Smaller footer for compact
-        const urlFontSize = isCompactFormat ? 5.5 : 7; // Smaller URL for compact
-        
-        doc.setFontSize(footerFontSize);
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(150, 150, 150);
-        const ctaOffset = isCompactFormat ? 2.5 : 4;
-        doc.text("SCAN FOR CONTENT", cX + contentW / 2, footerY - ctaOffset, { align: 'center' });
-
-        doc.setTextColor(0, 0, 0);
-        doc.setFontSize(urlFontSize);
-        const footerText = options.isPremiumBranding && options.breweryName ? options.breweryName : "botllab.de";
-        doc.text(footerText, cX + contentW / 2, footerY, { align: 'center' });
+/**
+ * Rotates a point (x,y) around a center (cx,cy) by a given angle in degrees.
+ */
+function getRotatedPoint(x: number, y: number, cx: number, cy: number, angleDegrees: number) {
+    if (angleDegrees === 0) return { x, y };
+    const rad = angleDegrees * (Math.PI / 180);
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+    const dx = x - cx;
+    const dy = y - cy;
+    return {
+        x: cx + (dx * cos - dy * sin),
+        y: cy + (dx * sin + dy * cos)
+    };
+}
 
 
-        // Grid Advancement (Landscape grid logic)
-        col++;
-        if (col >= config.cols) {
-            col = 0;
-            row++;
-            if (row >= config.rows) {
-                // Check if this is the last bottle
-                const isLast = i === bottlesWithQr.length - 1;
-                if (!isLast) {
-                    console.log(`Adding new page after bottle ${i+1}`);
-                    doc.addPage();
-                    pageCount++;
-                }
-                row = 0; // Reset row for next page (or end of document)
+/**
+ * Replaces placeholders like {{brew_name}} in a string with values from the variables object.
+ */
+function replacePlaceholders(text: string, variables: LabelVariables): string {
+    if (!text || !text.includes('{{')) return text;
+    let result = text;
+    // Ensure variables is an object before iterating
+    if (variables && typeof variables === 'object') {
+        for (const key in variables) {
+            // Check for property existence
+            if (Object.prototype.hasOwnProperty.call(variables, key)) {
+                const placeholder = `{{${key}}}`;
+                const value = (variables as any)[key] || ''; // Fallback to empty string
+                result = result.replace(new RegExp(placeholder, 'g'), value);
             }
         }
     }
+    return result;
+}
 
-    console.log(`PDF generation complete: ${bottlesWithQr.length} bottles, ${pageCount} pages`);
 
-    return doc;
-};
+/**
+ * Renders a single label element onto the jsPDF document at a given offset.
+ */
+async function renderElementToPdf(doc: jsPDF, element: LabelElement, offsetX: number, offsetY: number) {
+    const x = offsetX + element.x;
+    const y = offsetY + element.y;
+    const rotation = element.rotation || 0;
+    
+    // Center of the element box
+    const cx = x + element.width / 2;
+    const cy = y + element.height / 2;
+
+    // Set opacity if defined
+    if (element.style.opacity !== undefined && element.style.opacity < 1) {
+        (doc as any).setGState(new (doc as any).GState({ opacity: element.style.opacity }));
+    }
+
+    switch (element.type) {
+        case 'text':
+            const isBold = element.style.fontWeight === 'bold';
+            const isItalic = element.style.fontStyle === 'italic';
+            let fontStyle = 'normal';
+            if (isBold && isItalic) fontStyle = 'bolditalic';
+            else if (isBold) fontStyle = 'bold';
+            else if (isItalic) fontStyle = 'italic';
+
+            doc.setFont(element.style.fontFamily || 'Helvetica', fontStyle);
+            doc.setFontSize(element.style.fontSize || 10);
+            doc.setTextColor(element.style.color || '#000000');
+            
+            // 1. Prepare Content (Split into lines)
+            const boxWidth = element.width > 0 ? element.width : 200;
+            const textLines = doc.splitTextToSize(element.content, boxWidth);
+            
+            // 2. Metrics
+            const lineHeightFactor = element.style.lineHeight || 1.15;
+            const fontSizeMm = (element.style.fontSize || 10) * 0.3528; // pt to mm
+            const lineHeightMm = fontSizeMm * lineHeightFactor;
+            const totalBlockHeight = textLines.length * lineHeightMm;
+            
+            // 3. Start Position (Center Block Vertically)
+            // Top of the block in unrotated space relative to element top
+            const startY = (y + element.height / 2) - (totalBlockHeight / 2);
+
+            // 4. Render Line by Line
+            // We iterate manually to ensure absolute control over positioning and rotation of each line
+            textLines.forEach((line: string, i: number) => {
+                // Line Y (Baseline)
+                // Add ascent (approx 0.8 of font size) + current line offset
+                const lineBaseY = startY + (i * lineHeightMm) + (fontSizeMm * 0.8);
+                
+                // Determine Anchor X based on alignment
+                let anchorX = x;
+                let finalAlign: 'left' | 'center' | 'right' = 'left';
+
+                if (element.style.textAlign === 'center') {
+                    anchorX = x + element.width / 2;
+                    finalAlign = 'center';
+                } else if (element.style.textAlign === 'right') {
+                    anchorX = x + element.width;
+                    finalAlign = 'right';
+                }
+
+                // Rotate this anchor point around the Element Center (cx, cy)
+                let finalX = anchorX;
+                let finalY = lineBaseY;
+
+                if (rotation !== 0) {
+                     const rotated = getRotatedPoint(anchorX, lineBaseY, cx, cy, rotation);
+                     finalX = rotated.x;
+                     finalY = rotated.y;
+                }
+
+                doc.text(line, finalX, finalY, {
+                    align: finalAlign,
+                    angle: -rotation
+                });
+
+                // Render Underline if needed
+                if (element.style.textDecoration === 'underline') {
+                    const textWidth = doc.getTextWidth(line);
+                    let lineStartX = anchorX;
+                    
+                    if (finalAlign === 'center') {
+                        lineStartX = anchorX - (textWidth / 2);
+                    } else if (finalAlign === 'right') {
+                        lineStartX = anchorX - textWidth;
+                    }
+                    
+                    // Position underline below baseline with 5% offset
+                    const underlineY = lineBaseY + (fontSizeMm * 0.05); 
+                    const lineEndX = lineStartX + textWidth;
+
+                    let p1 = { x: lineStartX, y: underlineY };
+                    let p2 = { x: lineEndX, y: underlineY };
+
+                    if (rotation !== 0) {
+                        p1 = getRotatedPoint(p1.x, p1.y, cx, cy, rotation);
+                        p2 = getRotatedPoint(p2.x, p2.y, cx, cy, rotation);
+                    }
+                    
+                    // Set color to match text
+                    doc.setDrawColor(element.style.color || '#000000');
+                    
+                    // Thickness approx 0.06em
+                    doc.setLineWidth(fontSizeMm * 0.06); 
+                    
+                    doc.line(p1.x, p1.y, p2.x, p2.y);
+                }
+            });
+            break;
+
+        case 'image':
+            if (element.content) {
+                // The content for an image is its URL, which is already a base64 string from preloading
+                try {
+                    // Use 'NONE' compression for better quality (especially for Logos/Graphics)
+                    const compression = 'NONE'; 
+                    
+                    if (rotation !== 0) {
+                        const rad = rotation * (Math.PI / 180);
+                        const cos = Math.cos(rad);
+                        const sin = Math.sin(rad);
+                        // Vector from Top-Left to Center (w/2, h/2)
+                        const vx = element.width / 2;
+                        const vy = element.height / 2;
+                        // Rotate this vector
+                        const vx_rot = vx * cos - vy * sin;
+                        const vy_rot = vx * sin + vy * cos;
+                        // New Top-Left
+                        const rotX = cx - vx_rot;
+                        const rotY = cy - vy_rot;
+                        
+                        doc.addImage(element.content, 'PNG', rotX, rotY, element.width, element.height, undefined, compression, rotation);
+                    } else {
+                        doc.addImage(element.content, 'PNG', x, y, element.width, element.height, undefined, compression);
+                    }
+                } catch(e) {
+                    console.error("Failed to add image to PDF:", e);
+                }
+            }
+            break;
+
+        case 'qr-code':
+             if (element.content) { // Content is the generated QR code data URL
+                try {
+                    // QR Codes need sharp edges, no compression artifacts
+                    const compression = 'NONE';
+
+                    if (rotation !== 0) {
+                         const rad = rotation * (Math.PI / 180);
+                         const cos = Math.cos(rad);
+                         const sin = Math.sin(rad);
+                         const vx = element.width / 2;
+                         const vy = element.height / 2;
+                         const vx_rot = vx * cos - vy * sin;
+                         const vy_rot = vx * sin + vy * cos;
+                         const rotX = cx - vx_rot;
+                         const rotY = cy - vy_rot;
+                         doc.addImage(element.content, 'PNG', rotX, rotY, element.width, element.height, undefined, compression, rotation);
+                    } else {
+                        doc.addImage(element.content, 'PNG', x, y, element.width, element.height, undefined, compression);
+                    }
+                } catch(e) {
+                    console.error("Failed to add QR code to PDF:", e);
+                }
+            }
+            break;
+
+        case 'brand-logo':
+            try {
+                const logoBase64 = IMAGE_CACHE['/brand/logo_withName.png'];
+                if (logoBase64) {
+                    // Render the combined logo and name image to fit the element box
+                    doc.addImage(logoBase64, 'PNG', x, y, element.width, element.height);
+                }
+            } catch(e) {
+                console.error("Failed to add brand logo to PDF:", e);
+            }
+            break;
+
+        case 'brand-footer':
+            try {
+                doc.setFont('Helvetica', 'normal');
+                doc.setFontSize(element.style.fontSize || 8);
+                doc.setTextColor(element.style.color || '#666666'); // Dark grey
+
+                const lines = (element.content || '').split('\n');
+                let textX = x;
+                if (element.style.textAlign === 'center') {
+                    textX = x + (element.width / 2);
+                } else if (element.style.textAlign === 'right') {
+                    textX = x + element.width;
+                }
+                // Vertically center the block of text within the element's height
+                const lineHeightMm = (element.style.fontSize || 6) * 0.3527 * 1.2; // 1.2 for line spacing
+                const totalTextHeight = lines.length * lineHeightMm;
+                const startTextY = y + (element.height / 2) - (totalTextHeight / 2) + (lineHeightMm * 0.75); // Adjust for baseline
+
+                doc.text(lines, textX, startTextY, {
+                    align: element.style.textAlign || 'left',
+                    maxWidth: element.width > 0 ? element.width : undefined,
+                    lineHeightFactor: 1.2
+                });
+            } catch(e) {
+                console.error("Failed to add brand footer to PDF:", e);
+            }
+            break;
+
+        case 'shape':
+            const style = element.style;
+            const hasFill = style.backgroundColor && style.backgroundColor !== 'transparent';
+            const hasStroke = style.borderWidth && style.borderWidth > 0 && style.borderColor;
+
+            if (hasFill) {
+                doc.setFillColor(style.backgroundColor!);
+            }
+            if (hasStroke) {
+                doc.setDrawColor(style.borderColor!);
+                doc.setLineWidth(style.borderWidth!);
+            }
+
+            if (rotation !== 0) {
+                 // Calculate 4 corners rotated around cx, cy
+                 const tl = getRotatedPoint(x, y, cx, cy, rotation);
+                 const tr = getRotatedPoint(x + element.width, y, cx, cy, rotation);
+                 const br = getRotatedPoint(x + element.width, y + element.height, cx, cy, rotation);
+                 const bl = getRotatedPoint(x, y + element.height, cx, cy, rotation);
+                 
+                 // Draw polygon
+                 const drawStyle = (hasFill && hasStroke) ? 'FD' : (hasFill ? 'F' : 'S');
+                 // doc.lines uses relative vectors from start point
+                 doc.lines([
+                     [tr.x - tl.x, tr.y - tl.y],
+                     [br.x - tr.x, br.y - tr.y],
+                     [bl.x - br.x, bl.y - br.y]
+                 ], tl.x, tl.y, [1, 1], drawStyle, true);
+            } else {
+                let drawStyle: 'F' | 'S' | 'FD' | '' = '';
+                if (hasFill && hasStroke) drawStyle = 'FD'; // Fill and Stroke
+                else if (hasFill) drawStyle = 'F';    // Fill only
+                else if (hasStroke) drawStyle = 'S';  // Stroke only
+
+                // Currently only supports rectangles
+                if (element.style.borderRadius && element.style.borderRadius > 0) {
+                    doc.roundedRect(x, y, element.width, element.height, element.style.borderRadius, element.style.borderRadius, drawStyle);
+                } else {
+                    doc.rect(x, y, element.width, element.height, drawStyle);
+                }
+            }
+            break;
+    }
+    
+    // Reset opacity to default after rendering the element
+    if (element.style.opacity !== undefined && element.style.opacity < 1) {
+        (doc as any).setGState(new (doc as any).GState({ opacity: 1.0 }));
+    }
+}
+
+
+/**
+ * Generates a multi-page PDF document from a single label design and a list of variables.
+ */
+export async function generateLabelPdfFromDesign(
+  design: LabelDesign,
+  variables: LabelVariables[]
+): Promise<jsPDF> {
+  const format = LABEL_FORMATS[design.formatId] || LABEL_FORMATS['default'];
+  
+  // User Request: Invert orientation
+  // Label Landscape ('l') -> PDF Portrait ('p')
+  // Label Portrait ('p') -> PDF Landscape ('l')
+  const labelOrientation = design.orientation || 'p';
+  const pdfOrientation = labelOrientation === 'l' ? 'p' : 'l';
+
+  const doc = new jsPDF({
+    orientation: pdfOrientation,
+    unit: 'mm',
+    format: 'a4', // or other format based on LABEL_FORMATS config
+  });
+
+  await registerFontsInDoc(doc, design);
+
+  // --- Asset Preloading ---
+  const allElements = design.elements;
+  if (design.background.type === 'image') {
+      await loadImage(design.background.value);
+  }
+  for (const el of allElements) {
+      if (el.type === 'image' && el.content) {
+          await loadImage(el.content);
+      }
+      if (el.type === 'brand-logo') {
+          await loadImage('/brand/logo_withName.png');
+      }
+  }
+   // Pre-generate all QR codes
+  const qrCodePromises = variables.map(vars => 
+      vars.qr_code ? QRCode.toDataURL(vars.qr_code, { errorCorrectionLevel: 'H', margin: 1 }) : Promise.resolve('')
+  );
+  const qrCodeDataUrls = await Promise.all(qrCodePromises);
+  // --- End Asset Preloading ---
+
+  let col = 0;
+  let row = 0;
+
+  for (let i = 0; i < variables.length; i++) {
+    const currentVars = variables[i];
+    
+    const xOffset = format.marginLeft + col * (design.width + (format.gapX || 0));
+    const yOffset = format.marginTop + row * (design.height + (format.gapY || 0));
+
+    // Render background
+    if (design.background) {
+        if (design.background.type === 'color' && design.background.value) {
+            doc.setFillColor(design.background.value);
+            doc.rect(xOffset, yOffset, design.width, design.height, 'F');
+        } else if (design.background.type === 'image' && IMAGE_CACHE[design.background.value]) {
+            doc.addImage(IMAGE_CACHE[design.background.value], 'PNG', xOffset, yOffset, design.width, design.height);
+        }
+    }
+    
+    // Render all elements
+    for (const element of design.elements) {
+        const finalElement = JSON.parse(JSON.stringify(element)); // Deep copy to avoid mutation
+        
+        // Inject variables
+        if (finalElement.content) {
+            finalElement.content = replacePlaceholders(finalElement.content, currentVars);
+        }
+        
+        // Special handling for QR codes
+        if (finalElement.type === 'qr-code') {
+            finalElement.content = qrCodeDataUrls[i];
+        }
+
+        // Handle images from cache
+        if (finalElement.type === 'image' && IMAGE_CACHE[finalElement.content]) {
+            finalElement.content = IMAGE_CACHE[finalElement.content];
+        }
+
+        await renderElementToPdf(doc, finalElement, xOffset, yOffset);
+    }
+    
+    // Grid management
+    col++;
+    if (col >= format.cols) {
+      col = 0;
+      row++;
+      if (row >= format.rows) {
+        if (i < variables.length - 1) {
+          doc.addPage();
+          row = 0;
+        }
+      }
+    }
+  }
+  
+  return doc;
+}

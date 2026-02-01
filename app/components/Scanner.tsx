@@ -141,7 +141,7 @@ export default function Scanner({ onScanSuccess, autoStart = false }: ScannerPro
                                 {!autoStart && (
                                     <button 
                                         onClick={startScanner}
-                                        className="bg-cyan-500 hover:bg-cyan-400 text-black font-bold py-3 px-8 rounded-full transition shadow-lg shadow-cyan-500/20 active:scale-95"
+                                        className="bg-white hover:bg-zinc-200 text-black font-bold py-2 px-6 rounded-lg transition shadow-lg active:scale-95 text-sm"
                                     >
                                         Scanner starten
                                     </button>
@@ -149,8 +149,8 @@ export default function Scanner({ onScanSuccess, autoStart = false }: ScannerPro
                             </>
                         ) : (
                             <>
-                                <div className="w-12 h-12 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin mb-4" />
-                                <p className="text-zinc-400 text-xs font-bold uppercase tracking-widest">
+                                <div className="w-8 h-8 border-2 border-zinc-800 border-t-white rounded-full animate-spin mb-4" />
+                                <p className="text-zinc-600 text-[10px] font-bold uppercase tracking-widest">
                                     Kamera wird gestartet...
                                 </p>
                             </>

@@ -9,7 +9,9 @@ import { getBreweryAnalyticsAccess, getAvailableTimeRanges, type UserTier, type 
 import ReportSettingsPanel from './components/ReportSettingsPanel';
 import BreweryHeatmap from './components/BreweryHeatmap';
 import CustomSelect from '@/app/components/CustomSelect';
+import AnalyticsMetricCard from './components/AnalyticsMetricCard';
 import Link from 'next/link';
+import { Sparkles, Calendar as CalendarIcon, Download, BarChart2 } from 'lucide-react';
 
 interface AnalyticsPageData {
   totalScans: number;
@@ -235,14 +237,17 @@ export default function BreweryAnalyticsPage() {
   // Access Denied - Free Tier
   if (!features?.hasAccess) {
     return (
-      <div className="space-y-8">
-        <div className="flex flex-col gap-4">
-          <h1 className="text-3xl font-black text-white">📈 Analytics</h1>
-          <p className="text-zinc-500">Premium Feature - Upgrade benötigt</p>
-        </div>
+      <div className="min-h-screen bg-black text-white p-4 sm:p-6 md:p-8 font-sans antialiased">
+        <div className="max-w-[1600px] mx-auto w-full space-y-8">
+            <header className="flex flex-col gap-4 border-b border-zinc-800 pb-6">
+                <div>
+                   <h1 className="text-2xl font-bold text-white tracking-tight">Analytics</h1>
+                   <p className="text-sm text-zinc-500">Premium Feature - Upgrade benötigt</p>
+                </div>
+            </header>
 
-        {/* Upgrade Card */}
-        <div className="relative bg-gradient-to-br from-zinc-900 via-zinc-900 to-purple-900/20 rounded-2xl p-8 border border-zinc-800 overflow-hidden">
+            {/* Upgrade Card */}
+            <div className="relative bg-gradient-to-br from-zinc-900 via-zinc-900 to-purple-900/20 rounded-2xl p-8 border border-zinc-800 overflow-hidden">
           {/* Background Pattern */}
           <div className="absolute inset-0 opacity-5">
             <div className="absolute top-0 left-0 w-full h-full"
@@ -371,6 +376,7 @@ export default function BreweryAnalyticsPage() {
           </div>
         </div>
       </div>
+     </div>
     );
   }
   if (error) {
@@ -402,461 +408,347 @@ export default function BreweryAnalyticsPage() {
   const availableTimeRanges = getAvailableTimeRanges(userTier);
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col gap-4">
-        <h1 className="text-3xl font-black text-white">📈 Analytics</h1>
-        <p className="text-zinc-500">QR-Scan Statistiken für deine Brauerei</p>
-      </div>
-
-      {/* Tab Navigation */}
-      <div className="flex gap-2 border-b border-zinc-800">
-        <button
-          onClick={() => setActiveTab('dashboard')}
-          className={`px-6 py-3 font-bold transition-all ${
-            activeTab === 'dashboard'
-              ? 'text-cyan-500 border-b-2 border-cyan-500'
-              : 'text-zinc-400 hover:text-white'
-          }`}
-        >
-          Dashboard
-        </button>
-        <button
-          onClick={() => setActiveTab('reports')}
-          className={`px-6 py-3 font-bold transition-all ${
-            activeTab === 'reports'
-              ? 'text-cyan-500 border-b-2 border-cyan-500'
-              : 'text-zinc-400 hover:text-white'
-          }`}
-        >
-          E-Mail Reports
-        </button>
-      </div>
-
-      {/* Tab Content */}
-      {activeTab === 'reports' ? (
-        <ReportSettingsPanel breweryId={breweryId} />
-      ) : (
-        <>
-          {/* Tier Badge */}
-          <div className="flex items-center gap-3">
-            <div className={`px-3 py-1 rounded-full text-xs font-bold ${
-              userTier === 'enterprise' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
-              userTier === 'brewery' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' :
-              userTier === 'brewer' ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' :
-              'bg-zinc-500/20 text-zinc-400 border border-zinc-500/30'
-            }`}>
-              {userTier.toUpperCase()} TIER
-            </div>
-            <span className="text-xs text-zinc-600">
-              Historie: bis zu {features?.maxDays} Tage • Top Brews: {features?.maxTopBrews === 999 ? 'Unlimited' : features?.maxTopBrews}
-            </span>
-          </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap gap-4 items-center">
-        <div className="flex gap-2">
-          {availableTimeRanges.map(range => (
-            <button
-              key={range.value}
-              onClick={() => !range.locked && setTimeRange(range.value)}
-              disabled={range.locked}
-              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all relative ${
-                timeRange === range.value
-                  ? 'bg-cyan-500 text-black'
-                  : range.locked
-                  ? 'bg-zinc-900/50 text-zinc-600 cursor-not-allowed'
-                  : 'bg-zinc-900 text-zinc-400 hover:text-white'
-              }`}
-              title={range.locked ? `Upgrade auf ${userTier === 'brewer' ? 'Brewery' : 'Enterprise'} Tier benötigt` : ''}
-            >
-              {range.label}
-              {range.locked && <span className="ml-1">🔒</span>}
-            </button>
-          ))}
-          <button
-            onClick={() => setTimeRange('custom')}
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-              timeRange === 'custom'
-                ? 'bg-cyan-500 text-black'
-                : 'bg-zinc-900 text-zinc-400 hover:text-white'
-            }`}
-          >
-            📅 Custom
-          </button>
-        </div>
+    <div className="min-h-screen bg-black text-white p-4 sm:p-6 md:p-8 font-sans antialiased">
+      <div className="max-w-[1600px] mx-auto w-full space-y-8">
         
-        {/* Custom Date Range Inputs */}
-        {timeRange === 'custom' && (
-          <div className="flex items-center gap-2 bg-zinc-900 rounded-lg p-2 border border-zinc-800">
-            <label className="text-xs text-zinc-500 font-bold">Von:</label>
-            <input
-              type="date"
-              value={customStartDate}
-              onChange={(e) => setCustomStartDate(e.target.value)}
-              className="px-3 py-1 rounded bg-zinc-800 text-white border border-zinc-700 focus:border-cyan-500 outline-none text-sm"
-            />
-            <label className="text-xs text-zinc-500 font-bold">Bis:</label>
-            <input
-              type="date"
-              value={customEndDate}
-              onChange={(e) => setCustomEndDate(e.target.value)}
-              className="px-3 py-1 rounded bg-zinc-800 text-white border border-zinc-700 focus:border-cyan-500 outline-none text-sm"
-            />
-          </div>
-        )}
-
-        {breweryBrews.length > 0 && (
-          <CustomSelect
-            value={selectedBrewId || ''}
-            onChange={(val) => setSelectedBrewId(val || null)}
-            options={[
-              { value: '', label: 'Alle Rezepte' },
-              ...breweryBrews.map(b => ({
-                value: b.id,
-                label: `${b.name} (${b.style})`
-              }))
-            ]}
-            placeholder="Rezept wählen"
-            className="min-w-[200px]"
-          />
-        )}
-        
-        {/* CSV Export Button (Brewery+ Feature) */}
-        {features?.canExport && (
-          <button
-            onClick={handleExportCSV}
-            disabled={exporting}
-            className="px-4 py-2 rounded-lg bg-green-600 text-white font-bold hover:bg-green-500 transition-all disabled:opacity-50 flex items-center gap-2"
-          >
-            {exporting ? (
-              <>
-                <span className="animate-spin">⏳</span>
-                Exportiere...
-              </>
-            ) : (
-              <>
-                📥 CSV Export
-              </>
-            )}
-          </button>
-        )}
-      </div>
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800">
-          <div className="text-zinc-500 text-sm font-bold mb-2">Gesamt Scans</div>
-          <div className="text-4xl font-black text-white">{data.totalScans.toLocaleString()}</div>
-        </div>
-        
-        <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800">
-          <div className="text-zinc-500 text-sm font-bold mb-2">Unique Visitors</div>
-          <div className="text-4xl font-black text-cyan-400">{data.uniqueVisitors.toLocaleString()}</div>
-        </div>
-        
-        <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800">
-          <div className="text-zinc-500 text-sm font-bold mb-2">Durchschn. Scans/Visitor</div>
-          <div className="text-4xl font-black text-purple-400">
-            {data.uniqueVisitors > 0 ? (data.totalScans / data.uniqueVisitors).toFixed(1) : '0'}
-          </div>
-        </div>
-        
-        {/* Conversion Rate Card */}
-        {conversionData && (
-          <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800">
-            <div className="text-zinc-500 text-sm font-bold mb-2">Conversion Rate</div>
-            <div className="text-4xl font-black text-green-400">
-              {conversionData.rate.toFixed(1)}%
-            </div>
-            <div className="text-xs text-zinc-600 mt-1">
-              {conversionData.conversions} von {conversionData.totalScans} geben Rating
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Charts */}
-      <div className="grid grid-cols-1 gap-6">
-        
-        {/* Geographic Heatmap */}
-        {(countryData.length > 0 || (data.geoPoints && data.geoPoints.length > 0)) && (
-          <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800">
-            <h3 className="text-lg font-bold text-white mb-4">🌍 Geografische Verteilung</h3>
-            
-            <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 mb-4">
-              <p className="text-xs text-amber-500 flex items-start gap-2">
-                <span>⚠️</span>
-                <span>
-                  <strong>Hinweis zu Standorten:</strong> Die angezeigten Standorte basieren auf Internet-Knotenpunkten (IP-Adresse). 
-                  Insbesondere bei Mobilfunk-Nutzern wird oft der Hauptsitz des Anbieters (z.B. Frankfurt, München) angezeigt, 
-                  statt des tatsächlichen Standorts. Dies ist technisch bedingt und kein Fehler.
-                </span>
-              </p>
-            </div>
-            
-            <p className="text-xs text-zinc-500 mb-4">Wo werden deine Biere gescannt? (Interaktive Karte)</p>
-            <BreweryHeatmap 
-              data={data.scansByCountry} 
-              geoPoints={data.geoPoints}
-            />
-          </div>
-        )}
-        
-        {/* Scans Over Time */}
-        <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800">
-          <h3 className="text-lg font-bold text-white mb-4">Scans über Zeit</h3>
-          <div className="h-64 flex items-end gap-2">
-            {dateLabels.length === 0 ? (
-              <div className="flex-1 flex items-center justify-center text-zinc-600">
-                Keine Daten verfügbar
-              </div>
-            ) : (
-              dateLabels.map((date) => {
-                const scans = data.scansByDate[date].scans;
-                const maxScans = Math.max(...Object.values(data.scansByDate).map(d => d.scans));
-                const height = maxScans > 0 ? (scans / maxScans) * 100 : 0;
-                
-                return (
-                  <div key={date} className="flex-1 flex flex-col items-center gap-1">
-                    {/* Value label above bar */}
-                    {scans > 0 && (
-                      <div className="text-xs font-bold text-cyan-400 mb-1">
-                        {scans}
-                      </div>
-                    )}
-                    {/* Bar */}
-                    <div
-                      className="w-full bg-cyan-500 rounded-t-lg transition-all hover:bg-cyan-400"
-                      style={{ height: `${height}%`, minHeight: scans > 0 ? '4px' : '0' }}
-                      title={`${date}: ${scans} Scans`}
-                    ></div>
-                    {/* Date label */}
-                    <div className="text-[10px] text-zinc-600 rotate-45 origin-left whitespace-nowrap mt-1">
-                      {new Date(date).toLocaleDateString('de-DE', { month: 'short', day: 'numeric' })}
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-      </div>
-      
-      {/* Secondary Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top Countries List */}
-        <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800">
-          <h3 className="text-lg font-bold text-white mb-4">Top Länder</h3>
-          <div className="space-y-3">
-            {countryData.length === 0 ? (
-              <div className="text-zinc-600 text-center py-8">Keine Daten verfügbar</div>
-            ) : (
-              countryData.map(([country, count]) => {
-                const maxCount = countryData[0][1];
-                const percentage = (count / maxCount) * 100;
-                
-                return (
-                  <div key={country}>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-zinc-400">{country || 'Unbekannt'}</span>
-                      <span className="text-white font-bold">{count}</span>
-                    </div>
-                    <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full transition-all"
-                        style={{ width: `${percentage}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-
-        {/* Device Types */}
-        <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800">
-          <h3 className="text-lg font-bold text-white mb-4">Geräte-Typen</h3>
-          <div className="space-y-3">
-            {deviceData.length === 0 ? (
-              <div className="text-zinc-600 text-center py-8">Keine Daten verfügbar</div>
-            ) : (
-              deviceData.map(([device, count]) => {
-                const total = Object.values(data.scansByDevice).reduce((sum, c) => sum + c, 0);
-                const percentage = total > 0 ? (count / total) * 100 : 0;
-                
-                const deviceEmoji = device === 'mobile' ? '📱' : device === 'tablet' ? '📱' : '💻';
-                const deviceLabel = device === 'mobile' ? 'Mobile' : device === 'tablet' ? 'Tablet' : 'Desktop';
-                
-                return (
-                  <div key={device}>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-zinc-400 flex items-center gap-2">
-                        <span>{deviceEmoji}</span>
-                        <span>{deviceLabel}</span>
-                      </span>
-                      <span className="text-white font-bold">{count} ({percentage.toFixed(1)}%)</span>
-                    </div>
-                    <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all"
-                        style={{ width: `${percentage}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-
-        {/* Time-to-Glass (Phase 3) */}
-        {data.scansByHour && Object.keys(data.scansByHour).length > 0 && (
-          <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800">
-            <h3 className="text-lg font-bold text-white mb-4">⏰ Time-to-Glass</h3>
-            <p className="text-xs text-zinc-500 mb-4">Zu welcher Tageszeit werden deine Biere getrunken?</p>
-            <div className="h-48 flex items-end gap-1">
-              {Array.from({ length: 24 }, (_, i) => {
-                const hour = i;
-                const count = data.scansByHour![hour.toString()] || 0;
-                const maxCount = Math.max(...Object.values(data.scansByHour!));
-                const height = maxCount > 0 ? (count / maxCount) * 100 : 0;
-
-                // Highlight peak hours (18-23)
-                const isPeakHour = hour >= 18 && hour <= 23;
-
-                return (
-                  <div key={hour} className="flex-1 flex flex-col items-center gap-1 h-full">
-                    {/* Reserve fixed space for the value label so bars calculate from uniform area */}
-                    <div className="h-4 flex items-center justify-center">
-                      {count > 0 && height > 30 ? (
-                        <div className="text-[10px] font-bold text-amber-400">
-                          {count}
-                        </div>
-                      ) : null}
-                    </div>
-
-                    {/* Bar area occupies remaining vertical space */}
-                    <div className="w-full flex-1 flex items-end">
-                      <div
-                        className={`w-full rounded-t transition-all ${
-                          isPeakHour
-                            ? 'bg-gradient-to-t from-amber-600 to-amber-400 hover:from-amber-500 hover:to-amber-300'
-                            : 'bg-gradient-to-t from-cyan-600 to-cyan-400 hover:from-cyan-500 hover:to-cyan-300'
-                        }`}
-                        style={{ height: `${height}%`, minHeight: count > 0 ? '2px' : '0' }}
-                        title={`${hour}:00 Uhr - ${count} Scans`}
-                      ></div>
-                    </div>
-
-                    {/* Hour label (show every 3 hours) */}
-                    {hour % 3 === 0 ? (
-                      <div className="text-[9px] text-zinc-600 mt-1 h-4 flex items-center">
-                        {hour}h
-                      </div>
-                    ) : (
-                      <div className="h-4" />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            <div className="mt-4 flex items-center gap-4 text-xs text-zinc-500">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded bg-gradient-to-r from-amber-600 to-amber-400"></div>
-                <span>Peak Hours (18-23 Uhr)</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded bg-gradient-to-r from-cyan-600 to-cyan-400"></div>
-                <span>Rest</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Top Brews */}
-        <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-white">Top Rezepte</h3>
-            {features && features.maxTopBrews < 999 && (
-              <span className="text-xs text-zinc-600">
-                Zeige Top {features.maxTopBrews}
-              </span>
-            )}
-          </div>
-          <div className="space-y-3">
-            {topBrewsData.length === 0 ? (
-              <div className="text-zinc-600 text-center py-8">Keine Daten verfügbar</div>
-            ) : (
-              <>
-                {topBrewsData.map(([brewId, count], index) => {
-                  const brew = brews[brewId];
-                  const maxCount = topBrewsData[0][1];
-                  const percentage = (count / maxCount) * 100;
-                  
-                  return (
-                    <div key={brewId}>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-zinc-400 truncate flex items-center gap-1">
-                          {brew ? `${brew.name} (${brew.style})` : brewId.slice(0, 8)}
-                        </span>
-                        <div className="flex items-center gap-3">
-                          <span className="text-white font-bold">{count}</span>
-                          <Link
-                            href={`/team/${breweryId}/analytics/brew/${brewId}`}
-                            className="px-2 py-1 rounded-md text-xs text-cyan-400 bg-zinc-800/40 hover:bg-zinc-800 transition"
-                          >
-                            Details ↗
-                          </Link>
-                        </div>
-                      </div>
-                      <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all"
-                          style={{ width: `${percentage}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  );
-                })}
-                
-                {/* Upgrade hint if limited */}
-                {features && features.maxTopBrews < 10 && Object.keys(data.topBrews).length > features.maxTopBrews && (
-                  <div className="mt-4 p-3 bg-zinc-800/50 rounded-lg border border-zinc-700">
-                    <div className="flex items-center gap-2 text-xs text-zinc-400">
-                      <span>🔒</span>
-                      <span>
-                        {Object.keys(data.topBrews).length - features.maxTopBrews} weitere Rezepte verfügbar. 
-                        <Link href="/dashboard/account" className="text-cyan-400 hover:underline ml-1">
-                          Upgrade auf {userTier === 'brewer' ? 'Brewery' : 'Enterprise'}
-                        </Link>
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-
-      </div>
-
-      {/* Privacy Notice */}
-      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
-        <div className="flex items-start gap-3">
-          <div className="text-2xl">🔒</div>
+       {/* Header */}
+       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800 pb-6">
           <div>
-            <h4 className="text-white font-bold mb-1">Datenschutz-freundliche Analytics</h4>
-            <p className="text-sm text-zinc-500">
-              Wir speichern keine IP-Adressen und verwenden tägliche Session-Hashes für anonyme Besucherzählung. 
-              Rohdaten werden gemäß Datenschutzrichtlinie nach 12 Monaten automatisch gelöscht. Aggregierte Statistiken bleiben langfristig verfügbar.
-            </p>
+            <div className="flex items-center gap-3 mb-1">
+              <h1 className="text-2xl font-bold text-white tracking-tight">Analytics</h1>
+              <span className={`px-2 py-0.5 rounded text-[10px] font-medium border uppercase tracking-wide ${
+                  userTier === 'enterprise' ? 'bg-blue-950/30 text-blue-400 border-blue-900' :
+                  userTier === 'brewery' ? 'bg-purple-950/30 text-purple-400 border-purple-900' :
+                  userTier === 'brewer' ? 'bg-cyan-950/30 text-cyan-400 border-cyan-900' :
+                  'bg-zinc-800 text-zinc-400 border-zinc-700'
+              }`}>
+                {userTier} Tier
+              </span>
+            </div>
+            <p className="text-sm text-zinc-500">Scan-Statistiken & Performance Insights</p>
           </div>
+          
+          <div className="flex items-center gap-4">
+            {features?.canExport && (
+               <button
+                  onClick={handleExportCSV}
+                  disabled={exporting}
+                  className="bg-black hover:bg-zinc-900 text-zinc-300 hover:text-white px-4 py-2 rounded-md text-sm font-medium border border-zinc-800 transition-colors flex items-center gap-2"
+                >
+                  {exporting ? <span className="animate-spin">⏳</span> : <Download size={16} />}
+                  <span>CSV Export</span>
+               </button>
+            )}
+            <div className="h-8 w-px bg-zinc-800 hidden md:block"></div>
+            <div className="text-right hidden md:block">
+              <p className="text-[10px] uppercase font-bold text-zinc-600 tracking-wider mb-0.5">History Limit</p>
+              <p className="text-zinc-300 font-mono text-xs text-right">{features?.maxDays} Tage</p>
+            </div>
+          </div>
+        </header>
+
+        {/* Tabs */}
+        <div className="flex gap-8 border-b border-zinc-800">
+           <button
+             onClick={() => setActiveTab('dashboard')}
+             className={`pb-4 text-sm font-medium transition-all relative ${
+               activeTab === 'dashboard' ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'
+             }`}
+           >
+             Dashboard
+             {activeTab === 'dashboard' && (
+               <div className="absolute bottom-0 left-0 w-full h-0.5 bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.5)]"></div>
+             )}
+           </button>
+           <button
+             onClick={() => setActiveTab('reports')}
+             className={`pb-4 text-sm font-medium transition-all relative ${
+               activeTab === 'reports' ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'
+             }`}
+           >
+             E-Mail Reports
+             {activeTab === 'reports' && (
+               <div className="absolute bottom-0 left-0 w-full h-0.5 bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.5)]"></div>
+             )}
+           </button>
         </div>
+
+        {activeTab === 'reports' ? (
+          <ReportSettingsPanel breweryId={breweryId} />
+        ) : (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            
+            {/* Filter Toolbar */}
+            <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+                <div className="flex bg-black rounded-lg border border-zinc-800 p-1">
+                    {availableTimeRanges.map(range => (
+                      <button
+                        key={range.value}
+                        onClick={() => !range.locked && setTimeRange(range.value)}
+                        disabled={range.locked}
+                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                          timeRange === range.value
+                            ? 'bg-zinc-800 text-white shadow-sm'
+                            : range.locked
+                            ? 'text-zinc-700 cursor-not-allowed'
+                            : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900'
+                        }`}
+                        title={range.locked ? `Upgrade nötig` : ''}
+                      >
+                        {range.label} {range.locked && '🔒'}
+                      </button>
+                    ))}
+                    <button
+                        onClick={() => setTimeRange('custom')}
+                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                          timeRange === 'custom' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900'
+                        }`}
+                    >
+                        Custom
+                    </button>
+                </div>
+
+                <div className="flex gap-2 w-full md:w-auto">
+                    {breweryBrews.length > 0 && (
+                      <CustomSelect
+                        value={selectedBrewId || ''}
+                        onChange={(val) => setSelectedBrewId(val || null)}
+                        options={[
+                          { value: '', label: 'Alle Rezepte' },
+                          ...breweryBrews.map(b => ({
+                            value: b.id,
+                            label: `${b.name} (${b.style})`
+                          }))
+                        ]}
+                        placeholder="Rezept Filter"
+                        className="bg-black border-zinc-800 text-sm min-w-[200px]"
+                      />
+                    )}
+                </div>
+            </div>
+
+             {/* Custom Date Range Picker */}
+             {timeRange === 'custom' && (
+                <div className="flex items-center gap-4 bg-zinc-900/50 rounded-lg p-3 border border-zinc-800 max-w-fit animate-in fade-in zoom-in-95">
+                  <div className="flex items-center gap-2">
+                      <CalendarIcon size={14} className="text-zinc-500" />
+                      <span className="text-xs font-medium text-zinc-400">Zeitraum:</span>
+                  </div>
+                  <input
+                    type="date"
+                    value={customStartDate}
+                    onChange={(e) => setCustomStartDate(e.target.value)}
+                    className="px-2 py-1 rounded bg-black text-white border border-zinc-800 focus:border-cyan-500 outline-none text-xs"
+                  />
+                  <span className="text-zinc-600">-</span>
+                  <input
+                    type="date"
+                    value={customEndDate}
+                    onChange={(e) => setCustomEndDate(e.target.value)}
+                    className="px-2 py-1 rounded bg-black text-white border border-zinc-800 focus:border-cyan-500 outline-none text-xs"
+                  />
+                </div>
+              )}
+
+            {/* Metric Cards Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <AnalyticsMetricCard 
+                    title="Gesamt Scans"
+                    value={data.totalScans.toLocaleString()}
+                    icon={<BarChart2 size={16} />}
+                />
+                <AnalyticsMetricCard 
+                    title="Unique Visitors"
+                    value={data.uniqueVisitors.toLocaleString()}
+                    subValue="Geschätzte eindeutige Geräte"
+                />
+                 <AnalyticsMetricCard 
+                    title="Scans / Visitor"
+                    value={data.uniqueVisitors > 0 ? (data.totalScans / data.uniqueVisitors).toFixed(1) : '0'}
+                />
+                 {conversionData && (
+                     <AnalyticsMetricCard 
+                        title="Conversion Rate"
+                        value={`${conversionData.rate.toFixed(1)}%`}
+                        change={conversionData.rate > 5 ? 2.5 : undefined} 
+                        subValue={`${conversionData.conversions} Ratings abgegeben`}
+                     />
+                 )}
+            </div>
+
+            {/* Main Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                {/* Main Chart (Spans 2 cols) */}
+                <div className="lg:col-span-2 bg-black rounded-lg border border-zinc-800 p-6">
+                    <div className="flex justify-between items-center mb-6">
+                        <h3 className="text-zinc-500 text-xs font-medium uppercase tracking-wider">Scans über Zeit</h3>
+                    </div>
+                    
+                    <div className="h-64 flex items-end gap-2 pt-4">
+                        {dateLabels.length === 0 ? (
+                        <div className="flex-1 flex items-center justify-center text-zinc-600 text-sm italic">
+                            Keine Daten für diesen Zeitraum
+                        </div>
+                        ) : (
+                        dateLabels.map((date) => {
+                            const scans = data.scansByDate[date].scans;
+                            const maxScans = Math.max(...Object.values(data.scansByDate).map(d => d.scans));
+                            const height = maxScans > 0 ? (scans / maxScans) * 100 : 0;
+                            
+                            return (
+                            <div key={date} className="flex-1 flex flex-col items-center gap-1 group relative">
+                                {/* Tooltip */}
+                                <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-opacity bg-zinc-800 text-white text-[10px] px-2 py-1 rounded border border-zinc-700 whitespace-nowrap z-10 pointer-events-none">
+                                    {new Date(date).toLocaleDateString()} • {scans} Scans
+                                </div>
+                                {/* Bar */}
+                                <div
+                                className="w-full bg-cyan-900/50 group-hover:bg-cyan-500 rounded-t-sm transition-all relative overflow-hidden"
+                                style={{ height: `${height}%`, minHeight: scans > 0 ? '4px' : '0' }}
+                                >
+                                    {/* Scan fill */}
+                                    <div className="absolute bottom-0 w-full bg-cyan-500 group-hover:bg-cyan-400 transition-all h-full opacity-80"></div>
+                                </div>
+                            </div>
+                            );
+                        })
+                        )}
+                    </div>
+                    {/* X-Axis Labels (Simplified) */}
+                     <div className="flex justify-between mt-2 text-[10px] text-zinc-600 font-mono">
+                        <span>{dateLabels[0] && new Date(dateLabels[0]).toLocaleDateString()}</span>
+                        <span>{dateLabels[Math.floor(dateLabels.length / 2)] && new Date(dateLabels[Math.floor(dateLabels.length / 2)]).toLocaleDateString()}</span>
+                        <span>{dateLabels[dateLabels.length - 1] && new Date(dateLabels[dateLabels.length - 1]).toLocaleDateString()}</span>
+                    </div>
+                </div>
+
+                {/* Top Brews (Right Col) */}
+                <div className="bg-black rounded-lg border border-zinc-800 p-6 flex flex-col">
+                    <div className="flex justify-between items-center mb-6">
+                        <h3 className="text-zinc-500 text-xs font-medium uppercase tracking-wider">Top Rezepte</h3>
+                        {features && features.maxTopBrews < 999 && (
+                            <span className="text-[10px] text-zinc-600 bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-800">Top {features.maxTopBrews}</span>
+                        )}
+                    </div>
+                    
+                    <div className="flex-1 space-y-4 overflow-y-auto pr-1 custom-scrollbar max-h-[300px]">
+                        {topBrewsData.length === 0 ? (
+                            <div className="text-zinc-600 text-sm text-center py-8">Keine Daten verfügbar</div>
+                        ) : (
+                        topBrewsData.map(([brewId, count], index) => {
+                            const brew = brews[brewId];
+                            const maxCount = topBrewsData[0][1];
+                            const percentage = (count / maxCount) * 100;
+                            
+                            return (
+                                <div key={brewId} className="group">
+                                    <div className="flex justify-between text-xs mb-1.5">
+                                        <span className="text-zinc-300 font-medium truncate pr-2" title={brew?.name}>
+                                            {brew ? brew.name : brewId.slice(0, 8)}
+                                        </span>
+                                        <span className="text-zinc-500 font-mono">{count}</span>
+                                    </div>
+                                    <div className="h-1.5 w-full bg-zinc-900 rounded-full overflow-hidden">
+                                        <div 
+                                            className="h-full bg-zinc-700 group-hover:bg-cyan-500 transition-colors duration-300"
+                                            style={{ width: `${percentage}%` }}
+                                        />
+                                    </div>
+                                    {brew && (
+                                        <div className="text-[10px] text-zinc-600 mt-0.5">{brew.style}</div>
+                                    )}
+                                </div>
+                            );
+                        })
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* Secondary Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                 {/* Geo Map */}
+                 <div className="bg-black rounded-lg border border-zinc-800 p-6">
+                    <div className="flex justify-between items-center mb-6">
+                        <h3 className="text-zinc-500 text-xs font-medium uppercase tracking-wider">Geografie</h3>
+                        <div className="flex items-center gap-2 text-[10px] text-zinc-500" title="Standorte basieren auf Internet-Knotenpunkten, nicht GPS.">
+                             <span className="w-2 h-2 rounded-full bg-amber-500/50"></span>
+                             <span>Standort geschätzt (IP)</span>
+                        </div>
+                    </div>
+                    <div className="min-h-[300px]">
+                        <BreweryHeatmap 
+                            data={data.scansByCountry} 
+                            geoPoints={data.geoPoints}
+                        />
+                    </div>
+                 </div>
+
+                 {/* Device Stats & Time */}
+                 <div className="space-y-6">
+                     {/* Devices */}
+                     <div className="bg-black rounded-lg border border-zinc-800 p-6">
+                        <h3 className="text-zinc-500 text-xs font-medium uppercase tracking-wider mb-6">Geräte</h3>
+                        <div className="space-y-3">
+                            {deviceData.map(([device, count]) => {
+                                const total = deviceData.reduce((acc, curr) => acc + curr[1], 0);
+                                const percentage = (count / total) * 100;
+                                const icons: Record<string, string> = { mobile: '📱', desktop: '💻', tablet: '📟' };
+                                
+                                return (
+                                    <div key={device} className="flex items-center gap-3">
+                                        <div className="w-8 flex justify-center text-lg">{icons[device] || '❓'}</div>
+                                        <div className="flex-1">
+                                            <div className="flex justify-between text-xs mb-1">
+                                                <span className="text-zinc-300 capitalize">{device}</span>
+                                                <span className="text-zinc-500">{percentage.toFixed(0)}%</span>
+                                            </div>
+                                            <div className="h-1.5 bg-zinc-900 rounded-full overflow-hidden">
+                                                <div className="h-full bg-zinc-700" style={{ width: `${percentage}%` }}></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                     </div>
+                     
+                     {/* Peak Hours Hint (Simple) */}
+                     {data.scansByHour && (
+                        <div className="bg-black rounded-lg border border-zinc-800 p-6">
+                            <h3 className="text-zinc-500 text-xs font-medium uppercase tracking-wider mb-4">Peak Hours</h3>
+                            <div className="flex gap-1 h-12 items-end">
+                                {Array.from({ length: 24 }).map((_, h) => {
+                                    const val = data.scansByHour?.[h] || 0;
+                                    const max = Math.max(...Object.values(data.scansByHour || {}));
+                                    const height = max > 0 ? (val / max) * 100 : 0;
+                                    return (
+                                        <div key={h} className="flex-1 bg-zinc-900 hover:bg-cyan-500 transition-colors rounded-sm" style={{ height: `${Math.max(10, height)}%` }} title={`${h}:00 - ${val} Scans`} />
+                                    );
+                                })}
+                            </div>
+                        </div>
+                     )}
+                 </div>
+            </div>
+
+            {/* Privacy Footer */}
+            <div className="flex items-center justify-center gap-2 py-8 text-zinc-600">
+                <Shield size={12} />
+                <span className="text-[10px] uppercase tracking-wider font-medium">Privacy First Analytics • No Cookies • Anonymized</span>
+            </div>
+          </div>
+        )}
       </div>
-      </>
-      )}
     </div>
   );
 }
+
+function Shield({ size }: { size: number }) {
+    return (
+        <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    );
+}
+
+// End of file

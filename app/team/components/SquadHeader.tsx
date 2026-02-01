@@ -3,6 +3,24 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { 
+    LayoutDashboard, 
+    MessageSquare, 
+    Beer, 
+    Thermometer, 
+    Package, 
+    Tag, 
+    TrendingUp, 
+    Users, 
+    Settings, 
+    Medal, 
+    Heart, 
+    Trophy,
+    FlaskConical,
+    Factory,
+    Globe,
+    LogOut
+} from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/app/context/AuthContext';
 import Logo from '@/app/components/Logo';
@@ -76,29 +94,30 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
     const tierBorderClass = getTierBorderColor(userProfile?.subscription_tier);
 
     const tabs = [
-        { name: 'Dashboard', path: `/team/${breweryId}/dashboard`, icon: '📊' },
-        { name: 'Feed', path: `/team/${breweryId}/feed`, icon: '💬' },
-        { name: 'Rezepte', path: `/team/${breweryId}/brews`, icon: '🍺' },
-        { name: 'Sessions', path: `/team/${breweryId}/sessions`, icon: '🌡️' },
-        { name: 'Inventar', path: `/team/${breweryId}/inventory`, icon: '📦' },
-        { name: 'Analytics', path: `/team/${breweryId}/analytics`, icon: '📈' },
+        { name: 'Dashboard', path: `/team/${breweryId}/dashboard`, icon: LayoutDashboard },
+        { name: 'Feed', path: `/team/${breweryId}/feed`, icon: MessageSquare },
+        { name: 'Rezepte', path: `/team/${breweryId}/brews`, icon: Beer },
+        { name: 'Sessions', path: `/team/${breweryId}/sessions`, icon: Thermometer },
+        { name: 'Inventar', path: `/team/${breweryId}/inventory`, icon: Package },
+        { name: 'Etiketten', path: `/team/${breweryId}/labels`, icon: Tag },
+        { name: 'Analytics', path: `/team/${breweryId}/analytics`, icon: TrendingUp },
     ];
 
-    const adminTabs: { name: string, path: string, icon: string }[] = [];
+    const adminTabs: { name: string, path: string, icon: any }[] = [];
     if(isMember) {
-        adminTabs.push({ name: 'Mitglieder', path: `/team/${breweryId}/members`, icon: '👥' });
-        adminTabs.push({ name: 'Einstellungen', path: `/team/${breweryId}/settings`, icon: '⚙️' });
+        adminTabs.push({ name: 'Mitglieder', path: `/team/${breweryId}/members`, icon: Users });
+        adminTabs.push({ name: 'Einstellungen', path: `/team/${breweryId}/settings`, icon: Settings });
     }
 
     const personalTabs = [
-        { name: 'Sammlung', path: '/dashboard/collection', icon: '🏅' },
-        { name: 'Favoriten', path: '/dashboard/favorites', icon: '❤️' },
-        { name: 'Achievements', path: '/dashboard/achievements', icon: '🏆' },
+        { name: 'Sammlung', path: '/dashboard/collection', icon: Medal },
+        { name: 'Favoriten', path: '/dashboard/favorites', icon: Heart },
+        { name: 'Achievements', path: '/dashboard/achievements', icon: Trophy },
     ];
 
     return (
         <>
-        <header className="border-b border-zinc-900 bg-zinc-950/80 backdrop-blur-md sticky top-0 z-50">
+        <header className="border-b border-zinc-900 bg-zinc-950/80 backdrop-blur-md sticky top-0 z-[3000]">
             <div className="max-w-[1920px] w-full mx-auto px-6 py-3 flex items-center justify-between">
                 
                 {/* Left: Logo & Exit */}
@@ -121,7 +140,7 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                                 title="Entdecken"
                                 className={`rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${pathname.startsWith('/discover') ? 'text-cyan-400' : 'text-zinc-500 hover:text-white'}`}
                             >
-                                <span>🌍</span>
+                                <Globe className="w-4 h-4" />
                                 <span>Entdecken</span>
                                 <span className="text-[10px] ml-1">▼</span>
                             </button>
@@ -133,14 +152,14 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                                                 href="/discover" 
                                                 className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
                                             >
-                                                <span>🍺</span>
+                                                <Beer className="w-4 h-4" />
                                                 <span>Rezepte</span>
                                             </Link>
                                             <Link 
                                                 href="/forum" 
                                                 className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
                                             >
-                                                <span>💬</span>
+                                                <MessageSquare className="w-4 h-4" />
                                                 <span>Forum</span>
                                             </Link>
                                         </div>
@@ -158,7 +177,7 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                                 title="Mein Profil"
                                 className={`rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${pathname === '/dashboard' || pathname.startsWith('/dashboard/') ? 'text-cyan-400' : 'text-zinc-500 hover:text-white'}`}
                             >
-                                <span>👤</span>
+                                <Users className="w-4 h-4" />
                                 <span>Mein Profil</span>
                                 <span className="text-[10px] ml-1">▼</span>
                             </button>
@@ -170,33 +189,33 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                                             href="/dashboard"
                                             className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-300 hover:text-white hover:bg-zinc-900 rounded-lg"
                                         >
-                                            <span>📊</span> <span>Dashboard</span>
+                                            <LayoutDashboard className="w-4 h-4" /> <span>Dashboard</span>
                                         </Link>
                                         <div className="h-px bg-zinc-800 my-1 mx-2"></div>
                                         <Link 
                                             href="/dashboard/collection" 
                                             className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
                                         >
-                                            <span>🏅</span> <span>Sammlung</span>
+                                            <Medal className="w-4 h-4" /> <span>Sammlung</span>
                                         </Link>
                                         <Link 
                                             href="/dashboard/favorites" 
                                             className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
                                         >
-                                            <span>❤️</span> <span>Favoriten</span>
+                                            <Heart className="w-4 h-4" /> <span>Favoriten</span>
                                         </Link>
                                          <Link 
                                             href="/dashboard/achievements" 
                                             className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
                                         >
-                                            <span>🏆</span> <span>Achievements</span>
+                                            <Trophy className="w-4 h-4" /> <span>Achievements</span>
                                         </Link>
                                         <div className="h-px bg-zinc-800 my-1 mx-2"></div>
                                         <Link 
                                             href="/dashboard/account" 
                                             className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
                                         >
-                                            <span>⚙️</span> <span>Einstellungen</span>
+                                            <Settings className="w-4 h-4" /> <span>Einstellungen</span>
                                         </Link>
                                     </div>
                                 </div>
@@ -219,7 +238,7 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                                     title={tab.name}
                                     className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${isActive ? 'bg-cyan-950/50 text-cyan-400' : 'text-zinc-500 hover:text-white hover:bg-zinc-800/50'}`}
                                 >
-                                    <span>{tab.icon}</span>
+                                    <tab.icon className="w-4 h-4" />
                                     <span className="hidden xl:inline">{tab.name}</span>
                                 </Link>
                             );
@@ -250,7 +269,7 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                                                         href={tab.path}
                                                         className={`px-4 py-3 text-sm font-bold transition-all flex items-center gap-3 ${isActive ? 'bg-cyan-950/30 text-cyan-400' : 'text-zinc-400 hover:text-white hover:bg-zinc-900'}`}
                                                     >
-                                                        <span>{tab.icon}</span>
+                                                        <tab.icon className="w-4 h-4" />
                                                         <span>{tab.name}</span>
                                                     </Link>
                                                 );
@@ -303,14 +322,14 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                                         href="/dashboard"
                                         className="block w-full px-4 py-3 text-zinc-300 hover:text-white hover:bg-zinc-900 transition text-sm font-medium flex items-center gap-2 text-left"
                                     >
-                                        👤 Mein Profil
+                                        <Users className="w-4 h-4" /> Mein Profil
                                     </Link>
 
                                     <button
                                         onClick={() => signOut()}
                                         className="block w-full px-4 py-3 text-red-400 hover:bg-red-500/10 transition text-sm font-medium flex items-center gap-2 text-left border-t border-zinc-800"
                                     >
-                                        🚪 Abmelden
+                                        <LogOut className="w-4 h-4" /> Abmelden
                                     </button>
                                 </div>
                             </div>
@@ -373,21 +392,21 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                               onClick={() => setMobileTab('personal')}
                               className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${mobileTab === 'personal' ? 'bg-zinc-800 text-white shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
                             >
-                              <span className={mobileTab === 'personal' ? 'grayscale-0' : 'grayscale'}>🧪</span>
+                              <FlaskConical className={`w-4 h-4 ${mobileTab === 'personal' ? 'grayscale-0' : 'grayscale'}`} />
                               Labor
                             </button>
                             <button 
                               onClick={() => setMobileTab('team')}
                               className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${mobileTab === 'team' ? 'bg-cyan-950 text-cyan-400 shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
                             >
-                              <span>🏭</span>
+                              <Factory className="w-4 h-4" />
                               Brauerei
                             </button>
                             <button 
                               onClick={() => setMobileTab('discover')}
                               className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${mobileTab === 'discover' ? 'bg-purple-900/50 text-purple-300 shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
                             >
-                              <span>🌍</span>
+                              <Globe className="w-4 h-4" />
                               Entdecken
                             </button>
                        </div>
@@ -405,7 +424,7 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                                    className="block bg-gradient-to-br from-cyan-950/40 to-cyan-900/10 border border-cyan-900/50 p-5 rounded-2xl relative overflow-hidden group"
                                 >
                                    <div className="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                                      <span className="text-6xl">🏭</span>
+                                      <Factory className="w-16 h-16" />
                                    </div>
                                    <p className="text-xs text-cyan-500 uppercase font-black tracking-widest mb-1">Team Area</p>
                                    <h3 className="text-2xl font-black text-white mb-2">Übersicht</h3>
@@ -427,7 +446,7 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                                                 onClick={() => setIsMobileMenuOpen(false)}
                                                 className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
                                             >
-                                                <span className="text-xl">{tab.icon}</span>
+                                                <tab.icon className="w-5 h-5 text-zinc-400 group-hover:text-cyan-400 transition-colors" />
                                                 <span className="font-bold text-sm text-zinc-200">{tab.name}</span>
                                                 <span className="ml-auto text-zinc-600">→</span>
                                             </Link>
@@ -441,7 +460,7 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                                                 onClick={() => setIsMobileMenuOpen(false)}
                                                 className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
                                             >
-                                                <span className="text-xl">{tab.icon}</span>
+                                                <tab.icon className="w-5 h-5 text-zinc-400 group-hover:text-cyan-400 transition-colors" />
                                                 <span className="font-bold text-sm text-zinc-200">{tab.name}</span>
                                                 <span className="ml-auto text-zinc-600">→</span>
                                             </Link>
@@ -460,7 +479,7 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                                   className="block bg-gradient-to-br from-zinc-800 to-zinc-900 border border-zinc-700 p-5 rounded-2xl relative overflow-hidden group"
                                >
                                   <div className="absolute right-0 top-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                                     <span className="text-6xl">📊</span>
+                                     <LayoutDashboard className="w-16 h-16" />
                                   </div>
                                   <p className="text-xs text-zinc-400 uppercase font-black tracking-widest mb-1">Privat</p>
                                   <h3 className="text-2xl font-black text-white mb-2">Mein Dashboard</h3>
@@ -481,7 +500,7 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                                            onClick={() => setIsMobileMenuOpen(false)}
                                            className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
                                         >
-                                           <span className="text-xl">{tab.icon}</span>
+                                           <tab.icon className="w-5 h-5 text-zinc-500 group-hover:text-cyan-400 transition-colors" />
                                            <span className="font-bold text-sm text-zinc-200">{tab.name}</span>
                                            <span className="ml-auto text-zinc-600">→</span>
                                         </Link>
@@ -500,7 +519,7 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                                             <p className="text-[10px] text-purple-400 font-black uppercase tracking-widest mb-1">BotlLab Community</p>
                                             <h3 className="text-xl font-bold text-white leading-tight">Entdecken</h3>
                                          </div>
-                                         <span className="bg-purple-500/10 text-purple-400 p-2 rounded-lg">🌍</span>
+                                         <span className="bg-purple-500/10 text-purple-400 p-2 rounded-lg"><Globe className="w-5 h-5" /></span>
                                       </div>
                                       <p className="text-sm text-zinc-400 mb-4">Finde Inspiration, tausche dich aus und entdecke neue Rezepte.</p>
                                 </div>
@@ -513,7 +532,7 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                                             onClick={() => setIsMobileMenuOpen(false)}
                                             className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
                                         >
-                                            <span className="text-xl">🌍</span>
+                                            <Globe className="w-5 h-5 text-zinc-400" />
                                             <span className="font-bold text-sm text-zinc-200">Rezepte</span>
                                             <span className="ml-auto text-zinc-600">→</span>
                                         </Link>
@@ -522,7 +541,7 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                                             onClick={() => setIsMobileMenuOpen(false)}
                                             className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
                                         >
-                                            <span className="text-xl">💬</span>
+                                            <MessageSquare className="w-5 h-5 text-zinc-400" />
                                             <span className="font-bold text-sm text-zinc-200">Forum</span>
                                             <span className="ml-auto text-zinc-600">→</span>
                                         </Link>
@@ -550,7 +569,7 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                                 onClick={() => setIsMobileMenuOpen(false)}
                                 className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-white transition"
                              >
-                                ⚙️
+                                <Settings className="w-4 h-4" />
                              </Link>
                          </div>
                          
@@ -558,7 +577,7 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                             onClick={() => { signOut(); setIsMobileMenuOpen(false); }}
                             className="w-full flex items-center justify-center gap-2 p-3 rounded-xl text-xs font-bold text-red-400/80 hover:bg-red-500/10 hover:text-red-400 transition"
                          >
-                            <span>🚪</span> Abmelden
+                            <LogOut className="w-4 h-4" /> Abmelden
                          </button>
                     </div>
                  </div>

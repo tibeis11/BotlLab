@@ -1,47 +1,72 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="de">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Update zu deiner Meldung — BotlLab</title>
-    <style>
-      body{margin:0;padding:0;background:#ffffff;font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Arial;color:#0f1720}
-      .button{display:inline-block;padding:12px 20px;background:#08b5d6;color:#041018;font-weight:700;border-radius:10px;text-decoration:none}
-      a{color:inherit}
-      img{border:0}
-    </style>
-  </head>
-  <body>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Update zur Meldung — BotlLab</title>
+  <style>
+    body { margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+    .wrapper { width: 100%; background-color: #f8fafc; padding: 40px 0; }
+    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .header { background-color: #f8fafc; padding: 32px; border-bottom: 1px solid #e2e8f0; }
+    .content { padding: 40px; }
+    .heading { font-size: 24px; font-weight: 700; color: #0f172a; margin: 0 0 16px 0; letter-spacing: -0.025em; }
+    .text { font-size: 15px; line-height: 1.6; color: #475569; margin: 0 0 24px 0; }
+    .button-container { text-align: left; margin-top: 32px; }
+    .button { display: inline-block; background-color: #000000; color: #ffffff; font-weight: 600; font-size: 14px; padding: 14px 32px; border-radius: 6px; text-decoration: none; }
+    .footer { padding: 24px; background-color: #f8fafc; text-align: center; border-top: 1px solid #f1f5f9; }
+    .footer-text { font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0; }
+    
+    .status-badge { display: inline-block; padding: 4px 12px; background-color: #f0f9ff; color: #0369a1; border: 1px solid #e0f2fe; border-radius: 100px; font-size: 12px; font-weight: 700; margin-bottom: 16px; }
+
+    @media only screen and (max-width: 600px) {
+      .content { padding: 24px !important; }
+      .wrapper { padding: 0 !important; }
+      .container { border-radius: 0 !important; box-shadow: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-      <tr><td align="center" style="padding:28px 16px">
-        <table width="620" style="max-width:100%">
-          <tr><td style="background:#fff;border-radius:12px;padding:28px;box-shadow:0 6px 30px rgba(2,6,23,0.06)">
+      <tr>
+        <td align="center">
+          <div class="container">
+            <!-- Header -->
+            <div class="header">
+               <a href="https://botllab.de" target="_blank">
+                  <img src="https://botllab.de/brand/logo_withName.svg" alt="BotlLab" width="140" style="display: block; opacity: 0.9;">
+               </a>
+            </div>
 
-            <a href="https://botllab.de" target="_blank"><img src="https://botllab.de/brand/logo_withName.svg" alt="BotlLab" width="200" style="display:block;margin-bottom:18px"/></a>
-
-            <h1 style="margin:0 0 8px;font-size:20px;color:#041018">Update zu deiner Meldung</h1>
-            <p style="margin:0 0 14px;color:#334155;font-size:15px">Danke, dass du uns auf diesen Inhalt hingewiesen hast. Wir haben deine Meldung vom <strong>{{reportDate}}</strong> geprüft.</p>
-
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:12px 0">
-              <tr><td style="padding:12px;border-radius:10px;background:#f8fafc;border:1px solid rgba(2,6,23,0.04)">
-                <p style="margin:0;color:#0f1720;font-size:14px"><strong>Status:</strong> {{status}}</p>
-                <p style="margin:6px 0 0;color:#475569;font-size:13px">{{messageSummary}}</p>
-              </td></tr>
-            </table>
-
-            <!-- Optional action button (e.g., view report) -->
-            <p style="margin:16px 0 0">
-              <a href="{{reportUrl}}" class="button" target="_blank">Meldung anzeigen</a>
-            </p>
-
-            <p style="margin:18px 0 0;color:#64748b;font-size:13px">Wir geben aus Sicherheits- und Datenschutzgründen keine Details über Sanktionen bekannt. Danke für deine Mithilfe.</p>
-
-            <hr style="border:none;border-top:1px solid rgba(15,23,32,0.06);margin:20px 0" />
-            <p style="margin:0;color:#94a3b8;font-size:12px">BotlLab • https://botllab.de</p>
-
-          </td></tr>
-        </table>
-      </td></tr>
+            <!-- Content -->
+            <div class="content">
+              <span class="status-badge">Meldung bearbeitet</span>
+              <h1 class="heading">Update zu deiner Meldung</h1>
+              <p class="text">
+                 Danke, dass du uns auf diesen Inhalt hingewiesen hast. Wir haben deine Meldung vom <strong>{{reportDate}}</strong> geprüft.
+              </p>
+              
+              <div class="text" style="background-color: #f8fafc; padding: 16px; border-radius: 6px; margin-bottom: 24px;">
+                 <strong>Ergebnis:</strong> {{status}}<br>
+                 <span style="font-size: 14px;">{{messageSummary}}</span>
+              </div>
+              
+              <div class="button-container">
+                <a href="{{reportUrl}}" class="button" target="_blank">Meldung anzeigen</a>
+              </div>
+            </div>
+             
+             <!-- Footer -->
+             <div class="footer">
+                <p class="footer-text">
+                  BotlLab • <a href="https://botllab.de" target="_blank" style="color: #94a3b8; text-decoration: none;">botllab.de</a>
+                </p>
+             </div>
+          </div>
+        </td>
+      </tr>
     </table>
-  </body>
+  </div>
+</body>
 </html>

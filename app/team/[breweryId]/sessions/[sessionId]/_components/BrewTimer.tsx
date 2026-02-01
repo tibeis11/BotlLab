@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { Play, Pause, SkipForward, Timer, Flame, AlertCircle } from 'lucide-react';
 
 type TimerMode = 'MASH' | 'BOIL';
 
@@ -141,49 +142,58 @@ export default function BrewTimer({ mode, steps, totalBoilTime, onStepComplete, 
         if (!currentStep) return null;
 
         return (
-            <div className="bg-amber-950/30 border border-amber-500/30 rounded-2xl p-6 mb-6 relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-4 opacity-10 text-9xl pointer-events-none text-amber-500">⏳</div>
+            <div className="bg-zinc-900 border border-amber-500/20 rounded-lg p-6 mb-6 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-4 opacity-5 text-amber-500 pointer-events-none transform scale-150 group-hover:scale-125 transition-transform duration-700">
+                    <Timer className="w-32 h-32" />
+                </div>
                 <div className="relative z-10">
                     <div className="flex justify-between items-start mb-4">
                         <div>
-                            <div className="text-amber-500 text-xs font-bold uppercase tracking-widest mb-1">Maisch-Timer</div>
-                            <h3 className="text-2xl font-black text-white">{currentStep.label}</h3>
-                            <p className="text-zinc-400">{currentStep.temperature}°C</p>
+                            <div className="text-amber-500 text-[10px] font-bold uppercase tracking-widest mb-1 flex items-center gap-2">
+                                <Timer className="w-3 h-3" /> Maisch-Timer
+                            </div>
+                            <h3 className="text-xl font-bold text-white tracking-tight">{currentStep.label}</h3>
+                            <p className="text-zinc-500 text-sm font-bold font-mono mt-1 px-2 py-0.5 bg-amber-950/20 text-amber-500 inline-block rounded border border-amber-500/10">{currentStep.temperature}°C</p>
                         </div>
                         <div className="text-center">
-                            <div className="text-4xl font-mono font-black text-white tabular-nums tracking-tight">
+                            <div className={`text-5xl font-mono font-black tabular-nums tracking-tighter ${running ? 'text-white' : 'text-zinc-500'}`}>
                                 {formatTime(timeLeft)}
                             </div>
-                            <div className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest">Verbleibend</div>
+                            <div className="text-[9px] text-zinc-600 uppercase font-bold tracking-widest mt-1">Verbleibend</div>
                         </div>
                     </div>
                     
                     {/* Controls */}
-                    <div className="flex gap-3">
+                    <div className="flex gap-3 mt-6">
                         <button 
                             onClick={toggleTimer}
-                            className={`flex-1 py-3 rounded-xl font-bold uppercase tracking-wide transition-all ${
+                            className={`flex-1 py-3 px-6 rounded-lg font-bold uppercase tracking-wide transition-all flex items-center justify-center gap-2 ${
                                 running 
-                                ? 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700' 
-                                : 'bg-amber-500 text-black hover:bg-amber-400 shadow-lg shadow-amber-900/20'
+                                ? 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700 border border-zinc-700' 
+                                : 'bg-amber-500 text-black hover:bg-amber-400 border border-amber-400'
                             }`}
                         >
-                            {running ? 'Pause' : 'Start'}
+                            {running ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 fill-current" />}
+                            <span className="text-xs">{running ? 'Pause' : 'Start'}</span>
                         </button>
-                        <button 
-                            onClick={skipStep}
-                            className="px-6 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
-                        >
-                            ⏭
-                        </button>
+                        {currentStepIndex < steps.length - 1 && (
+                            <button 
+                                onClick={skipStep}
+                                className="px-5 py-3 bg-black border border-zinc-800 rounded-lg text-zinc-400 hover:text-white hover:border-zinc-600 transition-colors flex items-center justify-center"
+                                title="Nächster Schritt"
+                            >
+                                <SkipForward className="w-4 h-4" />
+                            </button>
+                        )}
                     </div>
 
                     {/* Next Step Preview */}
                     {currentStepIndex < steps.length - 1 && (
-                        <div className="mt-4 pt-4 border-t border-amber-500/10 flex items-center justify-between text-sm">
-                            <span className="text-zinc-500">Danach:</span>
-                            <span className="text-zinc-300 font-bold">
-                                {steps[currentStepIndex + 1].label} ({steps[currentStepIndex + 1].temperature}°C)
+                        <div className="mt-4 pt-4 border-t border-zinc-800/50 flex items-center justify-between text-xs">
+                            <span className="text-zinc-600 uppercase font-bold tracking-wider">Danach</span>
+                            <span className="text-zinc-400 font-bold flex items-center gap-2">
+                                {steps[currentStepIndex + 1].label} 
+                                <span className="bg-zinc-800 text-zinc-300 px-1.5 py-0.5 rounded text-[10px]">{steps[currentStepIndex + 1].temperature}°C</span>
                             </span>
                         </div>
                     )}
@@ -198,64 +208,69 @@ export default function BrewTimer({ mode, steps, totalBoilTime, onStepComplete, 
         
         // Find next upcoming addition
         const currentMinutes = timeLeft / 60;
-        const upcomingEvent = sortedSteps.filter(s => s.timePoint! <= currentMinutes).sort((a,b) => b.timePoint! - a.timePoint!)[0]; // Finds largest timePoint <= current
-
-        // Actually upcoming means timePoint < currentMinutes and closest.
-        // Wait, normally boil timer counts DOWN.
-        // If boil is 60 min. Current is 55.
-        // Valid additions are those at 50, 40 etc.
-        // The *next* one is the one with highest timePoint that is LESS than current time.
-        const nextAddition = sortedSteps.filter(s => s.timePoint! < currentMinutes).reduce((prev, curr) => {
-            return (prev && prev.timePoint! > curr.timePoint!) ? prev : curr;
-        }, null as TimerStep | null);
+        
+        // Find largest timePoint < currentMinutes
+        const nextAddition = sortedSteps
+            .filter(s => s.timePoint! < currentMinutes)
+            .reduce((prev, curr) => {
+                 return (prev && prev.timePoint! > curr.timePoint!) ? prev : curr;
+            }, null as TimerStep | null);
 
         return (
-            <div className="bg-red-950/30 border border-red-500/30 rounded-2xl p-6 mb-6 relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-4 opacity-10 text-9xl pointer-events-none text-red-500">🔥</div>
+            <div className="bg-zinc-900 border border-red-500/20 rounded-lg p-6 mb-6 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-4 opacity-5 text-red-500 pointer-events-none transform scale-150 group-hover:scale-125 transition-transform duration-700">
+                    <Flame className="w-32 h-32" />
+                </div>
                 <div className="relative z-10">
                     <div className="flex justify-between items-center mb-6">
                         <div>
-                             <div className="text-red-500 text-xs font-bold uppercase tracking-widest mb-1">Koch-Timer</div>
-                             <h3 className="text-xl font-black text-white">Würzekochen</h3>
+                             <div className="text-red-500 text-[10px] font-bold uppercase tracking-widest mb-1 flex items-center gap-2">
+                                <Flame className="w-3 h-3" /> Koch-Timer
+                             </div>
+                             <h3 className="text-xl font-bold text-white tracking-tight">Würzekochen</h3>
                         </div>
                          <div className="text-right">
-                            <div className="text-5xl font-mono font-black text-white tabular-nums tracking-tight">
+                            <div className={`text-5xl font-mono font-black tabular-nums tracking-tighter ${running ? 'text-white' : 'text-zinc-500'}`}>
                                 {formatTime(timeLeft)}
                             </div>
                         </div>
                     </div>
 
                     {activeBoilStep && (
-                        <div className="bg-red-500 text-black px-4 py-3 rounded-xl font-bold mb-4 animate-in fade-in slide-in-from-top-2">
-                            🚨 JETZT ZUGEBEN: {activeBoilStep.label}
+                        <div className="bg-red-500 text-black px-4 py-3 rounded-lg font-bold mb-4 animate-in fade-in slide-in-from-top-2 flex items-center gap-3 shadow-lg shadow-red-900/20">
+                            <AlertCircle className="w-5 h-5 fill-black text-white" />
+                            <span>JETZT ZUGEBEN: {activeBoilStep.label}</span>
                         </div>
                     )}
 
                     {nextAddition ? (
-                         <div className="bg-zinc-900/50 rounded-xl p-3 border border-red-500/20 mb-4 flex justify-between items-center">
+                         <div className="bg-black rounded-lg p-3 border border-zinc-800 mb-6 flex justify-between items-center">
                             <div>
-                                <span className="text-xs text-red-400 font-bold uppercase">Nächste Gabe</span>
-                                <div className="font-bold text-white">{nextAddition.label}</div>
+                                <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest block mb-0.5">Nächste Gabe</span>
+                                <div className="font-bold text-zinc-300 text-sm">{nextAddition.label}</div>
                             </div>
-                            <div className="text-xl font-mono font-bold text-red-400">
+                            <div className="text-xl font-mono font-bold text-red-500">
                                 @ {nextAddition.timePoint} min
                             </div>
                          </div>
                     ) : (
-                         <div className="text-zinc-500 text-sm mb-4">Keine weiteren Gaben geplant.</div>
+                         <div className="text-zinc-600 text-xs font-bold uppercase tracking-wider mb-6 flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-zinc-700"></span> Keine weiteren Gaben
+                         </div>
                     )}
 
                     {/* Controls */}
                     <div className="flex gap-3">
                         <button 
                             onClick={toggleTimer}
-                            className={`flex-1 py-3 rounded-xl font-bold uppercase tracking-wide transition-all ${
+                            className={`flex-1 py-3 px-6 rounded-lg font-bold uppercase tracking-wide transition-all flex items-center justify-center gap-2 ${
                                 running 
-                                ? 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700' 
-                                : 'bg-red-600 text-white hover:bg-red-500 shadow-lg shadow-red-900/20'
+                                ? 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700 border border-zinc-700' 
+                                : 'bg-red-600 text-white hover:bg-red-500 border border-red-500'
                             }`}
                         >
-                            {running ? 'Pause' : 'Start'}
+                            {running ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 fill-current" />}
+                            <span className="text-xs">{running ? 'Pause' : 'Start'}</span>
                         </button>
                     </div>
                 </div>

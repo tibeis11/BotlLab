@@ -19,6 +19,7 @@ export default function TeamLayout({
   const [isMember, setIsMember] = useState(false);
   
   const pathname = usePathname();
+  const isEditor = pathname?.includes('/editor/');
   
   // Use a state latch to keep the ID even if useParams flickers
   const params = useParams();
@@ -97,6 +98,16 @@ export default function TeamLayout({
         <Link href="/dashboard" className="text-white underline">Zurück zum Dashboard</Link>
     </div>
   );
+
+  if (isEditor) {
+      return (
+        <div className="h-screen overflow-hidden bg-black text-zinc-200">
+            <NotificationProvider>
+                {children}
+            </NotificationProvider>
+        </div>
+      );
+  }
 
   return (
     <div className="min-h-screen bg-black text-zinc-200">

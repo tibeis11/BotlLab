@@ -624,6 +624,48 @@ export async function triggerAggregation(
 }
 
 // ============================================================================
+// Admin: Update User Subscription Plan (server-side helper)
+// ============================================================================
+export async function updateUserSubscriptionPlan(email: string, plan: string) {
+  try {
+    const adminClient = getServiceRoleClient()
+
+    // 1. List users via Admin SDK
+    const { data: { users }, error: listError } = await adminClient.auth.admin.listUsers()
+    if (listError) {
+      console.error('Error listing users:', listError)
+      throw new Error('Fehler bei der Benutzersuche im Auth-System.')
+    }
+
+    const user = users.find(u => u.email?.toLowerCase() === email.toLowerCase())
+    if (!user) {
+      throw new Error('Benutzer mit dieser E-Mail wurde im System nicht gefunden.')
+    }
+
+    // 2. Update profiles table for this user id
+    const { error: profileError } = await adminClient
+      .from('profiles')
+      .update({
+        subscription_tier: plan,
+        subscription_status: 'active'
+      })
+      .eq('id', user.id)
+
+    if (profileError) {
+      console.error('Error updating profile:', profileError)
+      throw new Error('Fehler beim Aktualisieren des Profils in der Datenbank.')
+    }
+
+    await logAdminAction('update_user_subscription', user.id, { email, plan })
+
+    return { success: true }
+  } catch (error: any) {
+    console.error('updateUserSubscriptionPlan error:', error)
+    throw error
+  }
+}
+
+// ============================================================================
 // Audit Logs (for transparency)
 // ============================================================================
 

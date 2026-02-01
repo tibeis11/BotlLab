@@ -8,16 +8,27 @@ import { useAuth } from '@/app/context/AuthContext';
 import { SessionPhase } from '@/lib/types/session-log';
 import { calculateCurrentStats } from '@/lib/session-log-service';
 import { calculateABVFromSG, platoToSG } from '@/lib/brewing-calculations';
+import { 
+    Plus, 
+    ClipboardList, 
+    ArrowUpRight, 
+    Beer, 
+    Calendar, 
+    FlaskConical, 
+    Thermometer,
+    Loader2,
+    Zap 
+} from 'lucide-react';
 
 /* --- Design System Helpers --- */
 
 const getPhaseColor = (p: SessionPhase) => {
     switch (p) {
         case 'planning': return 'bg-zinc-800 text-zinc-300 border-zinc-700';
-        case 'brewing': return 'bg-amber-950/30 text-amber-500 border-amber-500/20';
-        case 'fermenting': return 'bg-purple-950/30 text-purple-400 border-purple-500/20';
-        case 'conditioning': return 'bg-sky-950/30 text-sky-400 border-sky-500/20';
-        case 'completed': return 'bg-emerald-950/30 text-emerald-400 border-emerald-500/20';
+        case 'brewing': return 'bg-amber-500/10 text-amber-500 border-amber-500/20';
+        case 'fermenting': return 'bg-purple-500/10 text-purple-400 border-purple-500/20';
+        case 'conditioning': return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
+        case 'completed': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
         default: return 'bg-zinc-800 text-zinc-300 border-zinc-700';
     }
 };
@@ -81,79 +92,93 @@ export default function TeamSessionsPage({ params }: { params: Promise<{ brewery
   }
 
   if (loading) return (
-      <div className="flex justify-center py-20">
-          <div className="text-zinc-500 animate-pulse text-sm font-bold uppercase tracking-widest">Lade Daten...</div>
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center text-zinc-500 gap-4">
+          <Loader2 className="w-8 h-8 animate-spin text-cyan-500" />
+          <p className="font-medium animate-pulse">Lade Logbücher...</p>
       </div>
   );
 
   return (
-    <div className="space-y-12 pb-24 max-w-7xl mx-auto">
-        
-        {/* Header Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-end">
-             <div className="space-y-4">
-                <div className="inline-flex items-center gap-2">
-                    <span className="text-cyan-400 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-lg bg-cyan-950/30 border border-cyan-500/20 shadow-sm shadow-cyan-900/20">
-                        LOGBUCH & SUDE
-                    </span>
-                    <span className="text-zinc-500 text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg bg-zinc-900 border border-zinc-800">
-                        {sessions.length} Einträge
-                    </span>
-                </div>
-                <div>
-                    <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight mb-2">Brausessions</h1>
-                    <p className="text-zinc-400 text-lg leading-relaxed max-w-xl">
-                        Das digitale Brauprotokoll. Verfolge den Fortschritt deiner Sude von der Planung bis zur Verkostung.
-                    </p>
-                </div>
-             </div>
-             
-             {isMember && (
-                <div className="flex flex-col sm:flex-row gap-3 justify-start lg:justify-end">
-                    <Link 
-                        href={`/team/${breweryId}/sessions/new-quick`}
-                        className="group relative flex items-center justify-center gap-3 px-6 py-4 rounded-2xl font-black transition-all duration-300 bg-blue-600 hover:bg-blue-500 text-white shadow-[0_0_20px_rgba(37,99,235,0.3)] hover:shadow-[0_0_30px_rgba(37,99,235,0.5)] active:scale-95"
-                    >
-                        <span>Quick Session</span>
-                    </Link>
-                    <Link 
-                        href={`/team/${breweryId}/sessions/new`}
-                        className="group relative flex items-center justify-center gap-3 px-6 py-4 rounded-2xl font-black text-black transition-all duration-300 bg-cyan-400 hover:bg-cyan-300 shadow-[0_0_20px_rgba(34,211,238,0.3)] hover:shadow-[0_0_30px_rgba(34,211,238,0.5)] active:scale-95"
-                    >
-                        <span>Neue Session</span>
-                    </Link>
-                </div>
-             )}
-        </div>
+    <div className="min-h-screen bg-black text-white font-sans selection:bg-cyan-500/30 selection:text-cyan-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+            
+            {/* Header Section */}
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-2 border-b border-zinc-800">
+                 <div className="space-y-4">
+                    <div className="inline-flex items-center gap-2">
+                        <span className="text-cyan-400 text-[10px] uppercase font-bold tracking-widest px-2.5 py-1 rounded-md bg-cyan-950/30 border border-cyan-500/20 flex items-center gap-1.5">
+                            <ClipboardList className="w-3 h-3" />
+                            Logbuch & Sude
+                        </span>
+                        <span className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest px-2 py-1 rounded-md bg-zinc-900 border border-zinc-800">
+                            {sessions.length} Einträge
+                        </span>
+                    </div>
+                    <div>
+                        <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight mb-2">Brausessions</h1>
+                        <p className="text-zinc-400 text-base md:text-lg leading-relaxed max-w-xl">
+                            Das digitale Brauprotokoll. Verfolge den Fortschritt deiner Sude.
+                        </p>
+                    </div>
+                 </div>
+                 
+                 {isMember && (
+                    <div className="flex flex-col sm:flex-row gap-3">
+                        <Link 
+                            href={`/team/${breweryId}/sessions/new-quick`}
+                            className="bg-zinc-900 border border-zinc-700 hover:bg-zinc-800 hover:border-zinc-600 text-white rounded-lg px-4 py-2.5 text-sm font-medium transition-all flex items-center justify-center gap-2"
+                        >
+                            <Zap className="w-4 h-4 text-amber-500" />
+                            <span>Quick Session</span>
+                        </Link>
+                        <Link 
+                            href={`/team/${breweryId}/sessions/new`}
+                            className="bg-white hover:bg-zinc-200 text-black border border-transparent rounded-lg px-4 py-2.5 text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-white/5"
+                        >
+                            <Plus className="w-4 h-4" />
+                            <span>Neue Session</span>
+                        </Link>
+                    </div>
+                 )}
+            </div>
 
-        {/* Sessions Grid */}
-        {sessions.length === 0 ? (
-            <div className="text-center py-24 border border-zinc-800 border-dashed rounded-3xl bg-zinc-900/30">
-                <div className="w-24 h-24 bg-zinc-900 rounded-full flex items-center justify-center mx-auto mb-6 border border-zinc-800">
-                     <span className="text-4xl opacity-50 grayscale">📋</span>
+            {/* Sessions Grid */}
+            {sessions.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-24 border border-zinc-800 border-dashed rounded-xl bg-zinc-900/20">
+                    <div className="w-20 h-20 bg-zinc-900 rounded-full flex items-center justify-center mb-6 border border-zinc-800">
+                         <ClipboardList className="w-10 h-10 text-zinc-600" />
+                    </div>
+                    <h3 className="text-xl font-bold text-white mb-2">Keine Sude gefunden</h3>
+                    <p className="text-zinc-500 mb-8 max-w-md text-center">Es sieht so aus, als hättet ihr noch keine Brausessions gestartet.</p>
+                    {isMember && (
+                         <Link 
+                            href={`/team/${breweryId}/sessions/new`} 
+                            className="text-cyan-500 hover:text-cyan-400 text-sm font-medium flex items-center gap-2"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Ersten Sud anlegen
+                         </Link>
+                    )}
                 </div>
-                <h3 className="text-xl font-black text-white mb-2">Keine Sude gefunden</h3>
-                <p className="text-zinc-400 mb-8 max-w-md mx-auto">Es sieht so aus, als hättet ihr noch keine Brausessions gestartet. Lege jetzt los!</p>
-                {isMember && (
-                     <Link href={`/team/${breweryId}/sessions/new`} className="text-cyan-400 font-bold hover:text-cyan-300 uppercase tracking-widest text-sm border-b border-cyan-500/30 pb-1">
-                        Ersten Sud anlegen
-                     </Link>
-                )}
-            </div>
-        ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                {sessions.map(session => (
-                    <SessionCard key={session.id} session={session} breweryId={breweryId} />
-                ))}
-            </div>
-        )}
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                    {sessions.map(session => (
+                        <SessionCard key={session.id} session={session} breweryId={breweryId} />
+                    ))}
+                </div>
+            )}
+        </div>
     </div>
   );
 }
 
 function SessionCard({ session, breweryId }: { session: any, breweryId: string }) {
     const brew = session.brews;
-    const date = new Date(session.brewed_at || session.created_at).toLocaleDateString('de-DE');
+    const date = new Date(session.brewed_at || session.created_at).toLocaleDateString('de-DE', { 
+        day: '2-digit', 
+        month: '2-digit', 
+        year: 'numeric' 
+    });
     
     // Check if this is a Quick Session
     const isQuickSession = session.session_type === 'quick';
@@ -201,18 +226,18 @@ function SessionCard({ session, breweryId }: { session: any, breweryId: string }
     return (
         <Link 
             href={`/team/${breweryId}/sessions/${session.id}`}
-            className="group bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden shadow-lg flex flex-col relative hover:border-zinc-700 transition-all duration-300 hover:shadow-2xl hover:shadow-black/50"
+            className="group bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden hover:border-zinc-700 transition-all duration-300 hover:shadow-2xl hover:shadow-black/50 flex flex-col h-full"
         >
             {/* Image / Header Area */}
-            <div className="relative h-48 bg-zinc-950 overflow-hidden">
+            <div className="relative h-48 bg-zinc-950 overflow-hidden shrink-0">
                 {bgImage ? (
                     <div 
                         className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105 opacity-60 group-hover:opacity-80"
                         style={{ backgroundImage: bgImage }}
                     />
                 ) : (
-                    <div className="absolute inset-0 flex items-center justify-center bg-zinc-900">
-                        <span className="text-4xl grayscale opacity-20">🍺</span>
+                    <div className="absolute inset-0 flex items-center justify-center bg-zinc-950">
+                        <Beer className="w-12 h-12 text-zinc-800" strokeWidth={1} />
                     </div>
                 )}
                 
@@ -221,7 +246,7 @@ function SessionCard({ session, breweryId }: { session: any, breweryId: string }
 
                 {/* Badges */}
                 <div className="absolute top-4 left-4 flex flex-col gap-2 items-start">
-                    <div className={`backdrop-blur-md px-3 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-widest shadow-lg ${getPhaseColor(session.phase)}`}>
+                    <div className={`backdrop-blur-md px-2.5 py-1 rounded-lg border text-[10px] font-bold uppercase tracking-widest shadow-lg ${getPhaseColor(session.phase)}`}>
                         {getPhaseLabel(session.phase)}
                     </div>
                     {session.batch_code && (
@@ -231,50 +256,68 @@ function SessionCard({ session, breweryId }: { session: any, breweryId: string }
                     )}
                 </div>
 
-                <div className="absolute top-4 right-4">
-                     <div className="w-10 h-10 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/50 group-hover:text-cyan-400 group-hover:bg-black/80 group-hover:border-cyan-500/30 transition-all">
-                        ↗
+                <div className="absolute top-4 right-4 translate-x-2 -translate-y-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 group-hover:translate-y-0 transition-all duration-300">
+                     <div className="w-8 h-8 rounded-lg bg-black/80 backdrop-blur-md border border-white/10 flex items-center justify-center text-cyan-400">
+                        <ArrowUpRight className="w-4 h-4" />
                      </div>
                 </div>
             </div>
 
             {/* Content Area */}
-            <div className="p-6 flex flex-col flex-1 relative -mt-6">
+            <div className="p-5 flex flex-col flex-1 border-t border-zinc-800 relative z-10">
                  {/* Title Card */}
                  <div className="mb-6">
-                    <h3 className="text-2xl font-black text-white leading-tight mb-2 group-hover:text-cyan-400 transition-colors">
+                    <h3 className="text-xl font-bold text-white leading-tight mb-2 group-hover:text-cyan-400 transition-colors line-clamp-2">
                         {brew?.name || 'Unbekanntes Rezept'}
                     </h3>
-                    <div className="flex items-center gap-2 text-zinc-500 text-xs font-bold uppercase tracking-wider">
+                    <div className="flex items-center gap-2 text-zinc-500 text-xs font-medium">
+                        <Calendar className="w-3 h-3" />
                         <span>{date}</span>
                         {brew?.style && (
                             <>
-                                <span>•</span>
-                                <span className="text-zinc-400">{brew.style}</span>
+                                <span className="text-zinc-700">•</span>
+                                <span className="text-zinc-400 truncate">{brew.style}</span>
+                            </>
+                        )}
+                        {isQuickSession && (
+                            <>
+                                <span className="text-zinc-700">•</span>
+                                <span className="text-amber-500 flex items-center gap-1">
+                                    <Zap className="w-3 h-3" /> Quick
+                                </span>
                             </>
                         )}
                     </div>
                  </div>
 
                  {/* Mini Metrics Grid */}
-                 <div className="grid grid-cols-2 gap-2 mt-auto">
-                    <div className="bg-zinc-950/50 rounded-xl p-3 border border-zinc-800/50">
-                        <div className="text-[10px] text-zinc-600 font-black uppercase mb-1">Stammwürze</div>
-                        <div className="text-white font-mono font-bold">
+                 <div className="grid grid-cols-2 gap-3 mt-auto">
+                    <div className="bg-black/40 rounded-lg p-3 border border-zinc-800">
+                        <div className="text-[10px] text-zinc-500 font-bold uppercase mb-1 flex items-center gap-1.5">
+                            <FlaskConical className="w-3 h-3" />
+                            Stammwürze
+                        </div>
+                        <div className="text-zinc-200 font-mono font-bold text-sm">
                             {og ? `${Number(og).toFixed(3)}` : '—'}
                         </div>
                     </div>
                     {session.current_gravity ? (
-                         <div className="bg-cyan-950/20 rounded-xl p-3 border border-cyan-500/20">
-                            <div className="text-[10px] text-cyan-700 font-black uppercase mb-1">Aktuell</div>
-                            <div className="text-cyan-400 font-mono font-bold">
+                         <div className="bg-cyan-950/10 rounded-lg p-3 border border-cyan-500/20">
+                            <div className="text-[10px] text-cyan-600 font-bold uppercase mb-1 flex items-center gap-1.5">
+                                <Thermometer className="w-3 h-3" />
+                                Aktuell
+                            </div>
+                            <div className="text-cyan-400 font-mono font-bold text-sm">
                                 {Number(session.current_gravity).toFixed(3)}
                             </div>
                         </div>
                     ) : (
-                        <div className="bg-zinc-950/50 rounded-xl p-3 border border-zinc-800/50">
-                             <div className="text-[10px] text-zinc-600 font-black uppercase mb-1">Alkohol</div>
-                             <div className="text-zinc-500 font-mono font-bold">
+                        <div className="bg-black/40 rounded-lg p-3 border border-zinc-800">
+                             <div className="text-[10px] text-zinc-500 font-bold uppercase mb-1 flex items-center gap-1.5">
+                                <FlaskConical className="w-3 h-3" />
+                                Alkohol
+                             </div>
+                             <div className="text-zinc-400 font-mono font-bold text-sm">
                                  {stats.abv ? `${stats.abv}%` : '—'}
                              </div>
                         </div>

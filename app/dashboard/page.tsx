@@ -5,14 +5,13 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import TierProgressWidget from './components/TierProgressWidget';
 import DiscoverWidget from './components/DiscoverWidget';
-import ForumActivityWidget from './components/ForumActivityWidget';
 import TrendingForumWidget from './components/TrendingForumWidget';
-import { Megaphone } from 'lucide-react';
-import { useAchievementNotification } from '../context/AchievementNotificationContext';
+import { Megaphone, Award, Bell, Flame, Plus, Users, ArrowRight, User } from 'lucide-react';
 import { supabase, getActiveBrewery } from '@/lib/supabase';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '@/app/context/AuthContext';
 import { getBreweryFeed, addToFeed, type FeedItem } from '@/lib/feed-service';
 import { getTierConfig } from '@/lib/tier-system';
+import { createDefaultBreweryTemplate } from '@/lib/actions/label-actions';
 import { getTierBorderColor } from '@/lib/premium-config';
 
 export default function DashboardPage() {
@@ -24,281 +23,120 @@ export default function DashboardPage() {
 }
 
 function DashboardContent() {
-	const { user, loading: authLoading } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
-	const [loading, setLoading] = useState(true);
-	const [stats, setStats] = useState({
-		brewCount: 0,
-		bottleCount: 0,
-		filledCount: 0,
-		collectionCount: 0
-	});
-    const [dashboardFeed, setDashboardFeed] = useState<FeedItem[]>([]);
-	const [recentBrews, setRecentBrews] = useState<any[]>([]);
-	const [activeBrewery, setActiveBrewery] = useState<any>(null);
-	const [brewRatings, setBrewRatings] = useState<{[key: string]: {avg: number, count: number}}>({});
-	const [globalRatingStats, setGlobalRatingStats] = useState({
-		avg: 0,
-		total: 0,
-		distribution: [0,0,0,0,0]
-	});
-	const [breweryName, setBreweryName] = useState("");
-	const [userName, setUserName] = useState("");
-    const [userTitle, setUserTitle] = useState("");
-    const [titleColor, setTitleColor] = useState("");
-	const [userId, setUserId] = useState<string | null>(null);
-	const [profileInfo, setProfileInfo] = useState({
-		display_name: '',
-		founded_year: '',
-		logo_url: '',
-		location: '',
-		website: '',
-		bio: ''
-	});
-	const { showAchievement } = useAchievementNotification();
     
-    // State for Onboarding
+    // Data State
+    const [dashboardFeed, setDashboardFeed] = useState<FeedItem[]>([]);
+    const [userName, setUserName] = useState("");
+    const [activeBrewery, setActiveBrewery] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [breweryLoading, setBreweryLoading] = useState(false);
+    
+    // Onboarding State
     const [isCreatingBrewery, setIsCreatingBrewery] = useState(false);
     const [isJoiningBrewery, setIsJoiningBrewery] = useState(false);
     const [newBreweryName, setNewBreweryName] = useState("");
     const [joinCode, setJoinCode] = useState("");
     const [onboardingError, setOnboardingError] = useState<string | null>(null);
 
-	useEffect(() => {
-		if (!authLoading) {
-			if (!user) {
-				router.push('/login');
-			} else {
-				loadDashboardData();
-			}
-		}
-	}, [user, authLoading, searchParams]);
+    // Initialize Dashboard
+    useEffect(() => {
+        if (!authLoading) {
+            if (!user) {
+                router.push('/login');
+            } else {
+                loadDashboardData();
+            }
+        }
+    }, [user, authLoading, searchParams]);
 
-	async function loadDashboardData() {
-		if (!user) return;
-		try {
-			setLoading(true);
-			setUserId(user.id);
+    async function loadDashboardData() {
+        if (!user) return;
+        try {
+            setLoading(true);
 
-            // Fetch User Profile for Greeting
-            const { data: userProfile } = await supabase.from('profiles').select('display_name, tier').eq('id', user.id).single();
+            // 1. Fetch User Profile
+            const { data: userProfile } = await supabase
+                .from('profiles')
+                .select('display_name, tier')
+                .eq('id', user.id)
+                .single();
+            
             if(userProfile) {
-                setUserName(userProfile.display_name);
-                const tier = getTierConfig(userProfile.tier || 'lehrling');
-                setUserTitle(tier.displayName);
-                setTitleColor(tier.color);
+                setUserName(userProfile.display_name || user.email?.split('@')[0] || 'Brauer');
             }
 
-			// 1. Kontext: In welcher Brauerei bin ich gerade?
-            // Priorität: URL Param > Standard (erste Brauerei)
+            // 2. Determine Active Brewery context
             let brewery = null;
             const paramId = searchParams.get('breweryId');
             
             if (paramId) {
-                const { data: member } = await supabase
-                    .from('brewery_members')
-                    .select('brewery_id, breweries(*)')
-                    .eq('user_id', user.id)
-                    .eq('brewery_id', paramId)
-                    .maybeSingle();
-
+                const { data: member } = await supabase.from('brewery_members').select('brewery_id, breweries(*)').eq('user_id', user.id).eq('brewery_id', paramId).maybeSingle();
                  if (member && member.breweries) {
                      brewery = Array.isArray(member.breweries) ? member.breweries[0] : member.breweries;
                 }
             }
 
             if (!brewery) {
-			    brewery = await getActiveBrewery(user.id);
+                brewery = await getActiveBrewery(user.id);
+            }
+            setActiveBrewery(brewery);
+
+            // 3. Load Activity Feed
+            if (brewery) {
+                const events = await getBreweryFeed(brewery.id);
+                setDashboardFeed((events || []).slice(0, 3));
+            } else {
+                setDashboardFeed([]);
             }
 
-			setActiveBrewery(brewery);
+        } catch (error) {
+            console.error("Dashboard Load Error:", error);
+        } finally {
+            setLoading(false);
+        }
+    }
 
-			if (brewery) {
-				setBreweryName(brewery.name);
-				setProfileInfo({
-					display_name: brewery.name || '',
-					founded_year: brewery.founded_year ? String(brewery.founded_year) : '',
-					logo_url: brewery.logo_url || '',
-					location: brewery.location || '',
-					website: brewery.website || '',
-					bio: brewery.description || ''
-				});
-
-				// 2. Stats für die Brauerei laden (Squad-Fokus)
-				const { count: brewCount } = await supabase
-					.from('brews')
-					.select('*', { count: 'exact', head: true })
-					.eq('brewery_id', brewery.id);
-					
-				const { count: bottleCount } = await supabase
-					.from('bottles')
-					.select('*', { count: 'exact', head: true })
-					.eq('brewery_id', brewery.id);
-					
-				const { count: filledCount } = await supabase
-					.from('bottles')
-					.select('*', { count: 'exact', head: true })
-					.eq('brewery_id', brewery.id)
-					.not('brew_id', 'is', null);
-
-				const { count: collectionCount } = await supabase
-					.from('collected_caps')
-					.select('*', { count: 'exact', head: true })
-					.eq('user_id', user.id); // Sammlung bleibt persönlich!
-
-				setStats({
-					brewCount: brewCount || 0,
-					bottleCount: bottleCount || 0,
-					filledCount: filledCount || 0,
-					collectionCount: collectionCount || 0
-				});
-
-				// 3. Rezepte der Brauerei für Ratings & Recent List
-				const { data: allBrews } = await supabase
-					.from('brews')
-					.select('id')
-					.eq('brewery_id', brewery.id);
-				
-				if (allBrews && allBrews.length > 0) {
-					const brewIds = allBrews.map(b => b.id);
-					const { data: allRatings } = await supabase
-						.from('ratings')
-						.select('rating')
-						.in('brew_id', brewIds)
-						.eq('moderation_status', 'auto_approved');
-
-					if (allRatings && allRatings.length > 0) {
-						const count = allRatings.length;
-						const sum = allRatings.reduce((acc, r) => acc + r.rating, 0);
-						const avg = Math.round((sum / count) * 10) / 10;
-						const dist = [0,0,0,0,0];
-						allRatings.forEach(r => {
-							if (r.rating >= 1 && r.rating <= 5) dist[r.rating - 1]++;
-						});
-						setGlobalRatingStats({ avg, total: count, distribution: dist });
-					}
-				}
-
-				const { data: recents } = await supabase
-					.from('brews')
-					.select('*')
-					.eq('brewery_id', brewery.id)
-					.order('created_at', { ascending: false })
-					.limit(3);
-				
-				if (recents) {
-					setRecentBrews(recents);
-					const ratingsMap: {[key: string]: {avg: number, count: number}} = {};
-					for (const b of recents) {
-						const { data: ratings } = await supabase
-							.from('ratings')
-							.select('rating')
-							.eq('brew_id', b.id)
-							.eq('moderation_status', 'auto_approved');
-						if (ratings && ratings.length > 0) {
-							const avg = ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length;
-							ratingsMap[b.id] = { avg: Math.round(avg * 10) / 10, count: ratings.length };
-						}
-					}
-					setBrewRatings(ratingsMap);
-				}
-
-                // 4. Feed für Dashboard laden (Mini Preview)
-                const feedItems = await getBreweryFeed(brewery.id);
-                setDashboardFeed(feedItems ? feedItems.slice(0, 3) : []);
-			}
-
-		} catch (e) {
-			console.error("Dashboard Load Error", e);
-		} finally {
-			setLoading(false);
-		}
-	}
-
-	// Show a one-time toast per session if profile is incomplete
-	useEffect(() => {
-		if (!userId) return;
-		const fields: Array<{ key: keyof typeof profileInfo; isDone?: (v: any) => boolean }> = [
-			{ key: 'display_name' },
-			{ key: 'founded_year', isDone: (v) => !!(v && String(v).trim().length > 0) },
-			{ key: 'location' },
-			{ key: 'bio' },
-		];
-		const isFilled = (key: keyof typeof profileInfo, custom?: (v: any) => boolean) => {
-			const val = profileInfo[key];
-			return custom ? custom(val) : !!(val && String(val).trim().length > 0);
-		};
-		const total = fields.length;
-		const completed = fields.reduce((acc, f) => acc + (isFilled(f.key, f.isDone) ? 1 : 0), 0);
-		if (completed < total) {
-			const key = `toast-profile-${userId}`;
-			if (typeof window !== 'undefined' && !localStorage.getItem(key)) {
-				showAchievement({
-					id: key,
-					name: 'Profil fast fertig',
-					description: 'Ergänze deine Infos für dein bestes Auftreten.',
-					icon: '🧩',
-					tier: 'bronze',
-					points: 0,
-				});
-				localStorage.setItem(key, '1');
-			}
-		}
-	}, [profileInfo, userId, showAchievement]);
+    // --- Actions ---
 
     async function handleCreateBrewery(e: React.FormEvent) {
         e.preventDefault();
         if(!newBreweryName.trim()) return;
-        
-        if (!userId) {
-            console.error("User ID fehlt!");
-            setOnboardingError("Benutzer nicht geladen. Bitte Seite neu laden.");
-            return;
-        }
+        if (!user) return;
 
-        setLoading(true);
+        setBreweryLoading(true);
         setOnboardingError(null);
 
         try {
-            console.log("Erstelle Brauerei via RPC:", newBreweryName);
-            
-            // Verwende die sichere RPC Funktion statt manuellem Insert
             const { data: brewery, error: rpcError } = await supabase
-                .rpc('create_own_squad', { 
-                    name_input: newBreweryName.trim() 
-                });
+                .rpc('create_own_squad', { name_input: newBreweryName.trim() });
 
-            if (rpcError) {
-                console.error("RPC Fehler:", rpcError);
-                throw rpcError;
-            }
+            if (rpcError) throw rpcError;
 
-            console.log("Brauerei erstellt:", brewery);
+            // Optional: Default label
+            try {
+                const breweryId = (brewery as any)?.id;
+                if (breweryId) await createDefaultBreweryTemplate(breweryId);
+            } catch (err) { console.error(err); }
             
-            // Reload to enter dashboard
             window.location.reload();
-
         } catch (err: any) {
-             console.error("Catch Error Details:", JSON.stringify(err, null, 2));
-             // Falls die RPC Funktion noch nicht existiert (SQL nicht ausgeführt)
-             if (err?.message?.includes('function create_own_squad') || err?.code === '42883') {
-                 setOnboardingError("Bitte führe zuerst die Migration 'add_create_squad_rpc.sql' in Supabase aus!");
-             } else {
-                 setOnboardingError(err.message || "Fehler beim Erstellen der Brauerei.");
-             }
-            setLoading(false);
+             console.error("Create Error:", err);
+             setOnboardingError(err.message || "Fehler beim Erstellen der Brauerei.");
+             setBreweryLoading(false);
         }
     }
 
     async function handleJoinBrewery(e: React.FormEvent) {
         e.preventDefault();
         if(!joinCode.trim()) return;
-        setLoading(true);
+        setBreweryLoading(true);
         setOnboardingError(null);
 
         try {
-             // 1. Check if brewery exists by invite code
+             // 1. Check if brewery exists
              const { data: brewery, error: fetchError } = await supabase
                  .from('breweries')
                  .select('id')
@@ -307,262 +145,279 @@ function DashboardContent() {
 
              if (fetchError || !brewery) throw new Error("Squad nicht gefunden. Code prüfen.");
 
-             // 2. Join as Member (default role)
+             // 2. Join
              const { error: joinError } = await supabase
                 .from('brewery_members')
-                .insert({
-                    brewery_id: brewery.id,
-                    user_id: userId,
-                    role: 'member'
-                });
+                .insert({ brewery_id: brewery.id, user_id: user!.id, role: 'member' });
             
-             if (joinError) {
-                 if (joinError.code === '23505') throw new Error("Du bist bereits Mitglied in diesem Team.");
-                 throw joinError;
-             }
+             if (joinError) throw joinError;
 
              // Feed update
-             if (userId) {
-                 await addToFeed(brewery.id, { id: userId }, 'MEMBER_JOINED', { message: 'ist dem Squad beigetreten' });
-             }
+             await addToFeed(brewery.id, { id: user!.id }, 'MEMBER_JOINED', { message: 'ist dem Squad beigetreten' });
 
              window.location.reload();
-
         } catch (err: any) {
             console.error(err);
             setOnboardingError(err.message || "Fehler beim Beitreten.");
-            setLoading(false);
+            setBreweryLoading(false);
         }
     }
 
-    // --- Onboarding Logic Integrated into Dashboard ---
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-[60vh]">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500"></div>
+            </div>
+        );
+    }
 
+    const HandIcon = () => <span className="inline-block animate-wave origin-bottom-right">👋</span>;
 
     return (
-        <div className="space-y-8 px-0 md:px-4">
-			{/* Header */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-end">
+        <div className="space-y-12 pb-24 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            
+            {/* HEADER SECTION */}
+            <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-zinc-900 pb-8">
                 <div>
-                    <div className="flex items-center gap-2 mb-4">
-                        <span className="text-cyan-400 text-xs font-black uppercase tracking-widest px-3 py-1 rounded-lg bg-cyan-950/30 border border-cyan-500/20 shadow-sm shadow-cyan-900/20">
+                     <div className="flex items-center gap-3 mb-2">
+                        <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded text-red-500 bg-red-950/30 border border-red-500/20">
                             Dashboard
                         </span>
-                        {userTitle && (
-                             <span className="text-[10px] font-black px-2 py-1 rounded-lg uppercase border border-white/5 tracking-wider" style={{ borderColor: `${titleColor}50`, color: titleColor, backgroundColor: `${titleColor}10` }}>
-                                {userTitle}
+                        {activeBrewery && (
+                             <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded text-zinc-400 bg-zinc-900 border border-zinc-800">
+                                {activeBrewery.team_name || activeBrewery.name}
                             </span>
                         )}
-                    </div>
-                    <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight mb-4">
-                        {loading ? 'Lade Daten...' : `Moin, ${userName || 'Braumeister'}! 👋`}
+                     </div>
+                    <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight leading-none mb-4">
+                        Moin, {userName}! <HandIcon />
                     </h1>
-                    <p className="text-zinc-400 text-lg leading-relaxed max-w-xl">
+                    <p className="text-zinc-500 max-w-xl text-lg leading-relaxed">
                         Alles unter Kontrolle im Labor. Hier ist der aktuelle Status deiner digitalen Brauerei.
                     </p>
                 </div>
-            </div>
+            </header>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Left Column: Feeds */}
-                <div className="lg:col-span-2 space-y-6 divide-y divide-zinc-700/30 md:divide-y-0 [&>*]:py-4 md:[&>*]:py-6">
-                     {/* Integration: Onboarding Widget if No ACTIVE Brewery */}
-                            {!loading && !activeBrewery && (
-                                <div className="md:bg-zinc-900 md:border md:border-zinc-800 md:p-8 md:rounded-3xl text-left relative overflow-hidden md:shadow-xl">
-                             <div className="absolute top-0 right-0 p-8 opacity-5 text-9xl pointer-events-none grayscale">🏰</div>
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_350px] gap-8 items-start relative">
+                
+                {/* --- LEFT COLUMN: MAIN CONTENT --- */}
+                <div className="space-y-8 min-w-0">
+                    
+                    {/* CASE 1: No Brewery - Show Onboarding */}
+                    {!activeBrewery && (
+                        <div className="md:bg-black md:border md:border-zinc-800 md:rounded-lg md:p-8 relative overflow-hidden">
+                             <div className="absolute top-0 right-0 p-32 bg-red-500/5 blur-[100px] rounded-full pointer-events-none -mt-10 -mr-10"></div>
                              
                              {!isCreatingBrewery && !isJoiningBrewery && (
                                 <div className="space-y-6 relative z-10">
                                     <div>
-                                        <h3 className="text-2xl font-black text-white mb-2">Kein Squad, kein Ruhm.</h3>
-                                        <p className="text-zinc-400 max-w-md">
+                                        <h3 className="text-2xl font-black text-white mb-2">Kein Team, kein Ruhm.</h3>
+                                        <p className="text-zinc-400 max-w-lg">
                                             Du bist aktuell heimatlos. Gründe eine Brauerei oder tritt einem Team bei, um das volle Potential von BotlLab zu nutzen.
                                         </p>
                                     </div>
                                     <div className="flex flex-col sm:flex-row gap-3 pt-2">
                                         <button 
                                             onClick={() => setIsCreatingBrewery(true)}
-                                            className="group flex-1 bg-gradient-to-r from-cyan-400 to-cyan-500 hover:from-cyan-300 hover:to-cyan-400 text-black font-extrabold py-3 px-6 rounded-xl transition-all shadow-lg hover:shadow-cyan-900/20 flex items-center justify-center gap-3"
+                                            className="group flex-1 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white font-bold py-3 px-6 rounded-md transition-all shadow-lg shadow-red-900/20 flex items-center justify-center gap-3"
                                         >
-                                            <span className="text-xl group-hover:scale-110 transition-transform duration-300">🏰</span>
-                                            <span>Neuen Squad gründen</span>
+                                            <Plus className="w-5 h-5" />
+                                            <span>Squad gründen</span>
                                         </button>
                                         <button 
                                             onClick={() => setIsJoiningBrewery(true)}
-                                            className="px-6 py-3 rounded-xl font-bold bg-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-700 transition border border-zinc-700/50 flex items-center gap-2"
+                                            className="px-6 py-3 rounded-md font-bold bg-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-700 transition border border-zinc-700/50 flex items-center gap-2"
                                         >
-                                            <span className="text-lg opacity-60">📩</span>
-                                            <span>Einladungscode?</span>
+                                            <Users className="w-5 h-5" />
+                                            <span>Beitreten</span>
                                         </button>
                                     </div>
                                 </div>
                              )}
 
                              {isCreatingBrewery && (
-                                <form onSubmit={handleCreateBrewery} className="space-y-6 animate-in fade-in slide-in-from-bottom-2 relative z-10 bg-zinc-950/50 p-6 rounded-2xl border border-zinc-800/50 backdrop-blur-sm">
-                                    <div className="flex justify-between items-center border-b border-zinc-800/50 pb-4">
-                                         <div>
-                                            <h3 className="text-xl font-black text-white">Dein Squad-Name</h3>
-                                            <p className="text-xs text-zinc-500 mt-1">Wie soll euer Brau-Kollektiv heißen?</p>
-                                         </div>
-                                         <button type="button" onClick={() => setIsCreatingBrewery(false)} className="text-zinc-500 hover:text-white px-3 py-2 rounded-lg hover:bg-zinc-800 transition text-sm font-medium">Abbrechen</button>
+                                <form onSubmit={handleCreateBrewery} className="space-y-6 relative z-10 animate-in fade-in slide-in-from-bottom-2">
+                                    <div className="flex justify-between items-center border-b border-zinc-800 pb-4">
+                                         <h3 className="text-xl font-black text-white">Dein Squad-Name</h3>
+                                         <button type="button" onClick={() => setIsCreatingBrewery(false)} className="text-zinc-500 hover:text-white text-sm font-medium">Abbrechen</button>
                                     </div>
-                                    <div className="space-y-2">
-                                        <input 
-                                            type="text"
-                                            placeholder="z.B. Hopfenrebellen"
-                                            className="w-full bg-black/40 border border-zinc-700/50 p-4 rounded-xl outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 transition font-bold text-lg text-white placeholder:text-zinc-700"
-                                            autoFocus
-                                            value={newBreweryName}
-                                            onChange={e => setNewBreweryName(e.target.value)}
-                                        />
-                                    </div>
-                                    <button className="w-full bg-gradient-to-r from-cyan-400 to-cyan-500 hover:from-cyan-300 hover:to-cyan-400 text-black font-extrabold py-4 rounded-xl transition-all shadow-lg hover:shadow-cyan-900/20 active:scale-[0.98]">
-                                        Squad erstellen 🚀
+                                    <input 
+                                        type="text"
+                                        placeholder="z.B. Hopfenrebellen"
+                                        className="w-full bg-zinc-900 border border-zinc-800 p-4 rounded-md focus:border-red-500 focus:ring-1 focus:ring-red-500/50 transition font-bold text-lg text-white"
+                                        autoFocus
+                                        value={newBreweryName}
+                                        onChange={e => setNewBreweryName(e.target.value)}
+                                    />
+                                    <button disabled={breweryLoading} className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-4 rounded-md transition-all shadow-lg shadow-red-900/20">
+                                        {breweryLoading ? 'Erstelle...' : 'Squad erstellen 🚀'}
                                     </button>
                                 </form>
                              )}
 
                              {isJoiningBrewery && (
-                                <form onSubmit={handleJoinBrewery} className="space-y-6 animate-in fade-in slide-in-from-bottom-2 relative z-10 bg-zinc-950/50 p-6 rounded-2xl border border-zinc-800/50 backdrop-blur-sm">
-                                    <div className="flex justify-between items-center border-b border-zinc-800/50 pb-4">
-                                         <div>
-                                            <h3 className="text-xl font-black text-white">Einladungscode</h3>
-                                            <p className="text-xs text-zinc-500 mt-1">Gib die ID deines Teams ein.</p>
-                                         </div>
-                                         <button type="button" onClick={() => setIsJoiningBrewery(false)} className="text-zinc-500 hover:text-white px-3 py-2 rounded-lg hover:bg-zinc-800 transition text-sm font-medium">Abbrechen</button>
+                                <form onSubmit={handleJoinBrewery} className="space-y-6 relative z-10 animate-in fade-in slide-in-from-bottom-2">
+                                    <div className="flex justify-between items-center border-b border-zinc-800 pb-4">
+                                         <h3 className="text-xl font-black text-white">Einladungscode</h3>
+                                         <button type="button" onClick={() => setIsJoiningBrewery(false)} className="text-zinc-500 hover:text-white text-sm font-medium">Abbrechen</button>
                                     </div>
-                                    
                                     <div className="space-y-2">
                                         <input 
                                             type="text"
-                                            placeholder="UUID Code..."
-                                            className="w-full bg-black/40 border border-zinc-700/50 p-4 rounded-xl outline-none focus:border-white focus:ring-1 focus:ring-white/20 transition font-mono text-base text-center tracking-wider text-white placeholder:text-zinc-700"
+                                            placeholder="Code eingeben..."
+                                            className="w-full bg-zinc-900 border border-zinc-800 p-4 rounded-md focus:border-white focus:ring-1 focus:ring-zinc-500 transition font-mono text-center text-lg text-white tracking-widest"
                                             autoFocus
                                             value={joinCode}
                                             onChange={e => setJoinCode(e.target.value)}
                                         />
-                                        <p className="text-xs text-zinc-500 text-center">Frage deinen Squad-Leader nach der ID (Einstellungen {'>'} Allgemein).</p>
+                                        <p className="text-xs text-center text-zinc-500">Frage deinen Squad-Leader nach der ID.</p>
                                     </div>
-                                    <button className="w-full bg-white text-black font-extrabold py-4 rounded-xl hover:bg-zinc-200 transition-all active:scale-[0.98]">
-                                        Team beitreten 🤝
+                                    <button disabled={breweryLoading} className="w-full bg-white text-black font-bold py-4 rounded-md hover:bg-zinc-200 transition-all">
+                                        {breweryLoading ? 'Beitrete...' : 'Team beitreten 🤝'}
                                     </button>
                                 </form>
                              )}
-                             
-                             {onboardingError && (
-                                <div className="mt-4 bg-red-500/10 text-red-400 p-3 rounded-lg text-sm font-bold animate-in shake border border-red-500/20">
+
+                            {onboardingError && (
+                                <div className="mt-4 bg-red-500/10 text-red-400 p-3 rounded-md text-sm font-bold border border-red-500/20">
                                     {onboardingError}
                                 </div>
                             )}
                         </div>
                     )}
-
-                    {/* Mini Team Feed */}
+                    
+                    {/* CASE 2: Active Brewery - Show Feed */}
                     {activeBrewery && (
-                        <div className="md:bg-zinc-900/50 md:border md:border-zinc-800 md:rounded-3xl md:p-6 relative overflow-hidden">
-                            <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                                    <div className="p-2 bg-cyan-500/10 rounded-xl text-cyan-400">
-                                        <Megaphone size={20} />
-                                    </div>
+                        <div className="md:bg-black md:border md:border-zinc-800 md:rounded-lg md:p-8 relative overflow-hidden">
+                            <div className="flex items-center justify-between mb-8">
+                                <h3 className="text-xl font-bold text-white flex items-center gap-3">
+                                    <Megaphone className="w-6 h-6 text-cyan-500" />
                                     Was ist neu im Team?
                                 </h3>
                             </div>
 
-                            <div className="space-y-3">
-                                {loading ? (
-                                    <div className="h-20 bg-zinc-900/50 rounded-xl animate-pulse"/>
-                                ) : dashboardFeed.length === 0 ? (
-                                    <div className="text-center py-6 text-zinc-500 text-sm">
-                                        Noch keine Neuigkeiten. <br/>
-                                        <Link href={`/team/${activeBrewery.id}/feed`} className="text-cyan-500 underline">Schreib den ersten Post!</Link>
-                                    </div>
-                                ) : (
-                                    dashboardFeed.map(item => {
-                                        const tierConfig = getTierConfig(item.profiles?.tier || 'lehrling');
-                                        const avatarUrl = item.profiles?.logo_url || tierConfig.avatarPath;
-                                        const tierBorderClass = getTierBorderColor(item.profiles?.subscription_tier);
+                             <div className="space-y-4">
+                                {dashboardFeed.length > 0 ? dashboardFeed.slice(0, 3).map((item, i) => {
+                                     // Helper for feed item rendering
+                                     const tierConfig = getTierConfig(item.profiles?.tier || 'lehrling');
+                                     const borderColor = getTierBorderColor(item.profiles?.subscription_tier);
+                                     
+                                     // Standardized logic for Name and Image
+                                     const isRating = item.type === 'BREW_RATED';
+                                     
+                                     const displayName = isRating 
+                                         ? (item.content.author || item.profiles?.display_name || 'Unbekannt')
+                                         : (item.profiles?.display_name || 'Unbekannt');
 
-                                        return (
-                                        <Link 
-                                            key={item.id} 
-                                            href={`/team/${activeBrewery.id}/feed`}
-                                            className="block bg-zinc-950 border border-zinc-800/50 rounded-xl p-3 hover:border-zinc-700 transition group"
-                                        >
-                                            <div className="flex items-start gap-3">
-                                                <div className={`w-8 h-8 rounded-full bg-zinc-900 flex items-center justify-center shrink-0 overflow-hidden text-xs border-2 ${tierBorderClass}`}>
-                                                    {item.profiles ? (
-                                                        <img src={avatarUrl} className="w-full h-full object-cover" alt="" />
+                                     return (
+                                        <div key={i} className="flex gap-4 p-4 rounded-lg bg-zinc-900 border border-zinc-800/50 hover:bg-zinc-900 transition-colors group">
+                                            <div className="mt-1">
+                                                <div className={`w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center border-2 overflow-hidden ${borderColor}`}>
+                                                    {isRating ? (
+                                                        <User className="w-5 h-5 text-zinc-400" />
                                                     ) : (
-                                                        <span>{item.type === 'BREW_RATED' ? '⭐' : '👤'}</span>
+                                                        <img 
+                                                            src={item.profiles?.logo_url || tierConfig.avatarPath} 
+                                                            alt="" 
+                                                            className="w-full h-full object-cover" 
+                                                        />
                                                     )}
                                                 </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex justify-between items-center mb-0.5">
-                                                        <span className="text-xs font-bold text-white truncate">
-                                                            {item.type === 'BREW_RATED' ? (item.content.author || 'Gast') : (item.profiles?.display_name || 'Unbekannt')}
-                                                        </span>
-                                                        <span className="text-[10px] text-zinc-600">
-                                                            {new Date(item.created_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}
-                                                        </span>
-                                                    </div>
-                                                    <p className="text-xs text-zinc-400 truncate group-hover:text-zinc-300 transition">
-                                                        {item.type === 'BREW_CREATED' ? `🍺 hat ein neues Rezept "${item.content.brew_name}" erstellt.` : item.content.message}
-                                                    </p>
-                                                </div>
                                             </div>
-                                        </Link>
-                                        )
-                                    })
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex justify-between items-start mb-1">
+                                                    <span className="font-bold text-white text-sm truncate">{displayName}</span>
+                                                    <span className="text-[10px] text-zinc-600 whitespace-nowrap">{new Date(item.created_at).toLocaleDateString()}</span>
+                                                </div>
+                                                <p className="text-sm text-zinc-400 group-hover:text-zinc-300 transition-colors">
+                                                    {item.type === 'BREW_CREATED' && <>hat ein neues Rezept <span className="text-white font-medium">"{item.content.brew_name}"</span> erstellt.</>}
+                                                    {item.type === 'BREW_RATED' && <>hat <span className="text-white font-medium">"{item.content.brew_name}"</span> bewertet.</>}
+                                                    {item.type === 'MEMBER_JOINED' && <>ist dem Team beigetreten.</>}
+                                                    {!['BREW_CREATED', 'BREW_RATED', 'MEMBER_JOINED'].includes(item.type) && <>{item.content.message}</>}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    );
+                                }) : (
+                                    <div className="text-center py-12">
+                                         <div className="w-16 h-16 bg-zinc-900/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                             <Bell className="w-6 h-6 text-zinc-700" /> 
+                                         </div>
+                                         <p className="text-zinc-500 text-sm">Noch keine Updates in diesem Team.</p>
+                                    </div>
                                 )}
-                            </div>
+                             </div>
                         </div>
                     )}
+                
+                    {/* Mobile Divider */}
+                    <div className="h-px bg-zinc-900 md:hidden" />
 
-                    {/* Discovery Widget */}
+                    {/* DISCOVER WIDGET - Wrapped to look cohesive */}
+                    <div className="md:bg-black md:border md:border-zinc-800 md:rounded-lg md:p-8 relative overflow-hidden">
+                        <div className="flex items-center justify-between mb-8">
+                            <h3 className="text-xl font-bold text-white flex items-center gap-3">
+                                <Flame className="w-6 h-6 text-amber-500" />
+                                Angesagt in der Community
+                            </h3>
+                            <Link href="/discover" className="text-xs font-bold text-cyan-500 hover:text-cyan-400 transition-colors flex items-center gap-1">
+                                Alles anzeigen <ArrowRight className="w-3" />
+                            </Link>
+                        </div>
+                        <div className="-mx-2 md:mx-0">
+                             <DiscoverWidget />
+                        </div>
+                    </div>
+
+                    {/* Mobile Divider */}
+                    <div className="h-px bg-zinc-900 md:hidden" />
+
+                    {/* FORUM WIDGET */}
                     <TrendingForumWidget />
-                    <DiscoverWidget />
+
                 </div>
 
-                {/* Right Column: Widgets */}
-                <div className="space-y-4 divide-y divide-zinc-700/30 md:divide-y-0 [&>*]:py-4 md:[&>*]:py-6">
-                    <TierProgressWidget />
-                    {userId && <ForumActivityWidget userId={userId} />}
+                {/* --- RIGHT COLUMN: SIDEBAR --- */}
+                <div className="space-y-6 lg:sticky lg:top-8">
+                    
+                    {/* Mobile Divider (before sidebar on small screens if stacked) */}
+                    <div className="h-px bg-zinc-900 lg:hidden" />
+                    
+                    {/* REPUTATION WIDGET */}
+                    <div className="relative group">
+                         <TierProgressWidget />
+                    </div>
 
-                    {/* Collection Widget */}
-                    <div className="bg-gradient-to-br from-purple-900/20 to-fuchsia-900/10 border border-purple-500/20 p-6 rounded-3xl flex flex-col justify-center relative overflow-hidden">
-                        <div className="absolute top-0 right-0 p-8 opacity-10 text-9xl rotate-12 pointer-events-none">🏅</div>
-                        <div className="flex justify-between items-start mb-2">
-                        <h3 className="text-2xl font-bold text-white">Sammlung</h3>
-                        <span className="bg-purple-500/20 text-purple-400 text-xs font-black px-2 py-1 rounded-lg border border-purple-500/30">
-                            {loading ? '-' : stats.collectionCount} KRONKORKEN
-                        </span>
-                        </div>
-                        <p className="text-zinc-400 mb-6 max-w-sm text-sm">
-                            Verwalte deine einzigartigen Kronkorken und tausche digitale Sammelobjekte.
-                        </p>
-                        <div>
-                            <Link href="/dashboard/collection" className="bg-white text-black hover:bg-purple-400 font-bold py-3 px-6 rounded-xl transition inline-flex items-center gap-2">
-                                <span>🏅</span> Zur Sammlung
+                    {/* COLLECTION TEASER */}
+                    <div className="bg-gradient-to-br from-purple-900/20 via-black to-black border border-purple-500/20 hover:border-purple-500/40 p-6 rounded-lg transition-all group relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-24 bg-purple-500/5 blur-[60px] rounded-full pointer-events-none -mt-10 -mr-10 group-hover:bg-purple-500/10 transition-colors duration-700"></div>
+                        
+                        <div className="relative z-10">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                    Sammlung
+                                </h3>
+                                <span className="text-[10px] bg-purple-500/10 text-purple-400 px-2 py-0.5 rounded-full border border-purple-500/20 uppercase font-bold tracking-wide">
+                                    2 Kronkorken
+                                </span>
+                            </div>
+                            
+                            <p className="text-sm text-zinc-400 leading-relaxed mb-6">
+                                Verwalte deine einzigartigen Kronkorken und tausche digitale Sammelobjekte.
+                            </p>
+                            
+                            <Link 
+                                href="/dashboard/collection" 
+                                className="w-full bg-white hover:bg-purple-50 text-black font-bold py-3 rounded-md text-sm flex items-center justify-center gap-2 transition-all shadow-lg shadow-purple-900/10 hover:shadow-purple-900/20 hover:scale-[1.02] active:scale-[0.98]"
+                            >
+                                <Award className="w-4 h-4 text-purple-600" />
+                                Zur Sammlung
                             </Link>
                         </div>
                     </div>
 
-                    {/* Achievements Widget */}
-                    <div className="bg-gradient-to-br from-amber-900/20 to-yellow-900/10 border border-amber-500/20 p-6 rounded-3xl flex flex-col justify-center relative overflow-hidden">
-                        <div className="absolute top-0 right-0 p-8 opacity-10 text-9xl rotate-12 pointer-events-none">🏆</div>
-                        <h3 className="text-2xl font-bold text-white mb-2">Achievements</h3>
-                        <p className="text-zinc-400 mb-6 max-w-sm">
-                            Schalte Erfolge frei und sammle Punkte für deine Brau-Aktivitäten.
-                        </p>
-                        <div>
-                            <Link href="/dashboard/achievements" className="bg-white text-black hover:bg-amber-400 font-bold py-3 px-6 rounded-xl transition inline-flex items-center gap-2">
-                                <span>🏆</span> Zu den Achievements
-                            </Link>
-                        </div>
-                    </div>
                 </div>
             </div>
-		</div>
-	);
+        </div>
+    );
 }

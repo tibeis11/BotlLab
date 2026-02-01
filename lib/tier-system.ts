@@ -9,6 +9,7 @@ export interface BreweryTierConfig {
     maxBrews: number;
     maxBottles: number;
     maxMembers: number;
+    maxLabels: number;
   };
   requirements: {
     totalFills: number;
@@ -27,7 +28,8 @@ export const BREWERY_TIERS: Record<BreweryTierName, BreweryTierConfig> = {
     limits: {
       maxBrews: 5,
       maxBottles: 50,
-      maxMembers: 2
+      maxMembers: 2,
+      maxLabels: 1
     },
     requirements: {
       totalFills: 0,
@@ -48,7 +50,8 @@ export const BREWERY_TIERS: Record<BreweryTierName, BreweryTierConfig> = {
     limits: {
       maxBrews: 20,
       maxBottles: 200,
-      maxMembers: 5
+      maxMembers: 5,
+      maxLabels: 3
     },
     requirements: {
       totalFills: 50,
@@ -70,7 +73,8 @@ export const BREWERY_TIERS: Record<BreweryTierName, BreweryTierConfig> = {
     limits: {
       maxBrews: 999999, // Unlimited
       maxBottles: 1000,
-      maxMembers: 10
+      maxMembers: 10,
+      maxLabels: 5
     },
     requirements: {
       totalFills: 500,
@@ -92,7 +96,8 @@ export const BREWERY_TIERS: Record<BreweryTierName, BreweryTierConfig> = {
     limits: {
       maxBrews: 999999,
       maxBottles: 999999,
-      maxMembers: 50
+      maxMembers: 50,
+      maxLabels: 10
     },
     requirements: {
       totalFills: 2000,

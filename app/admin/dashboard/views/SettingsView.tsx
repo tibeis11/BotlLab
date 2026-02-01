@@ -1,4 +1,6 @@
+
 'use client';
+import AdminPlanSwitcher from '../components/AdminPlanSwitcher';
 
 import { useState } from 'react';
 import { triggerAggregation } from '@/lib/actions/analytics-admin-actions';
@@ -33,6 +35,9 @@ export default function SettingsView() {
           <p className="text-zinc-500 text-sm">Manuelle Trigger & Konfiguration</p>
         </div>
       </div>
+
+      {/* Admin: Subscription Plan Switcher */}
+      <AdminPlanSwitcher />
 
       {/* Analytics Data Management */}
       <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800">

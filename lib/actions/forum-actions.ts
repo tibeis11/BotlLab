@@ -7,6 +7,8 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { cleanText } from '@/lib/profanity';
 import { checkAndGrantAchievements } from '@/lib/achievements';
+import { createNotification } from './notification-actions';
+import { sendForumReplyEmail } from '@/lib/email';
 
 const threadSchema = z.object({
   title: z.string().min(5, "Titel muss mindestens 5 Zeichen lang sein").max(100),
@@ -177,33 +179,36 @@ export async function createPost(prevState: ActionState, formData: FormData): Pr
         return { error: 'Fehler beim Speichern: ' + error.message };
     }
 
-    // Handle Notifications (Service Role needed to insert for other users usually, or to be safe)
+    // Handle Notifications
     if (thread && thread.author_id !== user.id) {
         try {
-            // Check for @autor mention
             const isMention = cleanContent.toLowerCase().includes('@autor');
-            
-            // We need a service client to bypass RLS for inserting notifications to others if blocked
-            const { createClient: createAdminClient } = await import('@supabase/supabase-js');
-            const supabaseAdmin = createAdminClient(
-                process.env.NEXT_PUBLIC_SUPABASE_URL!,
-                process.env.SUPABASE_SERVICE_ROLE_KEY!
-            );
-            
-            await supabaseAdmin.from('notifications').insert({
-                user_id: thread.author_id,
-                actor_id: user.id,
+            const messagePreview = cleanContent.substring(0, 50) + (cleanContent.length > 50 ? '...' : '');
+
+            // 1. In-App Notification
+            await createNotification({
+                userId: thread.author_id,
+                actorId: user.id,
                 type: isMention ? 'forum_mention' : 'forum_reply',
                 data: {
                     thread_id: threadId,
                     post_id: postData.id,
                     thread_title: thread.title,
-                    message_preview: cleanContent.substring(0, 50) + (cleanContent.length > 50 ? '...' : '')
+                    message_preview: messagePreview
                 }
             });
+
+            // 2. Email Notification
+            const { createAdminClient } = await import('@/lib/supabase-server');
+            const adminClient = createAdminClient();
+            const { data: { user: author } } = await adminClient.auth.admin.getUserById(thread.author_id);
+            
+            if (author?.email) {
+                // Fetch author preferences if needed, but for now we send it
+                await sendForumReplyEmail(author.email, user.user_metadata?.display_name || 'Ein Nutzer', thread.title, messagePreview, threadId);
+            }
         } catch (e) {
             console.error("Notification Error:", e);
-            // Don't block post creation if notification fails
         }
     }
 

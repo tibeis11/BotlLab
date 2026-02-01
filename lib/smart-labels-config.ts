@@ -8,6 +8,9 @@ export interface LabelDimensions {
   marginLeft: number; // mm
   marginTop: number; // mm
   safeZone: number; // mm internal padding
+  orientation?: 'p' | 'l';
+  gapX?: number; // mm horizontal gap between labels
+  gapY?: number; // mm vertical gap between labels
   bgImage?: string; // path to background image in public/
 }
 
@@ -23,6 +26,7 @@ export const LABEL_FORMATS: Record<string, LabelDimensions> = {
     marginLeft: 6,
     marginTop: 0,
     safeZone: 5,
+    orientation: 'l',
     bgImage: '/labels/label_105x57.png'
   },
   // Transposed Dimensions for Landscape Config (Original 105x74 -> 74x105)

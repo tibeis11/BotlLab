@@ -69,7 +69,7 @@ export function AchievementNotificationProvider({ children }: { children: ReactN
       {children}
       
       {/* Global Toast Container - Renders ALL toasts in one stack */}
-      <div className="fixed top-4 right-4 z-[100] flex flex-col gap-4 pointer-events-none pr-2 sm:pr-0">
+      <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-4 pointer-events-none pr-2 sm:pr-0">
         {items.map((item) => (
           <div key={item.id} className="animate-in slide-in-from-right fade-in duration-300">
             {item.type === 'achievement' && item.achievementData && (

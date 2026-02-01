@@ -370,7 +370,7 @@ export async function trackBottleScan(
         await supabase.rpc('increment_daily_stats', {
           p_date: new Date().toISOString().slice(0, 10), // YYYY-MM-DD
           p_brewery_id: payload.breweryId,
-          p_brew_id: payload.brewId || null,
+          p_brew_id: (payload.brewId || null) as any,
           p_country_code: geoData.country,
           p_device_type: detectDeviceType(userAgent),
           p_hour: scanHour // Phase 3: Hour tracking
@@ -550,7 +550,7 @@ export async function getBreweryAnalyticsSummary(breweryId: string, options?: {
       .limit(500);
       
     if (points) {
-      geoPoints = points.map(p => ({ lat: p.latitude, lng: p.longitude }));
+      geoPoints = points.map(p => ({ lat: p.latitude, lng: p.longitude })) as any;
     }
   } catch (geoError) {
     console.warn('[Analytics] Failed to fetch geo points:', geoError);

@@ -1,4 +1,6 @@
+
 'use client'
+
 
 import { useEffect, useState } from 'react'
 import MetricCard from '../components/MetricCard'
@@ -55,6 +57,7 @@ export default function OverviewView() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
+
         <div>
           <h2 className="text-2xl font-black text-white">Dashboard Übersicht</h2>
           <p className="text-zinc-500 text-sm">Zentrale Metriken und Trends</p>

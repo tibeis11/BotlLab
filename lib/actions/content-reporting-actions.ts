@@ -1,8 +1,9 @@
 'use server'
 
-import { createClient } from '@/lib/supabase-server';
-import { createClient as createAdminClient } from '@supabase/supabase-js';
+import { createClient, createAdminClient } from '@/lib/supabase-server';
 import { revalidatePath } from 'next/cache';
+import { sendReportResolvedEmail } from '@/lib/email';
+import { createNotification } from './notification-actions';
 
 export type ReportTargetType = 'brew' | 'user' | 'brewery' | 'forum_post' | 'forum_thread' | 'comment';
 export type ReportReason = 'spam' | 'nsfw' | 'harassment' | 'copyright' | 'other';
@@ -57,7 +58,8 @@ export async function submitContentReport(
  * ADMIN ONLY: Fetch all open reports.
  */
 export async function getOpenReports() {
-    const supabase = await createClient();
+    // Use Admin Client to bypass RLS (Admins need to see ALL reports, not just their own)
+    const supabase = createAdminClient();
     
     // Fetch reports
     const { data: reports, error } = await supabase
@@ -90,17 +92,19 @@ export async function getOpenReports() {
  * ADMIN ONLY: Mark report as resolved or dismissed.
  */
 export async function updateReportStatus(reportId: string, status: 'resolved' | 'dismissed') {
-    // Use service-role client for admin updates to avoid RLS blocking updates
-    const adminClient = createAdminClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const adminClient = createAdminClient();
 
     try {
-        // Get current user id from server client (for audit)
         const supabase = await createClient();
         const { data: { user } } = await supabase.auth.getUser();
         const resolvedBy = user?.id || null;
+
+        // Get report info for notification before update
+        const { data: report } = await adminClient
+            .from('reports')
+            .select('reporter_id, created_at, reason')
+            .eq('id', reportId)
+            .single();
 
         const { error } = await adminClient
             .from('reports')
@@ -112,6 +116,34 @@ export async function updateReportStatus(reportId: string, status: 'resolved' | 
             .eq('id', reportId);
 
         if (error) throw error;
+
+        if (report && status === 'resolved') {
+            try {
+                const { data: { user: reporter } } = await adminClient.auth.admin.getUserById(report.reporter_id);
+                
+                // 1. In-App Notification
+                await createNotification({
+                    userId: report.reporter_id,
+                    actorId: resolvedBy,
+                    type: 'report_resolved',
+                    data: {
+                        report_id: reportId,
+                        reason: report.reason
+                    }
+                });
+
+                // 2. Email Notification
+                if (reporter?.email) {
+                    const reportDate = new Date(report.created_at).toLocaleDateString('de-DE');
+                    const statusText = 'Abgeschlossen';
+                    const messageSummary = `Deine Meldung bezüglich "${report.reason}" wurde erfolgreich bearbeitet.`;
+                    
+                    await sendReportResolvedEmail(reporter.email, reportDate, statusText, messageSummary, reportId);
+                }
+            } catch (e) {
+                console.error('Failed to send report resolution notification:', e);
+            }
+        }
     } catch (err) {
         console.error('Failed to update report status with admin client:', err);
         throw err;
@@ -136,10 +168,7 @@ export async function deleteReportedContent(targetId: string, targetType: Report
     // For now assuming dashboard protection is enough, but adding email check for safety could be good.
     // However, let's rely on the fact this action is only exposed in admin UI.
 
-    const adminClient = createAdminClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const adminClient = createAdminClient();
 
     let error = null;
 
@@ -161,7 +190,7 @@ export async function deleteReportedContent(targetId: string, targetType: Report
             'comment': 'comments'
         };
         if (tableMap[targetType]) {
-            const res = await adminClient.from(tableMap[targetType]).delete().eq('id', targetId);
+            const res = await adminClient.from(tableMap[targetType] as any).delete().eq('id', targetId);
             error = res.error;
         } else {
              throw new Error(`Deletion for type ${targetType} not implemented.`);

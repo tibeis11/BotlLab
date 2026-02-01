@@ -1,43 +1,67 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="de">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Dein Bild wurde genehmigt — BotlLab</title>
-    <style>
-      body{margin:0;padding:0;background:#ffffff;font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Arial;color:#0f1720}
-      .button{display:inline-block;padding:12px 20px;background:#08b5d6;color:#041018;font-weight:700;border-radius:10px;text-decoration:none}
-      img{border:0}
-    </style>
-  </head>
-  <body>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bild veröffentlicht — BotlLab</title>
+  <style>
+    body { margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+    .wrapper { width: 100%; background-color: #f8fafc; padding: 40px 0; }
+    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .header { background-color: #f8fafc; padding: 32px; border-bottom: 1px solid #e2e8f0; }
+    .content { padding: 40px; }
+    .heading { font-size: 24px; font-weight: 700; color: #0f172a; margin: 0 0 16px 0; letter-spacing: -0.025em; }
+    .text { font-size: 15px; line-height: 1.6; color: #475569; margin: 0 0 24px 0; }
+    .button-container { text-align: left; margin-top: 32px; }
+    .button { display: inline-block; background-color: #000000; color: #ffffff; font-weight: 600; font-size: 14px; padding: 14px 32px; border-radius: 6px; text-decoration: none; }
+    .footer { padding: 24px; background-color: #f8fafc; text-align: center; border-top: 1px solid #f1f5f9; }
+    .footer-text { font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0; }
+    
+    .status-badge { display: inline-block; padding: 4px 12px; background-color: #ecfdf5; color: #059669; border: 1px solid #d1fae5; border-radius: 100px; font-size: 12px; font-weight: 700; margin-bottom: 16px; }
+
+    @media only screen and (max-width: 600px) {
+      .content { padding: 24px !important; }
+      .wrapper { padding: 0 !important; }
+      .container { border-radius: 0 !important; box-shadow: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-      <tr><td align="center" style="padding:28px 16px">
-        <table width="620" style="max-width:100%">
-          <tr><td style="background:#fff;border-radius:12px;padding:28px;box-shadow:0 6px 30px rgba(2,6,23,0.06)">
+      <tr>
+        <td align="center">
+          <div class="container">
+            <!-- Header -->
+            <div class="header">
+               <a href="https://botllab.de" target="_blank">
+                  <img src="https://botllab.de/brand/logo_withName.svg" alt="BotlLab" width="140" style="display: block; opacity: 0.9;">
+               </a>
+            </div>
 
-            <a href="https://botllab.de" target="_blank"><img src="https://botllab.de/brand/logo_withName.svg" alt="BotlLab" width="200" style="display:block;margin-bottom:18px"/></a>
-
-            <h1 style="margin:0 0 8px;font-size:20px;color:#041018">Dein Bild ist jetzt live 🎉</h1>
-            <p style="margin:0 0 14px;color:#334155;font-size:15px">Gute Neuigkeiten — das von dir hochgeladene Bild für <strong>{{itemName}}</strong> wurde geprüft und veröffentlicht.</p>
-
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:12px 0">
-              <tr><td style="padding:12px;border-radius:10px;background:#eef2ff;border:1px solid rgba(79,70,229,0.06)">
-                <p style="margin:0;color:#0f1720;font-size:14px"><strong>Element:</strong> {{itemName}}</p>
-                <p style="margin:6px 0 0;color:#475569;font-size:13px">Wenn du Änderungen möchtest, kannst du das Bild jederzeit ersetzen.</p>
-              </td></tr>
-            </table>
-
-            <p style="margin:16px 0 0"><a href="{{itemUrl}}" class="button" target="_blank">Element ansehen</a></p>
-
-            <p style="margin:18px 0 0;color:#64748b;font-size:13px">Danke, dass du zur Qualität der Community beiträgst.</p>
-
-            <hr style="border:none;border-top:1px solid rgba(15,23,32,0.06);margin:20px 0" />
-            <p style="margin:0;color:#94a3b8;font-size:12px">BotlLab • https://botllab.de</p>
-
-          </td></tr>
-        </table>
-      </td></tr>
+            <!-- Content -->
+            <div class="content">
+              <span class="status-badge">Veröffentlicht</span>
+              <h1 class="heading">Dein Bild ist live 🎉</h1>
+              <p class="text">
+                 Gute Neuigkeiten — das von dir hochgeladene Bild für <strong>{{itemName}}</strong> wurde geprüft und ist jetzt für alle sichtbar.
+              </p>
+              
+              <div class="button-container">
+                <a href="{{itemUrl}}" class="button" target="_blank">Element ansehen</a>
+              </div>
+            </div>
+             
+             <!-- Footer -->
+             <div class="footer">
+                <p class="footer-text">
+                  BotlLab • <a href="https://botllab.de" target="_blank" style="color: #94a3b8; text-decoration: none;">botllab.de</a>
+                </p>
+             </div>
+          </div>
+        </td>
+      </tr>
     </table>
-  </body>
+  </div>
+</body>
 </html>

@@ -7,6 +7,7 @@ import { useAuth } from '@/app/context/AuthContext';
 import { addToFeed } from '@/lib/feed-service';
 import { getTierConfig, getBreweryTierConfig } from '@/lib/tier-system';
 import { trackEvent } from '@/lib/actions/analytics-actions';
+import { Users, Shield, Copy, RefreshCcw, Trash2, Crown, Sparkles, Check, Search } from 'lucide-react';
 
 export default function TeamMembersPage({ params }: { params: Promise<{ breweryId: string }> }) {
   const { breweryId } = use(params);
@@ -20,6 +21,7 @@ export default function TeamMembersPage({ params }: { params: Promise<{ breweryI
   const [inviteLink, setInviteLink] = useState("");
   const [copied, setCopied] = useState(false);
   const [message, setMessage] = useState<{type: 'success' | 'error', msg: string} | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   
   const router = useRouter();
 
@@ -39,8 +41,6 @@ export default function TeamMembersPage({ params }: { params: Promise<{ breweryI
     try {
       setLoading(true);
 
-      // Get Brewery Info
-      
       // Get Brewery Info
       const { data: brewery } = await supabase
         .from('breweries')
@@ -69,11 +69,13 @@ export default function TeamMembersPage({ params }: { params: Promise<{ breweryI
     }
   }
 
-  async function copyToClipboard() {
+  async function copyToClipboard(text: string) {
     try {
-        await navigator.clipboard.writeText(inviteLink);
+        await navigator.clipboard.writeText(text);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
+        setMessage({type: 'success', msg: 'Kopiert!'});
+        setTimeout(() => setMessage(null), 2000);
     } catch (err) {
         console.error("Copy failed", err);
     }
@@ -125,7 +127,7 @@ export default function TeamMembersPage({ params }: { params: Promise<{ breweryI
   }
   
   if (loading) return (
-      <div className="flex items-center justify-center min-h-[60vh]"> 
+      <div className="flex items-center justify-center py-20"> 
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500"></div>
       </div>
   );
@@ -133,176 +135,198 @@ export default function TeamMembersPage({ params }: { params: Promise<{ breweryI
   if (!activeBrewery) return <div className="p-20 text-center text-red-500 font-bold">Brauerei nicht gefunden.</div>;
 
   const canManage = ['owner', 'admin'].includes(currentUserRole || '');
+  const limitReached = members.length >= memberLimit;
 
   return (
-    <div className="pt-8 pb-24 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <div className="mb-8">
-            <h1 className="text-3xl font-black text-white mb-2">Team</h1>
-            <p className="text-zinc-400 font-medium">Verwalte deine Crew und Rollen.</p>
-        </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      
-      {/* --- LEFT COLUMN: MEMBER LIST --- */}
-      <div className="lg:col-span-2 space-y-6">
-          <div className="md:bg-zinc-900/30 md:backdrop-blur-md md:border md:border-zinc-800/60 pt-2 md:p-8 rounded-3xl relative overflow-hidden md:shadow-2xl min-h-[500px]">
-            {/* Gradient Decor */}
-            <div className="absolute top-0 right-0 p-32 bg-cyan-500/5 blur-[100px] rounded-full pointer-events-none -mt-10 -mr-10 hidden md:block"></div>
-
-            <div className="relative z-10">
-                <div className="flex justify-end mb-6">
-                     <span className="text-xs font-bold bg-zinc-800/50 border border-zinc-700/50 text-emerald-400 px-3 py-1 rounded-full shadow-sm shadow-black/20">
-                        {members.length} Mitglied{members.length !== 1 && 'er'}
-                     </span>
+    <div className="space-y-12 pb-24 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        
+        {/* HEADER SECTION */}
+        <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-zinc-900 pb-8">
+            <div>
+                <div className="flex items-center gap-3 mb-1">
+                    <h1 className="text-2xl font-bold text-white tracking-tight">Team & Rollen</h1>
+                     {limitReached && (
+                        <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded text-amber-500 bg-amber-500/10 border border-amber-500/20">
+                            Crew Voll
+                        </span>
+                    )}
                 </div>
-               
-                <div className="space-y-4">
-                {members.map((m, idx) => {
-                    const tier = getTierConfig(m.profiles?.tier || 'lehrling');
-                    return (
-                    <div key={idx} className="bg-zinc-950/40 border border-zinc-800/50 p-4 rounded-2xl flex items-center justify-between group hover:bg-zinc-900/60 hover:border-zinc-700 transition-all duration-200">
-                    <div className="flex items-center gap-5">
-                        <div 
-                            className="w-14 h-14 rounded-2xl flex items-center justify-center text-xl overflow-hidden relative shadow-lg shrink-0 transform group-hover:scale-105 transition-transform duration-300"
-                            style={{ backgroundColor: `${tier.color}10`, borderColor: `${tier.color}20`, borderWidth: '1px' }}
-                        >
-                            <img src={tier.avatarPath} className="w-full h-full object-cover" alt="" />
-                        </div>
-                        <div>
-                        <div className="flex items-center gap-3 mb-1">
-                            <p className="font-bold text-white text-lg leading-none">
-                                {m.profiles?.display_name || 'Unbekannt'}
-                            </p>
-                            {m.role === 'owner' && (
-                                <span className="text-[10px] font-black uppercase text-amber-500 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded">Owner</span>
-                            )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md border backdrop-blur-sm" style={{ borderColor: `${tier.color}40`, color: tier.color, backgroundColor: `${tier.color}05` }}>
-                                {tier.displayName}
-                            </span>
-                            {m.role !== 'owner' && (
-                                <span className="text-[10px] uppercase font-bold text-zinc-600 bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded">{m.role}</span>
-                            )}
-                        </div>
-                        </div>
+                <p className="text-sm text-zinc-500">Verwalte deine Brau-Crew, verteile Rollen und lade neue Mitglieder ein.</p>
+            </div>
+
+            <div className="flex items-center gap-4">
+                 <div className="h-8 w-px bg-zinc-800 hidden md:block"></div>
+                 <div className="text-right hidden md:block">
+                    <p className="text-[10px] uppercase font-bold text-zinc-600 tracking-wider mb-0.5">Crew Kapazität</p>
+                    <div className="text-zinc-300 font-mono text-xs text-right flex items-center justify-end gap-2">
+                        <span className={limitReached ? "text-amber-500" : ""}>{members.length} / {memberLimit}</span>
                     </div>
-                    
-                    {canManage && m.role !== 'owner' && (
-                        <button 
-                            onClick={() => handleRemoveMember(m.user_id)}
-                            className="w-8 h-8 flex items-center justify-center rounded-xl bg-zinc-900/50 border border-transparent hover:border-red-500/30 hover:bg-red-500/10 text-zinc-500 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100"
-                            title="Entfernen"
+                 </div>
+            </div>
+        </header>
+
+      <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-8 items-start relative">
+      
+      {/* --- LEFT COLUMN: SIDEBAR --- */}
+      <div className="space-y-6 lg:sticky lg:top-8 z-20">
+          
+          {/* Stats Card */}
+          <div className="bg-zinc-900/30 border border-zinc-800 p-4 rounded-xl flex flex-col justify-between h-24 relative overflow-hidden group hover:border-purple-500/30 transition-colors">
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent opacity-50 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                <div className="text-purple-500 text-xs font-bold uppercase tracking-wider relative z-10">Mitglieder</div>
+                <div className="text-2xl font-mono font-bold text-purple-400 relative z-10">{members.length}</div>
+          </div>
+
+          {/* Invite Card */}
+          <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl overflow-hidden group hover:border-zinc-700 transition-colors">
+                <div className="p-4 border-b border-zinc-800/50 bg-zinc-900/50">
+                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-emerald-400" />
+                        Invite Friends
+                    </h3>
+                </div>
+                <div className="p-4 space-y-4">
+                    <p className="text-xs text-zinc-500 leading-relaxed">
+                        Teile diesen Code, damit Freunde deinem Squad beitreten können.
+                    </p>
+
+                    {limitReached ? (
+                        <div className="bg-amber-500/10 border border-amber-500/20 p-2 rounded text-center">
+                            <p className="text-[10px] font-bold text-amber-500 uppercase tracking-wide">Limit erreicht</p>
+                            <p className="text-[10px] text-amber-400/80 mt-1">Upgrade für mehr Slots.</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-2">
+                             <div 
+                                onClick={() => copyToClipboard(activeBrewery?.invite_code || '')}
+                                className="bg-black border border-zinc-800 rounded-lg p-2.5 flex items-center justify-between cursor-pointer group/code hover:border-emerald-500/50 transition-colors"
+                             >
+                                <code className="font-mono text-emerald-400 text-xs font-bold tracking-widest truncate">
+                                    {activeBrewery?.invite_code || '---'}
+                                </code>
+                                <Copy className="w-3.5 h-3.5 text-zinc-500 group-hover/code:text-emerald-400" />
+                             </div>
+                             
+                             <button 
+                                onClick={() => copyToClipboard(inviteLink)}
+                                className="w-full text-[10px] bg-zinc-800 hover:bg-zinc-700 text-zinc-300 py-2 rounded-lg font-bold transition-colors"
+                             >
+                                Link kopieren
+                             </button>
+                        </div>
+                    )}
+
+                    {canManage && (
+                         <button 
+                            onClick={handleRegenerateCode}
+                            className="flex items-center justify-center gap-1.5 w-full text-[10px] text-zinc-600 hover:text-zinc-400 py-1"
                         >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
+                            <RefreshCcw className="w-3 h-3" /> Neues Token
                         </button>
                     )}
-                    </div>
-                )})}
                 </div>
-            </div>
           </div>
-      </div>
 
-      {/* --- RIGHT COLUMN: INVITE & INFO --- */}
-      <div className="space-y-6">
-        
-        {/* NEW: Squad ID Card */}
-        <div className="bg-gradient-to-b from-zinc-900/80 to-zinc-950/80 backdrop-blur-lg border border-zinc-800 p-8 rounded-3xl space-y-6 shadow-xl relative overflow-hidden group">
-             <div className="absolute top-0 right-0 p-24 bg-cyan-900/10 blur-[80px] rounded-full pointer-events-none -mt-4 -mr-4 group-hover:bg-cyan-500/10 transition-colors duration-700"></div>
-
-             <div>
-                 <div className="flex items-center gap-3 mb-2">
-                     <span className="p-2 bg-zinc-900 rounded-xl border border-zinc-800">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-white">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v4.072c0 .621.504 1.125 1.125 1.125in4.072 0 .621.504 1.125.504c.621 0 1.125-.504 1.125-1.125V6.375c0-.621-.504-1.125-1.125-1.125H3.375z" />
-                        </svg>
-                     </span>
-                     <h3 className="font-bold text-white text-lg">Invite Code</h3>
-                 </div>
-                 <p className="text-sm text-zinc-400 leading-relaxed">
-                    Teile diesen Code, damit Freunde deinem Squad beitreten können.
-                 </p>
-             </div>
-             
-             {members.length >= memberLimit && (
-                 <div className="bg-red-500/10 border border-red-500/20 p-3 rounded-lg flex items-start gap-3">
-                     <span className="text-lg">🔒</span>
-                     <div>
-                         <p className="text-xs font-bold text-red-400 uppercase tracking-wide mb-1">Squad ist voll</p>
-                         <p className="text-xs text-red-300">Upgrade auf einen höheren Tier, um mehr als {memberLimit} Mitglieder einzuladen.</p>
-                    </div>
-                 </div>
-             )}
-
-            <div className={`space-y-3 transition-opacity ${members.length >= memberLimit ? 'opacity-50' : 'opacity-100'}`}>
-                <div onClick={(e) => {
-                    if (members.length >= memberLimit) {
-                         e.stopPropagation();
-                         trackEvent({ event_type: 'limit_reached_members', category: 'monetization', payload: { current: members.length, limit: memberLimit }, path: `/team/${breweryId}/members` });
-                         alert('Limit erreicht! Bitte upgrade deine Brauerei.');
-                         return;
-                    }
-                }} className={`bg-black/50 border border-zinc-800 p-4 rounded-2xl flex items-center justify-between gap-3 group/code cursor-pointer transition-all duration-300 shadow-inner ${members.length >= memberLimit ? 'cursor-not-allowed' : 'hover:border-cyan-500/50 hover:bg-zinc-900/80'}`}>
-                    <code className="font-mono text-cyan-400 text-xs sm:text-sm font-bold tracking-widest break-all select-all">
-                        {activeBrewery?.invite_code || '---'}
-                    </code>
-                    <button 
-                    onClick={(e) => { 
-                        e.stopPropagation();
-                        if(activeBrewery?.invite_code) {
-                            navigator.clipboard.writeText(activeBrewery.invite_code); 
-                            setMessage({type: 'success', msg: 'Code kopiert!'}); 
-                            setTimeout(() => setMessage(null), 3000);
-                        }
-                    }} 
-                    className="p-2 hover:bg-cyan-500/10 rounded-lg text-zinc-500 hover:text-cyan-400 transition"
-                    title="Code kopieren"
-                    >
-                        {/* Simpler Copy Icon */}
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 8.25V6a2.25 2.25 0 00-2.25-2.25H6A2.25 2.25 0 003.75 6v8.25A2.25 2.25 0 006 16.5h2.25m8.25-8.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-7.5A2.25 2.25 0 018.25 18v-1.5m8.25-8.25h-7.5" />
-                        </svg>
-                    </button>
-                </div>
-                
-                {canManage && (
-                    <button 
-                        onClick={handleRegenerateCode}
-                        className="w-full text-xs text-zinc-600 hover:text-red-400 transition-colors font-bold uppercase tracking-widest text-center py-2 flex justify-center items-center gap-2 hover:bg-red-500/5 rounded-xl border border-transparent hover:border-red-500/10"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3 h-3">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-                        </svg>
-                        Code erneuern
-                    </button>
-                )}
-            </div>
-        </div>
-
-        {/* Legacy Option */}
-        {canManage && (
-            <div className="p-6 rounded-3xl space-y-3 opacity-60 hover:opacity-100 transition-opacity border border-zinc-800/30 border-dashed">
-                <h3 className="font-bold text-zinc-500 text-xs uppercase tracking-widest">Alternativ</h3>
-                <div onClick={copyToClipboard} className="bg-zinc-950/50 border border-zinc-800/50 p-3 pl-4 rounded-xl flex items-center justify-between gap-2 overflow-hidden cursor-pointer hover:border-zinc-700 transition">
-                    <span className="text-xs text-zinc-500 font-mono truncate select-all">{inviteLink.replace('https://', '')}</span>
-                    <span className={`text-[10px] font-bold px-2 py-1 rounded bg-zinc-900 text-zinc-400 ${copied ? 'text-emerald-500' : ''}`}>
-                        {copied ? 'Kopiert' : 'Link'}
-                    </span>
-                </div>
-            </div>
-        )}
-
-        {message && (
-             <div className={`p-4 rounded-xl text-sm font-bold flex items-center gap-3 animate-in slide-in-from-right-4 fade-in shadow-xl ${message.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>
+          {message && (
+             <div className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 animate-in slide-in-from-left-4 fade-in ${message.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>
                  <span>{message.type === 'success' ? '✅' : '⚠️'}</span>
                  {message.msg}
              </div>
-        )}
+          )}
+
+      </div>
+
+      {/* --- RIGHT COLUMN: MEMBER LIST --- */}
+      <div className="space-y-6">
+        
+        {/* Toolbar */}
+        <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-3 flex flex-col sm:flex-row gap-4 items-center justify-between">
+            <div className="relative group w-full sm:w-auto flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within:text-white transition-colors" />
+                <input 
+                    type="text" 
+                    placeholder="Mitglied suchen..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-zinc-950/50 border border-zinc-800/80 rounded-lg py-2 pl-9 pr-3 text-sm text-white focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/20 focus:outline-none transition-all placeholder:text-zinc-600"
+                />
+            </div>
+        </div>
+
+        {/* Member Grid */}
+        <div className="grid grid-cols-1 gap-4">
+                {members.filter(m => (m.profiles?.display_name || '').toLowerCase().includes(searchQuery.toLowerCase())).map((m, idx) => {
+                    const tier = getTierConfig(m.profiles?.tier || 'lehrling');
+                    const isOwner = m.role === 'owner';
+                    const isAdmin = m.role === 'admin';
+                    
+                    return (
+                    <div key={idx} className="bg-zinc-900/40 border border-zinc-800 hover:border-zinc-700/80 p-4 rounded-2xl flex items-center justify-between group transition-all duration-200">
+                        <div className="flex items-center gap-4">
+                            {/* Avatar */}
+                            <div className="relative">
+                                <div 
+                                    className="w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden shadow-inner border"
+                                    style={{ backgroundColor: `${tier.color}10`, borderColor: `${tier.color}30` }}
+                                >
+                                    <img src={tier.avatarPath} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" alt="" />
+                                </div>
+                                {isOwner && (
+                                    <div className="absolute -top-2 -right-2 bg-zinc-950 rounded-full p-1 border border-amber-500/30">
+                                        <Crown className="w-3 h-3 text-amber-500 fill-amber-500/20" />
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Info */}
+                            <div>
+                                <div className="flex items-center gap-2 mb-0.5">
+                                    <h3 className="font-bold text-white text-base leading-none">
+                                        {m.profiles?.display_name || 'Unbekannt'}
+                                    </h3>
+                                    {isOwner && (
+                                        <span className="text-[10px] font-black uppercase text-amber-500 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded tracking-wider">Owner</span>
+                                    )}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800/80">
+                                        <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: tier.color }}></div>
+                                        <span className="text-[10px] font-bold uppercase text-zinc-400">
+                                            {tier.displayName}
+                                        </span>
+                                    </div>
+                                    {!isOwner && (
+                                        <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${isAdmin ? 'text-cyan-500 bg-cyan-500/10' : 'text-zinc-600 bg-zinc-900'}`}>
+                                            {m.role}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {/* Actions */}
+                        {canManage && m.role !== 'owner' && (
+                            <button 
+                                onClick={() => handleRemoveMember(m.user_id)}
+                                className="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-900/50 border border-transparent hover:border-red-500/30 hover:bg-red-500/10 text-zinc-500 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100"
+                                title="Entfernen"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </button>
+                        )}
+                    </div>
+                )})}
+
+                {members.length === 0 && (
+                     <div className="p-12 text-center text-zinc-500 bg-zinc-900/20 border border-zinc-800 rounded-2xl border-dashed">
+                        Keine Mitglieder gefunden.
+                    </div>
+                )}
+        </div>
+
       </div>
     </div>
     </div>
   );
 }
+

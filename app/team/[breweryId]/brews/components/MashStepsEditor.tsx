@@ -74,8 +74,8 @@ export function MashStepsEditor({ value, onChange }: MashStepsEditorProps) {
             
              {/* Mobile Modal for Editing */}
              {editingIndex !== null && (
-                <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-zinc-900 border-t sm:border border-zinc-800 rounded-t-3xl sm:rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl relative flex flex-col max-h-[90vh]">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-zinc-900 border border-zinc-800 rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl relative flex flex-col max-h-[90vh]">
                         <div className="flex justify-between items-center p-4 border-b border-zinc-800 bg-zinc-900 shrink-0">
                             <h3 className="font-bold text-white flex items-center gap-2">
                                 <span className="w-8 h-8 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center">

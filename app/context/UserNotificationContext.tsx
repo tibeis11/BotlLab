@@ -5,7 +5,15 @@ import { supabase } from '@/lib/supabase';
 import { Session } from '@supabase/supabase-js';
 
 // Types derived from DB table
-export type NotificationType = 'brew_like' | 'follow' | 'system_msg' | 'forum_reply' | 'forum_mention';
+export type NotificationType = 
+    | 'brew_like' 
+    | 'follow' 
+    | 'system_msg' 
+    | 'forum_reply' 
+    | 'forum_mention'
+    | 'image_approved'
+    | 'image_rejected'
+    | 'report_resolved';
 
 export interface NotificationItem {
   id: string;

@@ -2,10 +2,20 @@
 
 import { useState } from "react";
 import { LogEventType } from "@/lib/types/session-log";
-import { AddEventModal } from "./AddEventModal"; // Helper Modal
+import { AddEventModal } from "./AddEventModal";
+import { 
+    StickyNote, 
+    Scale, 
+    Droplets, 
+    FlaskConical, 
+    Leaf, 
+    ArrowRightLeft,
+    Plus,
+    X
+} from "lucide-react";
 
 interface SmartActionsProps {
-  onAddEvent: (event: any) => void; // Update type if needed, but we pass data now
+  onAddEvent: (event: any) => void;
   currentPhase: string;
 }
 
@@ -14,12 +24,12 @@ export function SmartActions({ onAddEvent, currentPhase }: SmartActionsProps) {
   const [modalType, setModalType] = useState<LogEventType | null>(null);
 
   const actions = [
-    { type: 'NOTE', label: 'Notiz', icon: '📝', phases: ['all'] },
-    { type: 'MEASUREMENT_SG', label: 'Dichte', icon: '🌡️', phases: ['fermenting', 'brewing', 'conditioning'] },
-    { type: 'MEASUREMENT_VOLUME', label: 'Volumen', icon: '💧', phases: ['brewing', 'fermenting'] },
-    { type: 'MEASUREMENT_PH', label: 'pH', icon: '🧪', phases: ['brewing', 'fermenting'] },
-    { type: 'INGREDIENT_ADD', label: 'Zutat', icon: '🌿', phases: ['brewing', 'fermenting'] },
-    { type: 'STATUS_CHANGE', label: 'Status ändern', icon: '🔄', phases: ['all'] },
+    { type: 'NOTE', label: 'Notiz', Icon: StickyNote, phases: ['all'] },
+    { type: 'MEASUREMENT_SG', label: 'Dichte messen', Icon: Scale, phases: ['fermenting', 'brewing', 'conditioning'] },
+    { type: 'MEASUREMENT_VOLUME', label: 'Volumen messen', Icon: Droplets, phases: ['brewing', 'fermenting'] },
+    { type: 'MEASUREMENT_PH', label: 'pH messen', Icon: FlaskConical, phases: ['brewing', 'fermenting'] },
+    { type: 'INGREDIENT_ADD', label: 'Zutat hinzufügen', Icon: Leaf, phases: ['brewing', 'fermenting'] },
+    { type: 'STATUS_CHANGE', label: 'Status ändern', Icon: ArrowRightLeft, phases: ['all'] },
   ];
 
   const filteredActions = actions.filter(action => 
@@ -43,10 +53,10 @@ export function SmartActions({ onAddEvent, currentPhase }: SmartActionsProps) {
                   }
                   setIsOpen(false);
                 }}
-                className="bg-white text-gray-800 px-4 py-2 rounded-lg shadow-lg border border-gray-100 flex items-center gap-3 hover:bg-gray-50 transition-colors"
+                className="bg-black text-zinc-200 px-4 py-3 rounded-lg shadow-xl shadow-black/50 border border-zinc-800 flex items-center gap-3 hover:bg-zinc-900 transition-colors group"
               >
-                <span className="text-xl">{action.icon}</span>
-                <span className="font-medium">{action.label}</span>
+                <action.Icon className="w-5 h-5 text-zinc-400 group-hover:text-cyan-400 transition-colors" />
+                <span className="font-bold text-sm tracking-wide">{action.label}</span>
               </button>
             ))}
           </div>
@@ -54,9 +64,13 @@ export function SmartActions({ onAddEvent, currentPhase }: SmartActionsProps) {
 
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className={`w-14 h-14 rounded-full shadow-xl flex items-center justify-center text-3xl transition-transform duration-200 ${isOpen ? 'rotate-45 bg-gray-800 text-white' : 'bg-amber-500 text-white hover:scale-110'}`}
+          className={`w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-all duration-200 active:scale-90 border border-t-zinc-700/50 ${
+                isOpen 
+                ? 'bg-zinc-900 border-zinc-700 text-zinc-400 rotate-90' 
+                : 'bg-gradient-to-br from-zinc-800 to-black border-zinc-800 text-white hover:border-zinc-500'
+          }`}
         >
-          +
+            {isOpen ? <X className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
         </button>
       </div>
       

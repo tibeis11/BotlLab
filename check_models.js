@@ -20,18 +20,20 @@ https.get(url, (res) => {
     try {
       const json = JSON.parse(data);
       if (json.models) {
-        console.log("Verfügbare Modelle:");
-        const imagenModels = json.models.filter(m => m.name.includes('image'));
-        if (imagenModels.length > 0) {
-            imagenModels.forEach(m => {
-                console.log(`- ${m.name} (${m.supportedGenerationMethods})`);
-            });
+        console.log("Alle verfügbaren Modelle:");
+        json.models.forEach(m => {
+          console.log(`- ${m.name} (${m.supportedGenerationMethods})`);
+        });
+
+        // Text-Modelle hervorheben
+        const textModels = json.models.filter(m => m.name.includes('text') || m.name.includes('gemini') || m.supportedGenerationMethods?.includes('generateContent'));
+        if (textModels.length > 0) {
+          console.log("\nText-Modelle:");
+          textModels.forEach(m => {
+            console.log(`- ${m.name} (${m.supportedGenerationMethods})`);
+          });
         } else {
-            console.log("Keine Modelle mit 'image' im Namen gefunden.");
-            // Print all just in case
-             json.models.forEach(m => {
-                console.log(`- ${m.name}`);
-            });
+          console.log("\nKeine expliziten Text-Modelle gefunden.");
         }
       } else {
         console.log("Antwort enthält keine 'models':", json);
@@ -44,3 +46,34 @@ https.get(url, (res) => {
 }).on('error', (e) => {
   console.error("Fehler bei Request:", e);
 });
+
+// Beispiel: Text-Generierung mit Gemini 2.5 Flash
+const textModel = 'models/gemini-2.5-flash';
+const textUrl = `https://generativelanguage.googleapis.com/v1beta/${textModel}:generateContent?key=${apiKey}`;
+
+const textPayload = {
+  contents: [{ role: 'user', parts: [{ text: 'Schreibe einen kreativen Werbetext für ein Bier.' }] }]
+};
+
+const textReq = https.request(textUrl, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' }
+}, (res) => {
+  let data = '';
+  res.on('data', (chunk) => { data += chunk; });
+  res.on('end', () => {
+    try {
+      const json = JSON.parse(data);
+      console.log('\nText-Generierung Antwort:');
+      console.log(JSON.stringify(json, null, 2));
+    } catch (e) {
+      console.error('Fehler beim Parsen:', e);
+      console.log('Raw:', data);
+    }
+  });
+});
+textReq.on('error', (e) => {
+  console.error('Fehler bei Request:', e);
+});
+textReq.write(JSON.stringify(textPayload));
+textReq.end();

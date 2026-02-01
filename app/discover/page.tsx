@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import Header from '../components/Header';
 import BrewCard from '../components/BrewCard';
 import CustomSelect from '../components/CustomSelect';
+import { Flame, Star, Sparkles, Search, Filter } from 'lucide-react';
 
 type Brew = {
   id: string;
@@ -147,13 +148,16 @@ export default function DiscoverPage() {
       { value: 'newest', label: 'Neueste' }
   ];
 
-  const Section = ({ title, items }: { title: string, items: Brew[] }) => (
+  const Section = ({ title, items, icon }: { title: string, items: Brew[], icon: React.ReactNode }) => (
     <div className="mb-12">
-      <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+      <h2 className="text-xl md:text-2xl font-bold mb-6 flex items-center gap-3 text-white">
+        <div className="p-2 bg-zinc-900 rounded-lg border border-zinc-800">
+            {icon}
+        </div>
         {title}
-        <span className="text-xs bg-zinc-800 text-zinc-400 px-2 py-1 rounded-full font-normal">Top 10</span>
+        <span className="text-xs bg-zinc-900 border border-zinc-800 text-zinc-500 px-2 py-0.5 rounded ml-auto md:ml-2 font-mono uppercase tracking-wider">Top 10</span>
       </h2>
-      <div className="flex overflow-x-auto gap-4 pb-4 snap-x scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-zinc-900 md:scrollbar md:scrollbar-thumb-zinc-700 md:scrollbar-track-zinc-900 md:scrollbar-thin md:pb-2 md:mb-2 md:border-b md:border-zinc-800 md:-mx-6 md:px-6">
+      <div className="flex overflow-x-auto gap-4 pb-4 snap-x scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-zinc-900 md:scrollbar md:scrollbar-thumb-zinc-700 md:scrollbar-track-zinc-900 md:scrollbar-thin md:pb-2 md:mb-2 md:border-b md:border-zinc-900 md:-mx-6 md:px-6">
         {items.map(brew => (
           <div key={brew.id} className="min-w-[280px] w-[280px] snap-center">
             <BrewCard brew={brew} forceVertical />
@@ -166,21 +170,28 @@ export default function DiscoverPage() {
   return (
     <div className="min-h-screen bg-black text-white">
       <Header />
-      <div className="max-w-6xl mx-auto px-6 py-10 pt-28">
-        <header className="mb-8">
-          <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs mb-2">Discover</p>
-          <h1 className="text-4xl font-black">Finde neue Kreationen</h1>
-          <p className="text-zinc-400 mt-2">Öffentliche Rezepte der Community – sortiere nach Stil, Bewertung oder Neuheit.</p>
-        </header>
+      <div className="max-w-6xl mx-auto px-6 pt-24 pb-20">
+        <div className="flex flex-col md:flex-row justify-between items-end gap-6 border-b border-zinc-800 pb-8 mb-8">
+            <div>
+                 <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs mb-2">Discover</p>
+                 <h1 className="text-3xl md:text-4xl font-black tracking-tight mb-2">Finde neue Kreationen</h1>
+                 <p className="text-zinc-400 max-w-xl">
+                    Öffentliche Rezepte der Community – sortiere nach Stil, Bewertung oder Neuheit.
+                 </p>
+            </div>
+        </div>
 
         {/* Controls */}
         <div className="bg-zinc-900/40 border border-zinc-800 rounded-2xl p-4 mb-8 grid grid-cols-1 md:grid-cols-3 gap-3">
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Suche nach Name oder Stil..."
-            className="bg-zinc-950 border-2 border-zinc-800 rounded-xl px-4 py-3 outline-none focus:border-cyan-600 h-12 text-sm font-bold text-white transition-all"
-          />
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+            <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Suche nach Name oder Stil..."
+                className="w-full bg-black border border-zinc-800 rounded-lg pl-10 pr-4 py-2.5 outline-none focus:border-cyan-800 focus:ring-1 focus:ring-cyan-800 h-full text-sm font-medium text-white transition-all placeholder:text-zinc-600"
+            />
+          </div>
           <CustomSelect
             value={styleFilter}
             onChange={setStyleFilter}
@@ -205,12 +216,17 @@ export default function DiscoverPage() {
           <div>
             {!isFiltering ? (
               <div className="space-y-4">
-                 <Section title="🔥 Gerade angesagt" items={trending} />
-                 <Section title="⭐ Am besten bewertet" items={topRated} />
-                 <Section title="✨ Neuheiten" items={newest} />
+                 <Section icon={<Flame className="w-5 h-5 text-orange-500" />} title="Gerade angesagt" items={trending} />
+                 <Section icon={<Star className="w-5 h-5 text-yellow-500" />} title="Am besten bewertet" items={topRated} />
+                 <Section icon={<Sparkles className="w-5 h-5 text-purple-500" />} title="Neuheiten" items={newest} />
                  
-                 <div className="mt-16 pt-8 border-t border-zinc-800">
-                    <h2 className="text-2xl font-bold mb-6">Alle Rezepte</h2>
+                 <div className="mt-16 pt-8 border-t border-zinc-900">
+                    <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
+                        <div className="p-2 bg-zinc-900 rounded-lg border border-zinc-800">
+                            <Filter className="w-5 h-5 text-zinc-400" />
+                        </div>
+                        Alle Rezepte
+                    </h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-in fade-in duration-500">
                       {list.map(brew => (
                         <BrewCard key={brew.id} brew={brew} />

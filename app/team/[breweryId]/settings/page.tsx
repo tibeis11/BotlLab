@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
 import PremiumFeatureLock from '@/app/components/PremiumFeatureLock';
 import { SubscriptionTier } from '@/lib/premium-config';
+import { Settings, Bell, Users, Lock, Factory, Mail, ShieldAlert } from 'lucide-react';
 
 export default function TeamSettingsPage({ params }: { params: Promise<{ breweryId: string }> }) {
   const { breweryId } = use(params);
@@ -89,54 +90,70 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
   const isAdmin = ['owner', 'admin'].includes(userRole);
 
   const menuItems = [
-    { id: 'general', label: 'Allgemein', icon: '⚙️', requiredRole: ['owner', 'admin'] },
-    { id: 'notifications', label: 'Benachrichtigungen', icon: '🔔', requiredRole: ['owner', 'admin', 'member', 'moderator'] },
-    { id: 'membership', label: 'Mitgliedschaft', icon: '👤', requiredRole: ['owner', 'admin', 'member', 'moderator'] }
+    { id: 'general', label: 'Allgemein', icon: Settings, requiredRole: ['owner', 'admin'] },
+    { id: 'notifications', label: 'Benachrichtigungen', icon: Bell, requiredRole: ['owner', 'admin', 'member', 'moderator'] },
+    { id: 'membership', label: 'Mitgliedschaft', icon: Users, requiredRole: ['owner', 'admin', 'member', 'moderator'] }
   ];
 
   return (
-    <div className="pb-24 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div>
-        <h1 className="text-3xl font-black text-white mb-2">Einstellungen</h1>
-        <p className="text-zinc-400 font-medium mb-8">Verwalte die Brauerei-Updates, Benachrichtigungen und deine Mitgliedschaft.</p>
-      </div>
+    <div className="min-h-screen bg-black text-white font-sans antialiased animate-in fade-in duration-500">
+      
+      <div className="max-w-[1600px] mx-auto w-full space-y-8 p-4 sm:p-6 md:p-8">
+        
+        {/* Header Section like Admin Dashboard */}
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800 pb-6">
+            <div>
+              <div className="flex items-center gap-3 mb-1">
+                <h1 className="text-2xl font-bold text-white tracking-tight">
+                  Brauerei Einstellungen
+                </h1>
+                <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-zinc-800 text-zinc-400 border border-zinc-700 uppercase tracking-wide">
+                  Settings
+                </span>
+              </div>
+              <p className="text-sm text-zinc-500">Verwalte deinen Squad und deine Präferenzen.</p>
+            </div>
+            
+             <div className="hidden md:block text-right">
+                <p className="text-[10px] uppercase font-bold text-zinc-600 tracking-wider mb-0.5">Current Context</p>
+                <div className="flex items-center gap-1.5 justify-end">
+                    <div className="w-1.5 h-1.5 rounded-full bg-cyan-500"></div>
+                    <p className="text-zinc-300 font-mono text-xs">{brewery.name}</p>
+                </div>
+            </div>
+        </header>
 
-      <div className="md:flex gap-8 lg:gap-12 items-start">
+        <div className="flex flex-col lg:flex-row gap-6">
           
-          {/* Sidebar Menu - Mobile & Desktop */}
-          <div className="w-full md:w-64 flex-shrink-0 mb-8 md:mb-0 md:sticky md:top-32 z-20">
-             
-             {/* Navigation Items (Responsive) */}
-             <div className="bg-zinc-900/50 md:bg-zinc-900 md:border md:border-zinc-800 rounded-2xl p-1 md:p-3 overflow-x-auto flex md:flex-col gap-2 no-scrollbar border border-zinc-800 md:border-none shadow-xl md:shadow-none backdrop-blur-md">
+          {/* Sidebar Navigation - Matching DashboardTabs.tsx style */}
+          <aside className="w-full lg:w-56 flex-shrink-0">
+             <nav className="flex flex-row lg:flex-col gap-2 lg:gap-1 overflow-x-auto pb-2 lg:pb-0 scrollbar-hide">
                 {menuItems.map(item => {
                     const isAllowed = item.requiredRole.includes(userRole);
                     if (!isAllowed) return null;
                     
                     const isActive = activeTab === item.id;
+                    const Icon = item.icon;
                     return (
                         <button
                             key={item.id}
                             onClick={() => setActiveTab(item.id as any)}
-                            className={`flex whitespace-nowrap items-center gap-3 px-5 py-3 md:py-3.5 rounded-xl text-sm font-bold transition-all duration-200 border ${
+                            className={`flex-1 lg:flex-none lg:w-full justify-center lg:justify-start px-3 py-2 rounded-md flex items-center gap-2 lg:gap-3 font-medium text-sm transition-all outline-none focus-visible:ring-2 focus-visible:ring-white/20 whitespace-nowrap ${
                                 isActive 
-                                ? 'bg-zinc-800 md:bg-cyan-950/30 text-white md:text-cyan-400 border-zinc-700 md:border-cyan-500/30 shadow-lg' 
-                                : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/50 border-transparent'
+                                ? 'bg-zinc-800 text-white' 
+                                : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
                             }`}
                         >
-                            <span className={`text-lg transition-transform ${isActive ? 'scale-110' : 'grayscale opacity-70'}`}>{item.icon}</span>
-                            {item.label}
+                            <Icon className="w-4 h-4" />
+                            <span className="truncate">{item.label}</span>
                         </button>
                     );
                 })}
-            </div>
-          </div>
+            </nav>
+          </aside>
 
-          {/* Content Area */}
-          <div className="flex-1 md:bg-zinc-900/50 md:backdrop-blur-sm md:border md:border-zinc-800 rounded-3xl pt-2 md:p-10 min-h-[600px] md:shadow-2xl relative overflow-hidden group">
-               {/* Decorative Gradient Background */}
-              <div className="absolute top-0 right-0 p-40 bg-cyan-500/5 blur-[120px] rounded-full pointer-events-none -mt-20 -mr-20 group-hover:bg-cyan-500/10 transition-colors duration-1000 hidden md:block"></div>
-              
-              <div className="relative z-10 w-full max-w-2xl">
+          {/* Main Content Area - Matching DashboardClient layout */}
+          <main className="flex-1 min-w-0">
                 {activeTab === 'general' && isAdmin ? (
                     <GeneralSettings 
                       brewery={brewery} 
@@ -148,13 +165,14 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
                 ) : activeTab === 'membership' ? (
                     <MembershipSettings breweryId={brewery.id} userRole={userRole} />
                 ) : (
-                    <div className="flex flex-col items-center justify-center py-20 text-zinc-500 gap-4">
-                        <div className="text-4xl opacity-50">🔒</div>
-                        <div className="font-bold font-mono">ACCESS_DENIED</div>
+                    <div className="bg-zinc-900 rounded-lg border border-zinc-800 p-12 text-center flex flex-col items-center">
+                        <Lock className="w-12 h-12 text-zinc-700 mb-4" />
+                         <h3 className="text-white font-bold mb-2">Zugriff verweigert</h3>
+                         <p className="text-zinc-500 text-sm">Du hast keine Berechtigung für diesen Bereich.</p>
                     </div>
                 )}
-              </div>
-          </div>
+          </main>
+      </div>
       </div>
     </div>
   );
@@ -172,7 +190,6 @@ function GeneralSettings({
   ownerPremiumTier: SubscriptionTier
 }) {
   const [breweryName, setBreweryName] = useState(brewery.name || "");
-  const [brewerySlogan, setBrewerySlogan] = useState(brewery.custom_slogan || "");
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(brewery.logo_url);
   
@@ -209,7 +226,6 @@ function GeneralSettings({
         .from('breweries')
         .update({
           name: breweryName,
-          custom_slogan: brewerySlogan,
           logo_url: logoUrl,
         })
         .eq('id', brewery.id);
@@ -228,130 +244,76 @@ function GeneralSettings({
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
-        <div>
-            <h2 className="text-4xl font-black text-white mb-3 tracking-tight">Allgemein</h2>
-            <p className="text-zinc-400 text-sm leading-relaxed">Verwalte die öffentlichen Details, wie Name und Logo, deines Squads.</p>
-        </div>
+    <div className="space-y-6">
         
-        <form onSubmit={handleSaveSettings} className="space-y-8">
-          <div className="bg-zinc-950/50 p-6 md:p-8 rounded-3xl border border-zinc-800 space-y-8 shadow-inner">
+        <form onSubmit={handleSaveSettings} className="space-y-6">
               
-              {/* Moderation Status Banner */}
-              {brewery.moderation_status === 'pending' && brewery.logo_url && (
-                  <div className="p-4 rounded-xl border border-yellow-500/30 bg-yellow-500/10 flex items-start gap-4 animate-in slide-in-from-top-2 fade-in">
-                      <div className="p-2 bg-yellow-500/20 rounded-full">
-                        <span className="text-xl block">⏳</span>
-                      </div>
-                      <div>
-                          <h4 className="font-bold text-yellow-400 text-sm">Profilbild wird geprüft</h4>
-                          <p className="text-xs text-yellow-200/60 mt-1 leading-relaxed">
-                            Dein hochgeladenes Logo wird derzeit von unserem Moderationsteam überprüft. 
-                            Bis zur Freigabe ist es nur für dich sichtbar – andere Nutzer sehen weiterhin dein altes Logo oder das Standard-Bild.
-                          </p>
-                      </div>
-                  </div>
-              )}
-
-              {/* Logo Selection */}
-              <div className="flex flex-col sm:flex-row items-center gap-8">
-                <div className="relative group cursor-pointer" onClick={() => document.getElementById('logo-upload')?.click()}>
-                    <div className={`w-32 h-32 rounded-full border-2 flex items-center justify-center overflow-hidden transition-all shadow-xl ${logoPreview ? 'border-zinc-800 bg-black' : 'border-zinc-800 border-dashed bg-zinc-900 group-hover:border-cyan-500 group-hover:bg-zinc-800'}`}>
-                        {logoPreview ? (
-                        <img src={logoPreview} className="w-full h-full object-cover" alt="Logo" />
-                        ) : (
-                        <span className="text-4xl opacity-50 grayscale group-hover:grayscale-0 transition-all">🏰</span>
-                        )}
+             {/* Card Style matching MetricCard/Admin Panels */}
+             <div className="md:bg-black md:border md:border-zinc-800 md:rounded-lg md:p-6">
+                <h3 className="text-zinc-500 text-xs font-medium uppercase tracking-wider mb-6">Allgemein</h3>
+                
+                <div className="space-y-6">
+                    {/* Logo Section */}
+                    <div className="flex items-start gap-6">
+                         <div className="relative group cursor-pointer" onClick={() => document.getElementById('logo-upload')?.click()}>
+                            <div className={`w-20 h-20 rounded-lg border flex items-center justify-center overflow-hidden transition-all ${logoPreview ? 'border-zinc-700 bg-black' : 'border-dashed border-zinc-700 bg-zinc-900 hover:border-zinc-500 group'}`}>
+                                {logoPreview ? (
+                                <img src={logoPreview} className="w-full h-full object-cover" alt="Logo" />
+                                ) : (
+                                <Factory className="w-8 h-8 text-zinc-700 group-hover:text-zinc-500 transition-colors" />
+                                )}
+                            </div>
+                        </div>
                         
-                        {/* Overlay on hover */}
-                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center rounded-full backdrop-blur-[2px]">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8 text-white scale-75 group-hover:scale-100 transition-transform">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-                            </svg>
+                        <div className="flex-1">
+                             <label className="block text-sm font-medium text-white mb-1">Brand Identity</label>
+                             <p className="text-xs text-zinc-500 mb-3">Das Logo für Rezepte & Feed. Empfohlen: 500x500px.</p>
+                             
+                              <input 
+                                id="logo-upload"
+                                type="file" 
+                                accept="image/*"
+                                onChange={handleLogoChange}
+                                className="hidden"
+                            />
+                            <button 
+                                type="button" 
+                                onClick={() => document.getElementById('logo-upload')?.click()}
+                                className="text-xs bg-zinc-800 hover:bg-zinc-700 text-white font-medium py-1.5 px-3 rounded border border-zinc-700 transition-colors"
+                            >
+                                Bild hochladen
+                            </button>
                         </div>
                     </div>
-                </div>
-                
-                <div className="flex-1 text-center sm:text-left">
-                    <h3 className="font-bold text-white mb-1.5 text-lg">Brand Identity</h3>
-                    <p className="text-xs font-medium text-zinc-500 mb-4 leading-relaxed">Das Logo erscheint auf deinen öffentlichen Rezepten und im Feed. <br className="hidden sm:block"/> Empfohlen: 500x500px (JPG/PNG).</p>
 
-                    <input 
-                        id="logo-upload"
-                        type="file" 
-                        accept="image/*"
-                        onChange={handleLogoChange}
-                        className="hidden"
-                    />
-                    <button 
-                        type="button" 
-                        onClick={() => document.getElementById('logo-upload')?.click()}
-                        className="px-5 py-2.5 bg-zinc-900 border border-zinc-700 rounded-xl text-xs font-black uppercase tracking-wide text-zinc-300 hover:text-white hover:bg-zinc-800 hover:border-zinc-600 transition-all shadow-sm"
-                    >
-                        Bild auswählen
-                    </button>
+                    {/* Name Input - Matching AdminPlanSwitcher INPUT style */}
+                    <div>
+                        <label className="block text-xs font-medium text-zinc-400 mb-1.5">Brauerei Name</label>
+                        <input 
+                            type="text"
+                            value={breweryName}
+                            onChange={e => setBreweryName(e.target.value)}
+                            className="w-full px-3 py-2 rounded bg-zinc-900 text-white border border-zinc-800 focus:outline-none focus:border-zinc-600 transition-colors placeholder:text-zinc-700 sm:text-sm"
+                            placeholder="E.g. CyberBrew Labs"
+                        />
+                    </div>
                 </div>
               </div>
 
-              <div className="h-px bg-zinc-800/50" />
 
-              {/* Name Input */}
-              <div className="space-y-3">
-                <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 ml-1">Brauerei Name</label>
-                <div className="flex items-center gap-4 bg-zinc-900 border border-zinc-800 rounded-xl px-5 py-3 focus-within:border-cyan-500 transition-all duration-300 group">
-                    <span className="text-lg grayscale opacity-50 group-focus-within:grayscale-0 group-focus-within:opacity-100 transition-all">🏷️</span>
-                    <input 
-                    type="text"
-                    value={breweryName}
-                    onChange={e => setBreweryName(e.target.value)}
-                    className="bg-transparent border-none outline-none focus:outline-none focus:ring-0 text-white w-full font-bold text-base placeholder-zinc-700"
-                    placeholder="E.g. CyberBrew Labs"
-                    />
-                </div>
-              </div>
-
-              {/* Slogan Input (Premium) */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between ml-1">
-                   <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500">Dein Label-Slogan</label>
-                </div>
-                
-                <PremiumFeatureLock 
-                  tier={ownerPremiumTier} 
-                  feature="custom_brewery_slogan"
-                  message="Ein eigener Slogan für deine Etiketten ist ab dem 'Brewer' Tier verfügbar."
+            <div className="flex items-center justify-end gap-3">
+                {message && (
+                    <span className={`text-sm ${message.type === 'success' ? 'text-green-500' : 'text-red-500'}`}>
+                        {message.msg}
+                    </span>
+                )}
+                <button 
+                    disabled={isSaving}
+                    className="bg-white text-black hover:bg-zinc-200 font-bold py-2 px-4 rounded text-sm transition-colors disabled:opacity-50"
                 >
-                  <div className="flex items-center gap-4 bg-zinc-900 border border-zinc-800 rounded-xl px-5 py-3 focus-within:border-cyan-500 transition-all duration-300 group">
-                      <span className="text-lg grayscale opacity-50 group-focus-within:grayscale-0 group-focus-within:opacity-100 transition-all">✍️</span>
-                      <input 
-                        type="text"
-                        value={brewerySlogan}
-                        onChange={e => setBrewerySlogan(e.target.value)}
-                        className="bg-transparent border-none outline-none focus:outline-none focus:ring-0 text-white w-full font-bold text-base placeholder-zinc-700"
-                        placeholder="E.g. Handbraukunst aus Berlin"
-                      />
-                  </div>
-                  <p className="text-[10px] text-zinc-500 ml-1">
-                    Dieser Text erscheint unten auf deinen Smart Labels (PDF) anstelle der Zufalls-Sprüche.
-                  </p>
-                </PremiumFeatureLock>
-              </div>
-
-          </div>
-
-          <div className="pt-2 flex items-center justify-end gap-4">
-             {message && (
-                <div className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 ${message.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'} animate-in slide-in-from-right-4 fade-in`}>
-                    {message.type === 'success' ? '✅' : '⚠️'} {message.msg}
-                </div>
-            )}
-            <button 
-                disabled={isSaving}
-                className="bg-cyan-500 text-black font-black py-3 px-8 rounded-xl hover:bg-cyan-400 hover:shadow-lg hover:shadow-cyan-500/20 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide text-xs"
-            >
-                {isSaving ? 'Speichert...' : 'Speichern'}
-            </button>
-          </div>
+                    {isSaving ? 'Saving...' : 'Save Changes'}
+                </button>
+            </div>
         </form>
     </div>
   );
@@ -439,41 +401,42 @@ function NotificationSettings({ breweryId }: { breweryId: string }) {
     }
 
     const NotificationToggle = ({ label, desc, pKey, disabled }: { label: string, desc: string, pKey: keyof typeof prefs, disabled?: boolean }) => (
-        <div className={`group flex items-center justify-between p-4 bg-zinc-950 border border-zinc-800 rounded-2xl transition-all duration-300 ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-zinc-700 hover:bg-zinc-950/80'}`}>
+        <div className="flex items-center justify-between py-3">
             <div className="pr-4">
-                <div className="flex items-center gap-3 mb-1">
-                    <h4 className="font-bold text-white text-sm group-hover:text-cyan-400 transition-colors">{label}</h4>
-                    {savingKey === pKey && <span className="text-[10px] font-mono text-cyan-500 animate-pulse">SAVING...</span>}
-                    {disabled && <span className="text-[9px] uppercase font-black bg-zinc-900 border border-zinc-700 text-zinc-500 px-1.5 py-0.5 rounded">Coming Soon</span>}
+                <div className="flex items-center gap-3 mb-0.5">
+                    <span className={`text-sm font-medium ${disabled ? 'text-zinc-500' : 'text-zinc-300'}`}>{label}</span>
+                    {savingKey === pKey && <span className="text-[10px] font-mono text-cyan-500 animate-pulse">SAVING</span>}
+                    {disabled && <span className="text-[9px] uppercase font-bold bg-zinc-900 border border-zinc-800 text-zinc-600 px-1 rounded">Soon</span>}
                 </div>
-                <p className="text-xs text-zinc-500 group-hover:text-zinc-400 transition-colors">{desc}</p>
+                <p className="text-xs text-zinc-500">{desc}</p>
             </div>
             <button
                 disabled={disabled}
                 onClick={() => !disabled && togglePref(pKey)}
-                className={`flex-shrink-0 relative w-12 h-6 rounded-full p-1 transition-all duration-300 ease-out border ${disabled ? 'bg-zinc-900 border-zinc-800' : (prefs[pKey] ? 'bg-cyan-500 border-cyan-400 shadow-[0_0_15px_-3px_rgba(6,182,212,0.4)]' : 'bg-zinc-900 border-zinc-700')}`}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
+                    disabled ? (prefs[pKey] ? 'bg-cyan-900' : 'bg-zinc-800') : (prefs[pKey] ? 'bg-cyan-600 hover:bg-cyan-500' : 'bg-zinc-700 hover:bg-zinc-600')
+                }`}
             >
-                <div className={`w-4 h-4 rounded-full shadow-sm transform transition-transform duration-300 ease-out ${disabled ? 'bg-zinc-700 translate-x-0' : (prefs[pKey] ? 'bg-white translate-x-6' : 'bg-zinc-500 translate-x-0')}`} />
+                <span
+                    className={`${
+                        prefs[pKey] ? 'translate-x-4' : 'translate-x-1'
+                    } inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform`}
+                />
             </button>
         </div>
     );
 
     return (
-        <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2">
-            <div>
-                 <h2 className="text-4xl font-black text-white mb-3 tracking-tight">Benachrichtigungen</h2>
-                 <p className="text-zinc-400 text-sm leading-relaxed">Steuere, wie und wann wir dich kontaktieren.</p>
-            </div>
-
+        <div className="space-y-6">
+            
             {/* IN-APP SECTION */}
-            <div className="space-y-4">
-                <div className="mb-2">
-                    <h3 className="text-sm font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-2">
-                        <span>🔔</span> In-App Mitteilungen
-                    </h3>
-                </div>
+            <div className="md:bg-black md:border md:border-zinc-800 md:rounded-lg md:p-6">
+                <h3 className="text-zinc-500 text-xs font-medium uppercase tracking-wider mb-4 flex items-center gap-2">
+                     <Bell className="w-3.5 h-3.5" />
+                     In-App Mitteilungen
+                </h3>
                 
-                <div className="grid gap-3">
+                <div className="divide-y divide-zinc-900">
                     <NotificationToggle 
                         label="Neues Rezept" 
                         desc="Wenn jemand ein neues Rezept anglegt."
@@ -493,14 +456,13 @@ function NotificationSettings({ breweryId }: { breweryId: string }) {
             </div>
 
             {/* EMAIL SECTION */}
-            <div className="space-y-4 pt-4 border-t border-zinc-800/50">
-                <div className="mb-2">
-                    <h3 className="text-sm font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-2 opacity-70">
-                        <span>📧</span> E-Mail Alerts
-                    </h3>
-                </div>
+            <div className="md:bg-black md:border md:border-zinc-800 md:rounded-lg md:p-6">
+                 <h3 className="text-zinc-500 text-xs font-medium uppercase tracking-wider mb-4 flex items-center gap-2">
+                     <Mail className="w-3.5 h-3.5" />
+                     E-Mail Alerts
+                </h3>
 
-                <div className="grid gap-3">
+                <div className="divide-y divide-zinc-900">
                     <NotificationToggle 
                         label="Neues Rezept per Mail" 
                         desc="Lasse dich per E-Mail informieren."
@@ -562,30 +524,24 @@ function MembershipSettings({ breweryId, userRole }: { breweryId: string, userRo
     }
 
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
-            <div>
-                <h2 className="text-4xl font-black text-white mb-3 tracking-tight">Mitgliedschaft</h2>
-                <p className="text-zinc-400 text-sm leading-relaxed">
-                    Verwalte deine Zugehörigkeit zu diesem Squad.
-                </p>
-            </div>
-
-            <div className="pt-8 border-t border-zinc-800/50">
-                <h3 className="text-red-500 font-bold text-xs uppercase tracking-widest mb-6 flex items-center gap-2 opacity-80">
-                    <span>⚠️</span> Danger Zone
+        <div className="space-y-6">
+             <div className="md:bg-black md:border md:border-red-900/30 md:rounded-lg md:p-6">
+                <h3 className="text-red-500 text-xs font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <ShieldAlert className="w-3.5 h-3.5" />
+                    Danger Zone
                 </h3>
 
-                <div className="group flex flex-col sm:flex-row items-center justify-between p-6 rounded-3xl border border-red-900/30 bg-red-950/5 hover:bg-red-950/10 transition-colors gap-6">
-                    <div className="text-center sm:text-left">
-                         <h4 className="text-white font-bold text-base mb-1">Squad verlassen</h4>
-                         <p className="text-zinc-500 text-xs max-w-md leading-relaxed">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div>
+                         <h4 className="text-white font-medium text-sm mb-1">Squad verlassen</h4>
+                         <p className="text-zinc-500 text-xs max-w-md">
                             Du verlierst Zugriff auf alle internen Rezepte, den Chatverlauf sowie exklusive Inhalte dieses Squads.
                          </p>
                     </div>
                     <button 
                         onClick={handleLeaveSquad}
                         disabled={isLeaving}
-                        className="bg-transparent hover:bg-red-500/10 text-red-500 border border-red-500/30 hover:border-red-500 font-bold py-3 px-6 rounded-xl transition-all shadow-none hover:shadow-[0_0_20px_-5px_rgba(239,68,68,0.3)] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap text-xs uppercase tracking-wide"
+                        className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded text-xs transition-colors disabled:opacity-50 whitespace-nowrap"
                     >
                         {isLeaving ? 'Verlasse...' : 'Squad verlassen'}
                     </button>

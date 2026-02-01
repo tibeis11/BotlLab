@@ -63,18 +63,18 @@ export default function BrewCard({ brew, currentUserId, forceVertical = false }:
     };
 
     return (
-        <Link href={`/brew/${brew.id}`} className="group relative block bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden transition-all hover:border-cyan-500 hover:shadow-xl hover:shadow-cyan-900/20 w-full sm:max-w-sm h-80">
+        <Link href={`/brew/${brew.id}`} className="group relative block bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden transition-all hover:border-cyan-500 hover:shadow-xl hover:shadow-cyan-900/20 w-full sm:max-w-sm h-80 transform-gpu">
             {/* Background Image */}
             {showImage && (
                 <img 
                     src={brew.image_url!} 
                     alt={brew.name} 
-                    className={`absolute inset-0 w-full h-full object-cover transition-all duration-300 ${isPending ? 'opacity-30 blur-md' : 'opacity-40 group-hover:opacity-50 group-hover:scale-105'}`}
+                    className={`absolute inset-0 w-full h-full object-cover transition-all duration-300 rounded-2xl ${isPending ? 'opacity-30 blur-md' : 'opacity-40 group-hover:opacity-50 group-hover:scale-105'}`}
                 />
             )}
             
             {/* Blur & Gradient Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/70 to-transparent backdrop-blur-md [mask-image:linear-gradient(to_top,black_50%,transparent_100%)]" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/70 to-transparent backdrop-blur-md [mask-image:linear-gradient(to_top,black_50%,transparent_100%)] rounded-2xl" />
 
             {/* Content Container */}
             <div className="relative z-10 flex flex-col justify-between h-full p-4 text-white">
@@ -176,10 +176,10 @@ const StatBox = ({ value, unit, colorValue, highlight = false }: {
 }) => (
     <div className={`bg-black/30 rounded-xl p-2 backdrop-blur-sm border ${highlight ? 'border-cyan-500/20' : 'border-white/10'} flex flex-col justify-center text-center h-full`}>
         <div className="flex items-center justify-center gap-1.5">
-            {colorValue && (
-                <div className="w-2.5 h-2.5 rounded-full border border-black/50 shadow-sm" style={{ backgroundColor: colorValue }} />
-            )}
-            <p className={`text-xl font-bold tracking-tight ${highlight ? 'text-cyan-400' : 'text-white'}`}>
+            <p 
+                className={`text-xl font-bold tracking-tight ${highlight ? 'text-cyan-400' : 'text-white'}`}
+                style={colorValue ? { color: colorValue } : {}}
+            >
                 {value}
             </p>
         </div>

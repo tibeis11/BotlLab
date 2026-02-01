@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { getTierConfig, getNextTier, calculateTierProgress, getDaysActive, type TierName, type ReputationLevelConfig } from '@/lib/tier-system';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/app/context/AuthContext';
+import { Calendar, Target, Eye, Crown, Lock, ArrowRight } from 'lucide-react';
 
 export default function TierProgressWidget() {
   const { user } = useAuth();
@@ -51,8 +52,8 @@ export default function TierProgressWidget() {
 
   if (loading || !tierData) {
     return (
-      <div className="bg-transparent md:bg-zinc-900 md:border md:border-zinc-800 md:rounded-3xl md:p-6 md:shadow-xl animate-pulse">
-        <div className="h-24 md:bg-zinc-800 rounded-xl"></div>
+      <div className="bg-transparent md:bg-zinc-900 md:border md:border-zinc-800 md:rounded-lg md:p-6 md:shadow-xl animate-pulse">
+        <div className="h-24 md:bg-zinc-800 rounded-lg"></div>
       </div>
     );
   }
@@ -70,9 +71,9 @@ export default function TierProgressWidget() {
   const isMaxTier = !nextTier;
 
   return (
-    <div className="bg-gradient-to-br from-cyan-900/20 to-blue-900/10 border border-cyan-500/20 rounded-3xl p-4 md:p-6 shadow-xl relative overflow-hidden">
+    <div className="md:bg-gradient-to-br md:from-cyan-900/20 md:to-blue-900/10 md:border md:border-cyan-500/20 md:rounded-lg md:p-6 md:shadow-xl relative overflow-hidden">
       <div 
-        className="absolute inset-0 opacity-10 blur-3xl pointer-events-none"
+        className="absolute inset-0 opacity-10 blur-3xl pointer-events-none hidden md:block"
         style={{ background: `radial-gradient(circle at top right, ${currentConfig.color}, transparent)` }}
       />
 
@@ -80,10 +81,10 @@ export default function TierProgressWidget() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div 
-              className="w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center shadow-2xl p-0.5"
+              className="w-16 h-16 md:w-20 md:h-20 rounded-lg flex items-center justify-center shadow-2xl p-0.5"
               style={{ backgroundColor: `${currentConfig.color}20`, borderColor: `${currentConfig.color}40`, borderWidth: 1 }}
             >
-              <img src={currentConfig.avatarPath} alt="Current" className="w-full h-full object-cover rounded-xl" />
+              <img src={currentConfig.avatarPath} alt="Current" className="w-full h-full object-cover rounded-md" />
             </div>
             <div>
               <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Dein Ruf</div>
@@ -118,21 +119,21 @@ export default function TierProgressWidget() {
               label="Tage aktiv"
               current={tierData.daysActive}
               required={nextTier.requirements.daysActive}
-              icon="📅"
+              icon={<Calendar className="w-3 h-3 md:w-4 md:h-4 text-inherit" />}
               color={currentConfig.color}
             />
             <RequirementCard
               label="Aktionen"
               current={tierData.bottlesScanned}
               required={nextTier.requirements.bottlesScanned}
-              icon="🎯"
+              icon={<Target className="w-3 h-3 md:w-4 md:h-4 text-inherit" />}
               color={currentConfig.color}
             />
             <RequirementCard
               label="Reputation"
               current={tierData.globalCheers}
               required={nextTier.requirements.globalCheers}
-              icon="👁️"
+              icon={<Eye className="w-3 h-3 md:w-4 md:h-4 text-inherit" />}
               color={currentConfig.color}
             />
           </div>
@@ -140,7 +141,9 @@ export default function TierProgressWidget() {
 
         {isMaxTier && (
           <div className="text-center py-4">
-            <div className="text-3xl mb-2">👑</div>
+            <div className="flex justify-center mb-2">
+                <Crown className="w-8 h-8 text-amber-500" />
+            </div>
             <p className="text-sm font-bold text-white mb-1">Maximales Level erreicht!</p>
             <p className="text-xs text-zinc-400">Du bist eine Legende.</p>
           </div>
@@ -151,7 +154,7 @@ export default function TierProgressWidget() {
            <div className="pt-6 border-t border-zinc-800/50">
              <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-4 flex justify-between items-center">
                 <span>Nächste Belohnung</span>
-                <span className="text-zinc-600">Locked 🔒</span>
+                <span className="text-zinc-600 flex items-center gap-1">Locked <Lock className="w-3 h-3" /></span>
              </div>
              
              <div className="flex items-center gap-4 bg-black/20 p-3 rounded-2xl border border-white/5 relative group overflow-hidden">
@@ -159,7 +162,7 @@ export default function TierProgressWidget() {
                 <div className="w-16 h-16 rounded-xl bg-zinc-900 border border-zinc-800 relative overflow-hidden shrink-0">
                     <img src={nextTier.avatarPath} className="w-full h-full object-cover opacity-50 grayscale group-hover:grayscale-0 group-hover:opacity-100 transition duration-500" />
                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center group-hover:opacity-0 transition">
-                        <span className="text-xl">🔒</span>
+                        <Lock className="w-6 h-6 text-zinc-400" />
                     </div>
                 </div>
 
@@ -169,8 +172,8 @@ export default function TierProgressWidget() {
                 </div>
 
                 <div className="pr-2">
-                    <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-500 text-xs">
-                        ➔
+                    <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-500 group-hover:text-white group-hover:bg-zinc-700 transition">
+                        <ArrowRight className="w-4 h-4" />
                     </div>
                 </div>
              </div>
@@ -181,7 +184,7 @@ export default function TierProgressWidget() {
   );
 }
 
-function RequirementCard({ label, current, required, icon, color }: { label: string; current: number; required: number; icon: string; color: string }) {
+function RequirementCard({ label, current, required, icon, color }: { label: string; current: number; required: number; icon: React.ReactNode; color: string }) {
   const isComplete = current >= required;
   const percentage = Math.min((current / required) * 100, 100);
   const cardColor = isComplete ? '#10b981' : color;
@@ -197,7 +200,7 @@ function RequirementCard({ label, current, required, icon, color }: { label: str
     >
       <div className="relative z-10 flex flex-col items-center text-center">
         <div 
-            className="w-6 h-6 md:w-8 md:h-8 rounded-lg flex items-center justify-center text-sm md:text-lg shadow-lg mb-1 md:mb-2"
+            className="w-6 h-6 md:w-8 md:h-8 rounded-lg flex items-center justify-center text-sm md:text-lg shadow-lg mb-1 md:mb-2 text-white/90"
             style={{ backgroundColor: `${cardColor}30` }}
         >
           {icon}

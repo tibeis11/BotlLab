@@ -1,6 +1,20 @@
 'use client';
 
 import Link from "next/link";
+import { 
+  Building2,
+  Factory,
+  Gem,
+  Globe, 
+  LayoutDashboard, 
+  LogOut, 
+  Menu, 
+  MessageSquare, 
+  Rocket,
+  Search, 
+  Settings, 
+  X 
+} from 'lucide-react';
 import Logo from "./Logo";
 import NotificationBell from "./NotificationBell";
 import { useEffect, useState } from "react";
@@ -81,6 +95,7 @@ export default function Header({ breweryId }: { breweryId?: string }) {
         
         {/* Desktop Navigation */}
         <div className="hidden md:flex gap-4 items-center">
+
           <Link 
             href="/pricing"
             className="text-sm font-bold text-zinc-400 hover:text-white px-4 py-2 transition"
@@ -94,14 +109,14 @@ export default function Header({ breweryId }: { breweryId?: string }) {
           >
             Forum
           </Link>
-          
+
           <Link 
             href="/discover" 
             className="text-sm font-bold text-zinc-400 hover:text-white px-4 py-2 transition"
           >
             Entdecken
           </Link>
-          
+
           {loading ? (
             <div className="w-10 h-10 bg-zinc-800 rounded-full animate-pulse"></div>
           ) : user ? (
@@ -136,22 +151,22 @@ export default function Header({ breweryId }: { breweryId?: string }) {
                   <div className="bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden">
                     <Link
                       href="/dashboard"
-                      className="block px-4 py-3 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition"
+                      className="block px-4 py-3 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition flex items-center gap-2"
                     >
-                      📊 Dashboard
+                      <LayoutDashboard className="w-4 h-4" /> Dashboard
                     </Link>
                     <Link
                       href="/dashboard/account"
-                      className="block px-4 py-3 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition"
+                      className="block px-4 py-3 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition flex items-center gap-2"
                     >
-                      ⚙️ Einstellungen
+                      <Settings className="w-4 h-4" /> Einstellungen
                     </Link>
                     <div className="border-t border-zinc-800"></div>
                     <button
                       onClick={handleLogout}
-                      className="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-zinc-800 hover:text-red-300 transition"
+                      className="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-zinc-800 hover:text-red-300 transition flex items-center gap-2"
                     >
-                      🚪 Abmelden
+                      <LogOut className="w-4 h-4" /> Abmelden
                     </button>
                   </div>
                 </div>
@@ -234,7 +249,7 @@ export default function Header({ breweryId }: { breweryId?: string }) {
                               className="block bg-gradient-to-br from-cyan-950/40 to-cyan-900/10 border border-cyan-900/50 p-5 rounded-2xl relative overflow-hidden group"
                            >
                               <div className="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                                 <span className="text-6xl">📊</span>
+                                 <LayoutDashboard className="w-16 h-16" />
                               </div>
                               <p className="text-xs text-cyan-500 uppercase font-black tracking-widest mb-1">Mein Bereich</p>
                               <h3 className="text-2xl font-black text-white mb-2">Dashboard</h3>
@@ -248,22 +263,22 @@ export default function Header({ breweryId }: { breweryId?: string }) {
                            <div>
                               <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest px-1 mb-3">Menu</p>
                               <div className="grid grid-cols-2 gap-3">
-                                  <Link
+                                    <Link
                                       href="/discover"
                                       onClick={() => setIsMobileMenuOpen(false)}
                                       className="bg-zinc-900/50 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 p-4 rounded-xl flex flex-col items-center justify-center gap-2 text-center transition"
-                                  >
-                                      <span className="text-2xl mb-1">🌍</span>
+                                    >
+                                      <Globe className="w-6 h-6 mb-1" />
                                       <span className="font-bold text-sm text-zinc-200">Entdecken</span>
-                                  </Link>
-                                  <Link
+                                    </Link>
+                                    <Link
                                       href="/pricing"
                                       onClick={() => setIsMobileMenuOpen(false)}
                                       className="bg-zinc-900/50 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 p-4 rounded-xl flex flex-col items-center justify-center gap-2 text-center transition"
-                                  >
-                                      <span className="text-2xl mb-1">💎</span>
+                                    >
+                                      <Gem className="w-6 h-6 mb-1" />
                                       <span className="font-bold text-sm text-zinc-200">Preise</span>
-                                  </Link>
+                                    </Link>
                               </div>
                            </div>
                       </div>
@@ -279,9 +294,9 @@ export default function Header({ breweryId }: { breweryId?: string }) {
                                    <Link 
                                      href="/login"
                                      onClick={() => setIsMobileMenuOpen(false)} 
-                                     className="flex items-center justify-center w-full py-4 bg-white text-black rounded-xl font-black hover:bg-cyan-400 transition shadow-lg text-lg"
+                                     className="flex items-center justify-center w-full py-4 bg-white text-black rounded-xl font-black hover:bg-cyan-400 transition shadow-lg text-lg gap-2"
                                    >
-                                     🚀 Jetzt Starten
+                                     <Rocket className="w-5 h-5" /> Jetzt Starten
                                    </Link>
                                    <Link 
                                      href="/login"
@@ -301,7 +316,7 @@ export default function Header({ breweryId }: { breweryId?: string }) {
                                       onClick={() => setIsMobileMenuOpen(false)}
                                       className="bg-zinc-900/50 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 p-4 rounded-xl flex flex-col items-center justify-center gap-2 text-center transition"
                                   >
-                                      <span className="text-2xl mb-1">🌍</span>
+                                      <Globe className="w-6 h-6 mb-1" />
                                       <span className="font-bold text-sm text-zinc-200">Entdecken</span>
                                   </Link>
                                   <Link
@@ -309,7 +324,7 @@ export default function Header({ breweryId }: { breweryId?: string }) {
                                       onClick={() => setIsMobileMenuOpen(false)}
                                       className="bg-zinc-900/50 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 p-4 rounded-xl flex flex-col items-center justify-center gap-2 text-center transition"
                                   >
-                                      <span className="text-2xl mb-1">💬</span>
+                                      <MessageSquare className="w-6 h-6 mb-1" />
                                       <span className="font-bold text-sm text-zinc-200">Forum</span>
                                   </Link>
                                   <Link
@@ -317,7 +332,7 @@ export default function Header({ breweryId }: { breweryId?: string }) {
                                       onClick={() => setIsMobileMenuOpen(false)}
                                       className="bg-zinc-900/50 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 p-4 rounded-xl flex flex-col items-center justify-center gap-2 text-center transition"
                                   >
-                                      <span className="text-2xl mb-1">💎</span>
+                                      <Gem className="w-6 h-6 mb-1" />
                                       <span className="font-bold text-sm text-zinc-200">Preise</span>
                                   </Link>
                               </div>
@@ -345,7 +360,7 @@ export default function Header({ breweryId }: { breweryId?: string }) {
                                 onClick={() => setIsMobileMenuOpen(false)}
                                 className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-white transition"
                              >
-                                ⚙️
+                                <Settings className="w-5 h-5" />
                              </Link>
                          </div>
                          
@@ -353,7 +368,7 @@ export default function Header({ breweryId }: { breweryId?: string }) {
                             onClick={handleLogout}
                             className="w-full flex items-center justify-center gap-2 p-3 rounded-xl text-xs font-bold text-red-400/80 hover:bg-red-500/10 hover:text-red-400 transition"
                          >
-                            <span>🚪</span> Abmelden
+                            <LogOut className="w-4 h-4" /> Abmelden
                          </button>
                     </div>
               )}

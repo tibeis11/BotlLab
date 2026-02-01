@@ -16,6 +16,7 @@ The BotlLab application is a full-stack Next.js application with a Supabase back
 - **Client-side**: The Supabase client for client-side queries is initialized in `lib/supabase.ts`.
 - **Server-side**: For server components and Route Handlers, a server-side client is created in `lib/supabase-server.ts`. Always use this for server-side data fetching and mutations to ensure proper authentication and security.
 - **Types**: Database types are generated from the Supabase schema and are available in `lib/database.types.ts`. Use these types to ensure type safety when working with data from Supabase.
+- **CLI Usage**: All Supabase CLI commands (e.g., `npx supabase migration up`) **must be run from the `botllab-app` directory**, not the workspace root. The project is not set up with Docker Compose; it uses the standard Supabase CLI workflow.
 
 ## 3. Key Workflows & Conventions
 

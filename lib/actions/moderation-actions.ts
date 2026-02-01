@@ -1,8 +1,10 @@
 'use server'
 
-import { createClient } from '@/lib/supabase-server';
+import { createClient, createAdminClient } from '@/lib/supabase-server';
 import { revalidatePath } from 'next/cache';
 import { Database } from '@/lib/database.types';
+import { sendImageApprovedEmail, sendImageRejectedEmail } from '@/lib/email';
+import { createNotification } from './notification-actions';
 
 export type ModerationStatus = 'pending' | 'approved' | 'rejected';
 
@@ -34,6 +36,7 @@ export async function getPendingItems() {
     if (userError || !userData.user) throw new Error('Nicht authentifiziert');
 
     // 1. Pending Brews
+    // Fetch all pending brews. Filtering happens in JS to allow Crown-Cork-Only uploads.
     const { data: brews, error: brewError } = await supabase
         .from('brews')
         .select(`
@@ -47,8 +50,6 @@ export async function getPendingItems() {
             brewery:breweries(name)
         `)
         .eq('moderation_status', 'pending')
-        .not('image_url', 'like', '/default_label/%')
-        .not('image_url', 'like', '/brand/%')
         .order('created_at', { ascending: false });
 
     if (brewError) throw new Error('Fehler beim Laden der Warteschlange (Brews)');
@@ -70,14 +71,22 @@ export async function getPendingItems() {
     if (breweryError) throw new Error('Fehler beim Laden der Warteschlange (Breweries)');
 
     // Combined Response
-    const formattedBrews: PendingItem[] = (brews || []).map(b => ({
-        type: 'brew',
-        id: b.id,
-        name: b.name,
+    const formattedBrews: PendingItem[] = (brews || [])
+        .filter(b => {
+            // Filter: Must have either a custom label OR a cap to be relevant for moderation
+            // Otherwise it's a "ghost" pending state (e.g. default label + no cap)
+            const isDefaultImage = !b.image_url || b.image_url.includes('/default_label/') || b.image_url.includes('/brand/');
+            const hasCap = !!b.cap_url;
+            return !isDefaultImage || hasCap;
+        })
+        .map(b => ({
+            type: 'brew',
+            id: b.id,
+        name: b.name || 'Unbenanntes Rezept',
         image_url: b.image_url,
         cap_url: b.cap_url,
-        brewery_id: b.brewery_id,
-        created_at: b.created_at,
+        brewery_id: b.brewery_id || '',
+        created_at: b.created_at || new Date().toISOString(),
         moderation_status: b.moderation_status as ModerationStatus,
         // Supabase returns an array for the relation sometimes, or single obj. Handle both.
         brewery: Array.isArray(b.brewery) ? b.brewery[0] : b.brewery
@@ -86,9 +95,9 @@ export async function getPendingItems() {
     const formattedBreweries: PendingItem[] = (breweries || []).map(b => ({
         type: 'brewery',
         id: b.id,
-        name: b.name,
+        name: b.name || 'Unbenannte Brauerei',
         image_url: b.logo_url, // Map logo to image_url for generic handling
-        created_at: b.created_at,
+        created_at: b.created_at || new Date().toISOString(),
         moderation_status: b.moderation_status as ModerationStatus
     }));
 
@@ -102,23 +111,74 @@ export async function getPendingItems() {
  */
 export async function approveItem(id: string, type: 'brew' | 'brewery') {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user: adminUser } } = await supabase.auth.getUser();
 
-    if (!user) throw new Error('Unauthorized');
+    if (!adminUser) throw new Error('Unauthorized');
 
     const table = type === 'brew' ? 'brews' : 'breweries';
 
+    // Get item info for notification before updating
+    const { data: itemData } = await supabase
+        .from(table as any)
+        .select('name, user_id, brewery_id')
+        .eq('id', id)
+        .single() as any;
+
     const { error } = await supabase
-        .from(table)
+        .from(table as any)
         .update({
             moderation_status: 'approved',
-            moderated_by: user.id,
+            moderated_by: adminUser.id,
             moderated_at: new Date().toISOString(),
             moderation_rejection_reason: null
         })
         .eq('id', id);
 
     if (error) throw error;
+
+    // Async notification
+    if (itemData) {
+        try {
+            let recipientId = itemData.user_id;
+            const breweryId = itemData.brewery_id || id;
+            
+            if (type === 'brewery') {
+                // For brewery, find the owner
+                const { data: member } = await supabase
+                    .from('brewery_members')
+                    .select('user_id')
+                    .eq('brewery_id', id)
+                    .eq('role', 'owner')
+                    .maybeSingle();
+                if (member) recipientId = member.user_id;
+            }
+
+            if (recipientId) {
+                const adminClient = createAdminClient();
+                const { data: { user: recipient } } = await adminClient.auth.admin.getUserById(recipientId);
+                
+                // 1. In-App Notification
+                await createNotification({
+                    userId: recipientId,
+                    actorId: adminUser.id,
+                    type: 'image_approved',
+                    data: {
+                        id: id,
+                        name: itemData.name,
+                        type: type
+                    }
+                });
+
+                // 2. Email Notification
+                if (recipient?.email) {
+                    await sendImageApprovedEmail(recipient.email, itemData.name, id, type);
+                }
+            }
+        } catch (e) {
+            console.error('Failed to send approval notification:', e);
+        }
+    }
+
     revalidatePath('/admin/dashboard/moderation');
 }
 
@@ -127,9 +187,18 @@ export async function approveItem(id: string, type: 'brew' | 'brewery') {
  */
 export async function rejectItem(id: string, type: 'brew' | 'brewery', reason: string, imageUrl: string | null) {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user: adminUser } } = await supabase.auth.getUser();
 
-    if (!user) throw new Error('Unauthorized');
+    if (!adminUser) throw new Error('Unauthorized');
+
+    const table = type === 'brew' ? 'brews' : 'breweries';
+
+    // Get item info for notification before updating
+    const { data: itemData } = await supabase
+        .from(table as any)
+        .select('name, user_id, brewery_id')
+        .eq('id', id)
+        .single() as any;
 
     // 1. Physisches Löschen der Dateien
     if (imageUrl && !imageUrl.startsWith('/default') && !imageUrl.startsWith('/brand')) { 
@@ -152,27 +221,65 @@ export async function rejectItem(id: string, type: 'brew' | 'brewery', reason: s
     const updatePayload: any = {
         moderation_status: 'rejected',
         moderation_rejection_reason: reason,
-        moderated_by: user.id,
+        moderated_by: adminUser.id,
         moderated_at: new Date().toISOString()
     };
 
     if (type === 'brew') {
         updatePayload.image_url = '/default_label/default.png';
-        // Note: For brews, we might handle caps separately or assume caps are rejected with image?
-        // Current logic simpler: Main reject for Brew usually means Image reject.
-        // Complex logic would need separate actions or more granular control.
     } else {
-        updatePayload.logo_url = null; // Breweries have no default logo url in DB, handled by Frontend
+        updatePayload.logo_url = null; 
     }
-
-    const table = type === 'brew' ? 'brews' : 'breweries';
     
     const { error } = await supabase
-        .from(table)
+        .from(table as any)
         .update(updatePayload)
         .eq('id', id);
 
     if (error) throw error;
+
+    // Async notification
+    if (itemData) {
+        try {
+            let recipientId = itemData.user_id;
+            const breweryId = itemData.brewery_id || id;
+            
+            if (type === 'brewery') {
+                const { data: member } = await supabase
+                    .from('brewery_members')
+                    .select('user_id')
+                    .eq('brewery_id', id)
+                    .eq('role', 'owner')
+                    .maybeSingle();
+                if (member) recipientId = member.user_id;
+            }
+
+            if (recipientId) {
+                const adminClient = createAdminClient();
+                const { data: { user: recipient } } = await adminClient.auth.admin.getUserById(recipientId);
+                
+                // 1. In-App Notification
+                await createNotification({
+                    userId: recipientId,
+                    actorId: adminUser.id,
+                    type: 'image_rejected',
+                    data: {
+                        id: id,
+                        name: itemData.name,
+                        type: type,
+                        reason: reason
+                    }
+                });
+
+                // 2. Email Notification
+                if (recipient?.email) {
+                    await sendImageRejectedEmail(recipient.email, itemData.name, reason, breweryId);
+                }
+            }
+        } catch (e) {
+            console.error('Failed to send rejection notification:', e);
+        }
+    }
     
     revalidatePath('/admin/dashboard/moderation');
 }

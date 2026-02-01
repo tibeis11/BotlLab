@@ -11,6 +11,26 @@ import { removeBrewFromLibrary } from '@/lib/actions/library-actions';
 import { useGlobalToast } from '@/app/context/AchievementNotificationContext';
 import { getPremiumStatus, getBreweryPremiumStatus } from '@/lib/actions/premium-actions';
 import { type PremiumStatus } from '@/lib/premium-config';
+import { 
+    Plus, 
+    Beer, 
+    Lock, 
+    Eye, 
+    Globe, 
+    Wine, 
+    Star, 
+    Library, 
+    X,
+    MoreHorizontal,
+    Search,
+    Filter,
+    ArrowUpRight,
+    Trash2,
+    Calendar,
+    Users,
+    LayoutGrid,
+    BarChart3
+} from 'lucide-react';
 
 export default function TeamBrewsPage({ params }: { params: Promise<{ breweryId: string }> }) {
   const { breweryId } = use(params);
@@ -28,12 +48,13 @@ export default function TeamBrewsPage({ params }: { params: Promise<{ breweryId:
   const [bottlesModalOpen, setBottlesModalOpen] = useState(false);
   const [selectedBrew, setSelectedBrew] = useState<{ id: string; name: string } | null>(null);
   
+  // Filtering & Search
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterType, setFilterType] = useState<'ALL' | 'PUBLIC' | 'PRIVATE'>('ALL');
+
   const { showToast } = useGlobalToast();
 
   async function handleRemoveSaved(brewId: string) {
-       // We'll trust the user's click for now or implement a better UI later as "Undo" is hard. 
-       // For now, let's keep it simple: just do it but notify.
-       // Actually, removing confusing confirm() is what user asked.
        try {
            await removeBrewFromLibrary(breweryId, brewId);
            setSavedBrews(prev => prev.filter(b => b.id !== brewId));
@@ -119,12 +140,11 @@ export default function TeamBrewsPage({ params }: { params: Promise<{ breweryId:
       if (error) throw error;
       setBrews(data || []);
 
-            // Load Premium Status for the brewery (based on OWNER subscription)
-            // This ensures team members don't gain unlimited slots from their personal account.
-            const breweryStatus = await getBreweryPremiumStatus(breweryId);
-            setPremiumStatus(breweryStatus);
+        // Load Premium Status for the brewery (based on OWNER subscription)
+        const breweryStatus = await getBreweryPremiumStatus(breweryId);
+        setPremiumStatus(breweryStatus);
 
-      // Load Ratings if we have brews
+      // Load Ratings
       if (data && data.length > 0) {
           const brewIds = data.map((b) => b.id);
           const { data: ratingData } = await supabase
@@ -166,7 +186,7 @@ export default function TeamBrewsPage({ params }: { params: Promise<{ breweryId:
         .from('brews')
         .update({ is_public: !currentState })
         .eq('id', id)
-        .eq('brewery_id', breweryId); // Safety check
+        .eq('brewery_id', breweryId); 
 
       if (!error) {
         setBrews(brews.map((b) => (b.id === id ? { ...b, is_public: !currentState } : b)));
@@ -174,6 +194,29 @@ export default function TeamBrewsPage({ params }: { params: Promise<{ breweryId:
         alert('Fehler beim Ändern der Sichtbarkeit: ' + error.message);
       }
   }
+
+  // Tier Config Limit Check (Brewery Based)
+  const tierConfig = getBreweryTierConfig(breweryTier);
+  const organicLimitReached = brews.length >= tierConfig.limits.maxBrews;
+  const bypassed = premiumStatus?.features.bypassBrewLimits ?? false;
+  const isLimitReached = organicLimitReached && !bypassed;
+
+  // Filter Logic
+  const filteredBrews = brews.filter(brew => {
+      const matchesSearch = brew.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                           (brew.style || '').toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const matchesFilter = filterType === 'ALL' 
+            ? true 
+            : filterType === 'PUBLIC' 
+                ? brew.is_public 
+                : !brew.is_public; // PRIVATE
+
+      return matchesSearch && matchesFilter;
+  });
+
+  const publicCount = brews.filter(b => b.is_public).length;
+  const privateCount = brews.filter(b => !b.is_public).length;
 
   if (loading) {
     return (
@@ -185,301 +228,323 @@ export default function TeamBrewsPage({ params }: { params: Promise<{ breweryId:
     );
   }
 
-  // Tier Config Limit Check (Brewery Based)
-  const tierConfig = getBreweryTierConfig(breweryTier);
-  const organicLimitReached = brews.length >= tierConfig.limits.maxBrews;
-  const bypassed = premiumStatus?.features.bypassBrewLimits ?? false;
-  const limitReached = organicLimitReached && !bypassed;
-
   return (
-    <div className="space-y-12 pb-24">
-      
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-end">
-        <div>
-           <div className="flex items-center gap-2 mb-4">
-              <span className="text-cyan-400 text-xs font-black uppercase tracking-widest px-3 py-1 rounded-lg bg-cyan-950/30 border border-cyan-500/20 shadow-sm shadow-cyan-900/20">
-                  Rezepte & Sude
-              </span>
-              {limitReached && (
-                  <span className="text-amber-500 text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg bg-amber-950/30 border border-amber-500/20">
-                    Limit erreicht
-                  </span>
-              )}
-           </div>
-           <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight mb-4">Deine Brau-Bibliothek</h1>
-           <div className="text-zinc-400 text-lg leading-relaxed max-w-xl space-y-4">
-             <p>Verwalte deine Rezepte, dokumentiere Sude und behalte den Überblick über deine Kreationen.</p>
-             
-             <div className="text-base font-bold rounded-xl bg-zinc-900/50 border border-zinc-800 p-4 shadow-inner">
-                {bypassed ? (
-                   <span className="text-emerald-400 flex items-center gap-2">
-                      <span className="text-xl">∞</span> 
-                      <span>Unlimitierte Slots ({premiumStatus?.tier === 'enterprise' ? 'Enterprise' : 'Brewery'} Plan)</span>
-                   </span>
-                ) : (
-                   <div className="space-y-3">
-                       <div className="flex items-center justify-between text-zinc-400 text-sm">
-                           <span>Auslastung ({tierConfig.displayName}):</span>
-                           <span className={limitReached ? "text-amber-500" : "text-white"}>
-                             {brews.length} / {tierConfig.limits.maxBrews}
-                           </span>
-                       </div>
-                       
-                       {/* Progress bar */}
-                       <div className="h-2 w-full bg-black rounded-full overflow-hidden border border-zinc-800">
-                          <div 
-                             className={`h-full transition-all duration-500 ${limitReached ? 'bg-amber-500' : 'bg-cyan-500'}`} 
-                             style={{ width: `${Math.min(100, (brews.length / tierConfig.limits.maxBrews) * 100)}%` }}
-                          />
-                       </div>
-
-                       {premiumStatus?.tier === 'brewer' && (
-                           <div className="text-xs font-normal text-blue-300 bg-blue-950/40 border border-blue-500/20 p-3 rounded-lg leading-relaxed">
-                               <p><strong className="text-blue-200">Hinweis zum Abo:</strong> Dein 'Brewer'-Plan schaltet AI-Features frei, basiert aber weiterhin auf dem Level-System für Slots.</p>
-                               <p className="mt-1 opacity-75">Für unbegrenzte Slots wähle den <strong>Brewery</strong> Plan.</p>
-                           </div>
-                       )}
-                   </div>
-                )}
-             </div>
-           </div>
-        </div>
-
-        <div className="lg:justify-self-end">
-             {isMember && (
-                <button
-                    onClick={() => {
-                        if (limitReached) {
-                            alert(`Die Brauerei hat das Limit für den ${tierConfig.displayName}-Status erreicht (${tierConfig.limits.maxBrews} Rezepte).`);
-                            return;
-                        }
-                        router.push(`/team/${breweryId}/brews/new`);
-                    }}
-                    className={`
-                        group relative flex items-center justify-center gap-3 px-8 py-4 rounded-2xl font-black text-black transition-all duration-300
-                        ${limitReached 
-                            ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed border border-white/5' 
-                            : 'bg-cyan-400 hover:bg-cyan-300 shadow-[0_0_20px_rgba(34,211,238,0.3)] hover:shadow-[0_0_30px_rgba(34,211,238,0.5)] active:scale-95'
-                        }
-                    `}
-                >
-                    <span className="text-xl">{limitReached ? '🔒' : '+'}</span>
-                    <span>Neues Rezept</span>
-                </button>
-             )}
-        </div>
-      </div>
-      
-      {/* SECTION 1: EIGENE REZEPTE */}
-      <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-         <span>🍺</span> Eigene Rezepte
-      </h3>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-in fade-in duration-500 mb-16">
-        
-        {/* Brew Cards */}
-        {brews.length === 0 && (
-            <div className="col-span-full py-12 text-center bg-zinc-900/50 rounded-3xl border border-zinc-800 border-dashed">
-                <p className="text-zinc-500 mb-2">Noch keine eigenen Rezepte.</p>
-                {isMember && (
-                    <button onClick={() => router.push(`/team/${breweryId}/brews/new`)} className="text-cyan-400 hover:underline">
-                        Erstelle jetzt dein erstes Rezept
-                    </button>
-                )}
+    <div className="space-y-8 pb-24">
+      {/* HEADER SECTION (Outside Grid) */}
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-zinc-900 pb-8">
+            <div>
+                <div className="flex items-center gap-3 mb-1">
+                    <h1 className="text-2xl font-bold text-white tracking-tight">Brau-Bibliothek</h1>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-medium border uppercase tracking-wide ${
+                            breweryTier === 'industrial' ? 'bg-blue-950/30 text-blue-400 border-blue-900' :
+                            breweryTier === 'craft' ? 'bg-purple-950/30 text-purple-400 border-purple-900' :
+                            breweryTier === 'micro' ? 'bg-cyan-950/30 text-cyan-400 border-cyan-900' :
+                            'bg-zinc-800 text-zinc-400 border-zinc-700'
+                    }`}>
+                            {breweryTier} Tier
+                    </span>
+                </div>
+                <p className="text-sm text-zinc-500">Verwalte deine Rezepte, dokumentiere Sude und behalte den Überblick.</p>
             </div>
-        )}
 
-        {brews.map((brew) => (
-            <div
-                key={brew.id}
-                className="bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden shadow-lg flex flex-col h-full relative"
-            >
-                {/* Image Section */}
-                <div className="aspect-video relative bg-zinc-950 overflow-hidden">
-                    <div 
-                        className="absolute inset-0 z-0 cursor-pointer"
-                        onClick={() => router.push(`/team/${breweryId}/brews/${brew.id}/edit`)}
+            <div className="flex items-center gap-4">
+                 {isMember && (
+                    <button
+                        onClick={() => {
+                            if (isLimitReached) {
+                                alert(`Die Brauerei hat das Limit für den ${tierConfig.displayName}-Status erreicht (${tierConfig.limits.maxBrews} Rezepte).`);
+                                return;
+                            }
+                            router.push(`/team/${breweryId}/brews/new`);
+                        }}
+                        className={`
+                            px-4 py-2 rounded-md font-bold text-sm transition-all shadow-sm flex items-center gap-2
+                            ${isLimitReached 
+                                ? 'bg-zinc-900 text-zinc-500 cursor-not-allowed border border-zinc-800' 
+                                : 'bg-white hover:bg-zinc-200 text-black border border-transparent'
+                            }
+                        `}
                     >
-                         {brew.image_url ? (
-                            <img
-                                src={brew.image_url}
-                                alt={brew.name}
-                                className="object-cover w-full h-full hover:scale-105 transition-transform duration-700"
-                            />
-                        ) : (
-                            <div className="flex flex-col items-center justify-center h-full text-zinc-700 bg-zinc-950/50">
-                                <span className="text-5xl mb-3 grayscale opacity-30">🍺</span>
-                                <span className="text-[10px] font-black uppercase tracking-widest opacity-40">Kein Label</span>
-                            </div>
-                        )}
-                        {/* Gradient Overlay for better contrast of overlay badges */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 pointer-events-none" />
-                    </div>
+                        <Plus className="w-4 h-4" />
+                        <span>Rezept erstellen</span>
+                    </button>
+                 )}
 
-                    
-                    {/* Top Left: Style Badges */}
-                    <div className="absolute top-3 left-3 flex flex-col gap-1.5 items-start pointer-events-none z-10">
-                        <span className="bg-black/80 backdrop-blur-md text-[10px] px-2.5 py-1 rounded-lg uppercase tracking-wider border border-white/5 font-bold text-white shadow-sm">
-                            {brew.style || 'Standard'}
-                        </span>
-                    </div>
-
-                    {/* Top Right: Admin Actions (Overlay) */}
-                    {isMember && (
-                        <div className="absolute top-2 right-2 flex gap-1 z-20">
-                             <button
-                                onClick={(e) => { e.stopPropagation(); toggleVisibility(brew.id, brew.is_public); }}
-                                className={`w-9 h-9 flex items-center justify-center rounded-xl backdrop-blur-md border shadow-lg transition active:scale-95 ${brew.is_public ? 'bg-zinc-900/80 text-green-400 border-green-500/30' : 'bg-red-900/80 text-red-200 border-red-500/30'}`}
-                                aria-label={brew.is_public ? 'Sichtbar (Umschalten auf Privat)' : 'Privat (Umschalten auf Öffentlich)'}
-                            >
-                                {brew.is_public ? '👁️' : '🔒'}
-                            </button>
-                            <Link
-                                href={`/brew/${brew.id}`}
-                                className="w-9 h-9 flex items-center justify-center rounded-xl bg-black/60 backdrop-blur-md border border-white/10 text-cyan-400 hover:text-white hover:bg-black/80 transition active:scale-95 shadow-lg"
-                                aria-label="Öffentliche Seite öffnen"
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                🌍
-                            </Link>
-                            
-                            {/* Bottle Button - Only if bottles exist */}
-                            {brew.bottles?.[0]?.count > 0 && (
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setSelectedBrew({ id: brew.id, name: brew.name });
-                                        setBottlesModalOpen(true);
-                                    }}
-                                    className="w-9 h-9 flex items-center justify-center rounded-xl bg-black/60 backdrop-blur-md border border-white/10 text-zinc-200 hover:text-white hover:bg-black/80 transition active:scale-95 shadow-lg"
-                                    title="Flaschen verwalten"
-                                >
-                                    🍾
-                                </button>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Bottom Right: Rating Badge */}
-                    {brewRatings[brew.id] && (
-                        <div className="absolute bottom-3 right-3 pointer-events-none z-10">
-                            <div className="bg-black/80 backdrop-blur-md text-amber-400 font-black px-2.5 py-1.5 rounded-xl text-xs flex items-center gap-1.5 border border-white/5 shadow-lg">
-                                <span>⭐</span>
-                                <span className="text-white">{brewRatings[brew.id].avg}</span>
-                                <span className="text-zinc-500 font-normal">({brewRatings[brew.id].count})</span>
-                            </div>
-                        </div>
-                    )}
+                 <div className="h-8 w-px bg-zinc-800 hidden md:block"></div>
+                 <div className="text-right hidden md:block">
+                    <p className="text-[10px] uppercase font-bold text-zinc-600 tracking-wider mb-0.5">Kapazität</p>
+                    <p className="text-zinc-300 font-mono text-xs text-right">
+                        {bypassed ? <span className="text-emerald-500">∞</span> : `${brews.length} / ${tierConfig.limits.maxBrews}`}
+                    </p>
+                 </div>
+            </div>
+      </header>
+      
+      {/* MAIN LAYOUT GRID */}
+      <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-8 items-start relative">
+         
+         {/* LEFT COLUMN: Sidebar (Sticky) */}
+         <div className="space-y-6 lg:sticky lg:top-8 z-20">
+             
+             {/* Stats Grid */}
+            <div className="grid grid-cols-2 gap-3">
+                <div className="bg-zinc-900/30 border border-zinc-800 p-4 rounded-xl flex flex-col justify-between h-24 relative overflow-hidden group hover:border-emerald-500/30 transition-colors">
+                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent opacity-50 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                    <div className="text-emerald-500 text-xs font-bold uppercase tracking-wider relative z-10">Öffentlich</div>
+                    <div className="text-2xl font-mono font-bold text-emerald-400 relative z-10">{publicCount}</div>
                 </div>
-
-                {/* Content Section */}
-                <div className="p-5 flex flex-col flex-1 gap-4">
-                    
-                    {/* Header */}
-                    <div>
-                        <Link
-                            href={`/team/${breweryId}/brews/${brew.id}/edit`}
-                            className="block font-black text-xl leading-tight break-words text-white active:text-cyan-400 transition line-clamp-2"
-                        >
-                            {brew.name}
-                        </Link>
-                        <div className="mt-2 flex items-center gap-2 text-xs font-medium text-zinc-500">
-                             <span>{new Date(brew.created_at).toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: '2-digit' })}</span>
-                             <span>•</span>
-                             <span className={brew.is_public ? 'text-green-500/60' : 'text-red-400/50'}>
-                                {brew.is_public ? 'Öffentlich' : 'Privat'}
-                             </span>
-                             {brew.remix_parent_id && (
-                                <>
-                                    <span>•</span>
-                                    <span className="bg-purple-500/10 text-purple-400/80 px-1.5 rounded text-[10px] uppercase font-bold tracking-wider border border-purple-500/20">Remix</span>
-                                </>
-                             )}
-                        </div>
+                <div className="bg-zinc-900/30 border border-zinc-800 p-4 rounded-xl flex flex-col justify-between h-24 relative overflow-hidden group hover:border-amber-500/30 transition-colors">
+                    <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-transparent opacity-50 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                    <div className="text-amber-500 text-xs font-bold uppercase tracking-wider relative z-10">Privat</div>
+                    <div className="text-2xl font-mono font-bold text-amber-400 relative z-10">
+                        {privateCount}
                     </div>
-
-                   {/* Main Action Buttons */}
-                   {!isMember && (
-                        <div className="mt-auto pt-2">
-                             <Link
-                                href={`/brew/${brew.id}`}
-                                className="block w-full bg-zinc-800 hover:bg-zinc-700 text-white h-12 flex items-center justify-center rounded-2xl text-sm font-bold text-center transition"
-                            >
-                                Rezept ansehen
-                            </Link>
-                        </div>
-                   )}
                 </div>
             </div>
-        ))}
-      </div>
 
-      {/* SECTION 2: SAVED BREWS */}
-      {savedBrews.length > 0 && (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
-               <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2 pt-8 border-t border-zinc-900 mt-8">
-                    <span>📚</span> Bibliothek <span className="text-zinc-500 text-sm font-normal">({savedBrews.length})</span>
-                </h3>
-               
-               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {savedBrews.map((brew) => (
+         </div>
+
+         {/* RIGHT COLUMN: Content */}
+         <div className="space-y-8">
+            
+            {/* Toolbar */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center bg-zinc-900/30 p-1 rounded-xl border border-zinc-800/50">
+                <div className="relative group w-full sm:w-auto">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within:text-white transition-colors" />
+                    <input 
+                        type="text" 
+                        placeholder="Rezept suchen..." 
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full sm:w-64 bg-transparent text-sm text-white pl-9 pr-3 py-2 focus:outline-none placeholder:text-zinc-600 rounded-lg"
+                    />
+                </div>
+                
+                <div className="flex items-center p-1 bg-zinc-900 rounded-lg border border-zinc-800 w-full sm:w-auto overflow-x-auto">
+                    <button 
+                        onClick={() => setFilterType('ALL')}
+                        className={`flex-1 sm:flex-none px-4 py-1.5 rounded-md text-[10px] uppercase font-bold tracking-wider transition-all whitespace-nowrap ${filterType === 'ALL' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+                    >
+                        Alle
+                    </button>
+                    <button 
+                        onClick={() => setFilterType('PUBLIC')}
+                        className={`flex-1 sm:flex-none px-4 py-1.5 rounded-md text-[10px] uppercase font-bold tracking-wider transition-all whitespace-nowrap ${filterType === 'PUBLIC' ? 'bg-zinc-800 text-emerald-400 shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+                    >
+                        Öffentlich
+                    </button>
+                    <button 
+                        onClick={() => setFilterType('PRIVATE')}
+                        className={`flex-1 sm:flex-none px-4 py-1.5 rounded-md text-[10px] uppercase font-bold tracking-wider transition-all whitespace-nowrap ${filterType === 'PRIVATE' ? 'bg-zinc-800 text-amber-400 shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+                    >
+                        Privat
+                    </button>
+                </div>
+            </div>
+
+            {/* SECTION 1: EIGENE REZEPTE */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6 animate-in fade-in duration-500">
+                {filteredBrews.length === 0 ? (
+                    <div className="col-span-full text-center p-8 text-zinc-500">
+                        Keine Rezepte gefunden.
+                    </div>
+                ) : (
+                    filteredBrews.map((brew) => (
                     <div
                         key={brew.id}
-                        className="bg-zinc-900/50 border border-zinc-800 rounded-3xl overflow-hidden shadow-lg flex flex-col h-full relative group hover:border-zinc-700 transition"
+                        className="bg-zinc-950 border border-zinc-900 rounded-xl overflow-hidden hover:border-zinc-700 transition-colors group flex flex-col h-full relative"
                     >
                         {/* Image Section */}
-                        <Link href={`/brew/${brew.id}`} className="block aspect-video relative bg-zinc-950 overflow-hidden">
+                        <div className="aspect-[4/3] relative bg-zinc-900 overflow-hidden border-b border-zinc-900">
+                            <div 
+                                className="absolute inset-0 z-0 cursor-pointer"
+                                onClick={() => router.push(`/team/${breweryId}/brews/${brew.id}/edit`)}
+                            >
                              {brew.image_url ? (
                                 <img
                                     src={brew.image_url}
                                     alt={brew.name}
-                                    className="object-cover w-full h-full hover:scale-105 transition-transform duration-700 opacity-80 group-hover:opacity-100"
+                                    className="object-cover w-full h-full hover:scale-105 transition-transform duration-700"
                                 />
                             ) : (
-                                <div className="flex flex-col items-center justify-center h-full text-zinc-700 bg-zinc-950/50">
-                                    <span className="text-5xl mb-3 grayscale opacity-30">🍺</span>
+                                <div className="flex flex-col items-center justify-center h-full text-zinc-800 bg-zinc-900/50">
+                                    <Beer className="w-10 h-10 mb-2 opacity-50" strokeWidth={1} />
+                                    <span className="text-[10px] font-bold uppercase tracking-widest opacity-40">Kein Label</span>
                                 </div>
                             )}
-                            
-                            {/* Remove Button (Corner) */}
-                            {isMember && (
-                                <button
-                                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleRemoveSaved(brew.id); }}
-                                   className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/60 text-zinc-400 hover:text-red-400 hover:bg-black hover:scale-110 flex items-center justify-center transition opacity-0 group-hover:opacity-100 backdrop-blur-sm"
-                                   title="Aus Bibliothek entfernen"
+                            {/* Gradient Overlay for better contrast of overlay badges */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-transparent opacity-60 pointer-events-none" />
+                        </div>
+
+                        
+                        {/* Top Left: Style Badges */}
+                        <div className="absolute top-3 left-3 flex flex-col gap-1.5 items-start pointer-events-none z-10">
+                            <span className="bg-zinc-950/80 backdrop-blur-md text-[10px] px-2 py-0.5 rounded uppercase tracking-wider border border-zinc-800 font-bold text-zinc-300">
+                                {brew.style || 'Standard'}
+                            </span>
+                        </div>
+
+                        {/* Top Right: Admin Actions (Overlay) */}
+                        {isMember && (
+                            <div className="absolute top-1.5 right-1.5 flex gap-1 z-20">
+                                 <button
+                                    onClick={(e) => { e.stopPropagation(); toggleVisibility(brew.id, brew.is_public); }}
+                                    className={`w-8 h-8 flex items-center justify-center rounded-lg backdrop-blur-md border transition-all active:scale-95 ${brew.is_public ? 'bg-zinc-900/80 text-emerald-400 border-zinc-800 hover:bg-zinc-800' : 'bg-zinc-900/80 text-red-400 border-zinc-800 hover:bg-zinc-800'}`}
+                                    aria-label={brew.is_public ? 'Sichtbar (Umschalten auf Privat)' : 'Privat (Umschalten auf Öffentlich)'}
                                 >
-                                   ✕
+                                    {brew.is_public ? <Eye className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
                                 </button>
-                            )}
-
-                             <div className="absolute top-3 left-3 flex flex-col gap-1.5 items-start pointer-events-none z-10">
-                                <span className="bg-black/60 backdrop-blur-md text-[10px] px-2.5 py-1 rounded-lg uppercase tracking-wider border border-white/5 font-bold text-zinc-300 shadow-sm">
-                                    {brew.style || 'Standard'}
-                                </span>
-                            </div>
-                        </Link>
-
-                        <div className="p-5 flex flex-col flex-1 gap-2"> 
-                            <Link href={`/brew/${brew.id}`} className="font-bold text-lg text-white hover:text-cyan-400 transition truncate block">
-                                {brew.name}
-                            </Link>
-                            <p className="text-xs text-zinc-500">
-                                von <span className="text-zinc-300">{brew.profiles?.display_name || brew.breweries?.name || 'Unbekannt'}</span>
-                            </p>
-                             <div className="mt-auto pt-4">
                                 <Link
                                     href={`/brew/${brew.id}`}
-                                    className="block w-full bg-zinc-950 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-white h-10 flex items-center justify-center rounded-xl text-xs font-bold uppercase tracking-wider transition"
+                                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-900/80 backdrop-blur-md border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800 transition active:scale-95"
+                                    aria-label="Öffentliche Seite öffnen"
+                                    onClick={(e) => e.stopPropagation()}
                                 >
-                                    Ansehen
+                                    <Globe className="w-4 h-4" />
                                 </Link>
+                                
+                                {/* Bottle Button - Only if bottles exist */}
+                                {brew.bottles?.[0]?.count > 0 && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedBrew({ id: brew.id, name: brew.name });
+                                            setBottlesModalOpen(true);
+                                        }}
+                                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-900/80 backdrop-blur-md border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800 transition active:scale-95"
+                                        title="Flaschen verwalten"
+                                    >
+                                        <Wine className="w-4 h-4" />
+                                    </button>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Bottom Right: Rating Badge */}
+                        {brewRatings[brew.id] && (
+                            <div className="absolute bottom-3 right-3 pointer-events-none z-10">
+                                <div className="bg-black/80 backdrop-blur-md text-amber-400 font-bold px-2 py-1 rounded-lg text-[10px] flex items-center gap-1.5 border border-zinc-800">
+                                    <Star className="w-3 h-3 fill-amber-400" />
+                                    <span className="text-white">{brewRatings[brew.id].avg}</span>
+                                    <span className="text-zinc-500 font-normal">({brewRatings[brew.id].count})</span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Content Section */}
+                    <div className="p-4 flex flex-col flex-1 gap-3">
+                        
+                        {/* Header */}
+                        <div>
+                            <Link
+                                href={`/team/${breweryId}/brews/${brew.id}/edit`}
+                                className="block font-bold text-base leading-tight break-words text-white hover:text-cyan-400 transition line-clamp-2"
+                            >
+                                {brew.name}
+                            </Link>
+                            <div className="mt-1.5 flex items-center gap-2 text-[10px] uppercase font-bold tracking-wider text-zinc-500">
+                                 <span>{new Date(brew.created_at).toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: '2-digit' })}</span>
+                                 <span>•</span>
+                                 <span className={brew.is_public ? 'text-emerald-500' : 'text-zinc-500'}>
+                                    {brew.is_public ? 'Öffentlich' : 'Privat'}
+                                 </span>
+                                 {brew.remix_parent_id && (
+                                    <>
+                                        <span>•</span>
+                                        <span className="text-purple-400">Remix</span>
+                                    </>
+                                 )}
                             </div>
                         </div>
+
+                       {/* Main Action Buttons */}
+                       {!isMember && (
+                            <div className="mt-auto pt-2">
+                                 <Link
+                                    href={`/brew/${brew.id}`}
+                                    className="block w-full bg-zinc-900 hover:bg-zinc-800 text-white h-10 flex items-center justify-center rounded-lg border border-zinc-800 text-xs font-bold uppercase tracking-wider transition"
+                                >
+                                    Rezept ansehen
+                                </Link>
+                            </div>
+                       )}
                     </div>
-                  ))}
-               </div>
-          </div>
-      )}
+                </div>
+              ))
+            )}
+            </div>
+            
+            {/* SECTION 2: SAVED BREWS */}
+            {savedBrews.length > 0 && (
+                <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+                     <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2 pt-8 border-t border-zinc-800 mt-8">
+                          <Library className="w-5 h-5 text-zinc-400" /> Bibliothek <span className="text-zinc-500 text-sm font-normal">({savedBrews.length})</span>
+                      </h3>
+                     
+                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                        {savedBrews.map((brew) => (
+                          <div
+                              key={brew.id}
+                              className="bg-zinc-950 border border-zinc-900 rounded-xl overflow-hidden hover:border-zinc-700 transition-colors group flex flex-col h-full relative"
+                          >
+                              {/* Image Section */}
+                              <Link href={`/brew/${brew.id}`} className="block aspect-[4/3] relative bg-zinc-900 overflow-hidden border-b border-zinc-900">
+                                   {brew.image_url ? (
+                                      <img
+                                          src={brew.image_url}
+                                          alt={brew.name}
+                                          className="object-cover w-full h-full hover:scale-105 transition-transform duration-700 opacity-80 group-hover:opacity-100"
+                                      />
+                                  ) : (
+                                      <div className="flex flex-col items-center justify-center h-full text-zinc-800 bg-zinc-900/50">
+                                          <Beer className="w-8 h-8 opacity-50" strokeWidth={1} />
+                                      </div>
+                                  )}
+                                  
+                                  {/* Remove Button (Corner) */}
+                                  {isMember && (
+                                      <button
+                                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleRemoveSaved(brew.id); }}
+                                         className="absolute top-1.5 right-1.5 w-7 h-7 rounded-lg bg-black/60 text-zinc-400 hover:text-white hover:bg-red-500 flex items-center justify-center transition opacity-0 group-hover:opacity-100 backdrop-blur-md"
+                                         title="Aus Bibliothek entfernen"
+                                      >
+                                         <X className="w-3.5 h-3.5" />
+                                      </button>
+                                  )}
+
+                                   <div className="absolute top-3 left-3 flex flex-col gap-1.5 items-start pointer-events-none z-10">
+                                      <span className="bg-zinc-950/80 backdrop-blur-md text-[10px] px-2 py-0.5 rounded uppercase tracking-wider border border-zinc-800 font-bold text-zinc-300">
+                                          {brew.style || 'Standard'}
+                                      </span>
+                                  </div>
+                              </Link>
+
+                              <div className="p-4 flex flex-col flex-1 gap-2"> 
+                                  <Link href={`/brew/${brew.id}`} className="font-bold text-sm text-white hover:text-cyan-400 transition truncate block">
+                                      {brew.name}
+                                  </Link>
+                                  <p className="text-[10px] text-zinc-500 font-medium truncate">
+                                      von <span className="text-zinc-300 hover:text-white transition">{brew.profiles?.display_name || brew.breweries?.name || 'Unbekannt'}</span>
+                                  </p>
+                                   <div className="mt-auto pt-3">
+                                      <Link
+                                          href={`/brew/${brew.id}`}
+                                          className="block w-full bg-zinc-900 border border-zinc-900 hover:border-zinc-700 hover:bg-zinc-800 text-zinc-400 hover:text-white h-8 flex items-center justify-center rounded-lg text-[10px] font-bold uppercase tracking-wider transition"
+                                      >
+                                          Ansehen
+                                      </Link>
+                                  </div>
+                              </div>
+                          </div>
+                        ))}
+                     </div>
+                </div>
+            )}
+            
+         </div> {/* End Right Column */}
+
+      </div> {/* End Main Grid */}
 
       {bottlesModalOpen && selectedBrew && (
         <BottlesModal 

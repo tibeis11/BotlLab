@@ -46,7 +46,7 @@ export default function TrendingForumWidget() {
     if (threads.length === 0) return null; // Or show empty state? User didn't specify, but "Trending" implies showing something usually.
 
     return (
-        <div className="bg-transparent md:bg-zinc-900/50 md:border md:border-zinc-800/50 md:p-6 md:rounded-3xl relative overflow-hidden">
+        <div className="md:bg-zinc-900/30 md:border md:border-zinc-800 md:rounded-lg md:p-8 relative overflow-hidden">
             <div className="flex justify-between items-center mb-6 relative z-10">
                 <div className="flex items-center gap-2">
                     <div className="p-2 bg-emerald-500/10 rounded-xl text-emerald-500">

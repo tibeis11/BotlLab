@@ -102,39 +102,25 @@ export default function DiscoverWidget() {
     if (trendingBrews.length === 0) return null;
 
     return (
-        <div className="bg-transparent md:bg-gradient-to-br md:from-zinc-900 md:to-zinc-950 border-none md:border md:border-zinc-800 rounded-none md:rounded-3xl p-0 md:p-6 relative overflow-hidden group">
-            <div className="flex justify-between items-center mb-4 relative z-10">
-                <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                    <div className="p-2 bg-amber-500/10 rounded-xl text-amber-500">
-                        <Flame size={20} />
-                    </div>
-                    Angesagt in der Community
-                </h3>
-                <Link href="/discover" className="hidden md:flex text-xs font-bold text-cyan-400 hover:text-cyan-300 transition items-center gap-1">
-                    Alles anzeigen <span>→</span>
-                </Link>
-            </div>
-
-            {/* Scroll Container */}
-            <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:scrollbar-thin md:[&::-webkit-scrollbar]:block md:scrollbar-thumb-zinc-700 md:scrollbar-track-transparent md:-mx-6 md:px-6">
-                {trendingBrews.map(brew => (
-                    <div key={brew.id} className="min-w-[280px] w-[280px] snap-center">
-                        <BrewCard brew={{
-                            ...brew,
-                            brewery: brew.brewery,
-                            likes_count: brew.likes_count,
-                        }} forceVertical />
-                    </div>
-                ))}
-                {/* View More Card */}
-                <Link 
-                    href="/discover"
-                    className="min-w-[100px] snap-center bg-zinc-900/30 border border-zinc-800/50 border-dashed rounded-xl flex flex-col items-center justify-center gap-2 text-zinc-500 hover:text-white hover:bg-zinc-900 hover:border-zinc-700 transition"
-                >
-                    <span className="text-2xl">🌍</span>
-                    <span className="text-xs font-bold">Mehr</span>
-                </Link>
-            </div>
+        /* Scroll Container - Pure Component without Header/Container */
+        <div className="flex gap-4 overflow-x-auto pb-4 pt-2 snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:scrollbar-thin md:[&::-webkit-scrollbar]:block md:scrollbar-thumb-zinc-700 md:scrollbar-track-transparent">
+            {trendingBrews.map(brew => (
+                <div key={brew.id} className="min-w-[280px] w-[280px] snap-center">
+                    <BrewCard brew={{
+                        ...brew,
+                        brewery: brew.brewery,
+                        likes_count: brew.likes_count,
+                    }} forceVertical />
+                </div>
+            ))}
+            {/* View More Card */}
+            <Link 
+                href="/discover"
+                className="min-w-[100px] snap-center bg-zinc-900/30 border border-zinc-800/50 border-dashed rounded-xl flex flex-col items-center justify-center gap-2 text-zinc-500 hover:text-white hover:bg-zinc-900 hover:border-zinc-700 transition"
+            >
+                <span className="text-2xl">🌍</span>
+                <span className="text-xs font-bold">Mehr</span>
+            </Link>
         </div>
     );
 }
