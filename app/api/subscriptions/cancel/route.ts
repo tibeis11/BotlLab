@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     // Get current subscription status
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('subscription_tier, subscription_status, subscription_expires_at, email, display_name')
+      .select('subscription_tier, subscription_status, subscription_expires_at, display_name')
       .eq('id', user.id)
       .single();
     

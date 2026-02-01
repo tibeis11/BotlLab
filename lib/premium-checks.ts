@@ -109,7 +109,7 @@ export async function getUserPremiumStatus(
       .from("profiles")
       .update({
         ai_credits_used_this_month: 0,
-        ai_credits_reset_at: new Date(now.getFullYear(), now.getMonth() + 1, 1),
+        ai_credits_reset_at: new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString(),
       })
       .eq("id", userId);
 
@@ -137,7 +137,7 @@ export async function getUserPremiumStatus(
 
   return {
     tier,
-    status: profile.subscription_status,
+    status: (profile.subscription_status as PremiumStatus['status']) || 'expired',
     features: {
       aiGenerationsRemaining: remaining,
       canUseCustomSlogan: limits.custom_brewery_slogan,
@@ -170,9 +170,11 @@ export async function canUseAI(
     return { allowed: false, reason: "Database error" };
   }
 
+  const result = data as { can_use: boolean; reason?: string };
+
   return {
-    allowed: data.can_use,
-    reason: data.reason,
+    allowed: result.can_use,
+    reason: result.reason,
   };
 }
 
@@ -228,6 +230,9 @@ export async function canUseBreweryLogo(breweryId: string): Promise<boolean> {
 
   // Check if owner has premium
   const ownerId = members[0].user_id;
+
+  if (!ownerId) return false;
+
   const status = await getUserPremiumStatus(ownerId);
 
   return status?.features.canUseBreweryLogo ?? false;
