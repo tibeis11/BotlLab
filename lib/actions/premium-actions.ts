@@ -81,7 +81,7 @@ export async function getBreweryBranding(
   const ownerProfile = ownerMember.profiles as any;
   const brewery = ownerMember.breweries as any;
 
-  if (!ownerProfile) return defaultValue;
+  if (!ownerProfile || !ownerMember.user_id) return defaultValue;
 
   // 2. Check Premium Status of the OWNER
   const premiumStatus = await getUserPremiumStatus(ownerMember.user_id);
