@@ -81,7 +81,7 @@ export default async function BrewAnalyticsPage({ params }: { params: { breweryI
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-zinc-800 pb-6">
             <div>
                  <h1 className="text-3xl font-black text-white">{brew?.name}</h1>
-                 <p className="text-zinc-500 text-sm mt-1">Erstellt am {new Date(brew?.created_at).toLocaleDateString('de-DE')}</p>
+                 <p className="text-zinc-500 text-sm mt-1">Erstellt am {brew?.created_at ? new Date(brew.created_at).toLocaleDateString('de-DE') : '-'}</p>
             </div>
             <div className="flex gap-4">
                  <div className="bg-zinc-900 border border-zinc-800 px-4 py-3 rounded-xl">
