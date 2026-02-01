@@ -2,7 +2,7 @@ import QRCode from 'qrcode';
 import { getSmartLabelConfig, SLOGANS } from './smart-labels-config';
 import { loadLogoAsBase64, loadLogoWithTextAsBase64, renderBrandTextAsImage, renderStyledTextAsImage } from './pdf-utils';
 import { BRAND } from './brand';
-import { BottleData } from './pdf-generator';
+import { BottleData } from './pdf-generator-legacy';
 
 /**
  * Renders a single Smart Label to a Data URL (PNG) via HTML Canvas.
