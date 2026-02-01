@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
     // Get or create Stripe customer
     const { data: profile } = await supabase
       .from('profiles')
-      .select('stripe_customer_id, email')
+      .select('stripe_customer_id')
       .eq('id', user.id)
       .single();
     
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     // Create Stripe customer if doesn't exist
     if (!customerId) {
       const customer = await stripe.customers.create({
-        email: user.email || profile?.email,
+        email: user.email,
         metadata: {
           supabase_uid: user.id,
         },
