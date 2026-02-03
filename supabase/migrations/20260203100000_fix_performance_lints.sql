@@ -92,10 +92,10 @@ USING (brewery_id IN (
 
 -- Reports
 ALTER POLICY "Users can create reports" ON public.reports
-WITH CHECK (user_id = (select auth.uid()));
+WITH CHECK (reporter_id = (select auth.uid()));
 
 ALTER POLICY "Users can view their own reports" ON public.reports
-USING (user_id = (select auth.uid()));
+USING (reporter_id = (select auth.uid()));
 
 -- Forum Threads
 ALTER POLICY "Authenticated users can create threads" ON public.forum_threads
