@@ -3,7 +3,7 @@
 
 -- Update search_path for previously modified functions to be robust
 -- Adding 'extensions' ensures access to utility functions if needed
-ALTER FUNCTION public.increment_daily_stats(DATE, UUID, UUID, TEXT, TEXT) SET search_path = public, extensions;
+ALTER FUNCTION public.increment_daily_stats(DATE, UUID, UUID, TEXT, TEXT, INTEGER) SET search_path = public, extensions;
 ALTER FUNCTION public.handle_brew_image_change() SET search_path = public, extensions;
 ALTER FUNCTION public.handle_brewery_logo_change() SET search_path = public, extensions;
 ALTER FUNCTION public.update_updated_at_column() SET search_path = public, extensions;
