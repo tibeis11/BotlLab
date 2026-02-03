@@ -17,7 +17,7 @@ SELECT cron.schedule(
   'aggregate-daily-analytics',
   '0 2 * * *',
   $$
-  SELECT extensions.http_post(
+  SELECT net.http_post(
     url := (SELECT value FROM private_system.secrets WHERE key = 'EDGE_FUNCTION_BASE_URL') || '/functions/v1/aggregate-analytics',
     headers := jsonb_build_object(
         'Content-Type', 'application/json', 
@@ -34,7 +34,7 @@ SELECT cron.schedule(
   'aggregate-hourly-analytics',
   '5 * * * *',
   $$
-  SELECT extensions.http_post(
+  SELECT net.http_post(
      url := (SELECT value FROM private_system.secrets WHERE key = 'EDGE_FUNCTION_BASE_URL') || '/functions/v1/aggregate-analytics',
     headers := jsonb_build_object(
         'Content-Type', 'application/json', 
@@ -51,7 +51,7 @@ SELECT cron.schedule(
   'calculate-cohorts',
   '0 3 * * 1',
   $$
-  SELECT extensions.http_post(
+  SELECT net.http_post(
      url := (SELECT value FROM private_system.secrets WHERE key = 'EDGE_FUNCTION_BASE_URL') || '/functions/v1/aggregate-analytics',
     headers := jsonb_build_object(
         'Content-Type', 'application/json', 
@@ -68,7 +68,7 @@ SELECT cron.schedule(
   'aggregate-feature-usage',
   '30 2 * * *',
   $$
-  SELECT extensions.http_post(
+  SELECT net.http_post(
      url := (SELECT value FROM private_system.secrets WHERE key = 'EDGE_FUNCTION_BASE_URL') || '/functions/v1/aggregate-analytics',
     headers := jsonb_build_object(
         'Content-Type', 'application/json', 

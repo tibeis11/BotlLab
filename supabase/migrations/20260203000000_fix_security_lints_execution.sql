@@ -19,9 +19,8 @@ ALTER FUNCTION public.update_thread_stats() SET search_path = public;
 ALTER FUNCTION public.get_brew_taste_profile(UUID) SET search_path = public;
 
 -- 7. Fix extension_in_public for pg_net
--- Ensure extensions schema exists
-CREATE SCHEMA IF NOT EXISTS extensions;
-GRANT USAGE ON SCHEMA extensions TO postgres, anon, authenticated, service_role;
+-- Skipped: pg_net does not support SET SCHEMA
+-- CREATE SCHEMA IF NOT EXISTS extensions;
+-- GRANT USAGE ON SCHEMA extensions TO postgres, anon, authenticated, service_role;
+-- ALTER EXTENSION pg_net SET SCHEMA extensions;
 
--- Move pg_net execution to extensions schema
-ALTER EXTENSION pg_net SET SCHEMA extensions;
