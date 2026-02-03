@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import BrewCard from '@/app/components/BrewCard';
+import CustomSelect from '@/app/components/CustomSelect';
 import { useAuth } from '@/app/context/AuthContext';
 import { Heart, Search, Filter, Calendar, Beaker, Factory } from 'lucide-react';
 
@@ -70,7 +71,12 @@ export default function FavoritesPage() {
         const formattedBrews: Brew[] = (brewsData || []).map((b: any) => ({
             ...b,
             brewery: Array.isArray(b.breweries) ? b.breweries[0] : b.breweries,
-            user_has_liked: true
+            user_has_liked: true,
+            // Map JSON data fields to top-level properties expected by BrewCard
+            abv: b.data?.abv || b.data?.est_abv,
+            ibu: b.data?.ibu,
+            ebc: b.data?.color,
+            original_gravity: b.data?.original_gravity || b.data?.og
         }));
 
         setBrews(formattedBrews);
@@ -145,7 +151,7 @@ export default function FavoritesPage() {
             </div>
 
             {/* Sort Options */}
-             <div className="md:bg-black border border-zinc-800 rounded-lg overflow-hidden">
+             <div className="hidden lg:block md:bg-black border border-zinc-800 rounded-lg overflow-hidden">
                 <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
                     <h3 className="text-sm font-bold text-white flex items-center gap-2">
                         <Filter className="w-4 h-4 text-zinc-400" />
@@ -189,17 +195,30 @@ export default function FavoritesPage() {
 
         {/* --- MAIN CONTENT --- */}
         <div className="space-y-6">
-            
-             {/* Search */}
-            <div className="relative group">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within:text-white transition-colors" />
-                    <input 
-                        type="text" 
-                        placeholder="Favoriten durchsuchen..." 
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-zinc-900 border border-zinc-800 rounded py-2 pl-10 pr-4 text-sm text-white focus:border-red-500/50 focus:ring-1 focus:ring-red-500/20 focus:outline-none transition-all placeholder:text-zinc-600"
+            <div className="flex flex-col gap-4">
+                {/* Search */}
+                <div className="relative group">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within:text-white transition-colors" />
+                        <input 
+                            type="text" 
+                            placeholder="Favoriten durchsuchen..." 
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full bg-zinc-900 border border-zinc-800 rounded py-2 pl-10 pr-4 text-sm text-white focus:border-red-500/50 focus:ring-1 focus:ring-red-500/20 focus:outline-none transition-all placeholder:text-zinc-600"
+                        />
+                </div>
+
+                <div className="lg:hidden">
+                    <CustomSelect
+                        value={sortOrder}
+                        onChange={(val: any) => setSortOrder(val)}
+                        options={[
+                            { value: 'newest', label: 'Neueste zuerst' },
+                            { value: 'oldest', label: 'Älteste zuerst' },
+                            { value: 'name', label: 'Name (A-Z)' }
+                        ]}
                     />
+                </div>
             </div>
 
             {filteredBrews.length === 0 ? (

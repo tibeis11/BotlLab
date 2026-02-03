@@ -175,7 +175,7 @@ export function MaltListEditor({ value, onChange }: MaltListEditorProps) {
                             onClick={() => setEditingIndex(idx)}
                             className="bg-zinc-950 border border-zinc-800 rounded-xl p-3 flex justify-between items-center active:border-orange-500 transition cursor-pointer gap-4"
                         >
-                            <div className="flex items-center gap-4 flex-1">
+                            <div className="flex items-center gap-4 flex-1 min-w-0">
                                 <div className="bg-zinc-900 h-12 min-w-[3.5rem] px-2 rounded-xl flex items-center justify-center border border-zinc-800 shrink-0">
                                     <span className="text-base font-bold text-white max-w-[4rem] truncate">{item.amount || '0'}</span>
                                     <span className="text-xs text-zinc-500 ml-1 mb-0.5">{item.unit || 'kg'}</span>

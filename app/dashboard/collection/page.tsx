@@ -5,15 +5,14 @@ import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import { useAuth } from '@/app/context/AuthContext';
 import CrownCap from '@/app/components/CrownCap';
+import CustomSelect from '@/app/components/CustomSelect';
 import { 
     Search, 
-    Filter, 
+    Filter,  
     Crown, 
-    Beer, 
     Factory, 
     Calendar,
-    ArrowUpDown,
-    Library
+    ArrowUpDown
 } from 'lucide-react';
 
 export default function CollectionPage() {
@@ -58,8 +57,7 @@ export default function CollectionPage() {
   // Derived Stats
   const stats = {
       total: caps.length,
-      breweries: new Set(caps.map(c => c.brews?.profiles?.display_name)).size,
-      styles: new Set(caps.map(c => c.brews?.style)).size
+      breweries: new Set(caps.map(c => c.brews?.profiles?.display_name)).size
   };
 
   // Filter & Sort
@@ -121,7 +119,7 @@ export default function CollectionPage() {
             </div>
 
             {/* Sort & Filters */}
-            <div className="md:bg-black border border-zinc-800 rounded-lg overflow-hidden">
+            <div className="hidden lg:block md:bg-black border border-zinc-800 rounded-lg overflow-hidden">
                 <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
                     <h3 className="text-sm font-bold text-white flex items-center gap-2">
                         <Filter className="w-4 h-4 text-zinc-400" />
@@ -162,38 +160,36 @@ export default function CollectionPage() {
                 </div>
             </div>
             
-            <div className="md:bg-black border border-zinc-800 p-4 rounded-lg">
-                 <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Statistik</h3>
-                 <div className="space-y-3">
-                     <div className="flex items-center justify-between text-xs">
-                         <span className="text-zinc-400 flex items-center gap-2">
-                             <Beer className="w-3 h-3" /> Styles
-                         </span>
-                         <span className="font-mono text-zinc-300">{stats.styles}</span>
-                     </div>
-                      <div className="flex items-center justify-between text-xs">
-                         <span className="text-zinc-400 flex items-center gap-2">
-                             <Library className="w-3 h-3" /> Unique
-                         </span>
-                         <span className="font-mono text-zinc-300">{stats.total}</span>
-                     </div>
-                 </div>
-            </div>
+
 
         </div>
 
         {/* --- MAIN CONTENT: GRID --- */}
         <div className="space-y-6">
              {/* Search */}
-            <div className="relative group">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within:text-white transition-colors" />
-                    <input 
-                        type="text" 
-                        placeholder="Sammlung durchsuchen..." 
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-zinc-900 border border-zinc-800 rounded py-2 pl-10 pr-4 text-sm text-white focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 focus:outline-none transition-all placeholder:text-zinc-600"
+             <div className="flex flex-col gap-4">
+                <div className="relative group">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within:text-white transition-colors" />
+                        <input 
+                            type="text" 
+                            placeholder="Sammlung durchsuchen..." 
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full bg-zinc-900 border border-zinc-800 rounded py-2 pl-10 pr-4 text-sm text-white focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 focus:outline-none transition-all placeholder:text-zinc-600"
+                        />
+                </div>
+
+                <div className="lg:hidden">
+                    <CustomSelect
+                        value={sortOrder}
+                        onChange={(val: any) => setSortOrder(val)}
+                        options={[
+                            { value: 'newest', label: 'Neueste zuerst' },
+                            { value: 'oldest', label: 'Älteste zuerst' },
+                            { value: 'name', label: 'Name (A-Z)' }
+                        ]}
                     />
+                </div>
             </div>
 
             {filteredCaps.length === 0 ? (

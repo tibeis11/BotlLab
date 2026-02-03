@@ -69,8 +69,8 @@ export default function SessionClient({ sessionId }: { sessionId: string }) {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white selection:bg-cyan-500/30">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+    <div className="text-white selection:bg-cyan-500/30">
+        <div className="w-full">
         
             <SessionHeader 
                 phase={session.phase}

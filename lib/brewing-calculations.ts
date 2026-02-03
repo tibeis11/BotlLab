@@ -315,6 +315,14 @@ export function platoToSG(plato: number): number {
 }
 
 /**
+ * Helper: Convert SG to Plato using inverted Lincoln Equation.
+ */
+export function sgToPlato(sg: number): number {
+    if (!sg || sg <= 0) return 0;
+    return 259 - (259 / sg);
+}
+
+/**
  * Helper: Calculate ABV from SG values.
  */
 export function calculateABVFromSG(og: number, fg: number): number {

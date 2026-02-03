@@ -53,7 +53,7 @@ export default async function NewQuickSessionPage({ params }: PageProps) {
 
   if (error || !brews || brews.length === 0) {
     return (
-      <div className="container max-w-2xl mx-auto py-8 px-4">
+      <div className="max-w-2xl mx-auto">
         <h1 className="text-3xl font-bold mb-4">⚡ Quick Session</h1>
         <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl">
           {error ? "Fehler beim Laden der Rezepte." : "Keine Rezepte gefunden. Bitte erstelle zuerst ein Rezept."}
@@ -63,7 +63,7 @@ export default async function NewQuickSessionPage({ params }: PageProps) {
   }
 
   return (
-    <div className="container max-w-2xl mx-auto py-8 px-4">
+    <div className="max-w-2xl mx-auto">
       <h1 className="text-3xl font-bold mb-2">⚡ Quick Session</h1>
       <p className="text-zinc-400 mb-8">
         Erstelle eine Session ohne Brauprotokoll, direkt für die Flaschenverfolgung.

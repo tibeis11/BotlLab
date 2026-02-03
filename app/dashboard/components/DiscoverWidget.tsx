@@ -103,9 +103,9 @@ export default function DiscoverWidget() {
 
     return (
         /* Scroll Container - Pure Component without Header/Container */
-        <div className="flex gap-4 overflow-x-auto pb-4 pt-2 snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:scrollbar-thin md:[&::-webkit-scrollbar]:block md:scrollbar-thumb-zinc-700 md:scrollbar-track-transparent">
+        <div className="flex gap-4 overflow-x-auto pb-4 pt-2 px-2 snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:scrollbar-thin md:[&::-webkit-scrollbar]:block md:scrollbar-thumb-zinc-700 md:scrollbar-track-transparent">
             {trendingBrews.map(brew => (
-                <div key={brew.id} className="min-w-[280px] w-[280px] snap-center">
+                <div key={brew.id} className="min-w-[280px] w-[280px] snap-start first:ml-0">
                     <BrewCard brew={{
                         ...brew,
                         brewery: brew.brewery,

@@ -9,7 +9,7 @@ export default function PricingPage() {
     <div className="min-h-screen bg-black text-white selection:bg-cyan-500/30">
       <Header />
       
-      <main className="pt-24 pb-20 px-4 sm:px-6 lg:px-8">
+      <main className="pt-8 pb-20 px-4 sm:px-6 lg:px-8">
         {/* Development Banner */}
         <div className="max-w-3xl mx-auto mb-10">
           <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 text-center backdrop-blur-sm">

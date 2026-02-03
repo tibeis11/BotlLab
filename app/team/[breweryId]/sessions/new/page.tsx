@@ -116,7 +116,7 @@ export default function NewSessionPage({ params }: { params: Promise<{ breweryId
   if (loading) return <div className="text-center py-20 text-zinc-500">Lade Rezepte...</div>;
 
   return (
-    <div className="max-w-2xl mx-auto py-8">
+    <div className="max-w-2xl mx-auto">
       <div className="mb-6 flex items-center gap-4">
         <Link 
             href={`/team/${breweryId}/sessions`} 

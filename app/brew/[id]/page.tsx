@@ -10,7 +10,7 @@ import remarkBreaks from 'remark-breaks';
 import Header from '@/app/components/Header';
 import Logo from '@/app/components/Logo';
 import LikeButton from '@/app/components/LikeButton';
-import { ebcToHex } from '@/lib/brewing-calculations';
+import { ebcToHex, sgToPlato } from '@/lib/brewing-calculations';
 import { Star, Users, MessageCircle, Library, Shuffle } from 'lucide-react';
 import { saveBrewToLibrary } from '@/lib/actions/library-actions';
 import { useGlobalToast } from '@/app/context/AchievementNotificationContext';
@@ -507,7 +507,7 @@ export default function BrewDetailPage() {
       
       <Header breweryId={brew.brewery_id} />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 pt-24">
+      <div className="max-w-7xl mx-auto px-4 py-12 pt-24">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
           
           {/* --- LEFT COLUMN: Image & Actions (4 cols) --- */}
@@ -578,16 +578,18 @@ export default function BrewDetailPage() {
                  className="block mt-10 group bg-zinc-900/60 border border-zinc-800 rounded-2xl px-4 py-3 transition hover:border-cyan-600 hover:bg-zinc-900/80 shadow flex items-center gap-3"
                  style={{ textDecoration: 'none' }}
                >
-                 {profile.logo_url ? (
-                   <img src={profile.logo_url} alt={profile.display_name} className="w-9 h-9 rounded-full border border-zinc-800 object-cover shadow group-hover:border-cyan-500 transition" />
-                 ) : (
-                   <div className="w-9 h-9 rounded-full bg-zinc-800 flex items-center justify-center text-xl text-zinc-500 border border-zinc-700">🏭</div>
-                 )}
+                 <div className="w-9 h-9 rounded-full border border-zinc-800 overflow-hidden shrink-0 shadow group-hover:border-cyan-500 transition relative bg-zinc-800 flex items-center justify-center">
+                    {profile.logo_url ? (
+                       <img src={profile.logo_url} alt={profile.display_name} className="w-full h-full object-cover" />
+                    ) : (
+                       <span className="text-xl text-zinc-500">🏭</span>
+                    )}
+                 </div>
                  <div className="flex flex-col min-w-0">
                    <span className="font-bold text-white text-sm truncate group-hover:text-cyan-400 transition">{profile.display_name}</span>
                    {profile.bio && <span className="text-zinc-500 text-xs truncate">{profile.bio}</span>}
                  </div>
-                 <span className="ml-auto text-cyan-500 text-xs font-bold group-hover:underline group-hover:text-cyan-300 transition">Team-Profil →</span>
+                 <span className="ml-auto text-cyan-500 text-xs font-bold group-hover:underline group-hover:text-cyan-300 transition whitespace-nowrap">Team-Profil →</span>
                </Link>
              )}
           </div>
@@ -694,7 +696,20 @@ export default function BrewDetailPage() {
 
                                 <div className="bg-zinc-900/40 rounded-xl p-4 border border-zinc-800 flex flex-col items-center text-center justify-center min-h-[100px]">
                                     <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-1">Stammwürze</span>
-                                    <span className="text-2xl font-black text-white">{brew.data.og || '-'} <span className="text-sm font-bold text-zinc-600">°P</span></span>
+                                    <span className="text-2xl font-black text-white">
+                                        {(() => {
+                                            const val = brew.data.og;
+                                            if (!val) return '-';
+                                            const num = typeof val === 'string' ? parseFloat(val.replace(',', '.')) : val;
+                                            if (isNaN(num)) return '-';
+                                            
+                                            // Handle SG (1.0xx) vs Plato (>1.5 typically)
+                                            if (num > 1.000 && num < 1.200) {
+                                                return sgToPlato(num).toFixed(1);
+                                            }
+                                            return num;
+                                        })()} <span className="text-sm font-bold text-zinc-600">°P</span>
+                                    </span>
                                 </div>
                                 
                                 <div className="bg-zinc-900/40 rounded-xl p-4 border border-zinc-800 flex flex-col items-center text-center justify-center min-h-[100px]">

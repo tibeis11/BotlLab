@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Trash2 } from 'lucide-react';
+import { Trash2, ChevronUp, ChevronDown } from 'lucide-react';
 
 export interface BrewStep {
     id?: string; // Add temporary ID for UI stability
@@ -102,55 +102,95 @@ export function RecipeStepsEditor({ value, onChange }: RecipeStepsEditorProps) {
             
             <div className="space-y-3">
                 {steps.map((step, idx) => (
-                    <div key={step.id || idx} className="flex gap-3 items-start group transition-all duration-300">
-                        <div className="flex flex-col gap-1 pt-2">
-                             <button 
-                                onClick={() => moveStep(idx, 'up')}
-                                disabled={idx === 0}
-                                className="p-1 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 rounded disabled:opacity-20 text-zinc-400 hover:text-white transition-colors"
-                                title="Nach oben verschieben"
-                            >
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7"></path></svg>
-                            </button>
-                             <button 
-                                onClick={() => moveStep(idx, 'down')}
-                                disabled={idx === steps.length - 1}
-                                className="p-1 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 rounded disabled:opacity-20 text-zinc-400 hover:text-white transition-colors"
-                                title="Nach unten verschieben"
-                            >
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                            </button>
-                        </div>
-                        
-                        <div className="flex-none pt-2">
-                             <div className="w-6 h-6 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xs font-bold text-zinc-400">
-                                 {idx + 1}
-                             </div>
-                        </div>
+                    <div key={step.id || idx} className="group transition-all duration-300 bg-zinc-950 sm:bg-transparent border border-zinc-800 sm:border-0 rounded-xl sm:rounded-none p-3 sm:p-0">
+                        <div className="flex gap-3 items-start">
+                            <div className="hidden sm:flex flex-col gap-1 pt-2">
+                                 <button 
+                                    onClick={() => moveStep(idx, 'up')}
+                                    disabled={idx === 0}
+                                    className="p-1 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 rounded disabled:opacity-20 text-zinc-400 hover:text-white transition-colors"
+                                    title="Nach oben verschieben"
+                                >
+                                    <ChevronUp size={12} />
+                                </button>
+                                 <button 
+                                    onClick={() => moveStep(idx, 'down')}
+                                    disabled={idx === steps.length - 1}
+                                    className="p-1 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 rounded disabled:opacity-20 text-zinc-400 hover:text-white transition-colors"
+                                    title="Nach unten verschieben"
+                                >
+                                    <ChevronDown size={12} />
+                                </button>
+                            </div>
+                            
+                            <div className="hidden sm:flex flex-none pt-2">
+                                 <div className="w-6 h-6 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xs font-bold text-zinc-400">
+                                     {idx + 1}
+                                 </div>
+                            </div>
 
-                        <div className="flex-1 space-y-2">
-                            <input
-                                value={step.title || ''}
-                                onChange={(e) => updateStep(idx, 'title', e.target.value)}
-                                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-2 text-white font-bold placeholder:text-zinc-600 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none text-sm"
-                                placeholder="Titel (optional, z.B. Einmaischen)"
-                            />
-                            <AutoResizingTextarea
-                                value={step.instruction}
-                                onChange={(e) => updateStep(idx, 'instruction', e.target.value)}
-                                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-600 min-h-[80px] text-sm font-mono"
-                                placeholder="Beschreibe diesen Schritt... (Markdown wird unterstützt: **fett**, *kursiv*)"
-                            />
-                        </div>
+                            <div className="flex-1 space-y-2 min-w-0">
+                                {/* Mobile Header */}
+                                <div className="flex items-center gap-2 sm:hidden mb-1">
+                                    <div className="w-6 h-6 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xs font-bold text-zinc-400 shrink-0">
+                                        {idx + 1}
+                                    </div>
+                                    <input
+                                        value={step.title || ''}
+                                        onChange={(e) => updateStep(idx, 'title', e.target.value)}
+                                        className="flex-1 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-1.5 text-white font-bold placeholder:text-zinc-600 focus:border-cyan-500 outline-none text-sm min-w-0"
+                                        placeholder="Titel..."
+                                    />
+                                    <button 
+                                        onClick={() => removeStep(idx)}
+                                        className="p-1.5 text-zinc-500 hover:text-red-500 bg-zinc-900 border border-zinc-800 rounded-lg"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
 
-                        <div className="pt-2">
-                            <button 
-                                onClick={() => removeStep(idx)}
-                                className="p-2 text-zinc-600 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition"
-                                title="Schritt entfernen"
-                            >
-                                <Trash2 size={16} />
-                            </button>
+                                {/* Desktop Title */}
+                                <input
+                                    value={step.title || ''}
+                                    onChange={(e) => updateStep(idx, 'title', e.target.value)}
+                                    className="hidden sm:block w-full bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-2 text-white font-bold placeholder:text-zinc-600 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none text-sm"
+                                    placeholder="Titel (optional, z.B. Einmaischen)"
+                                />
+                                <AutoResizingTextarea
+                                    value={step.instruction}
+                                    onChange={(e) => updateStep(idx, 'instruction', e.target.value)}
+                                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-600 min-h-[80px] text-sm font-mono"
+                                    placeholder="Beschreibe diesen Schritt... (Markdown wird unterstützt: **fett**, *kursiv*)"
+                                />
+                                
+                                {/* Mobile Footer Controls */}
+                                <div className="flex items-center justify-end gap-2 sm:hidden">
+                                    <button 
+                                        onClick={() => moveStep(idx, 'up')}
+                                        disabled={idx === 0}
+                                        className="p-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-400 disabled:opacity-30"
+                                    >
+                                        <ChevronUp size={16} />
+                                    </button>
+                                    <button 
+                                        onClick={() => moveStep(idx, 'down')}
+                                        disabled={idx === steps.length - 1}
+                                        className="p-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-400 disabled:opacity-30"
+                                    >
+                                        <ChevronDown size={16} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="pt-2 hidden sm:block">
+                                <button 
+                                    onClick={() => removeStep(idx)}
+                                    className="p-2 text-zinc-600 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition"
+                                    title="Schritt entfernen"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                            </div>
                         </div>
                     </div>
                 ))}

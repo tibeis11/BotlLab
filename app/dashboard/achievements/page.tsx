@@ -10,6 +10,7 @@ import {
 	type Achievement,
 	type UserAchievement,
 } from '@/lib/achievements';
+import CustomSelect from '@/app/components/CustomSelect';
 import { 
     Trophy, 
     Medal, 
@@ -122,7 +123,7 @@ export default function AchievementsPage() {
             <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-8 items-start relative">
                 
                 {/* --- SIDEBAR --- */}
-                <div className="space-y-6 lg:sticky lg:top-8 z-20">
+                <div className="space-y-6 hidden lg:block lg:sticky lg:top-8 z-20">
                     
                     {/* Main Stats */}
                     <div className="grid grid-cols-2 gap-3">
@@ -214,16 +215,43 @@ export default function AchievementsPage() {
                 {/* --- MAIN CONTENT --- */}
                 <div className="space-y-6">
                     
-                    {/* Search */}
-                    <div className="relative group">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within:text-white transition-colors" />
-                        <input 
-                            type="text" 
-                            placeholder="Erfolge durchsuchen..." 
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full bg-zinc-900 border border-zinc-800 rounded py-2 pl-10 pr-4 text-sm text-white focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 focus:outline-none transition-all placeholder:text-zinc-600"
-                        />
+                    <div className="flex flex-col gap-4">
+                        {/* Search */}
+                        <div className="relative group">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within:text-white transition-colors" />
+                            <input 
+                                type="text" 
+                                placeholder="Erfolge durchsuchen..." 
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full bg-zinc-900 border border-zinc-800 rounded py-2 pl-10 pr-4 text-sm text-white focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 focus:outline-none transition-all placeholder:text-zinc-600"
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 lg:hidden">
+                            <CustomSelect
+                                value={filterCategory}
+                                onChange={(val: any) => setFilterCategory(val)}
+                                options={[
+                                    { value: 'all', label: 'Alle Kategorien' },
+                                    { value: 'brewing', label: 'Brewing' },
+                                    { value: 'social', label: 'Social' },
+                                    { value: 'quality', label: 'Quality' },
+                                    { value: 'milestone', label: 'Milestones' },
+                                ]}
+                            />
+                            <CustomSelect
+                                value={filterTier}
+                                onChange={(val: any) => setFilterTier(val)}
+                                options={[
+                                    { value: 'all', label: 'Alle Ränge' },
+                                    { value: 'bronze', label: 'Bronze' },
+                                    { value: 'silver', label: 'Silber' },
+                                    { value: 'gold', label: 'Gold' },
+                                    { value: 'platinum', label: 'Platin' },
+                                ]}
+                            />
+                        </div>
                     </div>
                     
                     {/* Grid */}

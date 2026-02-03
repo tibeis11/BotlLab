@@ -11,7 +11,7 @@ export default function Home() {
       {/* --- NAVBAR --- */}
       <Header />
 
-      <main className="pt-20">
+      <main>
         
         {/* --- HERO SECTION --- */}
         <section className="relative min-h-[90vh] flex flex-col items-center justify-center text-center px-4 overflow-hidden">
@@ -62,7 +62,7 @@ export default function Home() {
         {/* --- SOCIAL PROOF & SQUAD SECTION (NEW) --- */}
         <section className="py-24 bg-zinc-950 border-y border-white/5 relative overflow-hidden">
              
-           <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-16 items-center">
+           <div className="max-w-7xl mx-auto px-4 grid lg:grid-cols-2 gap-16 items-center">
                <div className="relative order-2 lg:order-1">
                   {/* Abstract Squad Visual */}
                   <div className="relative bg-zinc-900 border border-zinc-800 p-8 rounded-3xl shadow-2xl space-y-4 max-w-sm mx-auto lg:ml-auto transform -rotate-2 hover:rotate-0 transition duration-500">
@@ -114,7 +114,7 @@ export default function Home() {
 
         {/* --- PROBLEM / SOLUTION --- */}
         <section className="py-24 bg-zinc-950">
-           <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-16 items-center">
+           <div className="max-w-6xl mx-auto px-4 grid md:grid-cols-2 gap-16 items-center">
               <div>
                  <h2 className="text-4xl md:text-5xl font-black mb-6 leading-tight">
                     Die <span className="text-red-500 line-through">Hölle</span> des Hobbybrauens.
@@ -155,7 +155,7 @@ export default function Home() {
         </section>
 
         {/* --- FEATURES GRID --- */}
-        <section id="features" className="py-32 px-6">
+        <section id="features" className="py-32 px-4">
            <div className="max-w-7xl mx-auto">
               <div className="text-center max-w-2xl mx-auto mb-20">
                  <h2 className="text-4xl md:text-5xl font-black mb-6">Deine Brauerei 2.0</h2>
@@ -232,8 +232,89 @@ export default function Home() {
            </div>
         </section>
 
+        {/* --- NETWORK / COMMUNITY SECTION (NEW) --- */}
+        <section className="py-24 bg-gradient-to-br from-zinc-900 to-black border-y border-zinc-800 relative overflow-hidden">
+            {/* Background Map Effect */}
+            <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, #22d3ee 1px, transparent 0)', backgroundSize: '40px 40px' }}></div>
+            
+            <div className="max-w-7xl mx-auto px-4 relative z-10 flex flex-col md:flex-row items-center gap-16">
+                <div className="flex-1 space-y-8">
+                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-xs font-bold uppercase tracking-wider border border-blue-500/20">
+                        <span className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></span>
+                        Community & Wissen
+                     </div>
+                     <h2 className="text-4xl md:text-6xl font-black leading-tight text-white">
+                        Werde Teil des <br/>
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">Netzwerks.</span>
+                     </h2>
+                     <p className="text-lg text-zinc-400 leading-relaxed">
+                        BotlLab ist mehr als Software. Es ist der Ort, an dem Hobbybrauer zusammenkommen. 
+                        Tausche dich im <strong>Forum</strong> aus, entdecke <strong>tausende Rezepte</strong> in der Discover-Area oder lass dir bei einer Gärstockung helfen.
+                     </p>
+                     
+                     <div className="grid grid-cols-2 gap-4">
+                        <div className="p-4 bg-black/40 border border-zinc-800 rounded-xl">
+                            <div className="font-black text-xl text-white mb-1">Stetig wachsend</div>
+                            <div className="text-xs text-zinc-500 uppercase font-bold tracking-wider">Aktive Community</div>
+                        </div>
+                        <div className="p-4 bg-black/40 border border-zinc-800 rounded-xl">
+                            <div className="font-black text-xl text-white mb-1">Täglich neue</div>
+                            <div className="text-xs text-zinc-500 uppercase font-bold tracking-wider">Geteilte Rezepte</div>
+                        </div>
+                     </div>
+
+                     <div className="flex flex-wrap gap-4 pt-2">
+                        <Link href="/forum" className="flex items-center gap-2 text-sm font-bold text-white bg-zinc-800 hover:bg-zinc-700 px-5 py-3 rounded-xl transition">
+                           💬 Zum Forum
+                        </Link>
+                        <Link href="/discover" className="flex items-center gap-2 text-sm font-bold text-white bg-zinc-800 hover:bg-zinc-700 px-5 py-3 rounded-xl transition">
+                           🌍 Rezepte entdecken
+                        </Link>
+                     </div>
+                </div>
+
+                <div className="flex-1 relative w-full h-[400px] md:h-[500px]">
+                    {/* Floating Chat / Forum Cards */}
+                    <div className="absolute top-10 left-0 bg-zinc-900/90 backdrop-blur-md border border-zinc-700 p-5 rounded-2xl shadow-2xl max-w-xs animate-[float_4s_ease-in-out_infinite] z-20">
+                        <div className="flex items-center gap-3 mb-3">
+                           <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center font-bold text-black text-xs">M</div>
+                           <div>
+                              <div className="text-xs font-bold text-white">Micha_Braut</div>
+                              <div className="text-[10px] text-zinc-500">vor 2 Min im Forum</div>
+                           </div>
+                        </div>
+                        <p className="text-sm text-zinc-300">"Hat jemand Erfahrung mit Kveik bei 35°C? Mein Gäreimer explodiert gleich! 🚀"</p>
+                        <div className="mt-3 flex gap-2">
+                           <span className="text-[10px] bg-zinc-800 px-2 py-1 rounded text-zinc-400">#notfall</span>
+                           <span className="text-[10px] bg-zinc-800 px-2 py-1 rounded text-zinc-400">#hefe</span>
+                        </div>
+                    </div>
+
+                    <div className="absolute bottom-20 right-0 bg-zinc-900/90 backdrop-blur-md border border-cyan-900/50 p-5 rounded-2xl shadow-2xl max-w-xs animate-[float_5s_ease-in-out_infinite_1s] z-10">
+                        <div className="flex items-center gap-3 mb-3">
+                           <div className="w-8 h-8 rounded-full bg-cyan-500 flex items-center justify-center font-bold text-black text-xs">L</div>
+                           <div>
+                              <div className="text-xs font-bold text-white">Lisa_Brews</div>
+                              <div className="text-[10px] text-cyan-400">Neues Rezept geteilt</div>
+                           </div>
+                        </div>
+                        <div className="flex gap-4 mb-2">
+                           <div className="h-12 w-12 bg-zinc-800 rounded-lg flex items-center justify-center text-xl">🍺</div>
+                           <div>
+                              <p className="text-sm font-bold text-white">Summer Ale 2024</p>
+                              <p className="text-xs text-zinc-500">5.2% ABV • 35 IBU</p>
+                           </div>
+                        </div>
+                        <div className="mt-2 w-full bg-cyan-500/20 text-cyan-400 text-center py-1.5 rounded-lg text-xs font-bold">
+                           Rezept ansehen
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         {/* --- CATCHY CTA --- */}
-        <section className="py-32 px-6 relative overflow-hidden">
+        <section className="py-32 px-4 relative overflow-hidden">
            <div className="absolute inset-0 bg-gradient-to-b from-cyan-900/20 to-black pointer-events-none" />
            <div className="relative max-w-4xl mx-auto text-center bg-zinc-900 border border-zinc-800 p-12 md:p-20 rounded-[3rem]">
               <h2 className="text-4xl md:text-6xl font-black mb-8 leading-tight">
@@ -256,7 +337,7 @@ export default function Home() {
       </main>
 
       {/* --- FOOTER --- */}
-      <footer className="border-t border-zinc-900 bg-black py-12 px-6 text-center md:text-left">
+      <footer className="border-t border-zinc-900 bg-black py-12 px-4 text-center md:text-left">
          <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
             <div className="flex flex-col items-center md:items-start">
                <div className="mb-4 scale-125 origin-left"><Logo /></div>

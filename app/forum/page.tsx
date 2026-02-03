@@ -1,6 +1,18 @@
 import Link from 'next/link';
 import { getForumCategories, getRecentThreads } from '@/lib/forum-service';
-import { LucideIcon, Megaphone, Scroll, Wrench, ShoppingBag, Coffee, MessageSquare } from 'lucide-react';
+import { 
+    LucideIcon, 
+    Megaphone, 
+    Scroll, 
+    Wrench, 
+    ShoppingBag, 
+    Coffee, 
+    MessageSquare,
+    Hash,
+    Flame,
+    Pin,
+    Plus 
+} from 'lucide-react';
 
 const iconMap: Record<string, any> = {
     Megaphone,
@@ -34,14 +46,17 @@ export default async function ForumIndexPage() {
                     href="/forum/create" 
                     className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-xl font-bold transition flex items-center gap-2"
                 >
-                    + Neues Thema
+                    <Plus className="w-4 h-4" /> Neues Thema
                 </Link>
             </div>
 
             {/* Categories Grid */}
             <section>
-                <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                    <span className="text-emerald-500">#</span> Kategorien
+                <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
+                    <div className="p-2 bg-zinc-900 rounded-lg border border-zinc-800">
+                        <Hash className="w-5 h-5 text-emerald-500" />
+                    </div> 
+                    Kategorien
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {categories.map((cat) => {
@@ -67,8 +82,11 @@ export default async function ForumIndexPage() {
 
             {/* Recent Discussions */}
             <section>
-                <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                    <span className="text-amber-500">🔥</span> Aktuelle Diskussionen
+                <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
+                    <div className="p-2 bg-zinc-900 rounded-lg border border-zinc-800">
+                        <Flame className="w-5 h-5 text-amber-500" />
+                    </div>
+                    Aktuelle Diskussionen
                 </h2>
                 
                 {recentThreads.length > 0 ? (
@@ -91,7 +109,7 @@ export default async function ForumIndexPage() {
                                             <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-500 bg-zinc-900 px-2 py-0.5 rounded border border-zinc-800">
                                                 {thread.category?.title}
                                             </span>
-                                            {thread.is_pinned && <span className="text-xs">📌</span>}
+                                            {thread.is_pinned && <Pin className="w-3 h-3 text-emerald-500 fill-emerald-500/20" />}
                                         </div>
                                         <h3 className="font-bold text-zinc-200 group-hover:text-white mb-1">
                                             {thread.title}

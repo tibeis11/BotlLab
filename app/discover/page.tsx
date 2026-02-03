@@ -168,10 +168,10 @@ export default function DiscoverPage() {
   );
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <>
       <Header />
-      <div className="max-w-6xl mx-auto px-6 pt-24 pb-20">
-        <div className="flex flex-col md:flex-row justify-between items-end gap-6 border-b border-zinc-800 pb-8 mb-8">
+      <div className="max-w-6xl mx-auto px-4 pt-8 pb-20">
+        <header className="flex flex-col md:flex-row justify-between items-end gap-6 border-b border-zinc-800 pb-8 mb-8">
             <div>
                  <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs mb-2">Discover</p>
                  <h1 className="text-3xl md:text-4xl font-black tracking-tight mb-2">Finde neue Kreationen</h1>
@@ -179,7 +179,7 @@ export default function DiscoverPage() {
                     Öffentliche Rezepte der Community – sortiere nach Stil, Bewertung oder Neuheit.
                  </p>
             </div>
-        </div>
+        </header>
 
         {/* Controls */}
         <div className="bg-zinc-900/40 border border-zinc-800 rounded-2xl p-4 mb-8 grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -250,6 +250,6 @@ export default function DiscoverPage() {
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 }

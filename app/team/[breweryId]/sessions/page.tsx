@@ -99,8 +99,8 @@ export default function TeamSessionsPage({ params }: { params: Promise<{ brewery
   );
 
   return (
-    <div className="min-h-screen bg-black text-white font-sans selection:bg-cyan-500/30 selection:text-cyan-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="text-white font-sans selection:bg-cyan-500/30 selection:text-cyan-200">
+        <div className="w-full space-y-8">
             
             {/* Header Section */}
             <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-2 border-b border-zinc-800">

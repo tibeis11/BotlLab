@@ -15,7 +15,7 @@ export default function QuickSessionClient() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-2 md:px-4 pb-32 pt-4 md:pt-6">
+    <div className="w-full pb-32">
       {/* Header with Session Type Badge & Delete Button */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div className="flex items-center gap-3">

@@ -11,7 +11,8 @@ import BreweryHeatmap from './components/BreweryHeatmap';
 import CustomSelect from '@/app/components/CustomSelect';
 import AnalyticsMetricCard from './components/AnalyticsMetricCard';
 import Link from 'next/link';
-import { Sparkles, Calendar as CalendarIcon, Download, BarChart2 } from 'lucide-react';
+import { Sparkles, Calendar as CalendarIcon, Download, BarChart2, Smartphone, Monitor, Tablet, HelpCircle, Lock, LayoutDashboard, Mail } from 'lucide-react';
+import ResponsiveTabs from '@/app/components/ResponsiveTabs';
 
 interface AnalyticsPageData {
   totalScans: number;
@@ -408,8 +409,8 @@ export default function BreweryAnalyticsPage() {
   const availableTimeRanges = getAvailableTimeRanges(userTier);
 
   return (
-    <div className="min-h-screen bg-black text-white p-4 sm:p-6 md:p-8 font-sans antialiased">
-      <div className="max-w-[1600px] mx-auto w-full space-y-8">
+    <div className="text-white font-sans antialiased">
+      <div className="w-full space-y-8">
         
        {/* Header */}
        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800 pb-6">
@@ -448,29 +449,16 @@ export default function BreweryAnalyticsPage() {
         </header>
 
         {/* Tabs */}
-        <div className="flex gap-8 border-b border-zinc-800">
-           <button
-             onClick={() => setActiveTab('dashboard')}
-             className={`pb-4 text-sm font-medium transition-all relative ${
-               activeTab === 'dashboard' ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'
-             }`}
-           >
-             Dashboard
-             {activeTab === 'dashboard' && (
-               <div className="absolute bottom-0 left-0 w-full h-0.5 bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.5)]"></div>
-             )}
-           </button>
-           <button
-             onClick={() => setActiveTab('reports')}
-             className={`pb-4 text-sm font-medium transition-all relative ${
-               activeTab === 'reports' ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'
-             }`}
-           >
-             E-Mail Reports
-             {activeTab === 'reports' && (
-               <div className="absolute bottom-0 left-0 w-full h-0.5 bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.5)]"></div>
-             )}
-           </button>
+        <div className="mb-8">
+            <ResponsiveTabs
+                activeTab={activeTab}
+                onTabChange={(id) => setActiveTab(id as any)}
+                items={[
+                    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+                    { id: 'reports', label: 'E-Mail Reports', icon: Mail }
+                ]}
+                variant='bubble'
+            />
         </div>
 
         {activeTab === 'reports' ? (
@@ -480,13 +468,13 @@ export default function BreweryAnalyticsPage() {
             
             {/* Filter Toolbar */}
             <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-                <div className="flex bg-black rounded-lg border border-zinc-800 p-1">
+                <div className="flex flex-wrap bg-black rounded-lg border border-zinc-800 p-1 w-full md:w-auto gap-1">
                     {availableTimeRanges.map(range => (
                       <button
                         key={range.value}
                         onClick={() => !range.locked && setTimeRange(range.value)}
                         disabled={range.locked}
-                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                        className={`px-4 py-2 rounded-md text-xs font-medium transition-all whitespace-nowrap flex-grow sm:flex-grow-0 flex items-center justify-center gap-1.5 ${
                           timeRange === range.value
                             ? 'bg-zinc-800 text-white shadow-sm'
                             : range.locked
@@ -495,12 +483,12 @@ export default function BreweryAnalyticsPage() {
                         }`}
                         title={range.locked ? `Upgrade nötig` : ''}
                       >
-                        {range.label} {range.locked && '🔒'}
+                        {range.label} {range.locked && <Lock size={10} />}
                       </button>
                     ))}
                     <button
                         onClick={() => setTimeRange('custom')}
-                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                        className={`px-4 py-2 rounded-md text-xs font-medium transition-all whitespace-nowrap flex-grow sm:flex-grow-0 flex items-center justify-center ${
                           timeRange === 'custom' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900'
                         }`}
                     >
@@ -521,7 +509,7 @@ export default function BreweryAnalyticsPage() {
                           }))
                         ]}
                         placeholder="Rezept Filter"
-                        className="bg-black border-zinc-800 text-sm min-w-[200px]"
+                        className="bg-black border-zinc-800 text-sm w-full md:min-w-[200px]"
                       />
                     )}
                 </div>
@@ -690,18 +678,28 @@ export default function BreweryAnalyticsPage() {
                      {/* Devices */}
                      <div className="bg-black rounded-lg border border-zinc-800 p-6">
                         <h3 className="text-zinc-500 text-xs font-medium uppercase tracking-wider mb-6">Geräte</h3>
-                        <div className="space-y-3">
+                        <div className="space-y-4">
                             {deviceData.map(([device, count]) => {
                                 const total = deviceData.reduce((acc, curr) => acc + curr[1], 0);
-                                const percentage = (count / total) * 100;
-                                const icons: Record<string, string> = { mobile: '📱', desktop: '💻', tablet: '📟' };
+                                const percentage = count > 0 ? (count / total) * 100 : 0;
+                                
+                                const getIcon = (type: string) => {
+                                    switch(type.toLowerCase()) {
+                                        case 'mobile': return <Smartphone size={18} />;
+                                        case 'desktop': return <Monitor size={18} />;
+                                        case 'tablet': return <Tablet size={18} />;
+                                        default: return <HelpCircle size={18} />;
+                                    }
+                                };
                                 
                                 return (
-                                    <div key={device} className="flex items-center gap-3">
-                                        <div className="w-8 flex justify-center text-lg">{icons[device] || '❓'}</div>
+                                    <div key={device} className="flex items-center gap-4">
+                                        <div className="w-8 h-8 rounded-full bg-zinc-900 flex items-center justify-center text-zinc-400">
+                                            {getIcon(device)}
+                                        </div>
                                         <div className="flex-1">
-                                            <div className="flex justify-between text-xs mb-1">
-                                                <span className="text-zinc-300 capitalize">{device}</span>
+                                            <div className="flex justify-between text-xs mb-1.5">
+                                                <span className="text-zinc-300 capitalize font-medium">{device}</span>
                                                 <span className="text-zinc-500">{percentage.toFixed(0)}%</span>
                                             </div>
                                             <div className="h-1.5 bg-zinc-900 rounded-full overflow-hidden">
@@ -714,19 +712,37 @@ export default function BreweryAnalyticsPage() {
                         </div>
                      </div>
                      
-                     {/* Peak Hours Hint (Simple) */}
+                     {/* Peak Hours Hint (Improved) */}
                      {data.scansByHour && (
                         <div className="bg-black rounded-lg border border-zinc-800 p-6">
                             <h3 className="text-zinc-500 text-xs font-medium uppercase tracking-wider mb-4">Peak Hours</h3>
-                            <div className="flex gap-1 h-12 items-end">
-                                {Array.from({ length: 24 }).map((_, h) => {
-                                    const val = data.scansByHour?.[h] || 0;
-                                    const max = Math.max(...Object.values(data.scansByHour || {}));
-                                    const height = max > 0 ? (val / max) * 100 : 0;
-                                    return (
-                                        <div key={h} className="flex-1 bg-zinc-900 hover:bg-cyan-500 transition-colors rounded-sm" style={{ height: `${Math.max(10, height)}%` }} title={`${h}:00 - ${val} Scans`} />
-                                    );
-                                })}
+                            <div className="relative">
+                                {/* Scrollable Container */}
+                                <div className="flex gap-1 h-24 items-end overflow-x-auto pb-6 custom-scrollbar snap-x">
+                                    {Array.from({ length: 24 }).map((_, h) => {
+                                        const val = data.scansByHour?.[h] || 0;
+                                        const max = Math.max(...Object.values(data.scansByHour || {}));
+                                        const height = max > 0 ? (val / max) * 100 : 0;
+                                        const isPeak = val === max && max > 0;
+                                        
+                                        return (
+                                            <div key={h} className="flex flex-col items-center gap-2 min-w-[24px] flex-1 snap-start group relative">
+                                                <div 
+                                                    className={`w-full rounded-sm transition-all relative ${isPeak ? 'bg-cyan-500' : 'bg-zinc-800 hover:bg-zinc-700'}`} 
+                                                    style={{ height: `${Math.max(4, height)}%` }}
+                                                ></div>
+                                                <span className={`text-[9px] font-mono ${isPeak ? 'text-cyan-400 font-bold' : 'text-zinc-600'}`}>
+                                                    {h}
+                                                </span>
+                                                
+                                                {/* Tooltip on Hover */}
+                                                <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 hidden group-hover:block bg-zinc-800 text-white text-[10px] px-2 py-1 rounded border border-zinc-700 whitespace-nowrap z-20">
+                                                    {h}:00 Uhr • {val} Scans
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             </div>
                         </div>
                      )}

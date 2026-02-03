@@ -130,7 +130,7 @@ const BottleListItem = ({
         >   
             {/* Swipe Backgrounds */}
             <div className={`absolute inset-0 z-0 bg-red-900/20 items-center justify-end pr-8 flex transition-opacity duration-300 pointer-events-none ${swipedLeft ? 'opacity-100' : 'opacity-0'}`}>
-                <span className="font-mono font-bold text-red-500 text-xs tracking-widest">LÖSCHEN</span>
+                
             </div>
             
             {/* Content Container */}
@@ -1155,9 +1155,9 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
     const limitReached = !bypassed && (stats.total >= tierConfig.limits.maxBottles);
 
 	return (
-		<div className="min-h-screen bg-black text-white p-4 sm:p-6 md:p-8 font-sans antialiased pb-32">
+		<div className="text-white font-sans antialiased pb-32">
             
-            <div className="max-w-[1600px] mx-auto w-full space-y-8">
+            <div className="w-full space-y-8">
                 {/* Header */}
                 <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800 pb-6">
                     <div>
@@ -1286,8 +1286,8 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
                     {/* Right Column: List */}
                     <div className="min-w-0 space-y-4">
                         
-                         {/* Filters (Moved here) */}
-                         <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-4 flex flex-col sm:flex-row gap-4">
+                         {/* Filters */}
+                         <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-4 flex flex-col gap-4">
                             <div className="flex-1 relative group">
                                 <Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-500 group-focus-within:text-white transition-colors" />
                                 <input 
@@ -1298,7 +1298,23 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
                                     className="w-full bg-black border border-zinc-800 rounded-lg py-2 pl-9 pr-3 text-sm text-white focus:border-zinc-600 focus:outline-none transition-colors placeholder:text-zinc-600"
                                 />
                             </div>
-                            <div className="flex gap-2 min-w-[260px]">
+                            
+                            {/* Mobile Filters (Stacked) */}
+                            <div className="grid grid-cols-2 gap-2 lg:hidden">
+                                <CustomSelect
+                                    value={filterStatus}
+                                    onChange={(v) => setFilterStatus(v as any)}
+                                    options={filterStatusOptions}
+                                />
+                                <CustomSelect
+                                    value={sortOption}
+                                    onChange={(v) => setSortOption(v as any)}
+                                    options={sortOptions}
+                                />
+                            </div>
+
+                            {/* Desktop Filters (Inline) */}
+                            <div className="hidden lg:flex gap-2 min-w-[260px]">
                                 <div className="flex-1 space-y-1">
                                     <CustomSelect
                                         value={filterStatus}

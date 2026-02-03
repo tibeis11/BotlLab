@@ -13,6 +13,7 @@ import AICreditsDisplay from '@/app/components/AICreditsDisplay';
 import PremiumFeatureLock from '@/app/components/PremiumFeatureLock';
 import { SubscriptionTier } from '@/lib/premium-config';
 import { redeemCode } from '@/lib/actions/premium-actions';
+import ResponsiveTabs from '@/app/components/ResponsiveTabs';
 import { User, CreditCard, Users, Key, ShieldCheck, Eye, AlertTriangle, Menu, Settings, Lock, Mail, ShieldAlert, Loader2, Construction, Check, CheckCircle, Infinity, X, Globe, Home, Factory, ArrowRight, LogOut, BarChart3 } from 'lucide-react';
 
 export default function AccountPage() {
@@ -411,7 +412,10 @@ export default function AccountPage() {
 
 		try {
 			setEmailLoading(true);
-			const { error } = await supabase.auth.updateUser({ email: newEmail });
+			const { error } = await supabase.auth.updateUser(
+                { email: newEmail },
+                { emailRedirectTo: `${window.location.origin}/dashboard/account` }
+            );
 
 			if (error) throw error;
 
@@ -483,7 +487,7 @@ export default function AccountPage() {
 	}
 
 	return (
-		<div className="space-y-8 animate-in fade-in duration-500">
+		<div className="animate-in fade-in duration-500">
              <div className="w-full space-y-8">
                 
                 {/* Header */}
@@ -502,176 +506,212 @@ export default function AccountPage() {
                 <div className="flex flex-col lg:flex-row gap-6">
                      {/* Sidebar */}
                     <aside className="w-full lg:w-64 flex-shrink-0">
-                         <nav className="flex flex-row lg:flex-col gap-2 lg:gap-1 overflow-x-auto pb-2 lg:pb-0 scrollbar-hide">
-                            {menuItems.map(item => (
-                                <button
-                                    key={item.id}
-                                    onClick={() => setActiveTab(item.id as any)}
-                                    className={`flex-1 lg:flex-none lg:w-full justify-center lg:justify-start px-3 py-2 rounded-md flex items-center gap-2 lg:gap-3 font-medium text-sm transition-all outline-none focus-visible:ring-2 focus-visible:ring-white/20 whitespace-nowrap ${
-                                        activeTab === item.id 
-                                        ? 'bg-zinc-800 text-white' 
-                                        : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
-                                    }`}
-                                >
-                                    <item.icon className="w-4 h-4" />
-                                    <span>{item.label}</span>
-                                </button>
-                            ))}
-                         </nav>
+                         <ResponsiveTabs 
+                            items={menuItems}
+                            activeTab={activeTab}
+                            onTabChange={(id) => setActiveTab(id as any)}
+                            variant='sidebar'
+                         />
                     </aside>
 
                     {/* Main Content */}
                     <main className="flex-1 min-w-0">
 
 
-                    <div className="relative z-10 w-full max-w-2xl">
+                    <div className="relative z-10 w-full">
                         
                         {/* --- SUBSCRIPTION TAB --- */}
                         {activeTab === 'subscription' && (
-                            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-8">
+                            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-6">
                                 <div>
                                     <h2 className="text-xl font-bold text-white mb-1">Dein Abonnement</h2>
                                     <p className="text-sm text-zinc-400">Verwalte deinen Premium-Status und AI Credits.</p>
                                 </div>
 
-                                <div className="md:bg-black md:border md:border-zinc-800 rounded-lg p-6 md:p-8 space-y-6">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <p className="text-xs font-bold text-zinc-500 uppercase mb-1">Aktueller Plan</p>
-                                            <div className="flex items-center gap-3">
-                                                 <span className="text-2xl font-black text-white capitalize">{profile.subscription_tier}</span>
-                                                 <PremiumBadge tier={profile.subscription_tier} size="lg" />
-                                            </div>
-                                            <p className="text-sm text-zinc-400 mt-1 capitalize">Status: {profile.subscription_status}</p>
-                                        </div>
-                                    </div>
+                                <div className="space-y-6">
+                                    {/* Main Plan Card */}
+                                    <div className={`relative overflow-hidden rounded-xl border p-6 md:p-8 ${
+                                        profile.subscription_tier === 'enterprise' ? 'bg-purple-950/10 border-purple-500/20' :
+                                        profile.subscription_tier === 'brewery' ? 'bg-amber-950/10 border-amber-500/20' :
+                                        profile.subscription_tier === 'brewer' ? 'bg-blue-950/10 border-blue-500/20' :
+                                        'bg-zinc-900 border-zinc-800'
+                                    }`}>
+                                         {/* Background Gradient/Glow */}
+                                        <div className={`absolute -top-24 -right-24 w-64 h-64 rounded-full blur-[100px] opacity-20 pointer-events-none ${
+                                             profile.subscription_tier === 'enterprise' ? 'bg-purple-500' :
+                                             profile.subscription_tier === 'brewery' ? 'bg-amber-500' :
+                                             profile.subscription_tier === 'brewer' ? 'bg-blue-500' :
+                                             'bg-zinc-500'
+                                        }`} />
 
-                                    <div className="pt-4 border-t border-zinc-800">
-                                         <AICreditsDisplay userId={user?.id || ''} />
+                                        <div className="relative z-10">
+                                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+                                                <div>
+                                                    <div className="flex items-center gap-3 mb-2">
+                                                        <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded border ${
+                                                             profile.subscription_tier === 'enterprise' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' :
+                                                             profile.subscription_tier === 'brewery' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                                                             profile.subscription_tier === 'brewer' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                                                             'bg-zinc-800 text-zinc-400 border-zinc-700'
+                                                        }`}>
+                                                            Aktueller Plan
+                                                        </span>
+                                                        <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-emerald-500">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                                            {profile.subscription_status}
+                                                        </span>
+                                                    </div>
+                                                    <h3 className={`text-4xl font-black capitalize ${
+                                                         profile.subscription_tier === 'enterprise' ? 'text-purple-400' :
+                                                         profile.subscription_tier === 'brewery' ? 'text-amber-400' :
+                                                         profile.subscription_tier === 'brewer' ? 'text-blue-400' :
+                                                         'text-white'
+                                                    }`}>
+                                                        {profile.subscription_tier}
+                                                    </h3>
+                                                </div>
+                                                
+                                                {/* Action Buttons for Active Plan */}
+                                                 {(profile.subscription_tier !== 'free') && (
+                                                    <div className="flex gap-3">
+                                                         <button 
+                                                            onClick={() => setShowCancelModal(true)}
+                                                            className="px-4 py-2 bg-black/40 hover:bg-rose-950/30 text-zinc-400 hover:text-rose-400 border border-white/5 hover:border-rose-500/30 rounded-lg text-xs font-bold transition backdrop-blur-sm"
+                                                         >
+                                                             Kündigen
+                                                         </button>
+                                                    </div>
+                                                 )}
+                                            </div>
+
+                                            {/* AI Credits Section */}
+                                            <div className="mt-8">
+                                                <AICreditsDisplay userId={user?.id || ''} />
+                                            </div>
+                                        </div>
                                     </div>
                                     
+                                     {/* Upgrade Options (If Free) */}
                                     {profile.subscription_tier === 'free' && (
-                                        <div className="pt-4 border-t border-zinc-800">
-                                            <div className="mb-4 bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 text-center">
-                                                <p className="text-amber-200 text-xs font-semibold flex items-center justify-center gap-2">
-                                                    <Construction className="w-4 h-4" />
-                                                    Diese Funktionen befinden sich noch in der Entwicklung. Upgrades sind derzeit deaktiviert.
-                                                </p>
-                                            </div>
-                                            <h3 className="font-bold text-white mb-2">Upgrade Möglichkeiten</h3>
-                                            <div className="grid gap-3">
-                                                <div className="p-4 bg-gradient-to-br from-amber-500/10 to-transparent border border-amber-500/20 rounded-lg flex items-center justify-between">
+                                        <div className="grid gap-4">
+                                            <div className="p-6 bg-zinc-900 border border-zinc-800 rounded-xl">
+                                                <div className="flex items-center justify-between mb-4">
                                                     <div>
-                                                        <h4 className="font-bold text-amber-500">Brewer Plan <span className="text-zinc-500 text-xs font-normal">€4.99/Monat</span></h4>
-                                                        <div className="text-xs text-zinc-400 flex flex-col gap-1 mt-1">
-                                                            <div className="flex items-center gap-2">
-                                                                <Check className="w-3 h-3 text-emerald-500" />
-                                                                <span>50 AI Credits & Analytics</span>
-                                                            </div>
-                                                            <div className="flex items-center gap-2">
-                                                                <AlertTriangle className="w-3 h-3 text-amber-500" />
-                                                                <span>Keine Limit-Aufhebung (Slots nach Level)</span>
-                                                            </div>
-                                                        </div>
+                                                        <h4 className="text-lg font-bold text-blue-500">Brewer Plan</h4>
+                                                        <p className="text-zinc-400 text-sm">Für Hobbybrauer mit Ambitionen.</p>
                                                     </div>
-                                                    <button 
-                                                        disabled
-                                                        className="px-4 py-2 bg-zinc-800 text-zinc-500 font-bold text-sm rounded-lg border border-zinc-700 cursor-not-allowed"
-                                                    >
-                                                        Bald verfügbar
-                                                    </button>
+                                                    <span className="text-white font-bold">€4.99<span className="text-zinc-500 text-xs font-normal">/Monat</span></span>
                                                 </div>
-                                                <div className="p-4 bg-gradient-to-br from-indigo-500/10 to-transparent border border-indigo-500/20 rounded-lg flex items-center justify-between">
-                                                    <div>
-                                                        <h4 className="font-bold text-indigo-500">Brewery Plan <span className="text-zinc-500 text-xs font-normal">€14.99/Monat</span></h4>
-                                                        <div className="text-xs text-zinc-400 flex flex-col gap-1 mt-1">
-                                                           <div className="flex items-center gap-2 text-emerald-400 font-bold">
-                                                                <Infinity className="w-3 h-3" />
-                                                                <span>Unbegrenzte Rezepte & Flaschen</span>
-                                                           </div>
-                                                           <span className="text-[10px] text-zinc-500 pl-5 block -mt-0.5 mb-1">(Gilt nur für Brauereien in deinem Besitz)</span>
-                                                           
-                                                           <div className="flex items-center gap-2">
-                                                                <Check className="w-3 h-3 text-emerald-500" />
-                                                                <span>200 AI Credits & Eigenes Branding</span>
-                                                           </div>
-                                                           
-                                                           <div className="flex items-center gap-2 text-zinc-500 italic mt-0.5">
-                                                                <Users className="w-3 h-3" />
-                                                                <span>Gilt für das gesamte Team (Owner-Pays)</span>
-                                                           </div>
-                                                        </div>
+                                                
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+                                                     <div className="flex items-center gap-2 text-sm text-zinc-300">
+                                                        <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                                                        <span>50 AI Credits & Analytics</span>
                                                     </div>
-                                                    <button 
-                                                        disabled
-                                                        className="px-4 py-2 bg-zinc-800 text-zinc-500 font-bold text-sm rounded-lg border border-zinc-700 cursor-not-allowed"
-                                                    >
-                                                        Bald verfügbar
-                                                    </button>
+                                                    <div className="flex items-center gap-2 text-sm text-zinc-300">
+                                                        <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                                                        <span>Erweiterte Statistiken</span>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </div>
-                                    )}
 
-                                    {/* Cancel Subscription Section - only for active paid subscriptions */}
-                                    {(profile.subscription_tier === 'brewer' || profile.subscription_tier === 'brewery' || profile.subscription_tier === 'enterprise') && 
-                                     profile.subscription_status === 'active' && (
-                                        <div className="pt-6 border-t border-zinc-800 space-y-4">
-                                            <div>
-                                                <h3 className="font-bold text-white mb-1.5 text-sm uppercase tracking-wider">Abo verwalten</h3>
-                                                <p className="text-xs text-zinc-500">Du kannst dein Abo jederzeit kündigen. Es läuft bis zum Ende der Laufzeit weiter.</p>
+                                                <button 
+                                                    disabled
+                                                    className="w-full py-3 bg-zinc-800 text-zinc-500 font-bold rounded-lg border border-zinc-700 cursor-not-allowed flex items-center justify-center gap-2"
+                                                >
+                                                    <Construction className="w-4 h-4" />
+                                                    Momentan nicht verfügbar
+                                                </button>
                                             </div>
-                                            <button 
-                                                onClick={() => setShowCancelModal(true)}
-                                                className="px-6 py-2 bg-rose-900/20 hover:bg-rose-900/30 text-rose-400 rounded-lg text-sm font-bold border border-rose-900/50 transition"
-                                            >
-                                                Abo kündigen
-                                            </button>
+
+                                             <div className="p-6 bg-zinc-900 border border-zinc-800 rounded-xl">
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <div>
+                                                        <h4 className="text-lg font-bold text-amber-500">Brewery Plan</h4>
+                                                        <p className="text-zinc-400 text-sm">Für Teams und Mikrobrauereien.</p>
+                                                    </div>
+                                                    <span className="text-white font-bold">€14.99<span className="text-zinc-500 text-xs font-normal">/Monat</span></span>
+                                                </div>
+                                                
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+                                                     <div className="flex items-center gap-2 text-sm text-zinc-300">
+                                                        <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                                                        <span className="font-bold text-white">Unbegrenzte Rezepte</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-sm text-zinc-300">
+                                                        <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                                                        <span>200 AI Credits</span>
+                                                    </div>
+                                                     <div className="flex items-center gap-2 text-sm text-zinc-300">
+                                                        <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                                                        <span>Eigenes Branding (PDFs)</span>
+                                                    </div>
+                                                     <div className="flex items-center gap-2 text-sm text-zinc-300">
+                                                        <Users className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                                                        <span>Team Feature (Owner-Pays)</span>
+                                                    </div>
+                                                </div>
+
+                                                <button 
+                                                    disabled
+                                                    className="w-full py-3 bg-zinc-800 text-zinc-500 font-bold rounded-lg border border-zinc-700 cursor-not-allowed flex items-center justify-center gap-2"
+                                                >
+                                                    <Construction className="w-4 h-4" />
+                                                    Momentan nicht verfügbar
+                                                </button>
+                                            </div>
                                         </div>
                                     )}
 
                                     {/* Code Redemption Section */}
-                                    <div className="pt-6 border-t border-zinc-800 space-y-4">
-                                        <div>
-                                            <h3 className="font-bold text-white mb-1.5 text-sm uppercase tracking-wider">Enterprise-Code einlösen</h3>
-                                            <p className="text-xs text-zinc-500">Hast du einen exklusiven Zugangscode erhalten? Gib ihn hier ein.</p>
+                                    <div className="p-6 bg-zinc-900 border border-zinc-800 rounded-xl">
+                                        <div className="flex flex-col md:flex-row gap-6 items-start">
+                                             <div className="flex-1">
+                                                <h3 className="font-bold text-white mb-1.5 flex items-center gap-2">
+                                                    <Key className="w-4 h-4 text-zinc-500" />
+                                                    Enterprise Code
+                                                </h3>
+                                                <p className="text-xs text-zinc-500 leading-relaxed">
+                                                    Hast du einen exklusiven Zugangscode von einem Event oder Partner erhalten? 
+                                                    Löse ihn hier ein, um Premium-Funktionen freizuschalten.
+                                                </p>
+                                            </div>
+
+                                            <div className="w-full md:w-auto flex-1">
+                                                <form onSubmit={handleRedeemEnterpriseCode} className="flex gap-2">
+                                                    <input 
+                                                        type="text"
+                                                        value={redeemInput}
+                                                        onChange={e => setRedeemInput(e.target.value)}
+                                                        className="flex-1 bg-black border border-zinc-700 rounded-lg px-4 py-2 text-sm text-white focus:border-cyan-500 outline-none transition-all placeholder:text-zinc-700 font-mono"
+                                                        placeholder="LAB-XXXX-XXXX"
+                                                        disabled={redeemLoading}
+                                                    />
+                                                    <button 
+                                                        type="submit"
+                                                        disabled={redeemLoading || !redeemInput.trim()}
+                                                        className="px-4 py-2 bg-white text-black hover:bg-zinc-200 rounded-lg text-sm font-bold transition disabled:opacity-50 whitespace-nowrap"
+                                                    >
+                                                        {redeemLoading ? '...' : 'Einlösen'}
+                                                    </button>
+                                                </form>
+
+                                                {redeemMessage && (
+                                                    <div className={`mt-3 text-xs font-bold px-3 py-2 rounded border animate-in fade-in slide-in-from-top-1 ${
+                                                        redeemMessage.type === 'success' 
+                                                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
+                                                        : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+                                                    }`}>
+                                                        <div className="flex items-center gap-2">
+                                                            {redeemMessage.type === 'success' 
+                                                                ? <Check className="w-3 h-3" /> 
+                                                                : <X className="w-3 h-3" />
+                                                            }
+                                                            {redeemMessage.msg}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
-
-                                        <form onSubmit={handleRedeemEnterpriseCode} className="flex flex-col sm:flex-row gap-3">
-                                            <div className="flex-1">
-                                                <input 
-                                                    type="text"
-                                                    value={redeemInput}
-                                                    onChange={e => setRedeemInput(e.target.value)}
-                                                    className="w-full bg-zinc-900 border border-zinc-800 rounded px-3 py-2 text-sm text-white focus:border-cyan-500 outline-none transition-all placeholder:text-zinc-700 font-mono"
-                                                    placeholder="LAB-XXXX-XXXX"
-                                                    disabled={redeemLoading}
-                                                />
-                                            </div>
-                                            <button 
-                                                type="submit"
-                                                disabled={redeemLoading || !redeemInput.trim()}
-                                                className="px-6 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg text-sm font-bold border border-zinc-700 transition disabled:opacity-50 whitespace-nowrap"
-                                            >
-                                                {redeemLoading ? 'Prüfe...' : 'Aktivieren'}
-                                            </button>
-                                        </form>
-
-                                        {redeemMessage && (
-                                            <div className={`text-xs font-bold px-4 py-2 rounded border animate-in fade-in slide-in-from-top-1 ${
-                                                redeemMessage.type === 'success' 
-                                                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
-                                                : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
-                                            }`}>
-                                                <div className="flex items-center gap-2">
-                                                    {redeemMessage.type === 'success' 
-                                                        ? <Check className="w-4 h-4" /> 
-                                                        : <X className="w-4 h-4" />
-                                                    }
-                                                    {redeemMessage.msg}
-                                                </div>
-                                            </div>
-                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -852,7 +892,7 @@ export default function AccountPage() {
                              <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-8">
                                 
                                 {/* 1. Join Section */}
-                                <div className="md:bg-black md:border md:border-zinc-800 rounded-lg p-6 md:p-8 relative overflow-hidden">
+                                <div className="md:bg-black md:border md:border-zinc-800 rounded-lg p-4 md:p-8 relative overflow-hidden">
                                      <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
                                      
                                      <h2 className="text-xl font-bold text-white mb-2 relative">Team beitreten</h2>
@@ -860,18 +900,18 @@ export default function AccountPage() {
                                         Gib einen Einladungs-Code ein, um einem bestehenden Squad beizutreten.
                                      </p>
 
-                                     <form onSubmit={handleJoinTeam} className="flex gap-3 relative z-10">
+                                     <form onSubmit={handleJoinTeam} className="flex flex-col sm:flex-row gap-3 relative z-10 text-white">
                                         <input
                                             type="text"
                                             value={joinCode}
                                             onChange={(e) => setJoinCode(e.target.value)}
                                             placeholder="Einladungs-Code eingeben..."
-                                            className="flex-1 bg-zinc-900 border border-zinc-800 px-3 py-2 rounded focus:border-zinc-600 outline-none transition text-white placeholder-zinc-600 font-mono text-sm"
+                                            className="w-full sm:flex-1 bg-zinc-900 border border-zinc-800 px-3 py-2 rounded focus:border-zinc-600 outline-none transition text-white placeholder-zinc-600 font-mono text-sm"
                                         />
                                         <button
                                             type="submit"
                                             disabled={!joinCode || joinLoading}
-                                            className="bg-zinc-100 text-black font-bold px-6 py-2 rounded-lg hover:bg-zinc-200 transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap text-sm"
+                                            className="w-full sm:w-auto bg-zinc-100 text-black font-bold px-6 py-2 rounded-lg hover:bg-zinc-200 transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap text-sm"
                                         >
                                             {joinLoading ? 'Suche...' : 'Beitreten'}
                                         </button>
@@ -882,7 +922,7 @@ export default function AccountPage() {
                                 </div>
 
                                 {/* 1.5 Create Section */}
-                                <div className="md:bg-black md:border md:border-zinc-800 rounded-lg p-6 md:p-8">
+                                <div className="md:bg-black md:border md:border-zinc-800 rounded-lg p-4 md:p-8">
                                     <h3 className="text-lg font-bold text-white mb-2">Neues Team erstellen</h3>
                                     <p className="text-sm text-zinc-400 mb-4">Gründe ein neues Team — du kannst nur ein Team besitzen.</p>
 
@@ -893,19 +933,19 @@ export default function AccountPage() {
                                         </div>
                                     )}
 
-                                    <form onSubmit={handleCreateTeam} className="flex gap-3">
+                                    <form onSubmit={handleCreateTeam} className="flex flex-col sm:flex-row gap-3">
                                         <input
                                             type="text"
                                             value={createName}
                                             onChange={(e) => setCreateName(e.target.value)}
                                             placeholder="Team-Name"
-                                            className="flex-1 bg-zinc-900 border border-zinc-800 px-3 py-2 rounded focus:border-zinc-600 outline-none transition text-white placeholder-zinc-600 text-sm"
+                                            className="w-full sm:flex-1 bg-zinc-900 border border-zinc-800 px-3 py-2 rounded focus:border-zinc-600 outline-none transition text-white placeholder-zinc-600 text-sm"
                                             disabled={createLoading}
                                         />
                                         <button
                                             type="submit"
                                             disabled={createLoading}
-                                            className="bg-emerald-600 text-white font-bold px-6 py-2 rounded-lg hover:bg-emerald-500 transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap text-sm"
+                                            className="w-full sm:w-auto bg-emerald-600 text-white font-bold px-6 py-2 rounded-lg hover:bg-emerald-500 transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap text-sm"
                                         >
                                             {createLoading ? 'Erstelle...' : 'Team erstellen'}
                                         </button>
@@ -930,27 +970,27 @@ export default function AccountPage() {
 
                                         <div className="grid gap-4">
                                             {myTeams.map(team => (
-                                                <div key={team.id} className="md:bg-black md:border md:border-zinc-800 p-4 rounded-lg flex items-center justify-between group hover:border-zinc-700 transition">
-                                                    <div className="flex items-center gap-4">
+                                                <div key={team.id} className="md:bg-black md:border md:border-zinc-800 p-4 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4 group hover:border-zinc-700 transition">
+                                                    <div className="flex items-center gap-4 w-full sm:w-auto">
                                                         {team.logo_url ? (
-                                                            <img src={team.logo_url} className="w-12 h-12 rounded-lg object-cover bg-black" />
+                                                            <img src={team.logo_url} className="w-12 h-12 rounded-lg object-cover bg-black flex-shrink-0" />
                                                         ) : (
-                                                            <div className="w-12 h-12 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500">
+                                                            <div className="w-12 h-12 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 flex-shrink-0">
                                                                 <Factory className="w-6 h-6" />
                                                             </div>
                                                         )}
-                                                        <div>
-                                                            <h3 className="font-bold text-white group-hover:text-cyan-400 transition">{team.name}</h3>
-                                                            <p className="text-xs text-zinc-500 flex items-center gap-2">
-                                                                <span className="uppercase tracking-wider font-bold bg-zinc-800 px-1.5 py-0.5 rounded text-[10px] text-zinc-400 border border-zinc-700">
+                                                        <div className="min-w-0 flex-1">
+                                                            <h3 className="font-bold text-white group-hover:text-cyan-400 transition truncate">{team.name}</h3>
+                                                            <p className="text-xs text-zinc-500 flex items-center gap-2 flex-wrap">
+                                                                <span className="uppercase tracking-wider font-bold bg-zinc-800 px-1.5 py-0.5 rounded text-[10px] text-zinc-400 border border-zinc-700 whitespace-nowrap">
                                                                     {team.userRole === 'admin' ? 'Admin' : 'Mitglied'}
                                                                 </span>
-                                                                {team.location && <span>• {team.location}</span>}
+                                                                {team.location && <span className="truncate max-w-[120px]">• {team.location}</span>}
                                                             </p>
                                                         </div>
                                                     </div>
 
-                                                    <div className="flex items-center gap-2">
+                                                    <div className="flex items-center gap-2 w-full sm:w-auto justify-end border-t border-zinc-800/50 pt-3 sm:pt-0 sm:border-0">
                                                         <Link 
                                                             href={`/team/${team.id}`}
                                                             className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded transition"
@@ -1072,7 +1112,7 @@ export default function AccountPage() {
                                         <button
                                             type="submit"
                                             disabled={passwordLoading || !newPassword}
-                                            className="bg-cyan-600 text-white font-bold px-6 py-2 rounded-lg hover:bg-cyan-500 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(8,145,178,0.2)] hover:shadow-[0_0_30px_rgba(8,145,178,0.4)] transform active:scale-95 text-sm"
+                                            className="bg-zinc-800 text-white font-bold px-6 py-2 rounded-lg hover:bg-zinc-700 hover:text-white border border-zinc-700 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                                         >
                                             {passwordLoading ? 'Speichere...' : 'Passwort aktualisieren'}
                                         </button>

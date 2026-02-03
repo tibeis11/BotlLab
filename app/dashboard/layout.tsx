@@ -9,7 +9,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 				<Suspense fallback={<div className="h-16 bg-zinc-950 border-b border-zinc-900" />}>
 					<AdminHeader />
 				</Suspense>
-				<main className="flex-1 max-w-6xl mx-auto w-full p-6">
+				<main className="flex-1 max-w-6xl mx-auto w-full px-4 py-6">
 					{children}
 				</main>
 			</div>

@@ -7,6 +7,7 @@ import { useAuth } from '@/app/context/AuthContext';
 import PremiumFeatureLock from '@/app/components/PremiumFeatureLock';
 import { SubscriptionTier } from '@/lib/premium-config';
 import { Settings, Bell, Users, Lock, Factory, Mail, ShieldAlert } from 'lucide-react';
+import ResponsiveTabs from '@/app/components/ResponsiveTabs';
 
 export default function TeamSettingsPage({ params }: { params: Promise<{ breweryId: string }> }) {
   const { breweryId } = use(params);
@@ -95,10 +96,12 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
     { id: 'membership', label: 'Mitgliedschaft', icon: Users, requiredRole: ['owner', 'admin', 'member', 'moderator'] }
   ];
 
+  const filteredItems = menuItems.filter(item => item.requiredRole.includes(userRole));
+
   return (
-    <div className="min-h-screen bg-black text-white font-sans antialiased animate-in fade-in duration-500">
+    <div className="text-white font-sans antialiased animate-in fade-in duration-500">
       
-      <div className="max-w-[1600px] mx-auto w-full space-y-8 p-4 sm:p-6 md:p-8">
+      <div className="w-full space-y-8">
         
         {/* Header Section like Admin Dashboard */}
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800 pb-6">
@@ -125,32 +128,15 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
 
         <div className="flex flex-col lg:flex-row gap-6">
           
-          {/* Sidebar Navigation - Matching DashboardTabs.tsx style */}
-          <aside className="w-full lg:w-56 flex-shrink-0">
-             <nav className="flex flex-row lg:flex-col gap-2 lg:gap-1 overflow-x-auto pb-2 lg:pb-0 scrollbar-hide">
-                {menuItems.map(item => {
-                    const isAllowed = item.requiredRole.includes(userRole);
-                    if (!isAllowed) return null;
-                    
-                    const isActive = activeTab === item.id;
-                    const Icon = item.icon;
-                    return (
-                        <button
-                            key={item.id}
-                            onClick={() => setActiveTab(item.id as any)}
-                            className={`flex-1 lg:flex-none lg:w-full justify-center lg:justify-start px-3 py-2 rounded-md flex items-center gap-2 lg:gap-3 font-medium text-sm transition-all outline-none focus-visible:ring-2 focus-visible:ring-white/20 whitespace-nowrap ${
-                                isActive 
-                                ? 'bg-zinc-800 text-white' 
-                                : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
-                            }`}
-                        >
-                            <Icon className="w-4 h-4" />
-                            <span className="truncate">{item.label}</span>
-                        </button>
-                    );
-                })}
-            </nav>
-          </aside>
+          <div className="w-full lg:w-64 flex-shrink-0">
+             <ResponsiveTabs 
+                items={filteredItems} 
+                activeTab={activeTab} 
+                onTabChange={(id) => setActiveTab(id as any)} 
+                variant='sidebar'
+                className="w-full"
+             />
+          </div>
 
           {/* Main Content Area - Matching DashboardClient layout */}
           <main className="flex-1 min-w-0">

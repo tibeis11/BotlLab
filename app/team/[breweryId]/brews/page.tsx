@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
 import { getBreweryTierConfig, type BreweryTierName } from '@/lib/tier-system';
 import BottlesModal from './components/BottlesModal';
+import CustomSelect from '@/app/components/CustomSelect';
 import { removeBrewFromLibrary } from '@/lib/actions/library-actions';
 import { useGlobalToast } from '@/app/context/AchievementNotificationContext';
 import { getPremiumStatus, getBreweryPremiumStatus } from '@/lib/actions/premium-actions';
@@ -24,6 +25,7 @@ import {
     MoreHorizontal,
     Search,
     Filter,
+    ArrowUpDown,
     ArrowUpRight,
     Trash2,
     Calendar,
@@ -51,6 +53,7 @@ export default function TeamBrewsPage({ params }: { params: Promise<{ breweryId:
   // Filtering & Search
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'ALL' | 'PUBLIC' | 'PRIVATE'>('ALL');
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'name'>('newest');
 
   const { showToast } = useGlobalToast();
 
@@ -213,6 +216,11 @@ export default function TeamBrewsPage({ params }: { params: Promise<{ breweryId:
                 : !brew.is_public; // PRIVATE
 
       return matchesSearch && matchesFilter;
+  }).sort((a, b) => {
+      if (sortOrder === 'newest') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      if (sortOrder === 'oldest') return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      if (sortOrder === 'name') return (a.name || '').localeCompare(b.name || '');
+      return 0;
   });
 
   const publicCount = brews.filter(b => b.is_public).length;
@@ -302,43 +310,130 @@ export default function TeamBrewsPage({ params }: { params: Promise<{ breweryId:
                 </div>
             </div>
 
+            {/* Sort & Filters */}
+            <div className="hidden lg:block md:bg-black border border-zinc-800 rounded-lg overflow-hidden">
+                <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                        <Filter className="w-4 h-4 text-zinc-400" />
+                        Sortieren
+                    </h3>
+                </div>
+                <div className="p-2 space-y-1">
+                     <button
+                        onClick={() => setSortOrder('newest')}
+                        className={`w-full flex items-center justify-between p-2.5 rounded text-xs font-bold transition-all ${sortOrder === 'newest' ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                    >
+                        <div className="flex items-center gap-3">
+                            <Calendar className="w-3.5 h-3.5" />
+                            Neueste zuerst
+                        </div>
+                        {sortOrder === 'newest' && <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>}
+                     </button>
+                     <button
+                        onClick={() => setSortOrder('oldest')}
+                        className={`w-full flex items-center justify-between p-2.5 rounded text-xs font-bold transition-all ${sortOrder === 'oldest' ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                    >
+                        <div className="flex items-center gap-3">
+                             <Calendar className="w-3.5 h-3.5" />
+                             Älteste zuerst
+                        </div>
+                        {sortOrder === 'oldest' && <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>}
+                     </button>
+                     <button
+                        onClick={() => setSortOrder('name')}
+                        className={`w-full flex items-center justify-between p-2.5 rounded text-xs font-bold transition-all ${sortOrder === 'name' ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                    >
+                         <div className="flex items-center gap-3">
+                            <ArrowUpDown className="w-3.5 h-3.5" />
+                            Name (A-Z)
+                        </div>
+                        {sortOrder === 'name' && <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>}
+                     </button>
+                </div>
+            </div>
+
+            <div className="hidden lg:block md:bg-black border border-zinc-800 rounded-lg overflow-hidden">
+                <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                        <Eye className="w-4 h-4 text-zinc-400" />
+                        Sichtbarkeit
+                    </h3>
+                </div>
+                <div className="p-2 space-y-1">
+                     <button
+                        onClick={() => setFilterType('ALL')}
+                        className={`w-full flex items-center justify-between p-2.5 rounded text-xs font-bold transition-all ${filterType === 'ALL' ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                    >
+                        <div className="flex items-center gap-3">
+                            <Library className="w-3.5 h-3.5" />
+                            Alle Rezepte
+                        </div>
+                        {filterType === 'ALL' && <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>}
+                     </button>
+                     <button
+                        onClick={() => setFilterType('PUBLIC')}
+                        className={`w-full flex items-center justify-between p-2.5 rounded text-xs font-bold transition-all ${filterType === 'PUBLIC' ? 'bg-zinc-900 text-emerald-400' : 'text-zinc-500 hover:text-zinc-300'}`}
+                    >
+                        <div className="flex items-center gap-3">
+                             <Globe className="w-3.5 h-3.5" />
+                             Nur öffentliche
+                        </div>
+                        {filterType === 'PUBLIC' && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>}
+                     </button>
+                     <button
+                        onClick={() => setFilterType('PRIVATE')}
+                        className={`w-full flex items-center justify-between p-2.5 rounded text-xs font-bold transition-all ${filterType === 'PRIVATE' ? 'bg-zinc-900 text-amber-400' : 'text-zinc-500 hover:text-zinc-300'}`}
+                    >
+                         <div className="flex items-center gap-3">
+                            <Lock className="w-3.5 h-3.5" />
+                            Nur private
+                        </div>
+                        {filterType === 'PRIVATE' && <div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div>}
+                     </button>
+                </div>
+            </div>
+
          </div>
 
          {/* RIGHT COLUMN: Content */}
          <div className="space-y-8">
             
             {/* Toolbar */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center bg-zinc-900/30 p-1 rounded-xl border border-zinc-800/50">
-                <div className="relative group w-full sm:w-auto">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within:text-white transition-colors" />
-                    <input 
-                        type="text" 
-                        placeholder="Rezept suchen..." 
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full sm:w-64 bg-transparent text-sm text-white pl-9 pr-3 py-2 focus:outline-none placeholder:text-zinc-600 rounded-lg"
-                    />
+            <div className="flex flex-col gap-4 bg-zinc-900/30 p-1 rounded-xl border border-zinc-800/50">
+                <div className="flex flex-col sm:flex-row gap-4 items-center">
+                    <div className="relative group w-full">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within:text-white transition-colors" />
+                        <input 
+                            type="text" 
+                            placeholder="Rezept suchen..." 
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full bg-transparent text-sm text-white pl-9 pr-3 py-2 focus:outline-none placeholder:text-zinc-600 rounded-lg"
+                        />
+                    </div>
                 </div>
-                
-                <div className="flex items-center p-1 bg-zinc-900 rounded-lg border border-zinc-800 w-full sm:w-auto overflow-x-auto">
-                    <button 
-                        onClick={() => setFilterType('ALL')}
-                        className={`flex-1 sm:flex-none px-4 py-1.5 rounded-md text-[10px] uppercase font-bold tracking-wider transition-all whitespace-nowrap ${filterType === 'ALL' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
-                    >
-                        Alle
-                    </button>
-                    <button 
-                        onClick={() => setFilterType('PUBLIC')}
-                        className={`flex-1 sm:flex-none px-4 py-1.5 rounded-md text-[10px] uppercase font-bold tracking-wider transition-all whitespace-nowrap ${filterType === 'PUBLIC' ? 'bg-zinc-800 text-emerald-400 shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
-                    >
-                        Öffentlich
-                    </button>
-                    <button 
-                        onClick={() => setFilterType('PRIVATE')}
-                        className={`flex-1 sm:flex-none px-4 py-1.5 rounded-md text-[10px] uppercase font-bold tracking-wider transition-all whitespace-nowrap ${filterType === 'PRIVATE' ? 'bg-zinc-800 text-amber-400 shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
-                    >
-                        Privat
-                    </button>
+
+                {/* Mobile Filters */}
+                <div className="grid grid-cols-2 gap-2 lg:hidden px-1 pb-1">
+                    <CustomSelect
+                        value={sortOrder}
+                        onChange={(val: any) => setSortOrder(val)}
+                        options={[
+                            { value: 'newest', label: 'Neueste zuerst' },
+                            { value: 'oldest', label: 'Älteste zuerst' },
+                            { value: 'name', label: 'Name (A-Z)' }
+                        ]}
+                    />
+
+                    <CustomSelect
+                        value={filterType}
+                        onChange={(val: any) => setFilterType(val)}
+                        options={[
+                            { value: 'ALL', label: 'Alle Rezepte' },
+                            { value: 'PUBLIC', label: 'Nur öffentliche' },
+                            { value: 'PRIVATE', label: 'Nur private' }
+                        ]}
+                    />
                 </div>
             </div>
 
