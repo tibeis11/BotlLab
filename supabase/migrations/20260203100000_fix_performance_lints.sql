@@ -1,8 +1,8 @@
 -- Fix performance linter warnings: Duplicate Indexes, Redundant Policies, and RLS InitPlan
 
--- 1. Fix Duplicate Indexes
-DROP INDEX IF EXISTS public.brews_id_key;
-DROP INDEX IF EXISTS public.likes_user_brew_unique;
+-- 1. Fix Duplicate Indexes (Drop redundant constraints which remove the backing indexes)
+ALTER TABLE public.brews DROP CONSTRAINT IF EXISTS brews_id_key;
+ALTER TABLE public.likes DROP CONSTRAINT IF EXISTS likes_user_brew_unique;
 
 -- 2. Clean up Duplicate Permissive Policies (consolidating to the most descriptive/permissive one)
 
