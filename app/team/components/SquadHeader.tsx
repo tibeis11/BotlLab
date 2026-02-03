@@ -298,7 +298,7 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                                 className="w-8 h-8 rounded-full flex items-center justify-center text-xs overflow-hidden relative shadow-lg bg-zinc-900"
                             >
                                 <div className={`absolute inset-0 border-2 rounded-full opacity-50 ${tierBorderClass}`}></div>
-                                <img src={tierConfig.avatarPath} alt="Avatar" className="w-full h-full object-cover" />
+                                <img src={userProfile?.logo_url || tierConfig.avatarPath} alt="Avatar" className="w-full h-full object-cover" />
                             </div>
                             <div className="hidden xl:flex flex-col items-start leading-none">
                                 <span className="truncate max-w-[120px] font-bold text-white text-sm">
