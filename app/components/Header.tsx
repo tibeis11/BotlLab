@@ -27,7 +27,7 @@ import {
 import Logo from "./Logo";
 import NotificationBell from "./NotificationBell";
 import { useEffect, useState } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { supabase, getUserBreweries, getActiveBrewery } from "@/lib/supabase";
 import { useAuth } from "../context/AuthContext";
 import { getTierConfig } from "@/lib/tier-system";
@@ -40,7 +40,6 @@ export default function Header({ breweryId }: { breweryId?: string }) {
   const [showMenu, setShowMenu] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
-  const searchParams = useSearchParams();
 
   const [mobileTab, setMobileTab] = useState<'personal' | 'team' | 'discover'>('personal');
   const [userBreweries, setUserBreweries] = useState<any[]>([]);
