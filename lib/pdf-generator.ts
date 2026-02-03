@@ -16,33 +16,54 @@ const SUPPORTED_FONTS = [
   // Add other fonts from the "Safe List" here
 ];
 
-async function fetchFont(url: string): Promise<ArrayBuffer | null> {
+function resolveUrl(url: string, baseUrl?: string): string {
+    if (url.startsWith('http') || url.startsWith('data:')) return url;
+    if (baseUrl) {
+        return `${baseUrl.replace(/\/$/, '')}/${url.replace(/^\//, '')}`;
+    }
+    return url;
+}
+
+async function fetchFont(url: string, baseUrl?: string): Promise<ArrayBuffer | null> {
+    const finalUrl = resolveUrl(url, baseUrl);
     try {
-        const res = await fetch(url);
+        const res = await fetch(finalUrl);
         if (!res.ok) return null;
         return await res.arrayBuffer();
     } catch (e) {
-        console.warn(`Failed to fetch font: ${url}`);
+        console.warn(`Failed to fetch font: ${finalUrl}`);
         return null;
     }
 }
 
-async function loadFont(fontName: string): Promise<void> {
+async function loadFont(fontName: string, baseUrl?: string): Promise<void> {
   if (FONT_CACHE[fontName]) return;
 
   // Attempt to load all variants, but don't fail if some are missing.
   // Standard naming convention: FontName-Regular.ttf, FontName-Bold.ttf, etc.
   const [regular, bold, italic, bolditalic] = await Promise.all([
-    fetchFont(`/fonts/${fontName}-Regular.ttf`),
-    fetchFont(`/fonts/${fontName}-Bold.ttf`),
-    fetchFont(`/fonts/${fontName}-Italic.ttf`),
-    fetchFont(`/fonts/${fontName}-BoldItalic.ttf`),
+    fetchFont(`/fonts/${fontName}-Regular.ttf`, baseUrl),
+    fetchFont(`/fonts/${fontName}-Bold.ttf`, baseUrl),
+    fetchFont(`/fonts/${fontName}-Italic.ttf`, baseUrl),
+    fetchFont(`/fonts/${fontName}-BoldItalic.ttf`, baseUrl),
   ]);
 
   FONT_CACHE[fontName] = { regular, bold, italic, bolditalic };
 }
 
-async function registerFontsInDoc(doc: jsPDF, design: LabelDesign): Promise<void> {
+// Helper to convert ArrayBuffer to Base64 (Worker compatible)
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+    let binary = '';
+    const bytes = new Uint8Array(buffer);
+    const len = bytes.byteLength;
+    for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    // In Worker 'self.btoa' is available, in Main 'window.btoa'. Global 'btoa' handles both.
+    return btoa(binary);
+}
+
+async function registerFontsInDoc(doc: jsPDF, design: LabelDesign, baseUrl?: string): Promise<void> {
   const fontsToLoad = new Set<string>();
   design.elements.forEach(el => {
     if (el.style.fontFamily) {
@@ -52,21 +73,21 @@ async function registerFontsInDoc(doc: jsPDF, design: LabelDesign): Promise<void
 
   for (const fontName of Array.from(fontsToLoad)) {
     if (SUPPORTED_FONTS.includes(fontName)) {
-      await loadFont(fontName);
+      await loadFont(fontName, baseUrl);
       if (FONT_CACHE[fontName]?.regular) {
-        doc.addFileToVFS(`${fontName}-Regular.ttf`, Buffer.from(FONT_CACHE[fontName].regular!).toString('base64'));
+        doc.addFileToVFS(`${fontName}-Regular.ttf`, arrayBufferToBase64(FONT_CACHE[fontName].regular!));
         doc.addFont(`${fontName}-Regular.ttf`, fontName, 'normal');
       }
       if (FONT_CACHE[fontName]?.bold) {
-        doc.addFileToVFS(`${fontName}-Bold.ttf`, Buffer.from(FONT_CACHE[fontName].bold!).toString('base64'));
+        doc.addFileToVFS(`${fontName}-Bold.ttf`, arrayBufferToBase64(FONT_CACHE[fontName].bold!));
         doc.addFont(`${fontName}-Bold.ttf`, fontName, 'bold');
       }
        if (FONT_CACHE[fontName]?.italic) {
-        doc.addFileToVFS(`${fontName}-Italic.ttf`, Buffer.from(FONT_CACHE[fontName].italic!).toString('base64'));
+        doc.addFileToVFS(`${fontName}-Italic.ttf`, arrayBufferToBase64(FONT_CACHE[fontName].italic!));
         doc.addFont(`${fontName}-Italic.ttf`, fontName, 'italic');
       }
       if (FONT_CACHE[fontName]?.bolditalic) {
-        doc.addFileToVFS(`${fontName}-BoldItalic.ttf`, Buffer.from(FONT_CACHE[fontName].bolditalic!).toString('base64'));
+        doc.addFileToVFS(`${fontName}-BoldItalic.ttf`, arrayBufferToBase64(FONT_CACHE[fontName].bolditalic!));
         doc.addFont(`${fontName}-BoldItalic.ttf`, fontName, 'bolditalic');
       }
     }
@@ -75,10 +96,11 @@ async function registerFontsInDoc(doc: jsPDF, design: LabelDesign): Promise<void
 
 
 /** Preloads image from a URL and converts it to a base64 data URL. */
-async function loadImage(url: string): Promise<string> {
-    if (IMAGE_CACHE[url]) return IMAGE_CACHE[url];
+async function loadImage(url: string, baseUrl?: string): Promise<string> {
+    const finalUrl = resolveUrl(url, baseUrl);
+    if (IMAGE_CACHE[finalUrl]) return IMAGE_CACHE[finalUrl];
     try {
-        const response = await fetch(url);
+        const response = await fetch(finalUrl);
         const blob = await response.blob();
         const dataUrl = await new Promise<string>((resolve, reject) => {
             const reader = new FileReader();
@@ -86,10 +108,10 @@ async function loadImage(url: string): Promise<string> {
             reader.onerror = reject;
             reader.readAsDataURL(blob);
         });
-        IMAGE_CACHE[url] = dataUrl;
+        IMAGE_CACHE[finalUrl] = dataUrl;
         return dataUrl;
     } catch (e) {
-        console.error(`Failed to load image: ${url}`, e);
+        console.error(`Failed to load image: ${finalUrl}`, e);
         return ''; // Return empty string on failure
     }
 }
@@ -398,7 +420,8 @@ async function renderElementToPdf(doc: jsPDF, element: LabelElement, offsetX: nu
  */
 export async function generateLabelPdfFromDesign(
   design: LabelDesign,
-  variables: LabelVariables[]
+  variables: LabelVariables[],
+  baseUrl: string = ''
 ): Promise<jsPDF> {
   const format = LABEL_FORMATS[design.formatId] || LABEL_FORMATS['default'];
   
@@ -414,25 +437,30 @@ export async function generateLabelPdfFromDesign(
     format: 'a4', // or other format based on LABEL_FORMATS config
   });
 
-  await registerFontsInDoc(doc, design);
+  await registerFontsInDoc(doc, design, baseUrl);
 
   // --- Asset Preloading ---
   const allElements = design.elements;
   if (design.background.type === 'image') {
-      await loadImage(design.background.value);
+      await loadImage(design.background.value, baseUrl);
   }
   for (const el of allElements) {
       if (el.type === 'image' && el.content) {
-          await loadImage(el.content);
+          await loadImage(el.content, baseUrl);
       }
       if (el.type === 'brand-logo') {
-          await loadImage('/brand/logo_withName.png');
+          await loadImage('/brand/logo_withName.png', baseUrl);
       }
   }
    // Pre-generate all QR codes
-  const qrCodePromises = variables.map(vars => 
-      vars.qr_code ? QRCode.toDataURL(vars.qr_code, { errorCorrectionLevel: 'H', margin: 1 }) : Promise.resolve('')
-  );
+  const qrCodePromises = variables.map(vars => {
+      if (!vars.qr_code) return Promise.resolve('');
+      // If it's already a Data URL (e.g. pre-generated in main thread), use it directly
+      if (typeof vars.qr_code === 'string' && vars.qr_code.startsWith('data:image')) {
+          return Promise.resolve(vars.qr_code);
+      }
+      return QRCode.toDataURL(vars.qr_code, { errorCorrectionLevel: 'H', margin: 1 });
+  });
   const qrCodeDataUrls = await Promise.all(qrCodePromises);
   // --- End Asset Preloading ---
 
@@ -445,13 +473,16 @@ export async function generateLabelPdfFromDesign(
     const xOffset = format.marginLeft + col * (design.width + (format.gapX || 0));
     const yOffset = format.marginTop + row * (design.height + (format.gapY || 0));
 
-    // Render background
+     // Render background
     if (design.background) {
         if (design.background.type === 'color' && design.background.value) {
             doc.setFillColor(design.background.value);
             doc.rect(xOffset, yOffset, design.width, design.height, 'F');
-        } else if (design.background.type === 'image' && IMAGE_CACHE[design.background.value]) {
-            doc.addImage(IMAGE_CACHE[design.background.value], 'PNG', xOffset, yOffset, design.width, design.height);
+        } else if (design.background.type === 'image') {
+            const bgUrl = resolveUrl(design.background.value, baseUrl);
+            if (IMAGE_CACHE[bgUrl]) {
+                 doc.addImage(IMAGE_CACHE[bgUrl], 'PNG', xOffset, yOffset, design.width, design.height);
+            }
         }
     }
     
@@ -470,8 +501,20 @@ export async function generateLabelPdfFromDesign(
         }
 
         // Handle images from cache
-        if (finalElement.type === 'image' && IMAGE_CACHE[finalElement.content]) {
-            finalElement.content = IMAGE_CACHE[finalElement.content];
+        if (finalElement.type === 'image') {
+             const imgUrl = resolveUrl(finalElement.content, baseUrl);
+             if (IMAGE_CACHE[imgUrl]) {
+                 finalElement.content = IMAGE_CACHE[imgUrl];
+             }
+        }
+
+         // Handle Brand Logo (similar logic to image, using fixed path)
+         if (finalElement.type === 'brand-logo') {
+             const logoUrl = resolveUrl('/brand/logo_withName.png', baseUrl);
+             if (IMAGE_CACHE[logoUrl]) {
+                 finalElement.content = IMAGE_CACHE[logoUrl];
+                 finalElement.type = 'image'; // Hack: render as image
+             }
         }
 
         await renderElementToPdf(doc, finalElement, xOffset, yOffset);

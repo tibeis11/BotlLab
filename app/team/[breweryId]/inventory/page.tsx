@@ -15,7 +15,6 @@ import { useAchievementNotification } from '@/app/context/AchievementNotificatio
 import { useAuth } from '@/app/context/AuthContext';
 import { useNotification } from '@/app/context/NotificationContext';
 import { generateSmartLabelPDF } from '@/lib/pdf-generator-legacy';
-import { generateLabelPdfFromDesign } from '@/lib/pdf-generator';
 import { renderLabelToDataUrl } from '@/lib/label-renderer';
 import { LABEL_FORMATS, DEFAULT_FORMAT_ID } from '@/lib/smart-labels-config';
 import { getBreweryPremiumStatus } from '@/lib/actions/premium-actions';
@@ -512,10 +511,62 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
                  });
                  const variablesList: LabelVariables[] = bottlesList.map(makeVars);
 
-                 const doc = await generateLabelPdfFromDesign(selectedTemplate, variablesList);
-                 doc.save(`${title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.pdf`);
-                 showToast("PDF erstellt", `Smart Label "${selectedTemplate.name}" erfolgreich generiert.`, "success");
-                 return;
+                 // Pre-calculate QR Codes because Worker cannot use Canvas API
+                 // This must run on Main Thread
+                 const variablesWithQrData = await Promise.all(variablesList.map(async (v) => {
+                    if (v.qr_code && !v.qr_code.startsWith('data:')) {
+                        try {
+                            const dataUrl = await QRCode.toDataURL(v.qr_code, { errorCorrectionLevel: 'H', margin: 1 });
+                            return { ...v, qr_code: dataUrl };
+                        } catch (e) {
+                            console.error("QR Gen Error", e);
+                            return v;
+                        }
+                    }
+                    return v;
+                 }));
+
+                 // Worker Offloading for PDF Generation
+                 return new Promise<void>((resolve) => {
+                    const worker = new Worker(new URL('../../../workers/label-pdf.worker.ts', import.meta.url));
+                    
+                    showToast("PDF wird generiert...", "Der Vorgang läuft im Hintergrund.", "info");
+
+                    worker.onmessage = (e) => {
+                        const { status, pdfBuffer, message } = e.data;
+                        if (status === 'success') {
+                            const blob = new Blob([pdfBuffer], { type: 'application/pdf' });
+                            const url = URL.createObjectURL(blob);
+                            const link = document.createElement('a');
+                            link.href = url;
+                            link.download = `${title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.pdf`;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            URL.revokeObjectURL(url);
+                            
+                            showToast("PDF erstellt", `Smart Label "${selectedTemplate.name}" erfolgreich generiert.`, "success");
+                        } else {
+                            console.error("Worker error:", message);
+                            showToast("Fehler", "PDF-Generierung fehlgeschlagen.", "warning");
+                        }
+                        worker.terminate();
+                        resolve();
+                    };
+                    
+                    worker.onerror = (err: ErrorEvent) => {
+                        console.error("Worker crash:", err);
+                        showToast("Fehler", "Kritischer Fehler im PDF-Worker.", "warning");
+                        worker.terminate();
+                        resolve();
+                    };
+
+                    worker.postMessage({ 
+                        template: selectedTemplate, 
+                        variables: variablesWithQrData,
+                        origin: window.location.origin 
+                    });
+                 });
             }
             
             // --- LEGACY FALLBACK ---

@@ -3,13 +3,14 @@
 import { useEffect, useState, use } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
-import { Plus, Tag, Trash2, Edit3, Check, RectangleVertical, RectangleHorizontal, Search, Crown, ChevronRight, Info, Lock, Palette, Infinity as InfinityIcon } from 'lucide-react';
+import { Plus, Tag, Trash2, Edit3, Check, RectangleVertical, RectangleHorizontal, Search, Crown, ChevronRight, Info, Lock, Palette, Infinity as InfinityIcon, Filter, Calendar, ArrowUpDown } from 'lucide-react';
 import { LabelDesign } from '@/lib/types/label-system';
 import { useRouter } from 'next/navigation';
 import { getSmartLabelConfig, DEFAULT_FORMAT_ID, LABEL_FORMATS } from '@/lib/smart-labels-config';
 import LabelCanvas from '@/app/components/label-editor/LabelCanvas';
 import { getBreweryPremiumStatus } from '@/lib/actions/premium-actions';
 import { PremiumStatus } from '@/lib/premium-config';
+import CustomSelect from '@/app/components/CustomSelect';
 
 // Default Template Factory
 const createDefaultTemplate = (breweryId: string, formatId: string, orientation: 'p' | 'l'): Partial<LabelDesign> => {
@@ -237,6 +238,19 @@ export default function LabelsPage({ params }: { params: Promise<{ breweryId: st
     const [forceOrientation, setForceOrientation] = useState<'p' | 'l'>('p');
     const [premiumStatus, setPremiumStatus] = useState<PremiumStatus | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [filterFormat, setFilterFormat] = useState('ALL');
+    const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'name'>('newest');
+
+    const filteredTemplates = templates.filter(t => {
+        const matchesSearch = t.name.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesFormat = filterFormat === 'ALL' || t.format_id === filterFormat;
+        return matchesSearch && matchesFormat;
+    }).sort((a, b) => {
+        if (sortOrder === 'newest') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        if (sortOrder === 'oldest') return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        if (sortOrder === 'name') return a.name.localeCompare(b.name);
+        return 0;
+    });
 
     useEffect(() => {
         loadTemplates();
@@ -443,25 +457,126 @@ export default function LabelsPage({ params }: { params: Promise<{ breweryId: st
                                 </p>
                             </div>
                         )}
+
+                        {/* Sortieren - Sidebar */}
+                        <div className="hidden lg:block md:bg-black border border-zinc-800 rounded-lg overflow-hidden">
+                            <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
+                                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                                    <Filter className="w-4 h-4 text-zinc-400" />
+                                    Sortieren
+                                </h3>
+                            </div>
+                            <div className="p-2 space-y-1">
+                                <button
+                                    onClick={() => setSortOrder('newest')}
+                                    className={`w-full flex items-center justify-between p-2.5 rounded text-xs font-bold transition-all ${sortOrder === 'newest' ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <Calendar className="w-3.5 h-3.5" />
+                                        Neueste zuerst
+                                    </div>
+                                    {sortOrder === 'newest' && <div className="w-1.5 h-1.5 rounded-full bg-cyan-500"></div>}
+                                </button>
+                                <button
+                                    onClick={() => setSortOrder('oldest')}
+                                    className={`w-full flex items-center justify-between p-2.5 rounded text-xs font-bold transition-all ${sortOrder === 'oldest' ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <Calendar className="w-3.5 h-3.5" />
+                                        Älteste zuerst
+                                    </div>
+                                    {sortOrder === 'oldest' && <div className="w-1.5 h-1.5 rounded-full bg-cyan-500"></div>}
+                                </button>
+                                <button
+                                    onClick={() => setSortOrder('name')}
+                                    className={`w-full flex items-center justify-between p-2.5 rounded text-xs font-bold transition-all ${sortOrder === 'name' ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <ArrowUpDown className="w-3.5 h-3.5" />
+                                        Name (A-Z)
+                                    </div>
+                                    {sortOrder === 'name' && <div className="w-1.5 h-1.5 rounded-full bg-cyan-500"></div>}
+                                </button>
+                            </div>
+                        </div>
+
+                         {/* Filter - Sidebar */}
+                        <div className="hidden lg:block md:bg-black border border-zinc-800 rounded-lg overflow-hidden">
+                            <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
+                                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                                    <Tag className="w-4 h-4 text-zinc-400" />
+                                    Formate
+                                </h3>
+                            </div>
+                            <div className="p-2 space-y-1 max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-700">
+                                <button
+                                    onClick={() => setFilterFormat('ALL')}
+                                    className={`w-full flex items-center justify-between p-2.5 rounded text-xs font-bold transition-all ${filterFormat === 'ALL' ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <RectangleVertical className="w-3.5 h-3.5" />
+                                        Alle Formate
+                                    </div>
+                                    {filterFormat === 'ALL' && <div className="w-1.5 h-1.5 rounded-full bg-cyan-500"></div>}
+                                </button>
+                                {Object.entries(LABEL_FORMATS).map(([id, fmt]) => (
+                                    <button
+                                        key={id}
+                                        onClick={() => setFilterFormat(id)}
+                                        className={`w-full flex items-center justify-between p-2.5 rounded text-xs font-bold transition-all ${filterFormat === id ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                    >
+                                        <div className="flex items-center gap-3 truncate">
+                                            <RectangleHorizontal className="w-3.5 h-3.5 flex-shrink-0" />
+                                            <span className="truncate">{fmt.name}</span>
+                                        </div>
+                                        {filterFormat === id && <div className="w-1.5 h-1.5 rounded-full bg-cyan-500"></div>}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
                     </div>
 
                     {/* RIGHT COLUMN: Content */}
                     <div className="space-y-6">
 
                         {/* Toolbar */}
-                        <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-3 flex flex-col sm:flex-row gap-4 items-center justify-between">
-                             <div className="relative group w-full sm:w-auto flex-1 max-w-md">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within:text-white transition-colors" />
-                                <input 
-                                    type="text" 
-                                    placeholder="Design suchen..." 
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full bg-zinc-950/50 border border-zinc-800/80 rounded-lg py-2 pl-9 pr-3 text-sm text-white focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/20 focus:outline-none transition-all placeholder:text-zinc-600"
-                                />
+                        <div className="flex flex-col gap-4 bg-zinc-900/30 p-1 rounded-xl border border-zinc-800/50">
+                            <div className="flex flex-col sm:flex-row gap-4 items-center">
+                                <div className="relative group w-full">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within:text-white transition-colors" />
+                                    <input 
+                                        type="text" 
+                                        placeholder="Design suchen..." 
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="w-full bg-transparent text-sm text-white pl-9 pr-3 py-2 focus:outline-none placeholder:text-zinc-600 rounded-lg"
+                                    />
+                                </div>
                             </div>
-                            <div className="text-xs text-zinc-500 font-medium px-2">
-                                {templates.filter(t => t.name.toLowerCase().includes(searchQuery.toLowerCase())).length} Designs
+                            
+                             {/* Mobile Filters */}
+                            <div className="grid grid-cols-2 gap-2 lg:hidden px-1 pb-1">
+                                <CustomSelect
+                                    value={sortOrder}
+                                    onChange={(val: any) => setSortOrder(val)}
+                                    options={[
+                                        { value: 'newest', label: 'Neueste zuerst' },
+                                        { value: 'oldest', label: 'Älteste zuerst' },
+                                        { value: 'name', label: 'Name (A-Z)' }
+                                    ]}
+                                />
+                                 <CustomSelect
+                                    value={filterFormat}
+                                    onChange={(val: any) => setFilterFormat(val)}
+                                    options={[
+                                        { value: 'ALL', label: 'Alle Formate' },
+                                        ...Object.entries(LABEL_FORMATS).map(([id, fmt]) => ({
+                                            value: id,
+                                            label: fmt.name
+                                        }))
+                                    ]}
+                                />
                             </div>
                         </div>
 
@@ -490,7 +605,7 @@ export default function LabelsPage({ params }: { params: Promise<{ breweryId: st
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in duration-500">
-                    {templates.filter(t => t.name.toLowerCase().includes(searchQuery.toLowerCase())).map(template => {
+                    {filteredTemplates.map(template => {
                         const config = template.config as LabelDesign;
                         // Determine scale to fit in a box (e.g. 200px width/height max)
                         // 1mm = approx 3.7795px
