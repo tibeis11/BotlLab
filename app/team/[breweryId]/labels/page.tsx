@@ -428,36 +428,6 @@ export default function LabelsPage({ params }: { params: Promise<{ breweryId: st
                             <div className="text-2xl font-mono font-bold text-cyan-400 relative z-10">{templates.length}</div>
                         </div>
 
-                         {/* Default Template Card */}
-                         {defaultTemplate ? (
-                            <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-4 relative overflow-hidden group hover:border-amber-500/30 transition-colors">
-                                <div className="absolute top-0 right-0 p-8 bg-amber-500/10 rounded-full blur-xl -mr-4 -mt-4 transition-opacity opacity-50 group-hover:opacity-100 pointer-events-none"></div>
-                                <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-3 z-10 relative">
-                                    <Crown className="w-4 h-4 text-amber-500" />
-                                    Standard
-                                </h3>
-                                <p className="text-xs text-zinc-400 mb-4 truncate relative z-10 font-medium" title={defaultTemplate.name}>
-                                    {defaultTemplate.name}
-                                </p>
-                                <Link 
-                                    href={`/team/${breweryId}/labels/editor/${defaultTemplate.id}`}
-                                    className="text-[10px] font-bold uppercase tracking-wider text-amber-500 hover:text-amber-400 flex items-center gap-1 group/link relative z-10"
-                                >
-                                    Bearbeiten <ChevronRight className="w-3 h-3 transition-transform group-hover/link:translate-x-0.5" />
-                                </Link>
-                            </div>
-                        ) : (
-                            <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-4 relative overflow-hidden">
-                                <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-2">
-                                    <Info className="w-4 h-4 text-zinc-500" />
-                                    Kein Standard
-                                </h3>
-                                <p className="text-[10px] text-zinc-500 leading-relaxed">
-                                    Setze ein Design als Standard (Häkchen), um es für den Schnelldruck zu verwenden.
-                                </p>
-                            </div>
-                        )}
-
                         {/* Sortieren - Sidebar */}
                         <div className="hidden lg:block md:bg-black border border-zinc-800 rounded-lg overflow-hidden">
                             <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
