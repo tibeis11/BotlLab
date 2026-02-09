@@ -54,7 +54,8 @@ async function getRecipientsWithPreference(breweryId: string, prefKey: Preferenc
 
     const recipientIds = members
         .filter(m => (m.preferences as any)?.[prefKey] === true)
-        .map(m => m.user_id);
+        .map(m => m.user_id)
+        .filter((uid): uid is string => uid !== null);
 
     if (recipientIds.length === 0) return [];
 
