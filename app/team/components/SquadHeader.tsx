@@ -141,8 +141,8 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                                 className={`rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${pathname.startsWith('/discover') ? 'text-cyan-400' : 'text-zinc-500 hover:text-white'}`}
                             >
                                 <Globe className="w-4 h-4" />
-                                <span>Entdecken</span>
-                                <span className="text-[10px] ml-1">▼</span>
+                                <span className="hidden xl:inline">Entdecken</span>
+                                <span className="text-[10px] ml-1 hidden xl:inline">▼</span>
                             </button>
                             
                             {showDiscoverMenu && (
@@ -178,8 +178,8 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                                 className={`rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${pathname === '/dashboard' || pathname.startsWith('/dashboard/') ? 'text-cyan-400' : 'text-zinc-500 hover:text-white'}`}
                             >
                                 <Users className="w-4 h-4" />
-                                <span>Mein Profil</span>
-                                <span className="text-[10px] ml-1">▼</span>
+                                <span className="hidden xl:inline">Mein Profil</span>
+                                <span className="text-[10px] ml-1 hidden xl:inline">▼</span>
                             </button>
                             
                             {showPersonalMenu && (

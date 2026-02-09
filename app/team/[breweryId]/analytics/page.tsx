@@ -11,8 +11,10 @@ import BreweryHeatmap from './components/BreweryHeatmap';
 import CustomSelect from '@/app/components/CustomSelect';
 import AnalyticsMetricCard from './components/AnalyticsMetricCard';
 import Link from 'next/link';
-import { Sparkles, Calendar as CalendarIcon, Download, BarChart2, Smartphone, Monitor, Tablet, HelpCircle, Lock, LayoutDashboard, Mail } from 'lucide-react';
+import { Sparkles, Calendar as CalendarIcon, Download, BarChart2, Smartphone, Monitor, Tablet, HelpCircle, Lock, LayoutDashboard, Mail, ChevronRight } from 'lucide-react';
 import ResponsiveTabs from '@/app/components/ResponsiveTabs';
+import ScansOverTimeChart from './components/ScansOverTimeChart';
+import PeakHoursChart from './components/PeakHoursChart';
 
 interface AnalyticsPageData {
   totalScans: number;
@@ -129,7 +131,38 @@ export default function BreweryAnalyticsPage() {
       }
 
       if (result.data) {
-        setData(result.data);
+        // Fix: Fill date gaps for continuous chart
+        const finalEndDate = endDate || new Date().toISOString().split('T')[0];
+        let finalStartDate = startDate;
+
+        if (!finalStartDate) {
+            // Logic for 'all' or missing start: take earliest data point or fallback to 30d
+            const keys = Object.keys(result.data.scansByDate).sort();
+            finalStartDate = keys.length > 0 ? keys[0] : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        }
+
+        const filledScansByDate: Record<string, { scans: number; unique: number }> = {};
+        const dates = [];
+        let cur = new Date(finalStartDate);
+        const end = new Date(finalEndDate);
+        
+        // Safety Break: Max 366 days loop to prevent infinite loop on invalid dates
+        let safety = 0;
+        while (cur <= end && safety < 400) {
+            const dateStr = cur.toISOString().split('T')[0];
+            dates.push(dateStr);
+            filledScansByDate[dateStr] = result.data.scansByDate[dateStr] || { scans: 0, unique: 0 };
+            cur.setDate(cur.getDate() + 1);
+            safety++;
+        }
+
+        // Apply filled data
+        const enrichedData = {
+             ...result.data,
+             scansByDate: filledScansByDate
+        };
+
+        setData(enrichedData);
 
         // Load brew names for the top brews
         const brewIds = Object.keys(result.data.topBrews);
@@ -568,47 +601,8 @@ export default function BreweryAnalyticsPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 
                 {/* Main Chart (Spans 2 cols) */}
-                <div className="lg:col-span-2 bg-black rounded-lg border border-zinc-800 p-6">
-                    <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-zinc-500 text-xs font-medium uppercase tracking-wider">Scans über Zeit</h3>
-                    </div>
-                    
-                    <div className="h-64 flex items-end gap-2 pt-4">
-                        {dateLabels.length === 0 ? (
-                        <div className="flex-1 flex items-center justify-center text-zinc-600 text-sm italic">
-                            Keine Daten für diesen Zeitraum
-                        </div>
-                        ) : (
-                        dateLabels.map((date) => {
-                            const scans = data.scansByDate[date].scans;
-                            const maxScans = Math.max(...Object.values(data.scansByDate).map(d => d.scans));
-                            const height = maxScans > 0 ? (scans / maxScans) * 100 : 0;
-                            
-                            return (
-                            <div key={date} className="flex-1 flex flex-col items-center gap-1 group relative">
-                                {/* Tooltip */}
-                                <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-opacity bg-zinc-800 text-white text-[10px] px-2 py-1 rounded border border-zinc-700 whitespace-nowrap z-10 pointer-events-none">
-                                    {new Date(date).toLocaleDateString()} • {scans} Scans
-                                </div>
-                                {/* Bar */}
-                                <div
-                                className="w-full bg-cyan-900/50 group-hover:bg-cyan-500 rounded-t-sm transition-all relative overflow-hidden"
-                                style={{ height: `${height}%`, minHeight: scans > 0 ? '4px' : '0' }}
-                                >
-                                    {/* Scan fill */}
-                                    <div className="absolute bottom-0 w-full bg-cyan-500 group-hover:bg-cyan-400 transition-all h-full opacity-80"></div>
-                                </div>
-                            </div>
-                            );
-                        })
-                        )}
-                    </div>
-                    {/* X-Axis Labels (Simplified) */}
-                     <div className="flex justify-between mt-2 text-[10px] text-zinc-600 font-mono">
-                        <span>{dateLabels[0] && new Date(dateLabels[0]).toLocaleDateString()}</span>
-                        <span>{dateLabels[Math.floor(dateLabels.length / 2)] && new Date(dateLabels[Math.floor(dateLabels.length / 2)]).toLocaleDateString()}</span>
-                        <span>{dateLabels[dateLabels.length - 1] && new Date(dateLabels[dateLabels.length - 1]).toLocaleDateString()}</span>
-                    </div>
+                <div className="lg:col-span-2">
+                   <ScansOverTimeChart data={data.scansByDate} />
                 </div>
 
                 {/* Top Brews (Right Col) */}
@@ -630,23 +624,32 @@ export default function BreweryAnalyticsPage() {
                             const percentage = (count / maxCount) * 100;
                             
                             return (
-                                <div key={brewId} className="group">
-                                    <div className="flex justify-between text-xs mb-1.5">
-                                        <span className="text-zinc-300 font-medium truncate pr-2" title={brew?.name}>
-                                            {brew ? brew.name : brewId.slice(0, 8)}
-                                        </span>
-                                        <span className="text-zinc-500 font-mono">{count}</span>
+                                <Link 
+                                    href={`/team/${breweryId}/analytics/brew/${brewId}`}
+                                    key={brewId} 
+                                    className="block group hover:bg-zinc-900/50 -mx-2 px-2 py-2 rounded transition-colors"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex justify-between text-xs mb-1.5">
+                                            <span className="text-zinc-300 font-medium truncate pr-2 group-hover:text-cyan-400 transition-colors" title={brew?.name}>
+                                                {brew ? brew.name : brewId.slice(0, 8)}
+                                            </span>
+                                            <span className="text-zinc-500 font-mono">{count}</span>
+                                        </div>
+                                        <div className="h-1.5 w-full bg-zinc-900 rounded-full overflow-hidden">
+                                            <div 
+                                                className="h-full bg-zinc-700 group-hover:bg-cyan-500 transition-colors duration-300"
+                                                style={{ width: `${percentage}%` }}
+                                            />
+                                        </div>
+                                        {brew && (
+                                            <div className="text-[10px] text-zinc-600 mt-0.5 group-hover:text-zinc-500">{brew.style}</div>
+                                        )}
                                     </div>
-                                    <div className="h-1.5 w-full bg-zinc-900 rounded-full overflow-hidden">
-                                        <div 
-                                            className="h-full bg-zinc-700 group-hover:bg-cyan-500 transition-colors duration-300"
-                                            style={{ width: `${percentage}%` }}
-                                        />
-                                    </div>
-                                    {brew && (
-                                        <div className="text-[10px] text-zinc-600 mt-0.5">{brew.style}</div>
-                                    )}
-                                </div>
+                                    <ChevronRight size={16} className="text-zinc-700 group-hover:text-zinc-500 flex-shrink-0" />
+                                  </div>
+                                </Link>
                             );
                         })
                         )}
@@ -714,37 +717,7 @@ export default function BreweryAnalyticsPage() {
                      
                      {/* Peak Hours Hint (Improved) */}
                      {data.scansByHour && (
-                        <div className="bg-black rounded-lg border border-zinc-800 p-6">
-                            <h3 className="text-zinc-500 text-xs font-medium uppercase tracking-wider mb-4">Peak Hours</h3>
-                            <div className="relative">
-                                {/* Scrollable Container */}
-                                <div className="flex gap-1 h-24 items-end overflow-x-auto pb-6 custom-scrollbar snap-x">
-                                    {Array.from({ length: 24 }).map((_, h) => {
-                                        const val = data.scansByHour?.[h] || 0;
-                                        const max = Math.max(...Object.values(data.scansByHour || {}));
-                                        const height = max > 0 ? (val / max) * 100 : 0;
-                                        const isPeak = val === max && max > 0;
-                                        
-                                        return (
-                                            <div key={h} className="flex flex-col items-center gap-2 min-w-[24px] flex-1 snap-start group relative">
-                                                <div 
-                                                    className={`w-full rounded-sm transition-all relative ${isPeak ? 'bg-cyan-500' : 'bg-zinc-800 hover:bg-zinc-700'}`} 
-                                                    style={{ height: `${Math.max(4, height)}%` }}
-                                                ></div>
-                                                <span className={`text-[9px] font-mono ${isPeak ? 'text-cyan-400 font-bold' : 'text-zinc-600'}`}>
-                                                    {h}
-                                                </span>
-                                                
-                                                {/* Tooltip on Hover */}
-                                                <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 hidden group-hover:block bg-zinc-800 text-white text-[10px] px-2 py-1 rounded border border-zinc-700 whitespace-nowrap z-20">
-                                                    {h}:00 Uhr • {val} Scans
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        </div>
+                         <PeakHoursChart data={data.scansByHour} />
                      )}
                  </div>
             </div>

@@ -393,6 +393,78 @@ const EMAIL_TEMPLATES: Record<string, string> = {
     </table>
   </div>
 </body>
+</html>`,
+
+    'new-brew': `<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Neues Rezept — BotlLab</title>
+  <style>
+    body { font-family: sans-serif; background-color: #f8fafc; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 40px auto; background: #fff; padding: 32px; border-radius: 8px; }
+    .btn { display: inline-block; background: #000; color: #fff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Neues Rezept: {{brewName}} 🍺</h2>
+    <p><strong>{{authorName}}</strong> hat ein neues Rezept veröffentlicht.</p>
+    <p>Typ: {{brewType}}</p>
+    <p style="margin-top: 24px;">
+      <a href="{{brewUrl}}" class="btn">Rezept ansehen</a>
+    </p>
+  </div>
+</body>
+</html>`,
+
+    'new-rating': `<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Neue Bewertung — BotlLab</title>
+  <style>
+    body { font-family: sans-serif; background-color: #f8fafc; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 40px auto; background: #fff; padding: 32px; border-radius: 8px; }
+    .btn { display: inline-block; background: #000; color: #fff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold; }
+    .stars { color: #f59e0b; font-size: 20px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Neue Bewertung für {{brewName}}</h2>
+    <p><strong>{{authorName}}</strong> hat dein Rezept bewertet.</p>
+    <p class="stars">Bewertung: {{ratingValue}}/5 ★</p>
+    <blockquote style="background: #f1f5f9; padding: 16px; border-left: 4px solid #cbd5e1; margin: 24px 0;">
+      {{comment}}
+    </blockquote>
+    <p>
+      <a href="{{ratingUrl}}" class="btn">Bewertung ansehen</a>
+    </p>
+  </div>
+</body>
+</html>`,
+
+    'new-thread': `<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Neues Thema — BotlLab</title>
+  <style>
+    body { font-family: sans-serif; background-color: #f8fafc; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 40px auto; background: #fff; padding: 32px; border-radius: 8px; }
+    .btn { display: inline-block; background: #000; color: #fff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Neues Forum-Thema: {{threadTitle}}</h2>
+    <p><strong>{{authorName}}</strong> hat ein neues Thema in <strong>{{category}}</strong> erstellt.</p>
+    <p style="margin-top: 24px;">
+      <a href="{{threadUrl}}" class="btn">Thema ansehen</a>
+    </p>
+  </div>
+</body>
 </html>`
 };
 
@@ -556,6 +628,58 @@ export async function sendAnalyticsReportEmail(
             topBrewsList,
             dashboardUrl: `https://botllab.de/team/${breweryId}/analytics`,
             settingsUrl: `https://botllab.de/team/${breweryId}/analytics?tab=reports`
+        }
+    });
+}
+
+/**
+ * Notification for new brew.
+ */
+export async function sendNewBrewEmail(to: string, brewName: string, brewType: string, authorName: string, brewId: string) {
+    return sendEmail({
+        to,
+        subject: `Neues Rezept: ${brewName} — BotlLab`,
+        template: 'new-brew',
+        placeholders: {
+            brewName,
+            brewType,
+            authorName,
+            brewUrl: `https://botllab.de/brew/${brewId}`
+        }
+    });
+}
+
+/**
+ * Notification for new rating.
+ */
+export async function sendNewRatingEmail(to: string, brewName: string, ratingValue: number, comment: string, authorName: string, brewId: string) {
+    return sendEmail({
+        to,
+        subject: `Neue Bewertung für ${brewName} — BotlLab`,
+        template: 'new-rating',
+        placeholders: {
+            brewName,
+            ratingValue: ratingValue.toString(),
+            comment: comment || 'Kein Kommentar',
+            authorName,
+            ratingUrl: `https://botllab.de/brew/${brewId}`
+        }
+    });
+}
+
+/**
+ * Notification for new forum thread.
+ */
+export async function sendNewThreadEmail(to: string, threadTitle: string, category: string, authorName: string, threadId: string) {
+    return sendEmail({
+        to,
+        subject: `Neues Thema: ${threadTitle} — BotlLab`,
+        template: 'new-thread',
+        placeholders: {
+            threadTitle,
+            category,
+            authorName,
+            threadUrl: `https://botllab.de/forum/thread/${threadId}`
         }
     });
 }

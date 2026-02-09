@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Neues Thema — BotlLab</title>
+  <style>
+    body { font-family: sans-serif; background-color: #f8fafc; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 40px auto; background: #fff; padding: 32px; border-radius: 8px; }
+    .btn { display: inline-block; background: #000; color: #fff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Neues Forum-Thema: {{threadTitle}}</h2>
+    <p><strong>{{authorName}}</strong> hat ein neues Thema in <strong>{{category}}</strong> erstellt.</p>
+    <p style="margin-top: 24px;">
+      <a href="{{threadUrl}}" class="btn">Thema ansehen</a>
+    </p>
+  </div>
+</body>
+</html>

@@ -338,6 +338,30 @@ export async function trackBottleScan(
 
     const isUnique = !recentScan;
 
+    // Check if this visitor is new TODAY for this brewery (for Unique Visitor stats)
+    let isNewDailyVisitor = true;
+    if (payload?.breweryId) {
+        const todayStart = new Date();
+        todayStart.setHours(0,0,0,0);
+        
+        // If we already found a recent scan (within 5 mins), they are definitely not new today
+        if (recentScan) {
+            isNewDailyVisitor = false;
+        } else {
+             // Check if they visited earlier today
+            const { data: existingVisit } = await supabase
+                .from('bottle_scans')
+                .select('id')
+                .eq('brewery_id', payload.breweryId)
+                .eq('session_hash', sessionHash)
+                .gte('created_at', todayStart.toISOString())
+                .limit(1)
+                .single();
+                
+            if (existingVisit) isNewDailyVisitor = false;
+        }
+    }
+
     // Extract hour of day for time-to-glass analysis
     const scanHour = new Date().getHours(); // 0-23
 
@@ -373,7 +397,8 @@ export async function trackBottleScan(
           p_brew_id: (payload.brewId || null) as any,
           p_country_code: geoData.country,
           p_device_type: detectDeviceType(userAgent),
-          p_hour: scanHour // Phase 3: Hour tracking
+          p_hour: scanHour, // Phase 3: Hour tracking
+          p_is_new_visitor: isNewDailyVisitor // Fixed logic
         });
       } catch (statsError) {
         // Don't fail the scan if aggregation fails

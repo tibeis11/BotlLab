@@ -126,20 +126,20 @@ export default function BrewCard({ brew, currentUserId, forceVertical = false }:
                     {/* Stats Section */}
                     <div className="grid grid-cols-4 gap-2 mt-4">
                         <StatBox 
-                            value={brew.ebc?.toFixed(1) ?? '-'} 
+                            value={brew.ebc != null ? Number(brew.ebc).toFixed(1) : '-'} 
                             unit="EBC"
-                            colorValue={brew.ebc ? ebcToHex(brew.ebc) : undefined}
+                            colorValue={brew.ebc != null ? ebcToHex(Number(brew.ebc)) : undefined}
                         />
                         <StatBox 
-                            value={brew.original_gravity?.toFixed(1) ?? '-'} 
+                            value={brew.original_gravity != null ? Number(brew.original_gravity).toFixed(1) : '-'} 
                             unit="°P" 
                         />
                         <StatBox 
-                            value={brew.ibu?.toFixed(0) ?? '-'} 
+                            value={brew.ibu != null ? Number(brew.ibu).toFixed(0) : '-'} 
                             unit="IBU" 
                         />
                         <StatBox 
-                            value={brew.abv?.toFixed(1) ?? '-'} 
+                            value={brew.abv != null ? Number(brew.abv).toFixed(1) : '-'} 
                             unit="%" 
                             highlight
                         />

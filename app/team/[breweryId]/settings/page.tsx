@@ -453,19 +453,16 @@ function NotificationSettings({ breweryId }: { breweryId: string }) {
                         label="Neues Rezept per Mail" 
                         desc="Lasse dich per E-Mail informieren."
                         pKey="email_new_brew"
-                        disabled={true}
                     />
                     <NotificationToggle 
                         label="Neue Bewertung per Mail" 
                         desc="Erhalte eine Zusammenfassung der Bewertung."
                         pKey="email_new_rating"
-                        disabled={true}
                     />
                     <NotificationToggle 
                         label="Nachrichten per Mail" 
                         desc="Wenn du offline bist, informieren wir dich per Mail."
                         pKey="email_new_message"
-                        disabled={true}
                     />
                 </div>
             </div>

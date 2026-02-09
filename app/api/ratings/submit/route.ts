@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cleanText, isProfane } from '@/lib/profanity';
 import crypto from 'crypto';
 import { trackEvent } from '@/lib/actions/analytics-actions';
+import { notifyNewRating } from '@/lib/actions/notification-actions';
 
 export async function POST(req: NextRequest) {
   try {
@@ -133,6 +134,16 @@ export async function POST(req: NextRequest) {
                     message: `${author_name} hat das Rezept "${brew.name}" mit ${rating} Sternen bewertet.`
                 }
             });
+            
+        // Notify Email
+        await notifyNewRating(
+            brew.brewery_id, 
+            brew.id, 
+            brew.name, 
+            rating, 
+            comment, 
+            author_name
+        );
     }
 
         // Track analytics event (non-blocking but await to ensure insert)

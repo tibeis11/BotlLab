@@ -7,7 +7,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { cleanText } from '@/lib/profanity';
 import { checkAndGrantAchievements } from '@/lib/achievements';
-import { createNotification } from './notification-actions';
+import { createNotification, notifyNewForumReply } from './notification-actions';
 import { sendForumReplyEmail } from '@/lib/email';
 
 const threadSchema = z.object({
@@ -198,15 +198,8 @@ export async function createPost(prevState: ActionState, formData: FormData): Pr
                 }
             });
 
-            // 2. Email Notification
-            const { createAdminClient } = await import('@/lib/supabase-server');
-            const adminClient = createAdminClient();
-            const { data: { user: author } } = await adminClient.auth.admin.getUserById(thread.author_id);
-            
-            if (author?.email) {
-                // Fetch author preferences if needed, but for now we send it
-                await sendForumReplyEmail(author.email, user.user_metadata?.display_name || 'Ein Nutzer', thread.title, messagePreview, threadId);
-            }
+            // 2. Email Notification (respects preferences)
+            await notifyNewForumReply(threadId, user.user_metadata?.display_name || 'Ein Nutzer', messagePreview);
         } catch (e) {
             console.error("Notification Error:", e);
         }

@@ -22,6 +22,7 @@ import { calculateColorEBC, calculateIBU, calculateWaterProfile, calculateOG, ca
 import { FormulaInspector } from '@/app/components/FormulaInspector';
 import { SubscriptionTier, type PremiumStatus } from '@/lib/premium-config';
 import { getPremiumStatus } from '@/lib/actions/premium-actions';
+import { notifyNewBrew } from '@/lib/actions/notification-actions';
 import LegalConsentModal from '@/app/components/LegalConsentModal';
 import { trackEvent } from '@/lib/actions/analytics-actions'; // This will need to be safe for client side usage or moved to API call wrapper
 
@@ -598,6 +599,15 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 				brew_id: data.id,
 				brew_name: data.name
 			});
+
+            // Email Notification
+            notifyNewBrew(
+                breweryId, 
+                data.id, 
+                data.name, 
+                brew.brew_type, 
+                user?.user_metadata?.full_name || user.email || 'Ein Team-Mitglied'
+            );
 
             // Analytics
             try {

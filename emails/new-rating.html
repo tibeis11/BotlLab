@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Neue Bewertung — BotlLab</title>
+  <style>
+    body { font-family: sans-serif; background-color: #f8fafc; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 40px auto; background: #fff; padding: 32px; border-radius: 8px; }
+    .btn { display: inline-block; background: #000; color: #fff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold; }
+    .stars { color: #f59e0b; font-size: 20px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Neue Bewertung für {{brewName}}</h2>
+    <p><strong>{{authorName}}</strong> hat dein Rezept bewertet.</p>
+    <p class="stars">Bewertung: {{ratingValue}}/5 ★</p>
+    <blockquote style="background: #f1f5f9; padding: 16px; border-left: 4px solid #cbd5e1; margin: 24px 0;">
+      {{comment}}
+    </blockquote>
+    <p>
+      <a href="{{ratingUrl}}" class="btn">Bewertung ansehen</a>
+    </p>
+  </div>
+</body>
+</html>
