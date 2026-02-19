@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { getTierConfig, getNextTier, calculateTierProgress, getDaysActive, type TierName, type ReputationLevelConfig } from '@/lib/tier-system';
-import { supabase } from '@/lib/supabase';
+import { useSupabase } from '@/lib/hooks/useSupabase';
 import { useAuth } from '@/app/context/AuthContext';
 import { Calendar, Target, Eye, Crown, Lock, ArrowRight } from 'lucide-react';
 
 export default function TierProgressWidget() {
+  const supabase = useSupabase();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [tierData, setTierData] = useState<{
@@ -30,7 +31,7 @@ export default function TierProgressWidget() {
         .single();
 
       // Fetch additional stats for "Actions"
-      const { count: brewCount } = await supabase.from('brews').select('id', { count: 'exact', head: true }).eq('created_by', user.id);
+      const { count: brewCount } = await supabase.from('brews').select('id', { count: 'exact', head: true }).eq('user_id', user.id);
       const { count: postCount } = await supabase.from('forum_posts').select('id', { count: 'exact', head: true }).eq('author_id', user.id);
 
       if (profile) {
@@ -60,7 +61,7 @@ export default function TierProgressWidget() {
 
   const currentConfig = getTierConfig(tierData.currentTier) as ReputationLevelConfig;
   const nextTier = getNextTier(tierData.currentTier) as ReputationLevelConfig | null;
-  
+
   const { progress, unlockedRequirements, totalRequirements } = calculateTierProgress(
     tierData.currentTier,
     tierData.daysActive,
@@ -72,7 +73,7 @@ export default function TierProgressWidget() {
 
   return (
     <div className="md:bg-gradient-to-br md:from-cyan-900/20 md:to-blue-900/10 md:border md:border-cyan-500/20 md:rounded-lg md:p-6 md:shadow-xl relative overflow-hidden">
-      <div 
+      <div
         className="absolute inset-0 opacity-10 blur-3xl pointer-events-none hidden md:block"
         style={{ background: `radial-gradient(circle at top right, ${currentConfig.color}, transparent)` }}
       />
@@ -80,7 +81,7 @@ export default function TierProgressWidget() {
       <div className="relative z-10 space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div 
+            <div
               className="w-16 h-16 md:w-20 md:h-20 rounded-lg flex items-center justify-center shadow-2xl p-0.5"
               style={{ backgroundColor: `${currentConfig.color}20`, borderColor: `${currentConfig.color}40`, borderWidth: 1 }}
             >
@@ -90,7 +91,7 @@ export default function TierProgressWidget() {
               <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Dein Ruf</div>
               <h3 className="text-2xl md:text-3xl font-black text-white leading-none">{currentConfig.displayName}</h3>
               <p className="text-sm text-zinc-400 mt-1 flex items-center gap-1">
-                 <span style={{ color: currentConfig.color }}>●</span> Aktiver Status
+                <span style={{ color: currentConfig.color }}>●</span> Aktiver Status
               </p>
             </div>
           </div>
@@ -105,7 +106,7 @@ export default function TierProgressWidget() {
               </span>
             </div>
             <div className="h-3 bg-zinc-800 rounded-full overflow-hidden border border-zinc-700">
-              <div 
+              <div
                 className="h-full rounded-full transition-all duration-500"
                 style={{ width: `${progress}%`, backgroundColor: currentConfig.color }}
               />
@@ -142,7 +143,7 @@ export default function TierProgressWidget() {
         {isMaxTier && (
           <div className="text-center py-4">
             <div className="flex justify-center mb-2">
-                <Crown className="w-8 h-8 text-amber-500" />
+              <Crown className="w-8 h-8 text-amber-500" />
             </div>
             <p className="text-sm font-bold text-white mb-1">Maximales Level erreicht!</p>
             <p className="text-xs text-zinc-400">Du bist eine Legende.</p>
@@ -151,33 +152,33 @@ export default function TierProgressWidget() {
 
         {/* Benefits Section - Now purely cosmetic/influence */}
         {nextTier && (
-           <div className="pt-6 border-t border-zinc-800/50">
-             <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-4 flex justify-between items-center">
-                <span>Nächste Belohnung</span>
-                <span className="text-zinc-600 flex items-center gap-1">Locked <Lock className="w-3 h-3" /></span>
-             </div>
-             
-             <div className="flex items-center gap-4 bg-black/20 p-3 rounded-2xl border border-white/5 relative group overflow-hidden">
-                {/* Visual Effect: Grayed out but visible */}
-                <div className="w-16 h-16 rounded-xl bg-zinc-900 border border-zinc-800 relative overflow-hidden shrink-0">
-                    <img src={nextTier.avatarPath} className="w-full h-full object-cover opacity-50 grayscale group-hover:grayscale-0 group-hover:opacity-100 transition duration-500" />
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center group-hover:opacity-0 transition">
-                        <Lock className="w-6 h-6 text-zinc-400" />
-                    </div>
-                </div>
+          <div className="pt-6 border-t border-zinc-800/50">
+            <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-4 flex justify-between items-center">
+              <span>Nächste Belohnung</span>
+              <span className="text-zinc-600 flex items-center gap-1">Locked <Lock className="w-3 h-3" /></span>
+            </div>
 
-                <div className="flex-1 min-w-0">
-                    <h4 className="font-bold text-white text-sm mb-0.5">Rang: {nextTier.displayName}</h4>
-                    <p className="text-xs text-zinc-500 truncate">Schaltet neuen Avatar und Titel frei.</p>
+            <div className="flex items-center gap-4 bg-black/20 p-3 rounded-2xl border border-white/5 relative group overflow-hidden">
+              {/* Visual Effect: Grayed out but visible */}
+              <div className="w-16 h-16 rounded-xl bg-zinc-900 border border-zinc-800 relative overflow-hidden shrink-0">
+                <img src={nextTier.avatarPath} className="w-full h-full object-cover opacity-50 grayscale group-hover:grayscale-0 group-hover:opacity-100 transition duration-500" />
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center group-hover:opacity-0 transition">
+                  <Lock className="w-6 h-6 text-zinc-400" />
                 </div>
+              </div>
 
-                <div className="pr-2">
-                    <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-500 group-hover:text-white group-hover:bg-zinc-700 transition">
-                        <ArrowRight className="w-4 h-4" />
-                    </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="font-bold text-white text-sm mb-0.5">Rang: {nextTier.displayName}</h4>
+                <p className="text-xs text-zinc-500 truncate">Schaltet neuen Avatar und Titel frei.</p>
+              </div>
+
+              <div className="pr-2">
+                <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-500 group-hover:text-white group-hover:bg-zinc-700 transition">
+                  <ArrowRight className="w-4 h-4" />
                 </div>
-             </div>
-           </div>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
@@ -190,7 +191,7 @@ function RequirementCard({ label, current, required, icon, color }: { label: str
   const cardColor = isComplete ? '#10b981' : color;
 
   return (
-    <div 
+    <div
       className="relative rounded-xl md:rounded-2xl p-2 md:p-3 transition-all duration-300 overflow-hidden group"
       style={{
         background: `linear-gradient(135deg, ${cardColor}15, ${cardColor}05)`,
@@ -199,26 +200,26 @@ function RequirementCard({ label, current, required, icon, color }: { label: str
       }}
     >
       <div className="relative z-10 flex flex-col items-center text-center">
-        <div 
-            className="w-6 h-6 md:w-8 md:h-8 rounded-lg flex items-center justify-center text-sm md:text-lg shadow-lg mb-1 md:mb-2 text-white/90"
-            style={{ backgroundColor: `${cardColor}30` }}
+        <div
+          className="w-6 h-6 md:w-8 md:h-8 rounded-lg flex items-center justify-center text-sm md:text-lg shadow-lg mb-1 md:mb-2 text-white/90"
+          style={{ backgroundColor: `${cardColor}30` }}
         >
           {icon}
         </div>
-        
+
         <div className="text-[9px] md:text-[10px] uppercase font-bold tracking-wider text-zinc-400 mb-0.5 whitespace-nowrap">
-            {label}
+          {label}
         </div>
-        
+
         <div className="text-sm md:text-lg font-black text-white mb-1.5 md:mb-2 leading-none">
-            {current} <span className="text-zinc-500 text-[9px] md:text-[10px] font-normal">/ {required}</span>
+          {current} <span className="text-zinc-500 text-[9px] md:text-[10px] font-normal">/ {required}</span>
         </div>
-        
+
         <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
-          <div 
+          <div
             className="h-full rounded-full transition-all duration-500"
-            style={{ 
-              width: `${percentage}%`, 
+            style={{
+              width: `${percentage}%`,
               backgroundColor: cardColor
             }}
           />

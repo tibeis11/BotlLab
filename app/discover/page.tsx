@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { useSupabase } from '@/lib/hooks/useSupabase';
 import Header from '../components/Header';
 import BrewCard from '../components/BrewCard';
 import CustomSelect from '../components/CustomSelect';
@@ -32,6 +32,7 @@ type Brew = {
 
 export default function DiscoverPage() {
   // Singleton imported
+  const supabase = useSupabase();
   const [brews, setBrews] = useState<Brew[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -60,12 +61,13 @@ export default function DiscoverPage() {
     }
 
     let brewsData = (data || []).map(b => {
+      const bData = b.data as any;
       return {
         ...b,
-        abv: b.data?.abv ? parseFloat(b.data.abv) : undefined,
-        ibu: b.data?.ibu ? parseInt(b.data.ibu, 10) : undefined,
-        ebc: b.data?.color ? parseInt(b.data.color, 10) : undefined,
-        original_gravity: b.data?.original_gravity || b.data?.og || b.data?.plato ? parseFloat(String(b.data.original_gravity || b.data.og || b.data.plato)) : undefined,
+        abv: bData?.abv ? parseFloat(bData.abv) : undefined,
+        ibu: bData?.ibu ? parseInt(bData.ibu, 10) : undefined,
+        ebc: bData?.color ? parseInt(bData.color, 10) : undefined,
+        original_gravity: bData?.original_gravity || bData?.og || bData?.plato ? parseFloat(String(bData.original_gravity || bData.og || bData.plato)) : undefined,
         brewery: Array.isArray(b.breweries) ? b.breweries[0] : b.breweries,
       };
     }) as Brew[];

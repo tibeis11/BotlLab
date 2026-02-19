@@ -43,14 +43,14 @@ export async function POST(req: Request) {
     let finalPrompt = "";
     let storageBucket = "labels";
     let dbField = "image_url";
-    let filenamePrefix = "brew";
+    let filenamePrefix = "ai-brew";
 
     if (type === "cap") {
       // Optimized prompt for high-end circular icons
-      finalPrompt = `${prompt} . minimalist flat vector icon, centered on solid black background, circular composition, high contrast, clean lines, professional graphic design, no text, no letters, no typography, 4k high quality.`;
-      storageBucket = "caps"; // We might need to create this bucket in Supabase
+      finalPrompt = `${prompt} . Modern Esports Logo Style, Vector Badge, Bold Lines. Zoomed in, Full Bleed, centered on solid black background. High contrast, clean vector graphics. NO TEXT, NO LETTERING, NO TYPOGRAPHY. Symbolic representation only.`;
+      storageBucket = "labels"; // Use existing working bucket
       dbField = "cap_url";
-      filenamePrefix = "cap";
+      filenamePrefix = "ai-cap";
     } else {
       // Standard label style
       finalPrompt = `${prompt} . iconic beer label art, illustration style. showing hops, barley, malt, wheat or beer foam artfully arranged. square format, full bleed, edge to edge. no text, no typography, no letters. rich colors, detailed.`;
@@ -161,20 +161,20 @@ export async function POST(req: Request) {
       // We use a Service Role client to bypass the pending status.
       // Since the image URL isn't changing in this second update, the trigger won't reset it to pending.
       if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-          const { createClient: createAdminClient } = require('@supabase/supabase-js');
-          const adminSupabase = createAdminClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!
-          );
+        const { createClient: createAdminClient } = require('@supabase/supabase-js');
+        const adminSupabase = createAdminClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
 
-          await adminSupabase
-            .from("brews")
-            .update({ 
-                moderation_status: 'approved',
-                moderated_by: null, // System
-                moderation_rejection_reason: null
-            })
-            .eq("id", brewId);
+        await adminSupabase
+          .from("brews")
+          .update({
+            moderation_status: 'approved',
+            moderated_by: null, // System
+            moderation_rejection_reason: null
+          })
+          .eq("id", brewId);
       } else {
         console.warn("[Generate Image] Missing SUPABASE_SERVICE_ROLE_KEY, image will remain pending.");
       }
@@ -183,13 +183,13 @@ export async function POST(req: Request) {
     // 6. Track AI Usage (Premium) & Analytics
     // Track event for feature usage analytics (Admin Dashboard)
     await trackEvent({
-        event_type: 'generate_image_success',
-        category: 'ai',
-        payload: {
-            type: type, // 'label' or 'cap'
-            model: modelName,
-            user_id: user.id
-        }
+      event_type: 'generate_image_success',
+      category: 'ai',
+      payload: {
+        type: type, // 'label' or 'cap'
+        model: modelName,
+        user_id: user.id
+      }
     });
 
     // Decrement credits
@@ -198,21 +198,21 @@ export async function POST(req: Request) {
     return NextResponse.json({ imageUrl: finalUrl });
   } catch (error: any) {
     console.error("[Generate Image Route Error]:", error.message);
-    
+
     // Track failure for analytics
     try {
-        const supabase = await createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-            await trackEvent({
-                event_type: 'generate_image_error',
-                category: 'ai',
-                payload: {
-                    error: error.message,
-                    user_id: user.id
-                }
-            });
-        }
+      const supabase = await createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await trackEvent({
+          event_type: 'generate_image_error',
+          category: 'ai',
+          payload: {
+            error: error.message,
+            user_id: user.id
+          }
+        });
+      }
     } catch (e) { /* ignore tracking error */ }
 
     return NextResponse.json({ error: error.message }, { status: 500 });

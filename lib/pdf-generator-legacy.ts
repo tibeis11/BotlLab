@@ -60,7 +60,9 @@ export const generateSmartLabelPDF = async (bottles: BottleData[], options: Gene
 
     // Generate QR Codes in Parallel
     const bottlesWithQr = await Promise.all(bottles.map(async (b) => {
-        const url = `${options.baseUrl}/b/${b.id}`;
+        // Use Short Code if available
+        const idOrCode = (b as any).short_code || b.id;
+        const url = `${options.baseUrl}/b/${idOrCode}`;
         let qrData: string | null = null;
         try {
             qrData = await QRCode.toDataURL(url, {

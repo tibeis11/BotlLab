@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { MessageSquare, Flame, User } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { useSupabase } from '@/lib/hooks/useSupabase';
 
 export default function TrendingForumWidget() {
+    const supabase = useSupabase();
     const [threads, setThreads] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 

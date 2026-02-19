@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { useSupabase } from '@/lib/hooks/useSupabase';
 import Link from 'next/link';
 import BrewCard from '@/app/components/BrewCard';
-import { Flame } from 'lucide-react';
+import { Flame, Compass } from 'lucide-react';
 
 interface TrendingBrew {
     id: string;
@@ -22,6 +22,7 @@ interface TrendingBrew {
 }
 
 export default function DiscoverWidget() {
+    const supabase = useSupabase();
     const [trendingBrews, setTrendingBrews] = useState<TrendingBrew[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -116,10 +117,10 @@ export default function DiscoverWidget() {
             {/* View More Card */}
             <Link 
                 href="/discover"
-                className="min-w-[100px] snap-center bg-zinc-900/30 border border-zinc-800/50 border-dashed rounded-xl flex flex-col items-center justify-center gap-2 text-zinc-500 hover:text-white hover:bg-zinc-900 hover:border-zinc-700 transition"
+                className="min-w-[100px] snap-center bg-zinc-900/30 border border-zinc-800/50 border-dashed rounded-xl flex flex-col items-center justify-center gap-2 text-zinc-500 hover:text-white hover:bg-zinc-900 hover:border-zinc-700 transition group"
             >
-                <span className="text-2xl">🌍</span>
-                <span className="text-xs font-bold">Mehr</span>
+                <Compass size={24} className="opacity-50 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" />
+                <span className="text-[10px] uppercase font-bold tracking-widest opacity-70 group-hover:opacity-100">Mehr...</span>
             </Link>
         </div>
     );

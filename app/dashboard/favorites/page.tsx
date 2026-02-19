@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase';
+import { useSupabase } from '@/lib/hooks/useSupabase';
 import BrewCard from '@/app/components/BrewCard';
 import CustomSelect from '@/app/components/CustomSelect';
 import { useAuth } from '@/app/context/AuthContext';
@@ -26,6 +26,7 @@ type Brew = {
 };
 
 export default function FavoritesPage() {
+  const supabase = useSupabase();
   const { user } = useAuth();
   const [brews, setBrews] = useState<Brew[]>([]);
   const [loading, setLoading] = useState(true);

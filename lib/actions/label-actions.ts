@@ -13,6 +13,21 @@ import { supabase } from '@/lib/supabase';
  * 4. Background Image (public/labels/label_105x57.png)
  */
 export async function createDefaultBreweryTemplate(breweryId: string) {
+    // Check if templates already exist (e.g. from database trigger)
+    const { count, error: countError } = await supabase
+        .from('label_templates')
+        .select('*', { count: 'exact', head: true })
+        .eq('brewery_id', breweryId);
+    
+    if (countError) {
+        console.error('Error checking existing templates:', countError);
+    }
+
+    if (count && count > 0) {
+        console.log(`Brewery ${breweryId} already has ${count} templates. Skipping default creation.`);
+        return;
+    }
+
     const width = 57;
     const height = 105;
     const formatId = '6137'; // Assuming 6137 is the 57x105 format

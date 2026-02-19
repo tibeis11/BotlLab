@@ -32,37 +32,40 @@ export function AddEventModal({ isOpen, onClose, onSubmit, defaultType = 'NOTE' 
     let description = '';
 
     if (activeType.startsWith('MEASUREMENT_OG') || activeType.startsWith('MEASUREMENT_SG') || activeType.startsWith('MEASUREMENT_FG')) {
-      // Calculate SG from Plato if needed
-      let sg = parseFloat(gravity);
-      let originalVal = parseFloat(gravity);
+      const parsedGravity = parseFloat(gravity.replace(',', '.'));
+      let sg = parsedGravity;
+      let originalVal = parsedGravity;
+      const temp = parseFloat(temperature.replace(',', '.'));
       
       if (gravityUnit === 'plato') {
          // Plato to SG: SG = 259 / (259 - Plato) for simple conversion
-         sg = 259 / (259 - parseFloat(gravity));
+         sg = 259 / (259 - parsedGravity);
       }
 
       const measData: MeasurementData = {
         gravity: sg,
         unit: gravityUnit,
         originalValue: originalVal,
-        temperature: parseFloat(temperature)
+        temperature: temp
       };
       
       submitData = measData;
       title = activeType === 'MEASUREMENT_OG' ? 'Stammwürze gemessen' : (activeType === 'MEASUREMENT_FG' ? 'Restextrakt gemessen' : 'Messung');
-      description = `${originalVal.toFixed(gravityUnit === 'sg' ? 3 : 1)} ${gravityUnit === 'sg' ? 'SG' : '°P'} @ ${temperature}°C`;
+      description = `${originalVal.toFixed(gravityUnit === 'sg' ? 3 : 1)} ${gravityUnit === 'sg' ? 'SG' : '°P'} @ ${temp}°C`;
     
     } else if (activeType === 'MEASUREMENT_VOLUME') {
-        const vol = parseFloat(volume);
-        submitData = { volume: vol, temperature: parseFloat(temperature) };
+        const vol = parseFloat(volume.replace(',', '.'));
+        const temp = parseFloat(temperature.replace(',', '.'));
+        submitData = { volume: vol, temperature: temp };
         title = 'Volumen gemessen';
-        description = `${vol} Liter @ ${temperature}°C`;
+        description = `${vol} Liter @ ${temp}°C`;
 
     } else if (activeType === 'MEASUREMENT_PH') {
-        const phVal = parseFloat(ph);
-        submitData = { ph: phVal, temperature: parseFloat(temperature) };
+        const phVal = parseFloat(ph.replace(',', '.'));
+        const temp = parseFloat(temperature.replace(',', '.'));
+        submitData = { ph: phVal, temperature: temp };
         title = 'pH-Wert gemessen';
-        description = `pH ${phVal} @ ${temperature}°C`;
+        description = `pH ${phVal} @ ${temp}°C`;
 
     } else if (activeType === 'NOTE') {
         submitData = {};

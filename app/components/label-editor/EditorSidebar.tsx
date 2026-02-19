@@ -5,6 +5,7 @@ import { LabelDesign, LabelElement, ElementType } from '@/lib/types/label-system
 import { Type, Image as ImageIcon, QrCode, Trash2, Lock, Unlock, Layers, Tag, Shield, AlignLeft, AlignCenter, AlignRight, ChevronDown, ChevronUp, Link, Bold, Italic, Underline, RotateCcw, Copy } from 'lucide-react';
 import { HexColorPicker } from 'react-colorful';
 import LayerPanel from './LayerPanel';
+import CustomSelect from '@/app/components/CustomSelect'; // Import CustomSelect
 
 interface EditorSidebarProps {
     design: LabelDesign;
@@ -179,7 +180,7 @@ export default function EditorSidebar(props: EditorSidebarProps) {
                                 <div className="mb-4">
                                     <label className="text-[10px] text-zinc-500 uppercase font-medium mb-1 block">Rotation (°)</label>
                                     <div className="flex items-center gap-2">
-                                        <div className="bg-zinc-900 border border-zinc-800 rounded px-2 py-1.5 flex-1 flex items-center gap-2">
+                                        <div className={`bg-zinc-900 border border-zinc-800 rounded px-2 py-1.5 flex-1 flex items-center gap-2 ${selectedElement.isDeletable === false || isBackgroundLocked ? 'opacity-50 cursor-not-allowed' : ''}`}>
                                             <RotateCcw size={12} className="text-zinc-500" />
                                             <input 
                                                 type="range" 
@@ -187,7 +188,7 @@ export default function EditorSidebar(props: EditorSidebarProps) {
                                                 max="360" 
                                                 value={selectedElement.rotation || 0} 
                                                 onChange={(e) => onUpdateElement(selectedElement.id, { rotation: Number(e.target.value) })}
-                                                className="flex-1 h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-zinc-400 [&::-webkit-slider-thumb]:rounded-full hover:[&::-webkit-slider-thumb]:bg-white"
+                                                className={`flex-1 h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-zinc-400 [&::-webkit-slider-thumb]:rounded-full hover:[&::-webkit-slider-thumb]:bg-white ${selectedElement.isDeletable === false || isBackgroundLocked ? 'pointer-events-none' : ''}`}
                                                 disabled={selectedElement.isDeletable === false || isBackgroundLocked}
                                             />
                                         </div>
@@ -195,7 +196,7 @@ export default function EditorSidebar(props: EditorSidebarProps) {
                                             type="number" 
                                             value={selectedElement.rotation || 0} 
                                             onChange={(e) => onUpdateElement(selectedElement.id, { rotation: Number(e.target.value) })}
-                                            className="w-12 bg-zinc-900 border border-zinc-800 rounded px-1 py-1.5 font-mono text-sm text-white text-center focus:border-zinc-600 transition outline-none"
+                                            className={`w-12 bg-zinc-900 border border-zinc-800 rounded px-1 py-1.5 font-mono text-sm text-white text-center focus:border-zinc-600 transition outline-none ${selectedElement.isDeletable === false || isBackgroundLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
                                             disabled={selectedElement.isDeletable === false || isBackgroundLocked}
                                         />
                                     </div>
@@ -333,7 +334,7 @@ export default function EditorSidebar(props: EditorSidebarProps) {
                                         </div>
 
                                         {/* Text Formatting */}
-                                        <div>
+                                        <div className="mb-4">
                                             <label className="text-[10px] text-zinc-500 uppercase font-medium mb-1 block">Formatting</label>
                                             <div className="flex bg-zinc-900 border border-zinc-800 rounded p-1 gap-1">
                                                 <button 
@@ -361,7 +362,7 @@ export default function EditorSidebar(props: EditorSidebarProps) {
                                         </div>
                                         
                                         {/* Line Height */}
-                                        <div>
+                                        <div className="mb-4">
                                             <label className="text-[10px] text-zinc-500 uppercase font-medium mb-1 block">Line Height</label>
                                             <div className="flex items-center gap-2">
                                                 <input 
@@ -379,7 +380,7 @@ export default function EditorSidebar(props: EditorSidebarProps) {
                                             </div>
                                         </div>
                                         
-                                        <div>
+                                        <div className="mb-4">
                                             <label className="text-[10px] text-zinc-500 uppercase font-medium mb-1 block">Text Align</label>
                                             <div className="flex bg-zinc-900 border border-zinc-800 rounded p-1 gap-1">
                                                 <button 
@@ -408,19 +409,20 @@ export default function EditorSidebar(props: EditorSidebarProps) {
                                         
                                         <div>
                                             <label className="text-[10px] text-zinc-500 uppercase font-medium mb-1 block">Font Family</label>
-                                            <select 
-                                                value={selectedElement.style.fontFamily}
-                                                onChange={(e) => onUpdateElement(selectedElement.id, { style: { ...selectedElement.style, fontFamily: e.target.value } })}
-                                                className="w-full bg-zinc-900 border border-zinc-800 rounded px-2 py-1.5 text-xs text-white outline-none focus:border-zinc-600 transition-all appearance-none cursor-pointer hover:bg-zinc-800"
-                                            >
-                                                <option value="Helvetica">Helvetica (Default)</option>
-                                                <option value="Courier">Courier (Mono)</option>
-                                                <option value="Times">Times New Roman</option>
-                                                <option value="Roboto">Roboto</option>
-                                                <option value="OpenSans">Open Sans</option>
-                                                <option value="Montserrat">Montserrat</option>
-                                                <option value="PlayfairDisplay">Playfair Display</option>
-                                            </select>
+                                            <CustomSelect 
+                                                value={selectedElement.style.fontFamily || 'Helvetica'}
+                                                onChange={(val) => onUpdateElement(selectedElement.id, { style: { ...selectedElement.style, fontFamily: val } })}
+                                                variant="zinc"
+                                                options={[
+                                                    { value: "Helvetica", label: <span style={{ fontFamily: 'Helvetica' }}>Helvetica (Default)</span> },
+                                                    { value: "Courier", label: <span style={{ fontFamily: 'Courier' }}>Courier (Mono)</span> },
+                                                    { value: "Times", label: <span style={{ fontFamily: 'Times' }}>Times New Roman</span> },
+                                                    { value: "Roboto", label: <span style={{ fontFamily: 'Roboto' }}>Roboto</span> },
+                                                    { value: "OpenSans", label: <span style={{ fontFamily: 'OpenSans' }}>Open Sans</span> },
+                                                    { value: "Montserrat", label: <span style={{ fontFamily: 'Montserrat' }}>Montserrat</span> },
+                                                    { value: "PlayfairDisplay", label: <span style={{ fontFamily: 'PlayfairDisplay' }}>Playfair Display</span> },
+                                                ]}
+                                            />
                                         </div>
                                     </div>
                                 )}

@@ -7,7 +7,8 @@ import TierProgressWidget from './components/TierProgressWidget';
 import DiscoverWidget from './components/DiscoverWidget';
 import TrendingForumWidget from './components/TrendingForumWidget';
 import { Megaphone, Award, Bell, Flame, Plus, Users, ArrowRight, User } from 'lucide-react';
-import { supabase, getActiveBrewery } from '@/lib/supabase';
+import { getActiveBrewery } from '@/lib/supabase';
+import { useSupabase } from '@/lib/hooks/useSupabase';
 import { useAuth } from '@/app/context/AuthContext';
 import { getBreweryFeed, addToFeed, type FeedItem } from '@/lib/feed-service';
 import { getTierConfig } from '@/lib/tier-system';
@@ -26,6 +27,7 @@ function DashboardContent() {
     const { user, loading: authLoading } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
+    const supabase = useSupabase();
     
     // Data State
     const [dashboardFeed, setDashboardFeed] = useState<FeedItem[]>([]);
@@ -80,13 +82,13 @@ function DashboardContent() {
             }
 
             if (!brewery) {
-                brewery = await getActiveBrewery(user.id);
+                brewery = await getActiveBrewery(user.id, supabase);
             }
             setActiveBrewery(brewery);
 
             // 3. Load Activity Feed
             if (brewery) {
-                const events = await getBreweryFeed(brewery.id);
+                const events = await getBreweryFeed(supabase, brewery.id);
                 setDashboardFeed((events || []).slice(0, 3));
             } else {
                 setDashboardFeed([]);
@@ -153,7 +155,7 @@ function DashboardContent() {
              if (joinError) throw joinError;
 
              // Feed update
-             await addToFeed(brewery.id, { id: user!.id }, 'MEMBER_JOINED', { message: 'ist dem Squad beigetreten' });
+             await addToFeed(supabase, brewery.id, { id: user!.id }, 'MEMBER_JOINED', { message: 'ist dem Squad beigetreten' });
 
              window.location.reload();
         } catch (err: any) {

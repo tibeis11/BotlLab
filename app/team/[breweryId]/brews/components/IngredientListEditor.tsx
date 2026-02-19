@@ -90,10 +90,12 @@ export function IngredientListEditor({ label, value, onChange }: IngredientListE
                 {items.map((item, idx) => (
                     <div key={idx} className="grid grid-cols-[80px_70px_1fr_30px] gap-2 items-center animate-in fade-in slide-in-from-top-1 duration-200">
                         <input 
+                            type="text"
+                            inputMode="decimal"
                             className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-2 text-sm text-white focus:border-cyan-500 outline-none text-right placeholder:text-zinc-700"
                             placeholder="0"
                             value={item.amount}
-                            onChange={(e) => updateRow(idx, 'amount', e.target.value)}
+                            onChange={(e) => updateRow(idx, 'amount', e.target.value.replace(',', '.'))}
                         />
                         <div className="relative">
                              <input 

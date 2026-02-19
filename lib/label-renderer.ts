@@ -112,7 +112,7 @@ export const renderLabelToDataUrl = async (
 
 
     // --- 2. QR Code - Optimized for compact format ---
-    const url = `${baseUrl}/b/${bottle.id}`;
+    const url = `${baseUrl}/b/${(bottle as any).short_code || bottle.id}`;
     const qrData = await QRCode.toDataURL(url, {
         errorCorrectionLevel: 'H',
         margin: 0,

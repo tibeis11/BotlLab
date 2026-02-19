@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { getBreweryAnalytics, getBreweryAnalyticsSummary, exportAnalyticsCSV, getConversionRate } from '@/lib/actions/analytics-actions';
-import { supabase } from '@/lib/supabase';
+import { useSupabase } from '@/lib/hooks/useSupabase';
 import { safeRemove } from '@/lib/safe-dom';
 import { getBreweryAnalyticsAccess, getAvailableTimeRanges, type UserTier, type AnalyticsFeatures } from '@/lib/analytics-tier-features';
 import ReportSettingsPanel from './components/ReportSettingsPanel';
@@ -28,6 +28,7 @@ interface AnalyticsPageData {
 }
 
 export default function BreweryAnalyticsPage() {
+  const supabase = useSupabase();
   const params = useParams();
   const router = useRouter();
   const breweryId = params?.breweryId as string;
@@ -175,7 +176,7 @@ export default function BreweryAnalyticsPage() {
           if (brewsData) {
             const brewMap: Record<string, { name: string; style: string }> = {};
             brewsData.forEach(b => {
-              brewMap[b.id] = { name: b.name, style: b.style };
+              brewMap[b.id] = { name: b.name || "Unbekannt", style: b.style || "" };
             });
             setBrews(brewMap);
           }
@@ -204,7 +205,13 @@ export default function BreweryAnalyticsPage() {
         .eq('brewery_id', breweryId)
         .order('created_at', { ascending: false })
         .then(({ data }) => {
-          if (data) setBreweryBrews(data);
+          if (data) {
+             setBreweryBrews(data.map(b => ({
+                 id: b.id,
+                 name: b.name || "Unbekannt",
+                 style: b.style || ""
+             })));
+          }
         });
     }
   }, [breweryId]);

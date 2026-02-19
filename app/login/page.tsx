@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import { useSupabase } from "@/lib/hooks/useSupabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Logo from "../components/Logo";
@@ -14,6 +14,7 @@ const getRedirectUrl = () => {
 };
 
 export default function LoginPage() {
+  const supabase = useSupabase();
   const { user, loading: authLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

@@ -1,12 +1,13 @@
 'use client';
 
 import { useSession } from '../SessionContext';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import Scanner from '@/app/components/Scanner';
 import BottleScanner from '@/app/components/BottleScanner';
 import { TimelineEvent } from '@/lib/types/session-log';
-import { calculatePrimingSugar, calculateResidualCO2, platoToSG } from '@/lib/brewing-calculations';
+import { calculatePrimingSugar, calculateResidualCO2, platoToSG, calculateWaterProfile } from '@/lib/brewing-calculations';
+import { useDebouncedCallback } from 'use-debounce';
 
 // Lucide Icons
 import { 
@@ -32,6 +33,7 @@ import {
 
 import { AddEventModal } from './AddEventModal';
 import BrewTimer from './BrewTimer';
+import { LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
 /* Shared UI Components for internal consistency */
 const PhaseCard = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
@@ -55,6 +57,18 @@ const InputField = (props: React.InputHTMLAttributes<HTMLInputElement>) => (
     />
 );
 
+// Helper: Scale Function
+const scaleAmount = (amount: any, factor: number) => {
+    if (factor === 1 || !amount) return amount;
+    const num = parseFloat(String(amount).replace(',', '.'));
+    if (isNaN(num)) return amount;
+    
+    const result = num * factor;
+    // Smart rounding
+    if (result < 10) return result.toFixed(2).replace('.', ',');
+    if (result < 100) return result.toFixed(1).replace('.', ',');
+    return Math.round(result).toString();
+};
 
 /* --- Helper Components for Guided Experience --- */
 
@@ -81,13 +95,287 @@ const TaskItem = ({ title, completed, onClick, meta }: { title: string, complete
     </div>
 );
 
+function FermentationMonitor({ session }: { session: any }) {
+    const { refreshSession } = useSession();
+    const [measurements, setMeasurements] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    
+    // Form State
+    const [date, setDate] = useState(() => {
+        const d = new Date();
+        d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+        return d.toISOString().slice(0, 16);
+    });
+    const [gravity, setGravity] = useState('');
+    const [temp, setTemp] = useState('');
+    const [note, setNote] = useState('');
+    const [isAdding, setIsAdding] = useState(false);
+    const [expanded, setExpanded] = useState(false);
+
+    useEffect(() => {
+        if(session?.id) {
+            fetchMeasurements();
+        } else if (session) {
+             setLoading(false); 
+        }
+    }, [session?.id]);
+
+    const fetchMeasurements = async () => {
+        if(!session?.id) return;
+        
+        const { data } = await supabase
+            .from('brew_measurements')
+            .select('*')
+            .eq('session_id', session.id)
+            .order('measured_at', { ascending: true });
+            
+        if (data) setMeasurements(data);
+        setLoading(false);
+    };
+    
+    const addMeasurement = async () => {
+        if (!gravity && !temp) {
+            console.warn("Gravity or Temp required");
+            return;
+        }
+
+        if(!session?.id) {
+            console.error("No Session ID found");
+            return;
+        }
+        
+        // Auto-Detect Unit: If gravity > 1.2, assume Plato and convert to SG
+        let gravityValue = gravity ? parseFloat(gravity.replace(',', '.')) : null;
+        if (gravityValue && gravityValue > 1.5) { // 1.5 is a safe threshold (approx 3 Plato)
+             // Check if user accidentally entered a massive SG like 1050 instead of 1.050
+             if(gravityValue > 900 && gravityValue < 1200) {
+                 gravityValue = gravityValue / 1000;
+             } else {
+                 // Assume Plato
+                 gravityValue = parseFloat(platoToSG(gravityValue).toFixed(4));
+             }
+        }
+
+        const payload = {
+            session_id: session.id,
+
+            measured_at: new Date(date).toISOString(),
+            gravity: gravityValue,
+            temperature: temp ? parseFloat(temp.replace(',', '.')) : null,
+            note: note || null,
+            created_by: (await supabase.auth.getUser()).data.user?.id
+        };
+
+        console.log("Saving measurement:", payload);
+
+        const { error } = await supabase.from('brew_measurements').insert(payload);
+        
+        if (error) {
+            console.error("Error saving measurement:", error);
+            alert("Fehler beim Speichern: " + error.message);
+        } else {
+            console.log("Measurement saved. Refreshing session context...");
+            setGravity('');
+            setTemp('');
+            setNote('');
+            setIsAdding(false);
+            if (refreshSession) await refreshSession();
+            fetchMeasurements();
+        }
+    };
+
+    const chartData = measurements.map(m => {
+        let g = m.gravity;
+        // Auto-fix historical mixed data for chart visualization
+        if (g > 1.5 && g < 30) { 
+             // Likely Plato
+             g = platoToSG(g); 
+        } else if (g > 900) {
+             // 1050 -> 1.050
+             g = g / 1000;
+        }
+        return {
+            ...m,
+            gravity: parseFloat(g.toFixed(3))
+        };
+    });
+
+    if (loading) return <div className="animate-pulse h-20 bg-zinc-900/50 rounded-xl mb-4"></div>;
+
+    return (
+        <div className="bg-zinc-900 rounded-lg border border-zinc-800 mb-8 overflow-hidden">
+            <div className="px-4 py-3 border-b border-zinc-800 bg-zinc-950/50 flex justify-between items-center cursor-pointer" onClick={() => setExpanded(!expanded)}>
+                <h4 className="text-zinc-400 font-bold text-[10px] uppercase tracking-wider flex items-center gap-2">
+                    <Activity className="w-3 h-3" /> Gärverlauf & Messwerte
+                </h4>
+                <div className="flex items-center gap-2">
+                     <span className="text-xs font-mono text-zinc-500">{measurements.length} Messungen</span>
+                     <button 
+                        onClick={(e) => { e.stopPropagation(); setIsAdding(!isAdding); setExpanded(true); }}
+                        className="text-[10px] font-bold text-cyan-400 hover:text-cyan-300 bg-cyan-950/30 border border-cyan-900/50 px-2 py-1 rounded transition-colors ml-2"
+                    >
+                        {isAdding ? 'Abbrechen' : '+ Neuer Eintrag'}
+                    </button>
+                </div>
+            </div>
+            
+            {expanded && (
+                <div className="p-4 border-t border-zinc-800">
+                    {isAdding && (
+                        <div className="bg-zinc-950/50 border border-zinc-800 rounded-xl p-4 mb-4 animate-in slide-in-from-top-2 fade-in duration-200">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                                <div>
+                                    <label className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">Datum & Zeit</label>
+                                    <input 
+                                        type="datetime-local" 
+                                        value={date} 
+                                        onChange={e => setDate(e.target.value)}
+                                        className="w-full bg-black text-white text-sm px-3 py-2 rounded-lg border border-zinc-800 focus:border-cyan-500 outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">Dichte (SG)</label>
+                                    <input 
+                                        type="number" 
+                                        placeholder="1.050 / 12.5"
+                                        value={gravity} 
+                                        onChange={e => setGravity(e.target.value)}
+                                        className="w-full bg-black text-white text-sm px-3 py-2 rounded-lg border border-zinc-800 focus:border-cyan-500 outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">Temp (°C)</label>
+                                    <input 
+                                        type="number" 
+                                        placeholder="20.0"
+                                        value={temp} 
+                                        onChange={e => setTemp(e.target.value)}
+                                        className="w-full bg-black text-white text-sm px-3 py-2 rounded-lg border border-zinc-800 focus:border-cyan-500 outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">Notiz</label>
+                                    <input 
+                                        type="text"
+                                        placeholder="Blubbert stark..."
+                                        value={note} 
+                                        onChange={e => setNote(e.target.value)}
+                                        className="w-full bg-black text-white text-sm px-3 py-2 rounded-lg border border-zinc-800 focus:border-cyan-500 outline-none"
+                                    />
+                                </div>
+                            </div>
+                            <button 
+                                onClick={addMeasurement}
+                                className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 rounded-lg transition-colors text-sm"
+                            >
+                                Messwert speichern
+                            </button>
+                        </div>
+                    )}
+
+                    {measurements.length === 0 ? (
+                        <div className="text-center py-8 border border-dashed border-zinc-800 rounded-xl bg-zinc-900/20">
+                            <Activity className="w-8 h-8 text-zinc-700 mx-auto mb-2" />
+                            <p className="text-zinc-500 text-sm">Noch keine Messwerte eingetragen.</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-6">
+                            {measurements.length > 1 && (
+                                <div className="h-64 w-full bg-zinc-950/30 rounded-lg p-4 border border-zinc-800/50">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <LineChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                                            <XAxis 
+                                                dataKey="measured_at" 
+                                                stroke="#52525b" 
+                                                tickFormatter={(str) => new Date(str).toLocaleDateString(undefined, {day: '2-digit', month: '2-digit'})}
+                                                tick={{fontSize: 10}}
+                                            />
+                                            <YAxis yAxisId="left" stroke="#0891b2" domain={['auto', 'auto']} tick={{fontSize: 10}} width={40} />
+                                            <YAxis yAxisId="right" orientation="right" stroke="#ea580c" domain={['auto', 'auto']} tick={{fontSize: 10}} width={30} />
+                                            <RechartsTooltip 
+                                                contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', color: '#fff', fontSize: '12px' }}
+                                                labelFormatter={(label) => new Date(label).toLocaleString()}
+                                            />
+                                            <Line yAxisId="left" type="monotone" dataKey="gravity" stroke="#0891b2" name="Dichte" strokeWidth={2} dot={{r: 3}} activeDot={{r: 5, strokeWidth: 0}} />
+                                            <Line yAxisId="right" type="monotone" dataKey="temperature" stroke="#ea580c" name="Temp" strokeWidth={2} dot={{r: 3}} activeDot={{r: 5, strokeWidth: 0}} />
+                                        </LineChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            )}
+                            
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm text-left border-separate border-spacing-y-1">
+                                    <thead className="text-[10px] uppercase text-zinc-500 font-bold">
+                                        <tr>
+                                            <th className="px-3 py-1">Datum</th>
+                                            <th className="px-3 py-1 text-right">Dichte</th>
+                                            <th className="px-3 py-1 text-right">Temp</th>
+                                            <th className="px-3 py-1 w-full pl-6">Notiz</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {measurements.map((m) => (
+                                            <tr key={m.id} className="group hover:bg-zinc-900/50 transition-colors">
+                                                <td className="px-3 py-2 font-mono text-zinc-400 whitespace-nowrap bg-zinc-950/30 rounded-l">
+                                                    {new Date(m.measured_at).toLocaleDateString()} <span className="text-zinc-600 text-[10px]">{new Date(m.measured_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                                </td>
+                                                <td className="px-3 py-2 font-mono font-bold text-white text-right bg-zinc-950/30">
+                                                    {m.gravity || '-'}
+                                                </td>
+                                                <td className="px-3 py-2 font-mono text-zinc-300 text-right bg-zinc-950/30">
+                                                    {m.temperature ? `${m.temperature}°C` : '-'}
+                                                </td>
+                                                <td className="px-3 py-2 text-zinc-400 text-xs pl-6 bg-zinc-950/30 rounded-r border-l border-transparent">
+                                                    {m.note || '-'}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
+
 /* --- Phase Views --- */
 
 export function PlanningView() {
-  const { session, changePhase, addEvent } = useSession();
+  const { session, changePhase, addEvent, updateSessionData } = useSession();
+  // Using a ref to track if we have initialized from session data
+  const initialized = useRef(false);
   const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
   const [showMeasureModal, setShowMeasureModal] = useState(false);
   const [modalInitialType, setModalInitialType] = useState<any>('NOTE');
+
+  useEffect(() => {
+    if (session?.measurements?.checklist && !initialized.current) {
+        setCheckedItems(new Set(session.measurements.checklist));
+        initialized.current = true;
+    }
+  }, [session?.measurements?.checklist]);
+
+  const updateDB = useDebouncedCallback((items: string[]) => {
+      if(!session) return;
+      updateSessionData({
+          measurements: {
+              ...(session.measurements || {}),
+              checklist: items
+          }
+      });
+  }, 1000);
+
+  const toggleItem = (id: string) => {
+      const next = new Set(checkedItems);
+      if (next.has(id)) { next.delete(id); }
+      else { next.add(id); }
+      setCheckedItems(next);
+      updateDB(Array.from(next));
+  };
 
   const openModal = (type: string) => {
       setModalInitialType(type);
@@ -105,6 +393,17 @@ export function PlanningView() {
 
   const data = session?.brew?.recipe_data || {};
   
+  // Scaling Logic
+  const measurements = (session?.measurements as any) || {};
+  const scaleVolume = measurements.target_volume;
+  const originalVolume = measurements.original_volume;
+  const scaleEfficiency = measurements.target_efficiency;
+  const originalEfficiency = measurements.original_efficiency;
+
+  const volFactor = (scaleVolume && originalVolume) ? scaleVolume / originalVolume : 1;
+  const effFactor = (scaleEfficiency && originalEfficiency) ? originalEfficiency / scaleEfficiency : 1;
+  const maltFactor = volFactor * effFactor;
+
   // Normalize Ingredients
   const ingredients = {
       malts: data.ingredients?.malts || data.malts || [],
@@ -112,12 +411,44 @@ export function PlanningView() {
       yeast: data.ingredients?.yeast || data.yeast || null
   };
 
-  const toggleItem = (id: string) => {
-      const next = new Set(checkedItems);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      setCheckedItems(next);
-  };
+  // Calculate Water Profile logic
+  let waterProfile;
+  const boilTime = parseFloat(String(data.boil_time || 60)) / 60; // hours
+  const totalMaltBase = ingredients.malts.reduce((sum: number, m: any) => {
+      const amount = parseFloat(scaleAmount(m.amount, maltFactor).replace(',', '.'));
+      return sum + (isNaN(amount) ? 0 : amount);
+  }, 0);
+
+  // Default calculation (Physics Model)
+  waterProfile = calculateWaterProfile(
+      scaleVolume || 20, 
+      totalMaltBase, 
+      boilTime
+  );
+
+  // If recipe has explicit water values (from manual entry in editor), use them!
+  // BUT we must SCALE them if the session batch size differs from original
+  if (data.mash_water_liters && data.sparge_water_liters) {
+      const mashBase = parseFloat(String(data.mash_water_liters).replace(',', '.'));
+      const spargeBase = parseFloat(String(data.sparge_water_liters).replace(',', '.'));
+      const originalBatch = parseFloat(String(data.batch_size_liters || 20).replace(',', '.'));
+      
+      // Calculate scaling factor for WATER specifically
+      // Usually water scales linearly with Batch Size ratio
+      const waterScale = (scaleVolume && originalBatch) ? scaleVolume / originalBatch : 1;
+
+      waterProfile.mashWater = parseFloat((mashBase * waterScale).toFixed(1));
+      waterProfile.spargeWater = parseFloat((spargeBase * waterScale).toFixed(1));
+      waterProfile.totalWater = parseFloat(((mashBase + spargeBase) * waterScale).toFixed(1));
+      
+      // Recalculate Pre-Boil based on these values? 
+      // Physics: PreBoil = Mash + Sparge - GrainAbsorption
+      // We can use the physics model for absorption helper
+      const absorption = totalMaltBase * 0.96; // Standard absorption
+      waterProfile.preBoilVolume = parseFloat((waterProfile.totalWater - absorption).toFixed(1));
+  }
+
+
 
   const ChecklistItem = ({ id, name, amount }: { id: string, name: string, amount: string }) => {
       const isChecked = checkedItems.has(id);
@@ -158,6 +489,41 @@ export function PlanningView() {
         </div>
       </div>
 
+      {/* Water Profile */}
+      <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-5 mb-8">
+          <div className="flex items-center justify-between mb-4 border-b border-zinc-800 pb-2">
+            <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+                    <Droplets className="w-3 h-3 text-cyan-500" /> Wasser-Planung
+            </h3>
+            <button
+                onClick={() => openModal('MEASUREMENT_VOLUME')}
+                className="text-[10px] font-bold text-cyan-400 hover:text-cyan-300 uppercase tracking-wider flex items-center gap-1 bg-cyan-950/30 px-2 py-1 rounded border border-cyan-900/50 hover:border-cyan-500/50 transition-colors"
+            >
+                <Plus className="w-3 h-3" />
+                Messen
+            </button>
+          </div>
+          
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-zinc-950 p-3 rounded-lg border border-zinc-800/50 flex flex-col items-center text-center">
+                    <span className="text-[10px] text-zinc-500 uppercase font-bold mb-1">Hauptguss</span>
+                    <span className="text-xl font-bold text-white">{waterProfile.mashWater} <span className="text-sm text-zinc-600">L</span></span>
+                </div>
+                <div className="bg-zinc-950 p-3 rounded-lg border border-zinc-800/50 flex flex-col items-center text-center">
+                    <span className="text-[10px] text-zinc-500 uppercase font-bold mb-1">Nachguss</span>
+                    <span className="text-xl font-bold text-white">{waterProfile.spargeWater} <span className="text-sm text-zinc-600">L</span></span>
+                </div>
+                <div className="bg-zinc-950 p-3 rounded-lg border border-zinc-800/50 flex flex-col items-center text-center opacity-70">
+                    <span className="text-[10px] text-zinc-500 uppercase font-bold mb-1">Gesamt</span>
+                    <span className="text-lg font-bold text-zinc-300">{waterProfile.totalWater} <span className="text-sm text-zinc-600">L</span></span>
+                </div>
+                 <div className="bg-zinc-950 p-3 rounded-lg border border-zinc-800/50 flex flex-col items-center text-center opacity-70">
+                    <span className="text-[10px] text-zinc-500 uppercase font-bold mb-1">Pfanne voll</span>
+                    <span className="text-lg font-bold text-zinc-300">{waterProfile.preBoilVolume} <span className="text-sm text-zinc-600">L</span></span>
+                </div>
+          </div>
+      </div>
+
       {/* Ingredient Checklist Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
           {/* Malts */}
@@ -172,7 +538,7 @@ export function PlanningView() {
                                 key={`malt-${i}`}
                                 id={`malt-${i}`}
                                 name={m.name}
-                                amount={`${m.amount} ${m.unit || 'kg'}`}
+                                amount={`${scaleAmount(m.amount, maltFactor)} ${m.unit || 'kg'}`}
                            />
                        ))}
                   </div>
@@ -191,7 +557,7 @@ export function PlanningView() {
                                 key={`hop-${i}`}
                                 id={`hop-${i}`}
                                 name={h.name}
-                                amount={`${h.amount} ${h.unit || 'g'}`}
+                                amount={`${scaleAmount(h.amount, volFactor)} ${h.unit || 'g'}`}
                            />
                        ))}
                   </div>
@@ -230,17 +596,104 @@ export function PlanningView() {
 }
 
 export function BrewingView() {
-  const { session, changePhase, addEvent, removeEvent } = useSession();
+  const { session, changePhase, addEvent, removeEvent, updateSessionData } = useSession();
   const [og, setOg] = useState<string>('');
   const [showMeasureModal, setShowMeasureModal] = useState(false);
   const [modalInitialType, setModalInitialType] = useState<any>('NOTE');
   
+  // Ref for session to ensure debounced callbacks use latest state
+  const sessionRef = useRef(session);
+  useEffect(() => { sessionRef.current = session; }, [session]);
+
+  const updateMashTimer = useDebouncedCallback((timerState: any) => {
+      const currentSession = sessionRef.current;
+      if (!currentSession) return;
+      updateSessionData({
+          measurements: {
+              ...(currentSession.measurements || {}),
+              timers: {
+                  ...(currentSession.measurements?.timers || {}),
+                  mash: timerState
+              }
+          }
+      });
+  }, 2000);
+
+  const updateBoilTimer = useDebouncedCallback((timerState: any) => {
+      const currentSession = sessionRef.current;
+      if (!currentSession) return;
+      updateSessionData({
+          measurements: {
+              ...(currentSession.measurements || {}),
+              timers: {
+                  ...(currentSession.measurements?.timers || {}),
+                  boil: timerState
+              }
+          }
+      });
+  }, 2000);
+
   const data = session?.brew?.recipe_data || {};
+
+  // Scaling Logic
+  const measurements = (session?.measurements as any) || {};
+  const scaleVolume = measurements.target_volume;
+  const originalVolume = measurements.original_volume;
+  const volFactor = (scaleVolume && originalVolume) ? scaleVolume / originalVolume : 1;
+  const alphaCorrections = measurements.alpha_corrections || {};
   
   // Normalize Data (unchanged logic)
   const mashSteps = data.mash_steps || data.mash_schedule || data.steps || [];
-  const hops = (data.ingredients?.hops || data.hops || []).filter((h: any) => h.type === 'boil' || h.usage === 'Boil' || h.time > 0);
+  const hops = (data.ingredients?.hops || data.hops || [])
+    .filter((h: any) => h.type === 'boil' || h.usage === 'Boil' || h.time > 0)
+    .map((h: any) => {
+        const originalAmount = parseFloat(String(h.amount).replace(',', '.'));
+        const recipeAlpha = parseFloat(String(h.alpha).replace(',', '.'));
+        const actualAlpha = alphaCorrections[h.name];
+
+        let amount = scaleAmount(h.amount, volFactor);
+        let corrected = false;
+        
+        if (actualAlpha && recipeAlpha && actualAlpha > 0) {
+             const scaledOriginal = originalAmount * volFactor;
+             const calc = scaledOriginal * (recipeAlpha / actualAlpha);
+             
+             if (calc < 10) amount = calc.toFixed(2).replace('.', ',');
+             else if (calc < 100) amount = calc.toFixed(1).replace('.', ',');
+             else amount = Math.round(calc).toString();
+             
+             corrected = true;
+        }
+
+        return {
+            ...h,
+            amount: amount,
+            originalScaled: scaleAmount(h.amount, volFactor),
+            isCorrected: corrected,
+            actualAlpha: actualAlpha
+        };
+    });
   
+  const [editingAlpha, setEditingAlpha] = useState<string|null>(null);
+  const [alphaInput, setAlphaInput] = useState('');
+
+  const submitAlpha = (name: string) => {
+      if(!alphaInput) return;
+      const val = parseFloat(alphaInput.replace(',', '.'));
+      
+      updateSessionData({
+          measurements: {
+              ...measurements,
+              alpha_corrections: {
+                  ...alphaCorrections,
+                  [name]: val
+              }
+          }
+      });
+      setEditingAlpha(null);
+      setAlphaInput('');
+  };
+
   const openModal = (type: string) => {
       setModalInitialType(type);
       setShowMeasureModal(true);
@@ -354,7 +807,12 @@ export function BrewingView() {
                   <Flame className="w-3 h-3" /> Maischplan
               </h3>
               
-              <BrewTimer mode="MASH" steps={timerMashSteps} />
+              <BrewTimer 
+                mode="MASH" 
+                steps={timerMashSteps} 
+                initialState={session?.measurements?.timers?.mash}
+                onStateChange={updateMashTimer}
+              />
 
               <div className="space-y-3">
                   {mashSteps.map((step: any, i: number) => {
@@ -441,23 +899,33 @@ export function BrewingView() {
                 </div>
               </div>
               
-              <BrewTimer mode="BOIL" steps={timerBoilSteps} totalBoilTime={totalBoilTime} />
+              <BrewTimer 
+                mode="BOIL" 
+                steps={timerBoilSteps} 
+                totalBoilTime={totalBoilTime} 
+                initialState={session?.measurements?.timers?.boil}
+                onStateChange={updateBoilTimer}
+              />
               
               <div className="space-y-3">
                   {hops.sort((a: any, b: any) => b.time - a.time).map((hop: any, i: number) => {
                        const title = `${hop.name}`;
                        const desc = `${hop.amount}g bei ${hop.time} min`;
                        const isCompleted = !!findStepEvent(hop.name, desc);
+                       const isEditing = editingAlpha === hop.name;
 
                        return (
                            <div 
                                 key={i}
-                                onClick={() => handleHopAdd(hop)}
+                                onClick={(e) => {
+                                    if((e.target as HTMLElement).closest('.alpha-control')) return;
+                                    handleHopAdd(hop);
+                                }}
                                 className={`
                                     relative overflow-hidden rounded-lg border transition-all cursor-pointer group
                                     ${isCompleted 
                                         ? 'bg-zinc-900/30 border-zinc-800 opacity-60' 
-                                        : 'bg-zinc-900 border-zinc-800 hover:border-red-500/50 hover:bg-zinc-800'
+                                        : hop.isCorrected ? 'bg-zinc-900 border-zinc-800 hover:border-cyan-500/50 hover:bg-zinc-800' : 'bg-zinc-900 border-zinc-800 hover:border-red-500/50 hover:bg-zinc-800'
                                     }
                                 `}
                            >
@@ -485,11 +953,44 @@ export function BrewingView() {
                                                  <div className="text-[10px] text-zinc-500 hidden md:block">{hop.usage || 'Boil'} Addition</div>
                                             </div>
                                         </div>
+                                        
+                                        {/* Alpha Correction Control */}
+                                        <div className="alpha-control flex items-center gap-2">
+                                            {isEditing ? (
+                                                <div className="flex items-center gap-1 bg-zinc-950 rounded border border-zinc-700 p-1">
+                                                    <input 
+                                                        autoFocus
+                                                        type="number" 
+                                                        className="w-12 bg-transparent text-white text-xs outline-none text-right font-mono"
+                                                        value={alphaInput}
+                                                        onChange={(e) => setAlphaInput(e.target.value)}
+                                                        onKeyDown={(e) => e.key === 'Enter' && submitAlpha(hop.name)}
+                                                    />
+                                                    <span className="text-[9px] text-zinc-500">%</span>
+                                                    <button onClick={() => submitAlpha(hop.name)} className="text-emerald-500 hover:text-emerald-400"><Check size={12}/></button>
+                                                </div>
+                                            ) : (
+                                                <div 
+                                                    onClick={() => { setEditingAlpha(hop.name); setAlphaInput(hop.actualAlpha || hop.alpha || ''); }}
+                                                    className={`hidden md:flex flex-col items-end px-2 py-1 rounded border hover:border-zinc-600 transition-colors ${hop.isCorrected ? 'bg-cyan-950/20 border-cyan-900/50' : 'border-transparent'}`}
+                                                >
+                                                    <span className={`text-[10px] font-bold ${hop.isCorrected ? 'text-cyan-400' : 'text-zinc-600'}`}>
+                                                        α {hop.actualAlpha || hop.alpha}%
+                                                    </span>
+                                                    {hop.isCorrected && <span className="text-[8px] text-cyan-500/70 uppercase tracking-wider">Korrigiert</span>}
+                                                </div>
+                                            )}
+                                        </div>
 
                                         {/* 3 Amount (Right) */}
                                         <div className="text-right pl-4 border-l border-zinc-800/50">
-                                            <div className={`text-xl font-mono font-bold ${isCompleted ? 'text-zinc-500' : 'text-white'}`}>
-                                                {hop.amount}<span className="text-[10px] font-bold text-zinc-600 ml-1">g</span>
+                                            <div className={`text-xl font-mono font-bold flex flex-col items-end ${isCompleted ? 'text-zinc-500' : hop.isCorrected ? 'text-cyan-400' : 'text-white'}`}>
+                                                <span>{hop.amount}<span className="text-[10px] font-bold text-zinc-600 ml-1">g</span></span>
+                                                {hop.isCorrected && (
+                                                    <span className="text-xs text-zinc-500 line-through decoration-zinc-600/50">
+                                                        {hop.originalScaled}
+                                                    </span>
+                                                )}
                                             </div>
                                             <div className="text-[9px] uppercase font-bold text-zinc-600 tracking-wider">Menge</div>
                                         </div>
@@ -526,7 +1027,8 @@ export function BrewingView() {
             
             <div className="flex items-stretch gap-2 h-10 mb-2">
                 <input 
-                    type="number" 
+                    type="text"
+                    inputMode="decimal"
                     step="0.001" 
                     className="flex-1 bg-black border border-zinc-800 rounded-lg px-3 text-white font-mono text-sm placeholder:text-zinc-700 focus:border-emerald-500 focus:outline-none transition-colors"
                     placeholder={lastOgEvent ? `${(lastOgEvent.data as any)?.gravity}` : "1.050"}
@@ -629,58 +1131,8 @@ export function FermentingView() {
                </div>
             </div>
 
-            {/* Compact Measurements Widget */}
-            <div className="bg-zinc-900 rounded-lg border border-zinc-800 mb-8 overflow-hidden">
-                <div className="px-4 py-3 border-b border-zinc-800 bg-zinc-950/50 flex justify-between items-center">
-                    <h4 className="text-zinc-400 font-bold text-[10px] uppercase tracking-wider flex items-center gap-2">
-                        <Scale className="w-3 h-3" /> Messwerte & Kontrolle
-                    </h4>
-                    <div className="flex gap-2">
-                        <button onClick={() => openModal('MEASUREMENT_VOLUME')} className="px-2 py-1 bg-black hover:bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded text-[10px] font-bold text-zinc-400 transition-colors">
-                            + Volumen
-                        </button>
-                        <button onClick={() => openModal('MEASUREMENT_PH')} className="px-2 py-1 bg-black hover:bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded text-[10px] font-bold text-zinc-400 transition-colors">
-                            + pH
-                        </button>
-                    </div>
-                </div>
-
-                <div className="p-4">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-emerald-500 mb-2 block">
-                        Aktuelle Dichte (SG)
-                    </label>
-                    
-                    <div className="flex items-stretch gap-2 h-10 mb-2">
-                        <input 
-                            type="number" 
-                            step="0.001" 
-                            className="flex-1 bg-black border border-zinc-800 rounded-lg px-4 text-white font-mono text-sm placeholder:text-zinc-700 focus:border-emerald-500 focus:outline-none transition-colors"
-                            placeholder="1.xxx"
-                            value={sg}
-                            onChange={(e) => setSg(e.target.value)}
-                        />
-                        <button 
-                            onClick={handleLogSG}
-                            disabled={!sg}
-                            className="px-4 bg-zinc-800 hover:bg-emerald-600 disabled:opacity-50 disabled:hover:bg-zinc-800 text-white rounded-lg border border-zinc-700 font-bold transition-all"
-                        >
-                            <Check className="w-4 h-4" />
-                        </button>
-                    </div>
-
-                     {lastSgEvent && (
-                        <div className="flex items-center gap-2 text-emerald-500/80 mt-2 text-xs pl-1">
-                            <span className="uppercase font-bold text-[10px] tracking-wider">Letzte Messung</span>
-                            <span className="font-mono text-emerald-400 bg-emerald-950/30 px-1 rounded">
-                                {(lastSgEvent.data as any)?.gravity}
-                            </span>
-                             <span className="text-zinc-600">
-                                ({new Date(lastSgEvent.date).toLocaleDateString()})
-                            </span>
-                        </div>
-                     )}
-                </div>
-            </div>
+            {/* Fermentation Monitor */}
+            <FermentationMonitor session={session} />
 
             <AddEventModal 
                 isOpen={showMeasureModal} 
@@ -722,9 +1174,9 @@ export function ConditioningView() {
     }, [session?.brew]);
 
     useEffect(() => {
-        const v = parseFloat(carbVolume) || 0;
-        const t = parseFloat(carbTemp) || 20;
-        const co2 = parseFloat(carbTarget) || 5.0;
+        const v = parseFloat(carbVolume.replace(',', '.')) || 0;
+        const t = parseFloat(carbTemp.replace(',', '.')) || 20;
+        const co2 = parseFloat(carbTarget.replace(',', '.')) || 5.0;
         const res = calculatePrimingSugar(v, t, co2);
         setSugarResult(res);
     }, [carbVolume, carbTemp, carbTarget]);
@@ -762,7 +1214,8 @@ export function ConditioningView() {
                     <div>
                         <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-2 block">Menge (Liter)</label>
                         <InputField 
-                            type="number" 
+                            type="text"
+                            inputMode="decimal"
                             step="0.5"
                             value={carbVolume}
                             onChange={(e) => setCarbVolume(e.target.value)}
@@ -771,7 +1224,8 @@ export function ConditioningView() {
                     <div>
                         <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-2 block">Jungbier Temp (°C)</label>
                         <InputField 
-                            type="number" 
+                            type="text"
+                            inputMode="decimal"
                             step="1"
                             value={carbTemp}
                             onChange={(e) => setCarbTemp(e.target.value)}
@@ -781,7 +1235,8 @@ export function ConditioningView() {
                     <div>
                         <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-2 block">Ziel CO₂ (g/l)</label>
                         <InputField 
-                            type="number" 
+                            type="text"
+                            inputMode="decimal"
                             step="0.1"
                             value={carbTarget}
                             onChange={(e) => setCarbTarget(e.target.value)}

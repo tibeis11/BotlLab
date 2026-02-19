@@ -120,11 +120,12 @@ export function YeastListEditor({ value, onChange }: YeastListEditorProps) {
                                     <label className="text-[10px] uppercase font-bold text-zinc-500">Menge</label>
                                     <div className="relative">
                                         <input 
-                                            type="number"
+                                            type="text"
+                                            inputMode="decimal"
                                             className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-3 pr-3 py-3 text-white focus:border-blue-500 outline-none placeholder:text-zinc-700"
                                             placeholder="0"
                                             value={items[editingIndex].amount}
-                                            onChange={(e) => updateRow(editingIndex, 'amount', e.target.value)}
+                                            onChange={(e) => updateRow(editingIndex, 'amount', e.target.value.replace(',', '.'))}
                                         />
                                     </div>
                                 </div>
@@ -242,10 +243,12 @@ export function YeastListEditor({ value, onChange }: YeastListEditorProps) {
                                 onChange={(e) => updateRow(idx, 'name', e.target.value)}
                             />
                             <input 
+                                type="text"
+                                inputMode="decimal"
                                 className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-2 text-sm text-white focus:border-cyan-500 outline-none text-right placeholder:text-zinc-700"
                                 placeholder="0"
                                 value={item.amount}
-                                onChange={(e) => updateRow(idx, 'amount', e.target.value)}
+                                onChange={(e) => updateRow(idx, 'amount', e.target.value.replace(',', '.'))}
                             />
                             <input 
                                 className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-2 text-sm text-white focus:border-cyan-500 outline-none placeholder:text-zinc-700"
@@ -254,10 +257,12 @@ export function YeastListEditor({ value, onChange }: YeastListEditorProps) {
                                 onChange={(e) => updateRow(idx, 'unit', e.target.value)}
                             />
                             <input 
+                                type="text"
+                                inputMode="decimal"
                                 className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-2 text-sm text-white focus:border-cyan-500 outline-none text-right placeholder:text-zinc-700"
                                 placeholder="75"
                                 value={item.attenuation || ''}
-                                onChange={(e) => updateRow(idx, 'attenuation', e.target.value)}
+                                onChange={(e) => updateRow(idx, 'attenuation', e.target.value.replace(',', '.'))}
                             />
                             <button 
                                 onClick={() => removeRow(idx)}

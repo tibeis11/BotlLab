@@ -1,15 +1,17 @@
 'use client';
 
 import { useEffect, useState, use } from 'react';
-import { supabase, getBreweryMembers } from '@/lib/supabase';
+import { getBreweryMembers } from '@/lib/supabase';
+import { useSupabase } from '@/lib/hooks/useSupabase';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
 import { addToFeed } from '@/lib/feed-service';
-import { getTierConfig, getBreweryTierConfig } from '@/lib/tier-system';
+import { getTierConfig, getBreweryTierConfig, BreweryTierName } from '@/lib/tier-system';
 import { trackEvent } from '@/lib/actions/analytics-actions';
 import { Users, Shield, Copy, RefreshCcw, Trash2, Crown, Sparkles, Check, Search } from 'lucide-react';
 
 export default function TeamMembersPage({ params }: { params: Promise<{ breweryId: string }> }) {
+  const supabase = useSupabase();
   const { breweryId } = use(params);
   const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -48,13 +50,14 @@ export default function TeamMembersPage({ params }: { params: Promise<{ breweryI
         .eq('id', breweryId)
         .single();
       
-      setActiveBrewery(brewery);
-      
-      const config = getBreweryTierConfig(brewery.tier || 'garage');
-      setMemberLimit(config.limits.maxMembers);
+      if (brewery) {
+        setActiveBrewery(brewery);
+        const config = getBreweryTierConfig((brewery.tier || 'garage') as BreweryTierName);
+        setMemberLimit(config.limits.maxMembers);
+      }
 
       // Get Members
-      const memberList = await getBreweryMembers(breweryId);
+      const memberList = await getBreweryMembers(breweryId, supabase);
       setMembers(memberList);
 
       if (user) {
@@ -95,7 +98,7 @@ export default function TeamMembersPage({ params }: { params: Promise<{ breweryI
       if (error) throw error;
 
       // Feed Update
-      await addToFeed(breweryId, user, 'POST', {
+      await addToFeed(supabase, breweryId, user, 'POST', {
         message: 'hat ein Mitglied aus dem Team entfernt.'
       });
       

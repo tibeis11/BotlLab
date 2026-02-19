@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { supabase } from '@/lib/supabase';
+import { useSupabase } from '@/lib/hooks/useSupabase';
 import Scanner from '@/app/components/Scanner';
 import { useAuth } from '@/app/context/AuthContext';
 import { Camera, CheckCircle2, AlertTriangle, XCircle, Calendar, X } from 'lucide-react';
@@ -11,6 +11,8 @@ interface BottleScannerProps {
   breweryId: string;
   brewId: string | null;
   onBottleScanned?: (bottleNumber: number) => void;
+  className?: string; // Allow custom styling
+  variant?: 'default' | 'clean'; // 'clean' matches the new conditioning tab style
 }
 
 const playBeep = (type: 'success' | 'error') => {
@@ -49,8 +51,11 @@ export default function BottleScanner({
   sessionId, 
   breweryId, 
   brewId,
-  onBottleScanned 
+  onBottleScanned,
+  className,
+  variant = 'default'
 }: BottleScannerProps) {
+  const supabase = useSupabase();
   const { user } = useAuth();
   const [showScanner, setShowScanner] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -74,27 +79,47 @@ export default function BottleScanner({
       if (!error && count !== null) setFilledCount(count);
     };
     fetchCount();
-  }, [sessionId]);
+  }, [sessionId, supabase]);
 
   const handleScan = async (decodedText: string) => {
     const now = Date.now();
     if (now - lastScanTime.current < 800) return; // 0.8s cooldown
     if (isProcessing) return;
 
-    // Match UUID
-    const idMatch = decodedText.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
-    if (!idMatch) {
-        if (now - lastScanTime.current > 2000) {
-            lastScanTime.current = now;
-            playBeep('error');
-            setScanFeedback({ type: 'error', msg: "Ungültiger QR-Code (Keine Flaschen-ID)", id: now });
+    let scanId = decodedText;
+    let isShortCode = false;
+
+    // 1. Check if input is a URL containing /b/
+    if (decodedText.includes('/b/')) {
+        const parts = decodedText.split('/b/');
+        if (parts.length > 1) {
+            scanId = parts[1].split('?')[0]; // Simple cleaning if query params exist
+            isShortCode = true;
         }
-        return;
+    } else {
+        // 2. Check if it's a UUID
+        const idMatch = decodedText.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+        if (idMatch) {
+            scanId = idMatch[0];
+            isShortCode = false;
+        } else {
+            // 3. Assume Short Code if 8 chars alphanumeric
+            if (/^[A-Za-z0-9]{8}$/.test(decodedText)) {
+                scanId = decodedText;
+                isShortCode = true;
+            } else {
+                if (now - lastScanTime.current > 2000) {
+                    lastScanTime.current = now;
+                    playBeep('error');
+                    setScanFeedback({ type: 'error', msg: "Ungültiger QR-Code (Keine Flaschen-ID)", id: now });
+                }
+                return;
+            }
+        }
     }
 
-    const bottleId = idMatch[0];
-    
-    if (scanFeedback?.type === 'success' && scanFeedback.msg.includes(bottleId)) { 
+    // Prevent duplicate scan spam for same ID
+    if (scanFeedback?.type === 'success' && scanFeedback.msg.includes(scanId)) { 
          return; 
     }
 
@@ -105,13 +130,19 @@ export default function BottleScanner({
       if (!user) throw new Error("Nicht eingeloggt. Bitte neu laden.");
 
       // 1. Check existing status
-      const { data: existing, error: checkError } = await supabase
+      let query = supabase
         .from('bottles')
-        .select('id, bottle_number, session_id, brewery_id')
-        .eq('id', bottleId)
-        .single();
+        .select('id, bottle_number, session_id, brewery_id');
+      
+      if (isShortCode) {
+          query = query.eq('short_code', scanId);
+      } else {
+          query = query.eq('id', scanId);
+      }
 
-      if (checkError) throw new Error("Flasche nicht gefunden.");
+      const { data: existing, error: checkError } = await query.single();
+
+      if (checkError) throw new Error("Flasche nicht gefunden (DB).");
       
       if (existing.brewery_id !== breweryId) {
         throw new Error("Fremde Flasche! Gehört nicht zur Brauerei.");
@@ -125,7 +156,9 @@ export default function BottleScanner({
         return;
       }
 
-      // 2. Assign bottle
+      // 2. Assign bottle (We need the UUID for update regardless of scan method)
+      const bottleUuid = existing.id;
+
       const { data, error } = await supabase
         .from('bottles')
         .update({ 
@@ -134,7 +167,7 @@ export default function BottleScanner({
           filled_at: new Date(filledAtDate).toISOString(),
           user_id: user?.id 
         })
-        .eq('id', bottleId)
+        .eq('id', bottleUuid)
         .select('bottle_number');
 
       if (error) throw error;
@@ -153,9 +186,10 @@ export default function BottleScanner({
       
       if (onBottleScanned) onBottleScanned(updatedBottle.bottle_number);
     } catch (e: any) {
+      console.error(e);
       playBeep('error');
       setShowFlash('error');
-      setScanFeedback({ type: 'error', msg: e.message, id: Date.now() });
+      setScanFeedback({ type: 'error', msg: e.message || "Fehler beim Scannen", id: Date.now() });
     } finally {
       setTimeout(() => {
         setIsProcessing(false);
@@ -164,15 +198,17 @@ export default function BottleScanner({
     }
   };
 
+  const isClean = variant === 'clean';
+
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden">
+    <div className={`border border-zinc-800 ${isClean ? 'bg-zinc-900/30 rounded-xl p-6' : 'bg-zinc-900 rounded-lg overflow-hidden'} ${className || ''}`}>
       {/* Header */}
-      <div className="p-4 border-b border-zinc-800 bg-zinc-950/50 flex justify-between items-center">
+      <div className={`flex justify-between items-center ${isClean ? 'mb-6' : 'p-4 border-b border-zinc-800 bg-zinc-950/50'}`}>
          <div>
-             <h3 className="text-zinc-200 font-bold text-sm tracking-tight flex items-center gap-2">
-                <Camera className="w-4 h-4 text-zinc-400" /> Flaschen scannen
+             <h3 className={`font-bold tracking-tight flex items-center gap-2 ${isClean ? 'text-sm text-white' : 'text-zinc-200 text-sm'}`}>
+                <Camera className={`w-4 h-4 ${isClean ? 'text-purple-500' : 'text-zinc-400'}`} /> Flaschen scannen
              </h3>
-             <p className="text-xs text-zinc-500 mt-0.5">Weise Flaschen diesem Sud zu</p>
+             {!isClean && <p className="text-xs text-zinc-500 mt-0.5">Weise Flaschen diesem Sud zu</p>}
          </div>
          <div className="flex items-center gap-4">
             {lastScannedNumber && (
@@ -188,7 +224,7 @@ export default function BottleScanner({
          </div>
       </div>
 
-      <div className="p-4 space-y-4">
+      <div className={isClean ? 'space-y-4' : 'p-4 space-y-4'}>
         {/* Date Selector */}
         <div className="relative">
           <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1.5 block flex items-center gap-1">

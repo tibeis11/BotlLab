@@ -2,6 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { updateProfile } from '@/lib/actions/profile-actions';
 import { supabase, getUserBreweries } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
@@ -17,7 +18,7 @@ import ResponsiveTabs from '@/app/components/ResponsiveTabs';
 import { User, CreditCard, Users, Key, ShieldCheck, Eye, AlertTriangle, Menu, Settings, Lock, Mail, ShieldAlert, Loader2, Construction, Check, CheckCircle, Infinity, X, Globe, Home, Factory, ArrowRight, LogOut, BarChart3 } from 'lucide-react';
 
 export default function AccountPage() {
-	const { user, loading: authLoading } = useAuth();
+	const { user, loading: authLoading, signOut } = useAuth();
 	const [loading, setLoading] = useState(true);
     
 	// Access Code State
@@ -146,32 +147,20 @@ export default function AccountPage() {
 		if (!user) return;
 		setSavingProfile(true);
 
-        // Security Check: Prevent "admin" display name
-        if (profile.display_name.trim().toLowerCase() === 'admin') {
-            // Check if user is ALREADY admin (allowed to keep it)
-            const { data: currentProfile } = await supabase.from('profiles').select('display_name').eq('id', user.id).single();
-            if (currentProfile?.display_name !== 'admin') {
-                alert('Der Benutzername "admin" ist reserviert und kann nicht verwendet werden.');
-                setSavingProfile(false);
-                return;
-            }
-        }
-
-		const updates = {
-			id: user.id,
+        const updates = {
 			display_name: profile.display_name,
 			location: profile.location,
-			founded_year: parseInt(profile.founded_year) || null,
+			founded_year: profile.founded_year ? parseInt(String(profile.founded_year)) : null,
             bio: profile.bio,
             birthdate: profile.birthdate || null,
-			website: profile.website,
-			updated_at: new Date(),
-		};
+			website: profile.website || "",
+        };
 
-		const { error } = await supabase.from('profiles').upsert(updates);
+        const { error } = await updateProfile(updates);
 
 		if (error) {
-			alert('Fehler beim Speichern: ' + error.message);
+             const msg = typeof error === 'string' ? error : Object.values(error).flat().join(', ');
+			alert('Fehler beim Speichern: ' + msg);
 		} else {
 			const btn = document.getElementById('saveBtn');
 			if (btn) {
@@ -1181,7 +1170,7 @@ export default function AccountPage() {
                                             <p className="text-sm text-zinc-500 mt-1 max-w-sm">Beende deine aktuelle Sitzung auf diesem Gerät.</p>
                                         </div>
                                          <button
-                                            onClick={() => supabase.auth.signOut().then(() => (window.location.href = '/login'))}
+                                            onClick={() => signOut()} // Use centralized signOut
                                             className="w-full sm:w-auto text-zinc-400 hover:text-white hover:bg-zinc-800 px-6 py-2 rounded-lg text-sm font-bold transition border border-zinc-800 hover:border-zinc-500 whitespace-nowrap"
                                         >
                                             Abmelden

@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useState, use } from 'react';
-import { supabase } from '@/lib/supabase';
+import { useSupabase } from '@/lib/hooks/useSupabase';
 import { useAuth } from '@/app/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { addToFeed } from '@/lib/feed-service';
 import Link from 'next/link';
 
 export default function JoinBreweryPage({ params }: { params: Promise<{ breweryId: string }> }) {
+  const supabase = useSupabase();
   const { breweryId } = use(params);
   const { user, loading: authLoading } = useAuth();
   const [brewery, setBrewery] = useState<any>(null);
@@ -81,7 +82,7 @@ export default function JoinBreweryPage({ params }: { params: Promise<{ breweryI
         if (joinError) throw joinError;
 
         // Feed Update
-        await addToFeed(brewery.id, user, 'MEMBER_JOINED', {
+        await addToFeed(supabase, brewery.id, user, 'MEMBER_JOINED', {
             member_name: 'Ein neuer Brauer'
         });
 

@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState, use } from 'react';
-import { supabase, getBreweryMembers } from '@/lib/supabase';
+import { getBreweryMembers } from '@/lib/supabase';
+import { useSupabase } from '@/lib/hooks/useSupabase';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
@@ -35,6 +36,7 @@ import {
 } from 'lucide-react';
 
 export default function TeamBrewsPage({ params }: { params: Promise<{ breweryId: string }> }) {
+  const supabase = useSupabase();
   const { breweryId } = use(params);
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();

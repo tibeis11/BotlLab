@@ -65,6 +65,36 @@ Examples of good names:
 - "Midnight Berry Fusion"
 
 Now generate ONE creative name:`;
+    } else if (type === "guide") {
+       // Context: { details = contextKey, context = sessionContext: { brewStyle, targetOG, currentGravity, mashTempC, mashDurationMin, yeast, ... } }
+       const ctx = context || {};
+       const keyParts = (details || "").split('.'); // details holds contextKey (e.g. "rast.maltoserast")
+       const topic = keyParts.length > 1 ? keyParts[1] : details;
+
+       prompt = `Du bist ein erfahrener Braumeister (Weihenstephan-Diplom) und begleitest einen Heimbrauer live.
+
+Kontext:
+- Thema: ${details} (${topic})
+- Bierstil: ${ctx.brewStyle || "Unbekannter Stil"}
+- Ziel-OG: ${ctx.targetOG ? ctx.targetOG : "N/A"}
+${ctx.currentGravity ? `- Aktuelle Dichte: ${ctx.currentGravity}` : ""}
+${ctx.mashTempC ? `- Maischtemperatur: ${ctx.mashTempC}°C` : ""}
+${ctx.yeast ? `- Hefe: ${ctx.yeast}` : ""}
+
+Aufgabe:
+Erkläre kurz und prägnant (max. 60 Wörter) auf Deutsch, warum dieser Schritt für GENAU DIESEN Bierstil wichtig ist oder was physikalisch/biologisch gerade passiert.
+Gehe konkret auf die Werte ein (z.B. warum 63°C für diesen Stil gut sind).
+
+Tone of Voice:
+Professionell, lehrreich, aber auf Augenhöhe ("Du"). Kein "Hallo", direkt zur Sache.
+
+WICHTIG:
+- Max. 60 Wörter.
+- Wenn du unsicher bist, antworte allgemein.
+- Keine Erfindungen.
+- Markdown ist erlaubt (Fettung wichtiger Begriffe).
+
+Antwort:`;
     } else if (type === "description") {
       prompt = `Write a compelling, professional description for a ${brewType} with these characteristics: ${
         details || style || "craft beverage"
@@ -195,11 +225,15 @@ WICHTIG: Antworte NUR mit dem JSON-Array, keine zusätzlichen Erklärungen!`;
     }
 
     // Clean up the response for name/description - remove quotes, markdown, etc.
-    const cleanText = text
-      .replace(/^["']|["']$/g, "") // Remove quotes at start/end
-      .replace(/^\*\*|\*\*$/g, "") // Remove bold markdown
-      .replace(/^#+\s*/g, "") // Remove markdown headers
-      .trim();
+    let cleanText = text;
+
+    if (type !== 'guide') {
+        cleanText = text
+          .replace(/^["']|["']$/g, "") // Remove quotes at start/end
+          .replace(/^\*\*|\*\*$/g, "") // Remove bold markdown
+          .replace(/^#+\s*/g, "") // Remove markdown headers
+          .trim();
+    }
 
     // Track usage for analytics (Admin Dashboard)
     await trackEvent({

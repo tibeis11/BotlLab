@@ -1,0 +1,62 @@
+{
+  "rast.maltoserast": {
+    "title": "Maltoserast",
+    "content": "Die Maltoserast findet üblicherweise zwischen 60–65°C statt. Hier ist das Enzym Beta-Amylase am aktivsten. Es spaltet vergärbaren Malzzucker (Maltose) von den Stärkeenden ab. Eine längere Rast (40–60 Min) in diesem Bereich führt zu einer hohen Vergärbarkeit und einem trockenen, schlanken Bier mit mehr Alkohol."
+  },
+  "rast.verzuckerungsrast": {
+    "title": "Verzuckerungsrast",
+    "content": "Bei ca. 70–73°C ist die Alpha-Amylase aktiv. Sie zerhackt Stärke in unvergärbare Dextrine. Diese Dextrine bleiben im fertigen Bier, erhöhen den Restextrakt und verleihen dem Bier mehr Körper ('Vollmundigkeit'). Eine Kombirast bei 67°C ist ein Kompromiss für ausgewogene Biere."
+  },
+  "rast.abmaischrast": {
+    "title": "Abmaischrast",
+    "content": "Bei 78°C werden alle noch aktiven Enzyme inaktiviert, um das Zuckerprofil 'einzufrieren'. Gleichzeitig sinkt die Viskosität der Würze, was das Läutern beschleunigt und effizienter macht. Nicht höher als 80°C erhitzen, da sich sonst Gerbstoffe aus den Spelzen lösen können."
+  },
+  "brautag.laeutern": {
+    "title": "Läutern & Nachguss",
+    "content": "Beim Läutern wird die Würze vom Treber getrennt. Die Spelzen des Malzes bilden dabei ihren eigenen Filterkorb. Langsam und gleichmäßig läutern verhindert Kanalbildung. Der Nachguss (heißes Wasser ~78°C) spült die restlichen Zucker aus dem Treber — nicht heißer, sonst lösen sich Gerbstoffe aus den Spelzen und das Bier wird adstringierend."
+  },
+  "brautag.og_messen": {
+    "title": "Stammwürze (OG) messen",
+    "content": "Die Messung der Stammwürze (Original Gravity) nach dem Kochen und Abkühlen ist der wichtigste Wert des Brautags. Er bestimmt den potenziellen Alkoholgehalt. Ist der Wert zu hoch? Verdünne mit Wasser. Zu niedrig? Koche länger oder füge Extrakt hinzu."
+  },
+  "brautag.kuehlkurve": {
+    "title": "Würzekühlung",
+    "content": "Schnelles Abkühlen ist entscheidend für die Qualität. Es verhindert die Bildung von DMS (Gemüsegeschmack) und sorgt für den 'Kalttrubausfall' (Klärung). Bringe die Würze so schnell wie möglich auf die Ziel-Anstelltemperatur deiner Hefe."
+  },
+  "gaerung.sg_eingabe": {
+    "title": "Dichte messen",
+    "content": "Tägliche Messungen gegen Ende der Gärung helfen dir, das Gärende zu erkennen. Wenn der Wert 3 Tage lang stabil bleibt, ist die Hauptgärung durch. Wichtig: Immer bei ähnlicher Temperatur messen oder den Temperatur-Korrekturrechner nutzen."
+  },
+  "gaerung.temperaturkorrektur": {
+    "title": "Temperaturkorrektur",
+    "content": "Hydros (Spindeln) sind meist auf 20°C geeicht. Warme Flüssigkeit ist weniger dicht, kalte dichter. Unser Rechner korrigiert diesen physikalischen Fehler automatisch, damit du deine Werte direkt vergleichen kannst."
+  },
+  "gaerung.endverwaerungsgrad": {
+    "title": "Scheinbarer Endvergärungsgrad (sEVG)",
+    "content": "Der sEVG gibt an, wie viel Prozent des verfügbaren Zuckers die Hefe vergoren hat. Typische Werte liegen zwischen 70–80%. Ein niedriger EVG deutet auf Gärstockung oder viele unvergärbare Zucker (hohe Maischtemperatur) hin."
+  },
+  "gaerung.gaerende_erkennen": {
+    "title": "Wann ist die Gärung fertig?",
+    "content": "Die Gärung ist fertig, wenn sich der Dichtewert (SG/Plato) über 3 Tage nicht mehr ändert UND der Wert nah am erwarteten Endvergärungsgrad liegt. Die Gäraktivität im Spundloch (Blubbern) ist KEIN zuverlässiger Indikator!"
+  },
+  "gaerung.druck": {
+    "title": "Gären unter Druck",
+    "content": "Druckgärung (Spundung) unterdrückt die Bildung von Ester (Fruchtaromen) und höheren Alkoholen. Das erlaubt wärmere Gärtemperaturen bei Lager-Hefen ohne Geschmacksfehler. Zusätzlich wird das Bier bereits während der Gärung karbonisiert."
+  },
+  "reifung.karbonisierung": {
+    "title": "Zwangskarbonisierung vs. Nachgärung",
+    "content": "Bei der Nachgärung in der Flasche wird Zucker zugegeben, den die Hefe in CO₂ umwandelt. Wichtig: Das Bier muss ausgegoren sein, sonst entstehen 'Flaschenbomben'. Bei Zwangskarbonisierung (Keg) wird CO₂ aus der Flasche ins Bier gedrückt."
+  },
+  "hefe.harvest": {
+    "title": "Hefe ernten (Erntehefe)",
+    "content": "Gesunde Hefe kann mehrfach geführt werden. Ernte vorzugsweise die mittlere Schicht des Bodensatzes (weiß, cremig). Die erste Generation ist oft die reinste, aber Generation 2–5 gären oft schneller und zuverlässiger."
+  },
+  "wasser.restalkalitaet": {
+    "title": "Restalkalität (RA)",
+    "content": "Die RA bestimmt, wie stark das Malz den pH-Wert senken kann. Helles Bier braucht niedrige RA (-5 bis 0 dH), dunkles verträgt höhere Werte. Zu hohe RA führt zu kratziger Bittere und schlechterer Ausbeute."
+  },
+  "effizienz.sudhausausbeute": {
+    "title": "Sudhausausbeute (SHA)",
+    "content": "Die SHA sagt dir, wie viel Zucker du effektiv aus dem Malz in den Gäreimer bekommen hast. Typisch sind 60–75%. Niedrige Werte entstehen oft durch schlechtes Schroten, Kanalbildung beim Läutern oder falsche pH-Werte beim Maischen."
+  }
+}

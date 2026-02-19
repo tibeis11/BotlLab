@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState, use } from 'react';
-import { supabase, getBreweryMembers } from '@/lib/supabase';
+import { getBreweryMembers } from '@/lib/supabase';
+import { useSupabase } from '@/lib/hooks/useSupabase';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
@@ -52,6 +53,7 @@ const getPhaseLabel = (p: SessionPhase) => {
 };
 
 export default function TeamSessionsPage({ params }: { params: Promise<{ breweryId: string }> }) {
+  const supabase = useSupabase();
   const { breweryId } = use(params);
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
@@ -80,7 +82,7 @@ export default function TeamSessionsPage({ params }: { params: Promise<{ brewery
         return;
       }
 
-      const members = await getBreweryMembers(breweryId);
+      const members = await getBreweryMembers(breweryId, supabase);
       const isUserMember = members.some((m: any) => m.user_id === user.id);
       setIsMember(isUserMember);
 
@@ -416,7 +418,25 @@ function SessionCard({ session, breweryId }: { session: any, breweryId: string }
         const ogEvent = timeline.filter((e: any) => e.type === 'MEASUREMENT_OG')
             .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
         
-        og = ogEvent?.data?.gravity || null;
+        const measuredOg = session.measured_og || ogEvent?.data?.gravity || null;
+
+        // TARGET OG Fallback (Recipe)
+        const targetOgRaw = session.brew?.recipe_data?.Stammwuerze || session.brew?.recipe_data?.stammwuerze || session.brew?.recipe_data?.og;
+        const targetOg = targetOgRaw ? (parseFloat(targetOgRaw) > 2 ? platoToSG(parseFloat(targetOgRaw)) : parseFloat(targetOgRaw)) : null;
+
+        og = measuredOg || targetOg;
+        
+        // ABV Logic:
+        // 1. If we have measured stats, use them (stats.abv is already calculated)
+        // 2. If we only have OG (measured or target) and current gravity, calc it
+        if (!stats.abv && og && stats.currentGravity) {
+             stats.abv = calculateABVFromSG(og, stats.currentGravity).toFixed(1);
+        }
+        // 3. If still no ABV, try target ABV from recipe
+        if (!stats.abv) {
+             const targetAbv = session.brew?.recipe_data?.Alkohol || session.brew?.recipe_data?.alkohol || session.brew?.recipe_data?.abv;
+             if (targetAbv) stats.abv = parseFloat(targetAbv).toFixed(1);
+        }
     }
 
     // Fallback Image
@@ -494,9 +514,9 @@ function SessionCard({ session, breweryId }: { session: any, breweryId: string }
                  {/* Mini Metrics Grid */}
                  <div className="grid grid-cols-2 gap-3 mt-auto">
                     <div className="bg-black/40 rounded-lg p-3 border border-zinc-900">
-                        <div className="text-[10px] text-zinc-500 font-bold uppercase mb-1 flex items-center gap-1.5">
-                            <FlaskConical className="w-3 h-3" />
-                            Stammwürze
+                        <div className="text-[10px] text-zinc-500 font-bold uppercase mb-1 flex items-center gap-1.5 whitespace-nowrap overflow-hidden">
+                            <FlaskConical className="w-3 h-3 shrink-0" />
+                            <span className="truncate">Stammwürze</span>
                         </div>
                         <div className="text-zinc-200 font-mono font-bold text-sm">
                             {og ? `${Number(og).toFixed(3)}` : '—'}
@@ -514,10 +534,10 @@ function SessionCard({ session, breweryId }: { session: any, breweryId: string }
                         </div>
                     ) : (
                         <div className="bg-black/40 rounded-lg p-3 border border-zinc-900">
-                             <div className="text-[10px] text-zinc-500 font-bold uppercase mb-1 flex items-center gap-1.5">
-                                <FlaskConical className="w-3 h-3" />
-                                Alkohol
-                             </div>
+                        <div className="text-[10px] text-zinc-500 font-bold uppercase mb-1 flex items-center gap-1.5 whitespace-nowrap overflow-hidden">
+                            <FlaskConical className="w-3 h-3 shrink-0" />
+                            <span className="truncate">Alkohol</span>
+                         </div>
                              <div className="text-zinc-400 font-mono font-bold text-sm">
                                  {stats.abv ? `${stats.abv}%` : '—'}
                              </div>

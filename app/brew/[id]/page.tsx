@@ -10,8 +10,8 @@ import remarkBreaks from 'remark-breaks';
 import Header from '@/app/components/Header';
 import Logo from '@/app/components/Logo';
 import LikeButton from '@/app/components/LikeButton';
-import { ebcToHex, sgToPlato } from '@/lib/brewing-calculations';
-import { Star, Users, MessageCircle, Library, Shuffle } from 'lucide-react';
+import { ebcToHex, sgToPlato, calculateWaterProfile } from '@/lib/brewing-calculations';
+import { Star, Users, MessageCircle, Library, Shuffle, CheckCircle2, Wheat, Thermometer, Flame, Droplets, Clock, Scale, Timer, Microscope, Grape, Wine, Citrus } from 'lucide-react';
 import { saveBrewToLibrary } from '@/lib/actions/library-actions';
 import { useGlobalToast } from '@/app/context/AchievementNotificationContext';
 import { getPremiumStatus } from '@/lib/actions/premium-actions';
@@ -26,105 +26,231 @@ const formatMarkdown = (text: string) => {
   return text.replace(/([^\n])\n(\s*-[ \t])/g, '$1\n\n$2');
 };
 
+const scaleAmount = (amount: any, factor: number) => {
+    if (factor === 1) return amount;
+    if (!amount) return amount;
+    const num = parseFloat(String(amount).replace(',', '.'));
+    if (isNaN(num)) return amount;
+    
+    // Smart rounding
+    const result = num * factor;
+    if (result < 10) return result.toFixed(2).replace('.', ',');
+    if (result < 100) return result.toFixed(1).replace('.', ',');
+    return Math.round(result).toString();
+};
+
 // Share Button logic is now integrated into the main component
 
 // Helper Component for Ingredients
-function MaltView({ value }: { value: any }) {
+
+
+function MaltView({ value, factor = 1 }: { value: any, factor?: number }) {
     if (!value || !Array.isArray(value)) return <IngredientView value={value} />;
 
     return (
-        <ul className="space-y-3">
-            {value.map((item: any, i: number) => (
-                <li key={i} className="flex justify-between items-start text-sm border-b border-zinc-800/30 pb-2 last:border-0 last:pb-0">
-                    <div className="flex flex-col">
-                        <span className="text-zinc-200 font-medium">{item.name}</span>
-                        {item.color_ebc && (
-                            <span className="text-[10px] text-amber-500 font-bold mt-0.5 inline-flex items-center gap-1">
-                                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: `hsl(35, 100%, ${Math.max(20, 90 - (parseInt(item.color_ebc) * 2))}%)` }}></span>
-                                {item.color_ebc} EBC
-                            </span>
-                        )}
-                    </div>
-                    <span className="text-zinc-500 font-mono text-xs whitespace-nowrap ml-4 text-right">
-                        <span className="text-white font-bold text-base block">{item.amount}</span>
-                        <span className="opacity-70">{item.unit || 'kg'}</span>
-                    </span>
-                </li>
-            ))}
-        </ul>
+        <div className="w-full">
+            <div className="flex justify-between text-[10px] font-bold text-zinc-600 uppercase tracking-wider mb-2 border-b border-zinc-800 pb-2">
+                <span>Malz / Getreide</span>
+                <div className="flex gap-8">
+                     <span className="w-16 text-right">Menge</span>
+                </div>
+            </div>
+            <ul className="space-y-3">
+                {value.map((item: any, i: number) => (
+                    <li key={i} className="flex justify-between items-center text-sm group hover:bg-zinc-900/30 rounded px-2 -mx-2 py-1 transition-colors">
+                        <div className="flex items-center gap-3">
+                            {item.color_ebc && (
+                                <div 
+                                    className="w-2 h-2 rounded-full ring-1 ring-white/10" 
+                                    style={{ backgroundColor: `hsl(35, 100%, ${Math.max(20, 90 - (parseInt(item.color_ebc) * 2))}%)` }}
+                                    title={`${item.color_ebc} EBC`}
+                                />
+                            )}
+                            <div className="flex flex-col">
+                                <span className="text-zinc-200 font-medium">{item.name}</span>
+                                {item.color_ebc && <span className="text-[10px] text-zinc-500">{item.color_ebc} EBC</span>}
+                            </div>
+                        </div>
+                        <div className="text-right font-mono text-zinc-400">
+                            <span className="text-white font-bold">{scaleAmount(item.amount, factor)}</span> {item.unit || 'kg'}
+                        </div>
+                    </li>
+                ))}
+            </ul>
+        </div>
     );
 }
 
-function HopView({ value }: { value: any }) {
+function HopView({ value, factor = 1 }: { value: any, factor?: number }) {
+    const [corrections, setCorrections] = useState<{ [key: number]: number | null }>({});
+    const [isCorrectionMode, setIsCorrectionMode] = useState(false);
+
     if (!value || !Array.isArray(value)) return <IngredientView value={value} />;
 
+    const setAlpha = (i: number, alpha: number) => {
+        setCorrections(prev => ({ ...prev, [i]: alpha }));
+    };
+
+    const hasCorrections = Object.keys(corrections).some(k => corrections[parseInt(k)] !== null);
+
     return (
-        <ul className="space-y-4">
-            {value.map((item: any, i: number) => (
-                <li key={i} className="grid grid-cols-[1fr_auto] gap-4 text-sm border-b border-zinc-800/30 pb-3 last:border-0 last:pb-0">
-                    <div>
-                        <div className="font-bold text-zinc-200 mb-1">{item.name}</div>
-                        <div className="flex flex-wrap gap-2">
+        <div className="w-full">
+            <div className="flex flex-col gap-2 mb-4">
+                <div className="flex justify-between items-center">
+                    <div className="text-[10px] font-bold text-zinc-600 uppercase tracking-wider">Hopfen</div>
+                    <button 
+                        onClick={() => setIsCorrectionMode(!isCorrectionMode)}
+                        className={`text-xs px-2 py-1 rounded-md border flex items-center gap-2 transition-colors ${
+                            isCorrectionMode || hasCorrections
+                            ? 'bg-cyan-950/30 border-cyan-500/30 text-cyan-400' 
+                            : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white'
+                        }`}
+                    >
+                        <Scale size={12} />
+                        {isCorrectionMode ? 'Korrektur beenden' : 'Alpha-Werte anpassen'}
+                    </button>
+                </div>
+                {isCorrectionMode && (
+                    <div className="text-xs text-cyan-500/80 bg-cyan-950/20 p-2 rounded border border-cyan-900/30 mb-2">
+                        Gib den tatsächlichen Alpha-Säure-Gehalt deines Hopfens ein. Die Menge wird automatisch angepasst, um die gleiche Bittere (IBU) zu erreichen.
+                    </div>
+                )}
+            </div>
+
+            <div className="grid grid-cols-[1fr_auto_80px] text-[10px] font-bold text-zinc-600 uppercase tracking-wider mb-2 border-b border-zinc-800 pb-2 gap-4">
+                <span>Sorte</span>
+                <span className="text-right">Details</span>
+                <span className="text-right">Menge</span>
+            </div>
+
+            <ul className="space-y-4">
+                {value.map((item: any, i: number) => {
+                    const originalAmount = parseFloat(String(item.amount).replace(',', '.'));
+                    const recipeAlpha = parseFloat(String(item.alpha).replace(',', '.'));
+                    const actualAlpha = corrections[i];
+                    
+                    let displayAmount = scaleAmount(item.amount, factor);
+                    let isCorrected = false;
+
+                    // Only calculate correction if we have a valid actual alpha that differs from recipe
+                    if (actualAlpha && recipeAlpha && actualAlpha > 0) {
+                         const scaledOriginal = originalAmount * factor;
+                         const corrected = scaledOriginal * (recipeAlpha / actualAlpha);
+                         
+                         if (corrected < 10) displayAmount = corrected.toFixed(2).replace('.', ',');
+                         else if (corrected < 100) displayAmount = corrected.toFixed(1).replace('.', ',');
+                         else displayAmount = Math.round(corrected).toString();
+                         
+                         isCorrected = true;
+                    }
+
+                    return (
+                    <li key={i} className={`grid grid-cols-[1fr_auto_minmax(80px,auto)] items-center text-sm group rounded px-2 -mx-2 py-2 transition-colors border-b border-dashed border-zinc-900 last:border-0 gap-4 ${isCorrected ? 'bg-cyan-950/10' : 'hover:bg-zinc-900/30'}`}>
+                        <div className="font-bold text-zinc-200">{item.name}</div>
+                        
+                        <div className="flex flex-wrap gap-2 items-center justify-end">
                              {item.usage && (
-                                <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded border ${
-                                    item.usage === 'Dry Hop' ? 'bg-emerald-900/30 border-emerald-500/30 text-emerald-400' : 
-                                    item.usage === 'Mash' ? 'bg-amber-900/30 border-amber-500/30 text-amber-400' :
+                                <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded border flex items-center gap-1 ${
+                                    item.usage === 'Dry Hop' ? 'bg-emerald-950/30 border-emerald-900/40 text-emerald-500' : 
+                                    item.usage === 'Mash' ? 'bg-amber-950/30 border-amber-900/40 text-amber-500' :
+                                    item.usage === 'First Wort' ? 'bg-purple-950/30 border-purple-900/40 text-purple-400' :
                                     'bg-zinc-800 border-zinc-700 text-zinc-400'
                                 }`}>
                                     {item.usage === 'Boil' ? 'Kochen' : item.usage}
                                 </span>
                              )}
                              {item.time && (
-                                <span className="text-[10px] font-mono bg-zinc-900 border border-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded flex items-center gap-1">
-                                    ⏱️ {item.time} min
+                                <span className="text-[10px] font-mono text-zinc-500 flex items-center gap-1">
+                                    <Clock className="w-3 h-3" /> {item.time}m
                                 </span>
                              )}
+                             
                              {item.alpha && (
-                                <span className="text-[10px] font-mono bg-zinc-900 border border-zinc-800 text-zinc-500 px-1.5 py-0.5 rounded">
-                                    α {item.alpha}%
-                                </span>
+                                <div className={`flex items-center gap-1 transition-all ${isCorrectionMode ? 'bg-zinc-900 p-1 rounded border border-zinc-700' : ''}`}>
+                                    <span className="text-[10px] font-mono text-zinc-500">α</span>
+                                    {isCorrectionMode ? (
+                                        <div className="flex items-center gap-1">
+                                            <input 
+                                                type="number" 
+                                                className="w-12 bg-zinc-950 text-white text-xs px-1 py-0.5 rounded border border-zinc-700 outline-none focus:border-cyan-500 text-right"
+                                                placeholder={item.alpha}
+                                                value={corrections[i] || ''}
+                                                onChange={(e) => setAlpha(i, parseFloat(e.target.value))}
+                                            />
+                                            <span className="text-xs text-zinc-500">%</span>
+                                        </div>
+                                    ) : (
+                                        <span className={`text-[10px] font-mono ${isCorrected ? 'text-cyan-400 font-bold' : 'text-zinc-500'}`}>
+                                            {actualAlpha || item.alpha}%
+                                        </span>
+                                    )}
+                                </div>
                              )}
                         </div>
-                    </div>
-                    <div className="text-right">
-                         <div className="text-white font-bold text-base">{item.amount}</div>
-                         <div className="text-zinc-500 text-xs">{item.unit || 'g'}</div>
-                    </div>
-                </li>
-            ))}
-        </ul>
+                        
+                        <div className="text-right flex flex-col items-end justify-center font-mono whitespace-nowrap">
+                             <div className="text-white font-bold flex items-center gap-2">
+                                {isCorrected && (
+                                    <span className="text-xs text-zinc-600 line-through decoration-zinc-600/50 hidden sm:inline-block">
+                                        {scaleAmount(item.amount, factor)}
+                                    </span>
+                                )}
+                                <span className={isCorrected ? 'text-cyan-400' : ''}>{displayAmount}</span> 
+                                <span className="text-zinc-400 font-normal">{item.unit || 'g'}</span>
+                             </div>
+                             {isCorrected && <span className="text-[10px] text-cyan-500">Korrigiert</span>}
+                        </div>
+                    </li>
+                )})}
+            </ul>
+        </div>
     );
 }
 
-function MashScheduleView({ steps, mashWater, spargeWater }: { steps: any, mashWater: any, spargeWater: any }) {
+function MashScheduleView({ steps, mashWater, spargeWater, factor = 1, calculatedMashWater, calculatedSpargeWater }: { steps: any, mashWater: any, spargeWater: any, factor?: number, calculatedMashWater?: number, calculatedSpargeWater?: number }) {
+    // If we have accurate calculations, use them. Otherwise fallback to simple scaling.
+    const displayMash = calculatedMashWater !== undefined ? calculatedMashWater : scaleAmount(mashWater, factor);
+    const displaySparge = calculatedSpargeWater !== undefined ? calculatedSpargeWater : scaleAmount(spargeWater, factor);
+
     return (
-        <div className="space-y-6">
-            {(mashWater || spargeWater) && (
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-zinc-950 rounded-xl p-3 border border-zinc-800 flex flex-col items-center">
-                        <span className="text-[10px] font-bold text-cyan-600 uppercase mb-1">Hauptguss</span>
-                        <span className="font-mono text-white font-bold text-lg">{mashWater || '-'} <span className="text-zinc-600 text-xs">L</span></span>
+        <div className="space-y-8">
+            {(mashWater || spargeWater || (calculatedMashWater !== undefined)) && (
+                <div className="grid grid-cols-2 gap-px bg-zinc-800 rounded-lg overflow-hidden border border-zinc-800">
+                    <div className="bg-zinc-950 p-4 flex flex-col items-center">
+                        <span className="text-[10px] font-bold text-zinc-500 uppercase mb-1 tracking-wider">Hauptguss</span>
+                        <span className="font-mono text-white font-bold text-2xl">{typeof displayMash === 'number' ? displayMash.toFixed(1).replace('.', ',') : displayMash || '-'} <span className="text-zinc-600 text-sm font-normal">L</span></span>
                     </div>
-                     <div className="bg-zinc-950 rounded-xl p-3 border border-zinc-800 flex flex-col items-center">
-                        <span className="text-[10px] font-bold text-blue-600 uppercase mb-1">Nachguss</span>
-                         <span className="font-mono text-white font-bold text-lg">{spargeWater || '-'} <span className="text-zinc-600 text-xs">L</span></span>
+                     <div className="bg-zinc-950 p-4 flex flex-col items-center">
+                        <span className="text-[10px] font-bold text-zinc-500 uppercase mb-1 tracking-wider">Nachguss</span>
+                         <span className="font-mono text-white font-bold text-2xl">{typeof displaySparge === 'number' ? displaySparge.toFixed(1).replace('.', ',') : displaySparge || '-'} <span className="text-zinc-600 text-sm font-normal">L</span></span>
                     </div>
                 </div>
             )}
             
             {Array.isArray(steps) && steps.length > 0 && (
                 <div>
-                    <h5 className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-3">Rasten</h5>
-                    <div className="space-y-2 relative pl-4 border-l-2 border-zinc-800 ml-2">
+                    <div className="flex items-center gap-2 mb-4 pb-2 border-b border-zinc-800">
+                        <Thermometer className="w-3 h-3 text-zinc-500" />
+                        <h5 className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Rasten & Temperaturen</h5>
+                    </div>
+                    <div className="space-y-0 relative border-l border-zinc-800 ml-2.5 my-2">
                         {steps.map((step: any, i: number) => (
-                            <div key={i} className="relative">
-                                <span className="absolute -left-[21px] top-1.5 w-3 h-3 rounded-full bg-zinc-800 border-2 border-black"></span>
-                                <div className="flex justify-between items-baseline">
-                                     <span className="text-sm font-bold text-zinc-300">{step.name || `Rast ${i+1}`}</span>
-                                </div>
-                                <div className="flex gap-4 mt-1 text-xs font-mono text-zinc-500 items-center">
-                                    <span className="text-white bg-zinc-800 px-1.5 rounded w-[4.5rem] text-center inline-block">{step.temperature}°C</span>
-                                    {step.duration ? <span>{step.duration} min</span> : null}
+                            <div key={i} className="relative pl-6 py-2 group">
+                                <span className={`absolute -left-[5px] top-4 w-2.5 h-2.5 rounded-full border-2 border-zinc-950 group-hover:bg-cyan-500 transition-colors ${i === 0 ? 'bg-zinc-500' : 'bg-zinc-800'}`}></span>
+                                <div className="flex justify-between items-center">
+                                     <span className="text-sm font-bold text-zinc-300 group-hover:text-white transition-colors">{step.name || `Rast ${i+1}`}</span>
+                                     <div className="flex gap-3 text-xs font-mono items-center">
+                                        <div className="flex items-center gap-1.5 bg-zinc-900 border border-zinc-800 px-2 py-1 rounded text-zinc-300">
+                                            <Thermometer className="w-3 h-3 text-zinc-500" />
+                                            {step.temperature}°C
+                                        </div>
+                                        {step.duration && (
+                                            <div className="flex items-center gap-1.5 bg-zinc-900 border border-zinc-800 px-2 py-1 rounded text-zinc-400">
+                                                <Clock className="w-3 h-3 text-zinc-600" />
+                                                {step.duration} min
+                                            </div>
+                                        )}
+                                     </div>
                                 </div>
                             </div>
                         ))}
@@ -135,7 +261,7 @@ function MashScheduleView({ steps, mashWater, spargeWater }: { steps: any, mashW
     );
 }
 
-function IngredientView({ value }: { value: any }) {
+function IngredientView({ value, factor = 1 }: { value: any, factor?: number }) {
   if (!value) return <span className="text-zinc-500">–</span>;
   
   // Legacy String Support
@@ -146,17 +272,30 @@ function IngredientView({ value }: { value: any }) {
   // Structured Support
   if (Array.isArray(value)) {
      return (
-       <ul className="space-y-2">
+       <ul className="space-y-3">
          {value.map((item: any, i: number) => (
-            <li key={i} className="flex justify-between items-baseline text-sm border-b border-zinc-800/50 pb-2 last:border-0 border-dashed last:pb-0">
-               <span className="text-zinc-300 font-medium">{item.name}</span>
+            <li key={i} className="flex justify-between items-center text-sm border-b border-dashed border-zinc-900 pb-2 last:border-0 last:pb-0 group hover:bg-zinc-900/30 -mx-2 px-2 rounded py-1 transition-colors">
+               <span className="text-zinc-300 font-bold group-hover:text-white transition-colors">{item.name}</span>
                <span className="text-zinc-500 font-mono text-xs whitespace-nowrap ml-4 flex items-baseline gap-1">
-                 {item.amount && <span className="text-white font-bold">{item.amount}</span>} 
+                 {item.amount && <span className="text-white font-bold text-base">{scaleAmount(item.amount, factor)}</span>} 
                  {item.unit && <span className="opacity-70">{item.unit}</span>}
                </span>
             </li>
          ))}
        </ul>
+     );
+  }
+
+  // Single Object
+  if (typeof value === 'object') {
+     return (
+        <div className="flex justify-between items-center text-sm bg-zinc-950/50 p-2 rounded border border-zinc-800">
+           <span className="text-zinc-300 font-bold">{value.name}</span>
+           <span className="text-zinc-500 font-mono text-xs whitespace-nowrap ml-4 flex items-baseline gap-1">
+                 {value.amount && <span className="text-white font-bold text-base">{scaleAmount(value.amount, factor)}</span>} 
+                 {value.unit && <span className="opacity-70">{value.unit}</span>}
+           </span>
+        </div>
      );
   }
   
@@ -187,10 +326,17 @@ export default function BrewDetailPage() {
   const [userBreweries, setUserBreweries] = useState<any[]>([]);
   const [saveModalOpen, setSaveModalOpen] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
+  const [savedInBreweryIds, setSavedInBreweryIds] = useState<Set<string>>(new Set());
 
   // Like System State
   const [likesCount, setLikesCount] = useState(0);
   const [userHasLiked, setUserHasLiked] = useState(false);
+
+  // Scaling State
+  const [scaleVolume, setScaleVolume] = useState<number>(20);
+  const [scaleEfficiency, setScaleEfficiency] = useState<number>(65);
+  const [originalVolume, setOriginalVolume] = useState<number>(20);
+  const [originalEfficiency, setOriginalEfficiency] = useState<number>(65);
 
   const handleShare = async () => {
     const shareData = {
@@ -230,8 +376,33 @@ export default function BrewDetailPage() {
     loadBreweries();
   }, []);
 
+  // Check if already saved
+  useEffect(() => {
+    async function checkSavedStatus() {
+        if (!userBreweries || userBreweries.length === 0 || !id) return;
+        
+        try {
+            const breweryIds = userBreweries.map((b: any) => b.id);
+            const { data } = await supabase
+                .from('brewery_saved_brews')
+                .select('brewery_id')
+                .eq('brew_id', id)
+                .in('brewery_id', breweryIds);
+            
+            if (data && data.length > 0) {
+                const savedIds = new Set(data.map((d: any) => d.brewery_id));
+                setSavedInBreweryIds(savedIds);
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+    checkSavedStatus();
+  }, [userBreweries, id]);
+
   async function handleSaveToTeam(targetBreweryId?: string) {
     if (!targetBreweryId) {
+        // If multiple breweries, always open modal to allow selection
         if (userBreweries.length > 1) {
             setSaveModalOpen(true);
             return;
@@ -252,7 +423,20 @@ export default function BrewDetailPage() {
             } else {
                 showToast("Gespeichert", "Rezept zur Team-Bibliothek hinzugefügt", "success");
             }
-            setSaveModalOpen(false);
+            
+            // Optimistically update the set
+            setSavedInBreweryIds(prev => new Set(prev).add(targetBreweryId!));
+            
+            // Only close modal if it was open AND we processed the last/only one. 
+            // Better UX: keep open if multiple teams so user can click others? 
+            // Or close for simplicity. Let's keep it open if opened manually, or handling logic below.
+            // Actually, for multiple teams, maybe user wants to add to another one.
+            // But let's close if it was the modal flow.
+            // setSaveModalOpen(false); // Let user close it manually if they want to add more? Or maybe auto-close?
+            
+            // New UX decision: If single team (direct click), no modal involved.
+            // If modal (multiple teams), reflect state in modal button (change to "Saved"). 
+            // So we don't necessarily close the modal immediately, allowing multi-save.
         }
     } catch (e: any) {
         showToast("Fehler", e.message || "Fehler beim Speichern", "warning");
@@ -342,6 +526,8 @@ export default function BrewDetailPage() {
     router.push('/dashboard');
   }
 
+
+
   useEffect(() => {
     async function fetchBrewInfo() {
       try {
@@ -388,6 +574,23 @@ export default function BrewDetailPage() {
         }
 
         setBrew(brewData);
+
+        // Init Scaling
+        try {
+            // Check both potential field names
+            const rawVol = brewData.data?.batch_size_liters || brewData.data?.batch_size || 20;
+            const bVol = parseFloat(String(rawVol).replace(',', '.'));
+            
+            const rawEff = brewData.data?.efficiency || 75; // Default to 75% if missing
+            const bEff = parseFloat(String(rawEff).replace(',', '.'));
+
+            setOriginalVolume(bVol || 20);
+            setOriginalEfficiency(bEff || 75);
+            setScaleVolume(bVol || 20);
+            setScaleEfficiency(bEff || 75);
+        } catch (e) {
+            console.warn("Scaling init failed", e);
+        }
 
         // Logic Switch: Team vs Personal
         if (brewData.brewery_id) {
@@ -502,6 +705,41 @@ export default function BrewDetailPage() {
     ? (ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length).toFixed(1)
     : null;
 
+  // Scaling Factors
+  // Volume Scaling: Simple linear (New / Old)
+  const volFactor = (scaleVolume && originalVolume && originalVolume > 0) ? scaleVolume / originalVolume : 1;
+  
+  // Efficiency Scaling: Inverse (Old / New) - Higher Efficiency = Less Malt needed
+  const effFactor = (scaleEfficiency && originalEfficiency && scaleEfficiency > 0) ? originalEfficiency / scaleEfficiency : 1;
+  
+  // Malt needs both adjustments
+  const maltFactor = volFactor * effFactor;
+  
+  // Hops/Water only need Volume adjustment
+  const generalFactor = volFactor;
+
+  // Scale Water Calculation (Accurate)
+  const totalScaledGrain = brew.data.malts 
+    ? brew.data.malts.reduce((sum: number, m: any) => {
+        const rawAmount = parseFloat(String(m.amount).replace(',', '.')) || 0;
+        return sum + (rawAmount * maltFactor);
+    }, 0)
+    : 0;
+  
+  const boilTime = parseFloat(String(brew.data.boil_time || 60));
+  
+  // Calculate original mash thickness if possible to preserve ratio
+  let originalMashThickness = 3.5;
+  if (brew.data.mash_water_liters && brew.data.malts) {
+    const originalGrainWeight = brew.data.malts.reduce((sum: number, m: any) => sum + (parseFloat(String(m.amount).replace(',', '.')) || 0), 0);
+    const originalMashWater = parseFloat(String(brew.data.mash_water_liters).replace(',', '.'));
+    if (originalGrainWeight > 0 && originalMashWater > 0) {
+        originalMashThickness = originalMashWater / originalGrainWeight;
+    }
+  }
+
+  const waterProfile = calculateWaterProfile(scaleVolume, totalScaledGrain, boilTime / 60, { mashThickness: originalMashThickness });
+
   return (
     <div className="min-h-screen bg-black text-white pb-24">
       
@@ -555,11 +793,25 @@ export default function BrewDetailPage() {
                 </Link>
                 <button
                     onClick={() => handleSaveToTeam()}
-                    disabled={saveLoading || userBreweries.length === 0}
-                    title={userBreweries.length > 0 ? "Zur Team-Bibliothek" : "Du musst Mitglied einer Brauerei sein"}
-                    className="h-14 w-14 flex items-center justify-center bg-zinc-900 border border-zinc-700/50 hover:border-zinc-500 hover:text-white rounded-full transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={saveLoading || userBreweries.length === 0 || (userBreweries.length === 1 && savedInBreweryIds.has(userBreweries[0].id))}
+                    title={
+                        userBreweries.length === 1 && savedInBreweryIds.has(userBreweries[0].id) 
+                        ? "Bereits in der Bibliothek gespeichert" 
+                        : (userBreweries.length > 0 ? "Zur Team-Bibliothek hinzufügen" : "Du musst Mitglied einer Brauerei sein")
+                    }
+                    className={`h-14 w-14 flex items-center justify-center border rounded-full transition disabled:opacity-50 disabled:cursor-not-allowed ${
+                        userBreweries.length === 1 && savedInBreweryIds.has(userBreweries[0].id)
+                        ? 'bg-emerald-900/30 border-emerald-500 text-emerald-400 cursor-default' 
+                        : 'bg-zinc-900 border-zinc-700/50 hover:border-zinc-500 hover:text-white'
+                    }`}
                 >
-                    {saveLoading ? <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-zinc-400"></div> : <Library className="w-5 h-5" />}
+                    {saveLoading ? (
+                        <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-zinc-400"></div>
+                    ) : (
+                        (userBreweries.length === 1 && savedInBreweryIds.has(userBreweries[0].id)) 
+                        ? <CheckCircle2 className="w-5 h-5" /> 
+                        : <Library className="w-5 h-5" />
+                    )}
                 </button>
                 <button
                     onClick={handleRemix}
@@ -666,6 +918,67 @@ export default function BrewDetailPage() {
             {/* Technical Specs */}
              {brew.data && (
                 <div className="py-10 border-t border-zinc-800/50">
+                    
+                    {/* Recipe Scaler */}
+                    {(!brew.brew_type || brew.brew_type === 'beer') && (
+                        <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-5 mb-10 flex flex-col md:flex-row gap-6 items-center justify-between shadow-inner">
+                            <div className="flex items-center gap-3 text-zinc-400">
+                                <div className="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center">
+                                    <Shuffle className="w-5 h-5 text-cyan-500" />
+                                </div>
+                                <div>
+                                    <span className="font-bold text-white block">Rezept skalieren</span>
+                                    <span className="text-xs text-zinc-500">Passe Menge und Effizienz an dein Setup an.</span>
+                                </div>
+                            </div>
+                            
+                            <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
+                                <div className="flex-1 md:flex-none min-w-[140px]">
+                                    <label className="text-[10px] font-bold uppercase text-zinc-500 mb-1.5 block">Ausschlagwürze (L)</label>
+                                    <div className="relative group">
+                                        <input 
+                                            type="number" 
+                                            min="1"
+                                            value={scaleVolume}
+                                            onChange={(e) => setScaleVolume(parseFloat(e.target.value) || 0)}
+                                            className="bg-zinc-900 text-white font-mono font-bold px-3 py-2 rounded-lg border border-zinc-700 w-full focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 transition-colors"
+                                        />
+                                        {scaleVolume !== originalVolume && (
+                                            <button 
+                                                onClick={() => setScaleVolume(originalVolume)}
+                                                className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-cyan-500 font-bold hover:underline"
+                                            >
+                                                Reset
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                                
+                                <div className="flex-1 md:flex-none min-w-[140px]">
+                                    <label className="text-[10px] font-bold uppercase text-zinc-500 mb-1.5 block">Effizienz (SHA %)</label>
+                                    <div className="relative group">
+                                        <input 
+                                            type="number" 
+                                            min="1"
+                                            max="100"
+                                            value={scaleEfficiency}
+                                            onChange={(e) => setScaleEfficiency(parseFloat(e.target.value) || 0)}
+                                            className="bg-zinc-900 text-white font-mono font-bold px-3 py-2 rounded-lg border border-zinc-700 w-full focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 transition-colors"
+                                        />
+                                        {scaleEfficiency !== originalEfficiency && (
+                                            <button 
+                                                onClick={() => setScaleEfficiency(originalEfficiency)}
+                                                className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-cyan-500 font-bold hover:underline"
+                                            >
+                                                Reset
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="flex items-center gap-4 mb-8">
                         <h3 className="text-xs font-black uppercase tracking-[0.3em] text-zinc-500">Technische Details</h3>
                         <div className="h-px bg-zinc-800 flex-1"></div>
@@ -738,50 +1051,55 @@ export default function BrewDetailPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         {/* Schüttung */}
                         <div className="bg-zinc-900/20 rounded-2xl p-6 border border-zinc-800/50">
-                          <h4 className="flex items-center gap-2 text-sm font-bold text-white mb-6 pb-4 border-b border-zinc-800/50">
-                            <span>🌾</span> Schüttung
+                          <h4 className="flex items-center gap-3 text-sm font-bold text-white mb-6 pb-4 border-b border-zinc-800/50 uppercase tracking-wider">
+                            <Wheat className="w-4 h-4 text-amber-500" /> <span>Schüttung</span>
                           </h4>
-                          <MaltView value={brew.data.malts} />
+                          <MaltView 
+                                value={brew.data.malts} 
+                                factor={maltFactor} 
+                          />
                         </div>
 
                         {/* Maischen & Wasser */}
                         <div className="bg-zinc-900/20 rounded-2xl p-6 border border-zinc-800/50">
-                          <h4 className="flex items-center gap-2 text-sm font-bold text-white mb-6 pb-4 border-b border-zinc-800/50">
-                            <span>🌡️</span> Maischen & Wasser
+                          <h4 className="flex items-center gap-3 text-sm font-bold text-white mb-6 pb-4 border-b border-zinc-800/50 uppercase tracking-wider">
+                            <Thermometer className="w-4 h-4 text-blue-500" /> <span>Maischen & <span className="text-zinc-400">Wasser</span></span>
                           </h4>
                           <MashScheduleView 
                             steps={brew.data.mash_steps} 
                             mashWater={brew.data.mash_water_liters}
                             spargeWater={brew.data.sparge_water_liters}
+                            factor={volFactor}
+                            calculatedMashWater={waterProfile.mashWater}
+                            calculatedSpargeWater={waterProfile.spargeWater}
                           />
                         </div>
 
                         {/* Kochen & Hopfen (Gruppiert) */}
                         <div className="bg-zinc-900/20 rounded-2xl p-6 border border-zinc-800/50 md:col-span-2">
-                          <h4 className="flex items-center gap-2 text-sm font-bold text-white mb-6 pb-4 border-b border-zinc-800/50">
-                            <span>🔥</span> Kochen & Hopfen
+                          <h4 className="flex items-center gap-3 text-sm font-bold text-white mb-6 pb-4 border-b border-zinc-800/50 uppercase tracking-wider">
+                            <Flame className="w-4 h-4 text-red-500" /> <span>Kochen & Hopfen</span>
                           </h4>
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div>
-                              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-2">Kochzeit</p>
+                              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-2 flex items-center gap-2"><Clock className="w-3 h-3" /> Kochzeit</p>
                               <p className="text-white font-mono text-lg">{brew.data.boil_time || 60} min</p>
                             </div>
                             <div className="md:col-span-2">
-                              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-2">Hopfen</p>
-                              <HopView value={brew.data.hops} />
+                              <HopView value={brew.data.hops} factor={volFactor} />
                             </div>
                           </div>
                         </div>
 
                         {/* Gärung & Hefe separat */}
                         <div className="bg-zinc-900/20 rounded-2xl p-6 border border-zinc-800/50 md:col-span-2">
-                          <h4 className="flex items-center gap-2 text-sm font-bold text-white mb-6 pb-4 border-b border-zinc-800/50">
-                            <span>🦠</span> Gärung
+                          <h4 className="flex items-center gap-3 text-sm font-bold text-white mb-6 pb-4 border-b border-zinc-800/50 uppercase tracking-wider">
+                            <Microscope className="w-4 h-4 text-purple-500" /> <span>Hefe & Gärung</span>
                           </h4>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                               <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-2">Hefe</p>
-                              <IngredientView value={brew.data.yeast} />
+                              <IngredientView value={brew.data.yeast} factor={volFactor} />
                             </div>
                             {brew.data.carbonation_g_l && (
                               <div>
@@ -790,6 +1108,7 @@ export default function BrewDetailPage() {
                               </div>
                             )}
                           </div>
+
                         </div>
                       </div>
                     )}
@@ -1060,18 +1379,29 @@ export default function BrewDetailPage() {
                       {userBreweries.map(b => (
                           <button
                              key={b.id}
-                             disabled={saveLoading}
+                             disabled={saveLoading || savedInBreweryIds.has(b.id)}
                              onClick={() => handleSaveToTeam(b.id)}
-                             className="w-full text-left p-4 rounded-xl bg-zinc-950 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 hover:shadow-lg transition-all flex items-center gap-4 group disabled:opacity-50"
+                             className={`w-full text-left p-4 rounded-xl border flex items-center gap-4 group disabled:opacity-50 transition-all ${
+                                savedInBreweryIds.has(b.id) 
+                                ? 'bg-emerald-900/10 border-emerald-500/20 cursor-default' 
+                                : 'bg-zinc-950 border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 hover:shadow-lg'
+                             }`}
                           >
                              {b.logo_url ? (
                                  <img src={b.logo_url} className="w-12 h-12 rounded-full object-cover border border-zinc-800" />
                              ) : (
                                  <div className="w-12 h-12 rounded-full bg-zinc-800 flex items-center justify-center text-xl">🏭</div>
                              )}
-                             <div>
-                                 <span className="font-bold text-white text-lg block group-hover:text-cyan-400 transition">{b.name}</span>
-                                 <span className="text-xs text-zinc-500">Klicken zum Speichern</span>
+                             <div className="flex-1">
+                                 <div className="flex justify-between items-center">
+                                    <span className={`font-bold text-lg block transition ${savedInBreweryIds.has(b.id) ? 'text-emerald-500' : 'text-white group-hover:text-cyan-400'}`}>
+                                        {b.name}
+                                    </span>
+                                    {savedInBreweryIds.has(b.id) && <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
+                                 </div>
+                                 <span className="text-xs text-zinc-500">
+                                     {savedInBreweryIds.has(b.id) ? 'Bereits gespeichert' : 'Klicken zum Speichern'}
+                                 </span>
                              </div>
                           </button>
                       ))}

@@ -1,9 +1,17 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Play, Pause, SkipForward, Timer, Flame, AlertCircle } from 'lucide-react';
+import { useDebouncedCallback } from 'use-debounce';
 
 type TimerMode = 'MASH' | 'BOIL';
+
+export interface TimerState {
+    running: boolean;
+    timeLeft: number;
+    currentStepIndex: number;
+    lastTick?: number;
+}
 
 interface TimerStep {
     label: string;
@@ -17,11 +25,13 @@ interface BrewTimerProps {
     mode: TimerMode;
     steps: TimerStep[]; // Mash steps (sequential) or Boil additions (time markers)
     totalBoilTime?: number; // Only for boil
+    initialState?: TimerState;
+    onStateChange?: (state: TimerState) => void;
     onStepComplete?: (step: TimerStep) => void;
     onComplete?: () => void;
 }
 
-export default function BrewTimer({ mode, steps, totalBoilTime, onStepComplete, onComplete }: BrewTimerProps) {
+export default function BrewTimer({ mode, steps, totalBoilTime, initialState, onStateChange, onStepComplete, onComplete }: BrewTimerProps) {
     const [running, setRunning] = useState(false);
     const [timeLeft, setTimeLeft] = useState(0); // Seconds
     const [currentStepIndex, setCurrentStepIndex] = useState(0);
@@ -55,22 +65,64 @@ export default function BrewTimer({ mode, steps, totalBoilTime, onStepComplete, 
         }
     }
 
-    // Initialize (Once)
+    // Debounced Save (Upwards)
+    const persistState = useDebouncedCallback((state: TimerState) => {
+        if(onStateChange) onStateChange(state);
+    }, 1000);
+
+    // Initialize (Once) or Hydrate from State
     useEffect(() => {
         if (initialized.current) return;
 
-        if (mode === 'MASH' && steps.length > 0) {
-            setTimeLeft(steps[0].duration * 60);
+        if (initialState) {
+            // Hydrate logic
+            let adjustedTimeLeft = initialState.timeLeft;
+            let shouldBeRunning = initialState.running;
+
+            // If it was running, catch up time elapsed since last save
+            if (initialState.running && initialState.lastTick) {
+                const now = Date.now();
+                const elapsedSeconds = Math.floor((now - initialState.lastTick) / 1000);
+                adjustedTimeLeft = Math.max(0, initialState.timeLeft - elapsedSeconds);
+                
+                // Note: If time ran out while away, we could trigger completion logic here,
+                // but let's just show 0 and let user see it finished.
+                if (adjustedTimeLeft === 0 && initialState.timeLeft > 0) {
+                     // Timer finished in background
+                     // Maybe play beep immediately?
+                }
+            }
+
+            setCurrentStepIndex(initialState.currentStepIndex || 0);
+            setTimeLeft(adjustedTimeLeft);
+            setRunning(shouldBeRunning); // Restore running state
             initialized.current = true;
-        } else if (mode === 'BOIL' && totalBoilTime) {
-            setTimeLeft(totalBoilTime * 60);
-            initialized.current = true;
+        } else {
+            // Default Start Logic
+            if (mode === 'MASH' && steps.length > 0) {
+                setTimeLeft(steps[0].duration * 60);
+                initialized.current = true;
+            } else if (mode === 'BOIL' && totalBoilTime) {
+                setTimeLeft(totalBoilTime * 60);
+                initialized.current = true;
+            }
         }
-    }, [mode, steps, totalBoilTime]);
+    }, [mode, steps, totalBoilTime, initialState]);
 
     // Timer Logic
     useEffect(() => {
         let interval: NodeJS.Timeout;
+        
+        // Notify Parent of state change (Debounced)
+        if (initialized.current) {
+            persistState({
+                running,
+                timeLeft,
+                currentStepIndex,
+                lastTick: Date.now()
+            });
+        }
+
         if (running && timeLeft > 0) {
             interval = setInterval(() => {
                 setTimeLeft(prev => {
@@ -101,7 +153,14 @@ export default function BrewTimer({ mode, steps, totalBoilTime, onStepComplete, 
             // Timer Finished Phase
             if (mode === 'MASH') {
                 playBeep();
+                // Persist "Finished" state before moving on? 
+                persistState({ running: false, timeLeft: 0, currentStepIndex, lastTick: Date.now() });
+
                 // Move to next step?
+                // Auto-advance is tricky if user isn't there. 
+                // Better to PAUSE at 0 and let user click next? 
+                // Current logic was:
+                /* 
                 if (currentStepIndex < steps.length - 1) {
                     const nextIndex = currentStepIndex + 1;
                     setCurrentStepIndex(nextIndex);
@@ -110,7 +169,28 @@ export default function BrewTimer({ mode, steps, totalBoilTime, onStepComplete, 
                 } else {
                     setRunning(false);
                     if(onComplete) onComplete();
-                }
+                } 
+                */
+               // Let's keep auto-advance for now but maybe we need a manual "Start Next Step" interaction?
+               // Actually the old code auto-advanced. Let's keep it but ENSURE we save the new state immediately.
+               
+               if (currentStepIndex < steps.length - 1) {
+                    const nextIndex = currentStepIndex + 1;
+                    
+                    // We need to trigger this state update cleanly
+                    // Using setTimeout to break the render cycle or strict effect loop
+                    setRunning(false);
+                    setTimeout(() => {
+                        setCurrentStepIndex(nextIndex);
+                        setTimeLeft(steps[nextIndex].duration * 60);
+                        // Save this new state
+                        persistState({ running: false, timeLeft: steps[nextIndex].duration * 60, currentStepIndex: nextIndex, lastTick: Date.now() });
+                    }, 0);
+               } else {
+                    setRunning(false);
+                    if(onComplete) onComplete();
+               }
+
             } else if (mode === 'BOIL') {
                 playBeep();
                 setRunning(false);
@@ -119,6 +199,7 @@ export default function BrewTimer({ mode, steps, totalBoilTime, onStepComplete, 
         }
         return () => clearInterval(interval);
     }, [running, timeLeft, mode, steps, currentStepIndex]);
+
 
     const toggleTimer = () => setRunning(!running);
 

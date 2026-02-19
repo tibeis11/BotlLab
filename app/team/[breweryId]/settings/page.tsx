@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, use } from 'react';
-import { supabase } from '@/lib/supabase';
+import { useSupabase } from '@/lib/hooks/useSupabase';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
 import PremiumFeatureLock from '@/app/components/PremiumFeatureLock';
@@ -11,6 +11,7 @@ import ResponsiveTabs from '@/app/components/ResponsiveTabs';
 
 export default function TeamSettingsPage({ params }: { params: Promise<{ breweryId: string }> }) {
   const { breweryId } = use(params);
+  const supabase = useSupabase();
   const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [brewery, setBrewery] = useState<any>(null);
@@ -58,8 +59,8 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
         .single();
         
       if (membership) {
-         setUserRole(membership.role);
-         
+         setUserRole(membership.role || 'member');
+
          // Fetch owner's tier (only owners determine premium features for brewery)
          const { data: ownerMember } = await supabase
            .from('brewery_members')
@@ -73,7 +74,7 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
          }
 
          // If regular member, default to notifications tab since they can't edit general
-         if (!['owner', 'admin'].includes(membership.role)) {
+         if (!['owner', 'admin'].includes(membership.role || '')) {
              setActiveTab('notifications');
          }
       }
@@ -175,6 +176,7 @@ function GeneralSettings({
   onUpdate: () => void,
   ownerPremiumTier: SubscriptionTier
 }) {
+  const supabase = useSupabase();
   const [breweryName, setBreweryName] = useState(brewery.name || "");
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(brewery.logo_url);
@@ -306,6 +308,7 @@ function GeneralSettings({
 }
 
 function NotificationSettings({ breweryId }: { breweryId: string }) {
+    const supabase = useSupabase();
     const { user } = useAuth();
     const [prefs, setPrefs] = useState({
         email_new_brew: true,
@@ -334,7 +337,7 @@ function NotificationSettings({ breweryId }: { breweryId: string }) {
                 .single();
             
             if (data?.preferences) {
-                const loaded = data.preferences;
+                const loaded = data.preferences as any;
                 if (loaded.notify_new_brew !== undefined && loaded.email_new_brew === undefined) {
                      loaded.email_new_brew = loaded.notify_new_brew;
                      loaded.in_app_new_brew = loaded.notify_new_brew;
@@ -471,6 +474,7 @@ function NotificationSettings({ breweryId }: { breweryId: string }) {
 }
 
 function MembershipSettings({ breweryId, userRole }: { breweryId: string, userRole: string }) {
+    const supabase = useSupabase();
     const { user } = useAuth();
     const router = useRouter();
     const [isLeaving, setIsLeaving] = useState(false);

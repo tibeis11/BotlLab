@@ -16,13 +16,18 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function check() {
     console.log("Checking brewing_sessions table...");
-    // Check existing table
     const { data, error } = await supabase.from('brewing_sessions').select('*').limit(1);
+    if (error) console.log("Error checking sessions:", error.message);
+    else console.log("Success. brewing_sessions exists.");
+
+    console.log("Checking brew_measurements table...");
+    // Check existing table
+    const { data: data2, error: error3 } = await supabase.from('brew_measurements').select('*').limit(1);
     
-    if (error) {
-        console.log("Error checking target table:", error.message);
+    if (error3) {
+        console.log("Error checking brew_measurements table:", error3.message);
     } else {
-        console.log("Success. brewing_sessions exists.");
+        console.log("Success. brew_measurements exists.");
     }
 
     // Control check - should fail

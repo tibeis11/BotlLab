@@ -10,6 +10,7 @@ import { UserNotificationProvider } from "./context/UserNotificationContext";
 import CookieBanner from "./components/CookieBanner";
 import AutoLogoutHandler from "./components/AutoLogoutHandler";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Toaster } from "sonner";
 
 export const metadata = {
   title: 'BotlLab | Digital Brew Lab',
@@ -51,6 +52,7 @@ export default function RootLayout({
               <AnalyticsPingClient />
               <AutoLogoutHandler />
               <SafeDOMPatch />
+              <Toaster richColors theme="dark" position="top-center" closeButton />
               {children}
               <CookieBanner />
               <SpeedInsights />

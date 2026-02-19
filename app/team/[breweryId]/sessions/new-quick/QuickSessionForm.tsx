@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import { createQuickSession } from "@/lib/actions/session-actions";
 import CustomSelect from "@/app/components/CustomSelect";
 import { platoToSG } from "@/lib/brewing-calculations";
+import { Beer, BookOpen } from "lucide-react";
 
 interface Brew {
   id: string;
   name: string;
   style: string | null;
   data: any;
+  sourceGroup?: 'own' | 'saved';
 }
 
 interface Props {
@@ -91,7 +93,8 @@ export default function QuickSessionForm({ breweryId, brews }: Props) {
           options={brews.map((brew) => ({
             value: brew.id,
             label: `${brew.name}${brew.style ? ` (${brew.style})` : ''}`,
-            icon: "🍺"
+            icon: brew.sourceGroup === 'saved' ? <BookOpen size={16} /> : <Beer size={16} />,
+            group: brew.sourceGroup === 'saved' ? 'Gespeicherte Rezepte' : 'Eigene Rezepte'
           }))}
         />
       </div>

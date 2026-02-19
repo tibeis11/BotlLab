@@ -21,7 +21,7 @@ import {
     Globe,
     LogOut
 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { useSupabase } from '@/lib/hooks/useSupabase';
 import { useAuth } from '@/app/context/AuthContext';
 import Logo from '@/app/components/Logo';
 import NotificationBell from '@/app/components/NotificationBell';
@@ -35,6 +35,7 @@ interface SquadHeaderProps {
 }
 
 export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
+    const supabase = useSupabase();
     const { user, signOut } = useAuth();
     const pathname = usePathname();
     

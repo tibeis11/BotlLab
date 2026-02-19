@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, use } from 'react';
-import { supabase } from '@/lib/supabase';
+import { useSupabase } from '@/lib/hooks/useSupabase';
 import Link from 'next/link';
 import { Plus, Tag, Trash2, Edit3, Check, RectangleVertical, RectangleHorizontal, Search, Crown, ChevronRight, Info, Lock, Palette, Infinity as InfinityIcon, Filter, Calendar, ArrowUpDown } from 'lucide-react';
 import { LabelDesign } from '@/lib/types/label-system';
@@ -228,6 +228,7 @@ const createDefaultTemplate = (breweryId: string, formatId: string, orientation:
 };
 
 export default function LabelsPage({ params }: { params: Promise<{ breweryId: string }> }) {
+    const supabase = useSupabase();
     const { breweryId } = use(params);
     const router = useRouter();
     
@@ -289,27 +290,57 @@ export default function LabelsPage({ params }: { params: Promise<{ breweryId: st
         setCreating(true);
         setShowFormatModal(false);
         try {
+            console.log('Starting template creation...', { formatId, forceOrientation });
+
+            // Check Auth & Role
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error("Nicht eingeloggt");
+
+            // Check Membership
+            const { data: memberData } = await supabase
+                .from('brewery_members')
+                .select('role')
+                .eq('brewery_id', breweryId)
+                .eq('user_id', user.id)
+                .single();
+            
+            if (!memberData || !memberData.role || !['admin', 'brewer', 'owner'].includes(memberData.role)) {
+                 throw new Error(`Keine Berechtigung. Rolle: ${memberData?.role || 'Keine'}`);
+            }
+
+            if (!LABEL_FORMATS[formatId]) {
+                throw new Error(`Invalid format ID: ${formatId}`);
+            }
+
             // Use forced orientation if selected, otherwise undefined (will use format default)
             const defaultConfig = createDefaultTemplate(breweryId, formatId, forceOrientation);
             
+            console.log('Template created. Inserting to DB...', defaultConfig);
+
             const { data, error } = await supabase
                 .from('label_templates')
                 .insert({
                     brewery_id: breweryId,
                     name: `Neues Design (${LABEL_FORMATS[formatId]?.name || 'Custom'})`,
                     format_id: formatId,
-                    config: defaultConfig
+                    config: defaultConfig as any // Explicit cast to satisfy JSON type
                 })
                 .select()
                 .single();
 
-            if (error) throw error;
+            if (error) {
+                console.error("Supabase Error:", error);
+                throw new Error(error.message || "Database Insert Failed");
+            }
             
+            console.log('Insert successful. Redirecting...', data.id);
+
             // Redirect to editor
             router.push(`/team/${breweryId}/labels/editor/${data.id}`);
 
-        } catch (e) {
-            console.error(e);
+        } catch (e: any) {
+            console.error("handleCreate Error:", e.message || e);
+            alert(`Fehler beim Erstellen: ${e.message || 'Unbekannter Fehler'}`);
             setCreating(false);
         }
     }

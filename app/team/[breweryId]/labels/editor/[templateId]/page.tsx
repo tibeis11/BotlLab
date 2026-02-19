@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, use } from 'react';
-import { supabase } from '@/lib/supabase';
+import { useSupabase } from '@/lib/hooks/useSupabase';
 import { LabelDesign } from '@/lib/types/label-system';
 import LabelEditor from '@/app/components/label-editor/LabelEditor';
 import { useRouter } from 'next/navigation';
@@ -12,6 +12,8 @@ export default function EditorPage({ params }: { params: Promise<{ breweryId: st
     const { breweryId, templateId } = use(params);
     const router = useRouter();
     
+    const supabase = useSupabase();
+
     const [design, setDesign] = useState<LabelDesign | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -38,7 +40,7 @@ export default function EditorPage({ params }: { params: Promise<{ breweryId: st
             const loadedDesign = {
                 id: data.id,
                 name: data.name,
-                ...data.config,
+                ...(data.config as any),
                 updatedAt: data.updated_at
             } as LabelDesign;
 
@@ -98,7 +100,7 @@ export default function EditorPage({ params }: { params: Promise<{ breweryId: st
             .from('label_templates')
             .update({
                 name: updatedDesign.name,
-                config: config,
+                config: config as any,
                 updated_at: new Date().toISOString()
             })
             .eq('id', templateId);

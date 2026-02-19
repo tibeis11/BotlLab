@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useState, use } from 'react';
-import { supabase } from '@/lib/supabase';
+import { useSupabase } from '@/lib/hooks/useSupabase';
 import { useAuth } from '@/app/context/AuthContext';
 import { getBreweryFeed, addToFeed, type FeedItem } from '@/lib/feed-service';
 import Link from 'next/link';
 import { MessageSquare, Users, TrendingUp } from 'lucide-react';
 
 export default function TeamFeedPage({ params }: { params: Promise<{ breweryId: string }> }) {
+  const supabase = useSupabase();
   const { breweryId } = use(params);
   const { user } = useAuth();
   const [feed, setFeed] = useState<FeedItem[]>([]);
@@ -48,7 +49,9 @@ export default function TeamFeedPage({ params }: { params: Promise<{ breweryId: 
     const { data: members } = await supabase.from('brewery_members').select('user_id, role').eq('brewery_id', breweryId);
     if(members) {
         const roles: Record<string, string> = {};
-        members.forEach(m => roles[m.user_id] = m.role);
+        members.forEach(m => {
+          if (m.user_id) roles[m.user_id] = m.role || 'member';
+        });
         setMemberRoles(roles);
     }
 
@@ -57,7 +60,7 @@ export default function TeamFeedPage({ params }: { params: Promise<{ breweryId: 
   }
 
   async function loadFeedOnly() {
-    const items = await getBreweryFeed(breweryId);
+    const items = await getBreweryFeed(supabase, breweryId);
     setFeed(items);
   }
 
@@ -66,7 +69,7 @@ export default function TeamFeedPage({ params }: { params: Promise<{ breweryId: 
     if (!newPost.trim() || !user) return;
 
     setIsPosting(true);
-    await addToFeed(breweryId, user, 'POST', { message: newPost });
+    await addToFeed(supabase, breweryId, user, 'POST', { message: newPost });
     setNewPost('');
     setIsPosting(false);
     loadFeedOnly();

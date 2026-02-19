@@ -5,6 +5,18 @@ import { LABEL_FORMATS } from './smart-labels-config'; // Assuming format defini
 import { mmToPx } from './unit-converter';
 
 // --- FONT MANAGEMENT ---
+// Map custom names to standard PDF fonts as fallback
+const STANDARD_FONT_MAP: Record<string, string> = {
+    'Arial': 'Helvetica',
+    'Roboto': 'Helvetica',
+    'OpenSans': 'Helvetica',
+    'Montserrat': 'Helvetica',
+    'PlayfairDisplay': 'Times',
+    'Courier': 'Courier',
+    'Times': 'Times',
+    'Helvetica': 'Helvetica'
+};
+
 const FONT_CACHE: Record<string, { regular: ArrayBuffer | null, bold: ArrayBuffer | null, italic: ArrayBuffer | null, bolditalic: ArrayBuffer | null }> = {};
 const IMAGE_CACHE: Record<string, string> = {}; // Cache for base64 images
 
@@ -181,7 +193,22 @@ async function renderElementToPdf(doc: jsPDF, element: LabelElement, offsetX: nu
             else if (isBold) fontStyle = 'bold';
             else if (isItalic) fontStyle = 'italic';
 
-            doc.setFont(element.style.fontFamily || 'Helvetica', fontStyle);
+            // Resolve Font Family
+            // Check if the requested font is available in our cache (meaning it was loaded successfully)
+            // If not, fall back to a standard font mapping to avoid the ugly Times New Roman default.
+            let fontFamily = element.style.fontFamily || 'Helvetica';
+            const isCustomFontLoaded = FONT_CACHE[fontFamily] && (
+                FONT_CACHE[fontFamily].regular || 
+                FONT_CACHE[fontFamily].bold || 
+                FONT_CACHE[fontFamily].italic || 
+                FONT_CACHE[fontFamily].bolditalic
+            );
+
+            if (!isCustomFontLoaded && STANDARD_FONT_MAP[fontFamily]) {
+                fontFamily = STANDARD_FONT_MAP[fontFamily];
+            }
+            
+            doc.setFont(fontFamily, fontStyle);
             doc.setFontSize(element.style.fontSize || 10);
             doc.setTextColor(element.style.color || '#000000');
             
@@ -190,13 +217,18 @@ async function renderElementToPdf(doc: jsPDF, element: LabelElement, offsetX: nu
             const textLines = doc.splitTextToSize(element.content, boxWidth);
             
             // 2. Metrics
-            const lineHeightFactor = element.style.lineHeight || 1.15;
+            // Match the default line height from LabelCanvas (1.2 vs 1.15)
+            const lineHeightFactor = element.style.lineHeight || 1.2; 
             const fontSizeMm = (element.style.fontSize || 10) * 0.3528; // pt to mm
             const lineHeightMm = fontSizeMm * lineHeightFactor;
             const totalBlockHeight = textLines.length * lineHeightMm;
             
             // 3. Start Position (Center Block Vertically)
             // Top of the block in unrotated space relative to element top
+            // Note: doc.text draws at the baseline.
+            // Heuristic connection: The first line's baseline is roughly 0.8 * fontSize down from the top.
+            // But we need to center the *visual block*.
+            
             const startY = (y + element.height / 2) - (totalBlockHeight / 2);
 
             // 4. Render Line by Line
@@ -204,7 +236,8 @@ async function renderElementToPdf(doc: jsPDF, element: LabelElement, offsetX: nu
             textLines.forEach((line: string, i: number) => {
                 // Line Y (Baseline)
                 // Add ascent (approx 0.8 of font size) + current line offset
-                const lineBaseY = startY + (i * lineHeightMm) + (fontSizeMm * 0.8);
+                // Adjusting baseline factor to 0.75 to better match browser rendering (cap-height vs ascender)
+                const lineBaseY = startY + (i * lineHeightMm) + (fontSizeMm * 0.75);
                 
                 // Determine Anchor X based on alignment
                 let anchorX = x;

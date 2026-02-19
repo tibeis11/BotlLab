@@ -28,13 +28,15 @@ import Logo from "./Logo";
 import NotificationBell from "./NotificationBell";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { supabase, getUserBreweries, getActiveBrewery } from "@/lib/supabase";
+import { getUserBreweries, getActiveBrewery } from "@/lib/supabase";
+import { useSupabase } from "@/lib/hooks/useSupabase";
 import { useAuth } from "../context/AuthContext";
 import { getTierConfig } from "@/lib/tier-system";
 import { getBreweryBranding } from "@/lib/actions/premium-actions";
 import { getTierBorderColor } from "@/lib/premium-config";
 
 export default function Header({ breweryId }: { breweryId?: string }) {
+  const supabase = useSupabase();
   const { user, loading, signOut } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [showMenu, setShowMenu] = useState(false);
@@ -82,20 +84,20 @@ export default function Header({ breweryId }: { breweryId?: string }) {
         }
 
         // 2. Breweries
-        const allBreweries = await getUserBreweries(user.id);
-        if (!cancelled) setUserBreweries(allBreweries);
+        const allBreweries = await getUserBreweries(user.id, supabase);
+        if (!cancelled && allBreweries) setUserBreweries(allBreweries);
 
         // 3. Active Brewery
         let selectedBrewery = null;
         if (breweryId) {
-             selectedBrewery = allBreweries.find(b => b.id === breweryId);
+             selectedBrewery = allBreweries?.find(b => b.id === breweryId);
         }
         
         // Fallback or override logic could go here if needed
         // Assuming getUserBreweries returns {id, name, ...}
-        if (!selectedBrewery && allBreweries.length > 0) {
+        if (!selectedBrewery && allBreweries && allBreweries.length > 0) {
              // Maybe try to get from DB setting if we want perfect parity, but simple for now:
-             const dbActive = await getActiveBrewery(user.id);
+             const dbActive = await getActiveBrewery(user.id, supabase);
              selectedBrewery = dbActive || allBreweries[0];
         }
 

@@ -8,6 +8,7 @@ import { ptToMm } from './utils/label-units';
 // Interface for bottle data specific to the new system
 export interface SmartBottleData {
   id: string;
+  short_code?: string;
   bottle_number: number;
   qrUrl?: string;
   // Additional data for variable replacement
@@ -226,7 +227,8 @@ export const generateLabelBatchPdf = async (
             abv: globalVariables.abv || '',
             ibu: globalVariables.ibu || '',
             ebc: globalVariables.ebc || '',
-            qr_code: `https://botllab.de/b/${bottle.id}`, // Build the full URL
+            // Use Short Code if available, otherwise ID
+            qr_code: `https://botllab.de/b/${bottle.short_code || bottle.id}`, 
             bottle_nr: String(bottle.bottle_number).padStart(3, '0'),
             total_bottles: String(bottles.length)
         };

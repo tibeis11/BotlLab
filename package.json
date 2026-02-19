@@ -8,13 +8,14 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test:smoke": "playwright test tests/smoke",
     "test": "jest",
     "supabase": "supabase"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@supabase/ssr": "^0.8.0",
-    "@supabase/supabase-js": "^2.90.1",
+    "@supabase/supabase-js": "^2.96.0",
     "@types/canvas-confetti": "^1.9.0",
     "@types/leaflet": "^1.9.21",
     "@vercel/speed-insights": "^1.3.1",
@@ -44,9 +45,10 @@
     "remark-breaks": "^4.0.0",
     "resend": "^6.9.1",
     "stripe": "^20.2.0",
-    "zod": "^4.3.5"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4",
     "@types/bad-words": "^3.0.3",
     "@types/jest": "^30.0.0",

@@ -26,9 +26,7 @@ export default function AutoLogoutHandler() {
       // Neuer Timer: Wenn er abläuft, ausloggen
       timerRef.current = setTimeout(async () => {
         console.log("[AutoLogout] User inactive for too long. Logging out...");
-        await signOut();
-        // Redirect mit Grund (optional für UI-Anzeige)
-        router.push('/login?reason=timeout');
+        await signOut('/login?reason=timeout');
       }, INACTIVITY_TIMEOUT);
     };
 

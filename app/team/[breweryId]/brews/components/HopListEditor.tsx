@@ -112,11 +112,12 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
                                     <label className="text-[10px] uppercase font-bold text-zinc-500">Menge</label>
                                     <div className="relative">
                                         <input 
-                                            type="number"
+                                            type="text"
+                                            inputMode="decimal"
                                             className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-3 pr-3 py-3 text-white focus:border-green-500 outline-none placeholder:text-zinc-700"
                                             placeholder="0"
                                             value={items[editingIndex].amount}
-                                            onChange={(e) => updateRow(editingIndex, 'amount', e.target.value)}
+                                            onChange={(e) => updateRow(editingIndex, 'amount', e.target.value.replace(',', '.'))}
                                         />
                                     </div>
                                 </div>
@@ -147,18 +148,20 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
                                         <Percent size={12}/> Alpha
                                     </label>
                                     <input 
+                                        type="text"
+                                        inputMode="decimal"
                                         className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-3 text-white focus:border-green-500 outline-none placeholder:text-zinc-700"
                                         placeholder="%"
                                         value={items[editingIndex].alpha || ''}
-                                        onChange={(e) => updateRow(editingIndex, 'alpha', e.target.value)}
+                                        onChange={(e) => updateRow(editingIndex, 'alpha', e.target.value.replace(',', '.'))}
                                     />
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-[10px] uppercase font-bold text-zinc-500 flex items-center gap-1">
                                         <Clock size={12}/> Zeit (min)
                                     </label>
-                                    <input 
-                                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-3 text-white focus:border-green-500 outline-none placeholder:text-zinc-700"
+                                    <input                                         type="number"
+                                        inputMode="numeric"                                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-3 text-white focus:border-green-500 outline-none placeholder:text-zinc-700"
                                         placeholder="Min"
                                         value={items[editingIndex].time || ''}
                                         onChange={(e) => updateRow(editingIndex, 'time', e.target.value)}
@@ -266,10 +269,12 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
                     {items.map((item, idx) => (
                         <div key={idx} className="grid grid-cols-[60px_50px_1fr_60px_60px_80px_30px] gap-2 items-center animate-in fade-in slide-in-from-top-1 duration-200">
                             <input 
+                                type="text"
+                                inputMode="decimal"
                                 className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-2 text-sm text-white focus:border-cyan-500 outline-none text-right placeholder:text-zinc-700"
                                 placeholder="0"
                                 value={item.amount}
-                                onChange={(e) => updateRow(idx, 'amount', e.target.value)}
+                                onChange={(e) => updateRow(idx, 'amount', e.target.value.replace(',', '.'))}
                             />
 
                             <input 
@@ -286,12 +291,16 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
                                 onChange={(e) => updateRow(idx, 'name', e.target.value)}
                             />
                             <input 
+                                type="text"
+                                inputMode="decimal"
                                 className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-2 text-sm text-white focus:border-cyan-500 outline-none text-right placeholder:text-zinc-700"
                                 placeholder="-"
                                 value={item.alpha || ''}
-                                onChange={(e) => updateRow(idx, 'alpha', e.target.value)}
+                                onChange={(e) => updateRow(idx, 'alpha', e.target.value.replace(',', '.'))}
                             />
                             <input 
+                                type="text"
+                                inputMode="decimal"
                                 className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-2 text-sm text-white focus:border-cyan-500 outline-none text-right placeholder:text-zinc-700"
                                 placeholder="-"
                                 value={item.time || ''}

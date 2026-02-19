@@ -7,20 +7,28 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 // Das ist unser Funkgerät zur Datenbank
 // Use createBrowserClient for client-side usage (handles cookies automatically)
 // Use createClient for server-side usage (fallback, no automatic auth)
+/**
+ * @deprecated DO NOT USE THIS SINGLETON IN NEW CODE.
+ * Use `useSupabase` hook for Client Components.
+ * Use `createClient` from `@/lib/supabase-server` for Server Components/Actions.
+ */
 export const supabase = typeof window !== 'undefined'
   ? createBrowserClient(supabaseUrl, supabaseAnonKey)
   : createClient(supabaseUrl, supabaseAnonKey);
 
 // Hilfsfunktionen für das Squad-Modell (Brauerei-Gruppen)
 
+import { SupabaseClient } from '@supabase/supabase-js';
+
 /**
  * Holt die aktive Brauerei für einen User.
  * Priorisiert die zuletzt besuchte (active_brewery_id im Profil).
  */
-export async function getActiveBrewery(userId: string) {
+export async function getActiveBrewery(userId: string, existingClient?: SupabaseClient) {
+  const client = existingClient || supabase;
   try {
     // 1. Hole Preferred ID aus Profil
-    const { data: profile } = await supabase
+    const { data: profile } = await client
         .from('profiles')
         .select('active_brewery_id')
         .eq('id', userId)
@@ -29,7 +37,7 @@ export async function getActiveBrewery(userId: string) {
     const preferredId = profile?.active_brewery_id;
 
     // 2. Hole alle Mitgliedschaften
-    const { data: members, error: memberError } = await supabase
+    const { data: members, error: memberError } = await client
       .from('brewery_members')
       .select(`
         brewery_id,
@@ -80,9 +88,10 @@ export async function getActiveBrewery(userId: string) {
 /**
  * Holt alle Brauereien, in denen der User Mitglied ist.
  */
-export async function getUserBreweries(userId: string) {
+export async function getUserBreweries(userId: string, existingClient?: SupabaseClient) {
+  const client = existingClient || supabase;
   try {
-    const { data: members, error } = await supabase
+    const { data: members, error } = await client
       .from('brewery_members')
       .select(`
         brewery_id,
@@ -116,8 +125,9 @@ export async function getUserBreweries(userId: string) {
 /**
  * Listet alle Mitglieder einer Brauerei auf.
  */
-export async function getBreweryMembers(breweryId: string) {
-  const { data, error } = await supabase
+export async function getBreweryMembers(breweryId: string, existingClient?: SupabaseClient) {
+  const client = existingClient || supabase;
+  const { data, error } = await client
     .from('brewery_members')
     .select(`
       role,

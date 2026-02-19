@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 export type FeedItemType = 'POST' | 'BREW_CREATED' | 'BREW_UPDATED' | 'MEMBER_JOINED' | 'ACHIEVEMENT' | 'BREW_RATED' | 'FORUM_THREAD_CREATED';
 
@@ -30,13 +30,14 @@ export interface FeedItem {
  * Fügt einen neuen Eintrag zum Feed hinzu
  */
 export async function addToFeed(
+  client: SupabaseClient,
   breweryId: string, 
   user: { id: string }, 
   type: FeedItemType, 
   content: FeedItem['content']
 ) {
   try {
-    const { error } = await supabase
+    const { error } = await client
       .from('brewery_feed')
       .insert({
         brewery_id: breweryId,
@@ -54,8 +55,8 @@ export async function addToFeed(
 /**
  * Lädt den Feed für eine Brauerei
  */
-export async function getBreweryFeed(breweryId: string) {
-  const { data, error } = await supabase
+export async function getBreweryFeed(client: SupabaseClient, breweryId: string) {
+  const { data, error } = await client
     .from('brewery_feed')
     .select(`
       *,

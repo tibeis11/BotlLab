@@ -137,15 +137,19 @@ export async function checkAndGrantAchievements(userId: string) {
 
     const { error } = await supabase
       .from('user_achievements')
-      .insert(
+      .upsert(
         newAchievements.map(achievement_id => ({
           user_id: userId,
           achievement_id,
-        }))
+        })),
+        { onConflict: 'user_id, achievement_id', ignoreDuplicates: true }
       );
 
     if (error) {
-      console.error('Error granting achievements:', error);
+      // Ignore unique constraint violation (code 23505) just in case upsert didn't catch it for some reason
+      if (error.code !== '23505') {
+          console.error('Error granting achievements:', error);
+      }
       return [];
     }
 

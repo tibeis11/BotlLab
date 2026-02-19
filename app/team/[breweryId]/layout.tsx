@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useParams } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { useSupabase } from '@/lib/hooks/useSupabase';
 import { useAuth } from '@/app/context/AuthContext';
 import { NotificationProvider } from '@/app/context/NotificationContext';
 import SquadHeader from '../components/SquadHeader';
@@ -13,6 +13,7 @@ export default function TeamLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const supabase = useSupabase();
   const { user, loading: authLoading } = useAuth();
   const [brewery, setBrewery] = useState<any>(null);
   const [loading, setLoading] = useState(true);

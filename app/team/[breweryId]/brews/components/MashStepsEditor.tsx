@@ -105,11 +105,12 @@ export function MashStepsEditor({ value, onChange }: MashStepsEditorProps) {
                                         <Thermometer size={12}/> Temperatur (°C)
                                     </label>
                                     <input 
-                                        type="number"
+                                        type="text"
+                                        inputMode="decimal"
                                         className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-3 text-white focus:border-red-500 outline-none placeholder:text-zinc-700"
                                         placeholder="63"
                                         value={items[editingIndex].temperature || ''}
-                                        onChange={(e) => updateRow(editingIndex, 'temperature', e.target.value)}
+                                        onChange={(e) => updateRow(editingIndex, 'temperature', e.target.value.replace(',', '.'))}
                                     />
                                 </div>
                                 <div className="space-y-1">
@@ -209,12 +210,16 @@ export function MashStepsEditor({ value, onChange }: MashStepsEditorProps) {
                                 onChange={(e) => updateRow(idx, 'name', e.target.value)}
                             />
                             <input 
+                                type="text"
+                                inputMode="decimal"
                                 className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-2 text-sm text-white focus:border-cyan-500 outline-none text-right placeholder:text-zinc-700"
                                 placeholder="63"
                                 value={item.temperature || ''}
-                                onChange={(e) => updateRow(idx, 'temperature', e.target.value)}
+                                onChange={(e) => updateRow(idx, 'temperature', e.target.value.replace(',', '.'))}
                             />
                             <input 
+                                type="text"
+                                inputMode="decimal"
                                 className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-2 text-sm text-white focus:border-cyan-500 outline-none text-right placeholder:text-zinc-700"
                                 placeholder="60"
                                 value={item.duration || ''}

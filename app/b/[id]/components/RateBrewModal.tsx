@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import TasteSlider from './TasteSlider';
 import FlavorTagSelector from './FlavorTagSelector';
 import { TASTE_SLIDERS } from '@/lib/rating-config';
@@ -7,18 +7,31 @@ import Link from 'next/link';
 
 interface RateBrewModalProps {
   brewId: string;
-  onSubmit: (data: RatingSubmission) => Promise<string | null>; // Returns ratingId or null
+  onSubmit: (data: RatingSubmission & { form_start_time?: number }) => Promise<string | null>; // Returns ratingId or null
   onCancel: () => void;
   isSubmitting: boolean;
   initialAuthorName?: string;
   onClaimCap?: (ratingId: string) => Promise<void>; 
   existingRatingId?: string | null;
+  currentUser?: any; // User object from Supabase
 }
 
-export default function RateBrewModal({ brewId, onSubmit, onCancel, isSubmitting, initialAuthorName = '', onClaimCap, existingRatingId }: RateBrewModalProps) {
+export default function RateBrewModal({ 
+  brewId, 
+  onSubmit, 
+  onCancel, 
+  isSubmitting, 
+  initialAuthorName = '', 
+  onClaimCap, 
+  existingRatingId,
+  currentUser
+}: RateBrewModalProps) {
   // Steps: 'rating' -> 'success'
   const [step, setStep] = useState<'rating' | 'success'>(existingRatingId ? 'success' : 'rating');
   const [createdRatingId, setCreatedRatingId] = useState<string | null>(existingRatingId || null);
+
+  // Spam Protection: Measure time to complete form
+  const formStartTime = useRef(Date.now());
 
   // Basic Rating State
   const [rating, setRating] = useState(0);
@@ -51,14 +64,24 @@ export default function RateBrewModal({ brewId, onSubmit, onCancel, isSubmitting
     }
   }, [existingRatingId]);
 
+  // Pre-fill Name from User if available and empty
+  useEffect(() => {
+    if (currentUser?.user_metadata?.display_name && !authorName) {
+        setAuthorName(currentUser.user_metadata.display_name);
+    } else if (currentUser?.user_metadata?.full_name && !authorName) {
+        setAuthorName(currentUser.user_metadata.full_name);
+    }
+  }, [currentUser]);
+
   const handleSubmit = async () => {
     if (honeypot) return; // Silent reject
 
-    const submissionData: RatingSubmission = {
+    const submissionData: RatingSubmission & { form_start_time?: number } = {
       brew_id: brewId,
       rating,
       author_name: authorName,
       comment,
+      form_start_time: formStartTime.current, // Send start time for server-side check
       ...(showDetails ? {
           ...profile,
           appearance_color: appearanceColor as any,
@@ -86,33 +109,51 @@ export default function RateBrewModal({ brewId, onSubmit, onCancel, isSubmitting
               <h3 className="text-2xl font-black text-white mb-2">Danke für dein Feedback!</h3>
               <p className="text-zinc-400 mb-8 max-w-xs mx-auto">Deine Meinung hilft anderen Brauern und Trinkern enorm weiter.</p>
 
-              {/* Gamification CTA */}
-              <div className="bg-gradient-to-br from-zinc-800 to-zinc-900 border border-zinc-700 p-6 rounded-2xl relative overflow-hidden group">
-                   {/* Shine effect */}
-                   <div className="absolute top-0 right-0 -mr-10 -mt-10 w-32 h-32 bg-cyan-500/20 blur-3xl rounded-full"></div>
-                  
-                   <div className="relative z-10">
-                        <h4 className="text-sm font-bold text-cyan-400 uppercase tracking-widest mb-2">Kronkorken verfügbar</h4>
-                        <div className="text-5xl mb-4 transform group-hover:scale-110 transition duration-300">🏅</div>
-                        <p className="text-sm text-zinc-300 mb-6">
-                            Sammle diesen digitalen Kronkorken für deine persönliche Sammlung!
-                        </p>
-                        
-                        <button 
-                            onClick={() => onClaimCap && createdRatingId && onClaimCap(createdRatingId)}
-                            className="w-full bg-cyan-500 hover:bg-cyan-400 text-black font-black py-3 rounded-xl transition shadow-lg shadow-cyan-900/20 mb-3"
-                        >
-                            Kronkorken jetzt einsammeln
-                        </button>
-                        
-                        <button 
-                            onClick={onCancel}
-                            className="text-xs text-zinc-500 hover:text-zinc-300 underline"
-                        >
-                            Nein danke, vielleicht später
-                        </button>
-                   </div>
-              </div>
+              {/* Gamification CTA - Only show if NO user is logged in (Guests) */}
+              {/* If user IS logged in, we auto-claimed it already, so we just show success or "View Profile" */}
+              
+              {!currentUser ? (
+                  <div className="bg-gradient-to-br from-zinc-800 to-zinc-900 border border-zinc-700 p-6 rounded-2xl relative overflow-hidden group">
+                       {/* Shine effect */}
+                       <div className="absolute top-0 right-0 -mr-10 -mt-10 w-32 h-32 bg-cyan-500/20 blur-3xl rounded-full"></div>
+                      
+                       <div className="relative z-10">
+                            <h4 className="text-sm font-bold text-cyan-400 uppercase tracking-widest mb-2">Kronkorken verfügbar</h4>
+                            <div className="text-5xl mb-4 transform group-hover:scale-110 transition duration-300">🏅</div>
+                            <p className="text-sm text-zinc-300 mb-6">
+                                Sammle diesen digitalen Kronkorken für deine persönliche Sammlung!
+                            </p>
+                            
+                            <button 
+                                onClick={() => onClaimCap && createdRatingId && onClaimCap(createdRatingId)}
+                                className="w-full bg-cyan-500 hover:bg-cyan-400 text-black font-black py-3 rounded-xl transition shadow-lg shadow-cyan-900/20 mb-3"
+                            >
+                                Kronkorken jetzt einsammeln
+                            </button>
+                            
+                            <button 
+                                onClick={onCancel}
+                                className="text-xs text-zinc-500 hover:text-zinc-300 underline"
+                            >
+                                Nein danke, vielleicht später
+                            </button>
+                       </div>
+                  </div>
+              ) : (
+                  <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl">
+                       <p className="text-zinc-300 mb-4">
+                           Der Kronkorken wurde automatisch deiner Sammlung hinzugefügt! 🏅
+                       </p>
+                       <div className="flex flex-col gap-3">
+                           <button 
+                                onClick={onCancel}
+                                className="w-full bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-3 rounded-xl transition"
+                           >
+                               Fenster schließen
+                           </button>
+                       </div>
+                  </div>
+              )}
           </div>
       );
   }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { useSupabase } from '@/lib/hooks/useSupabase';
 import Link from 'next/link';
 import { useAuth } from '@/app/context/AuthContext';
 import CrownCap from '@/app/components/CrownCap';
@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 
 export default function CollectionPage() {
+  const supabase = useSupabase();
   const { user } = useAuth();
   const [caps, setCaps] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
