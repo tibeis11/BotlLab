@@ -350,7 +350,7 @@ export function BrewDayTab() {
         <div className="flex flex-col md:flex-row bg-black text-zinc-300 border-t border-zinc-900">
 
             {timer.duration > 0 && (
-                <div className="md:hidden fixed bottom-16 left-0 right-0 z-40 bg-zinc-950 border-t border-zinc-800 shadow-[0_-4px_16px_rgba(0,0,0,0.6)]">
+                <div className="md:hidden fixed left-0 right-0 z-40 bg-zinc-950 border-t border-zinc-800 shadow-[0_-4px_16px_rgba(0,0,0,0.6)]" style={{ bottom: 'calc(4rem + max(env(safe-area-inset-bottom), 8px))' }}>
                     {/* Expandable details panel */}
                     {timerExpanded && (
                         <div className="px-4 py-3 border-b border-zinc-800 grid grid-cols-2 gap-x-6 gap-y-2">
@@ -377,18 +377,18 @@ export function BrewDayTab() {
                         </div>
                     )}
                     {/* Collapsed strip */}
-                    <div className="flex items-center justify-between px-4 h-12">
+                    <div className="flex items-center justify-between px-4 h-16">
                         <div className="flex items-center gap-2 flex-1 min-w-0">
-                            <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${timer.running ? 'bg-amber-500 animate-pulse' : 'bg-zinc-600'}`} />
-                            <span className="text-[11px] text-zinc-500 truncate">{timeline[active]?.title}</span>
+                            <div className={`w-2 h-2 rounded-full shrink-0 ${timer.running ? 'bg-amber-500 animate-pulse' : 'bg-zinc-600'}`} />
+                            <span className="text-sm text-zinc-400 truncate font-medium">{timeline[active]?.title}</span>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                            <span className="text-base font-mono font-bold text-white tabular-nums"><LiveTimer state={timer} /></span>
-                            <button onClick={toggleTimer} className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${timer.running ? 'bg-zinc-800 text-amber-500' : 'bg-amber-600 text-white'}`}>
-                                {timer.running ? <Pause className="w-3 h-3 fill-current" /> : <Play className="w-3 h-3 fill-current" />}
+                        <div className="flex items-center gap-3 shrink-0">
+                            <span className="text-xl font-mono font-bold text-white tabular-nums"><LiveTimer state={timer} /></span>
+                            <button onClick={toggleTimer} className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${timer.running ? 'bg-zinc-800 text-amber-500' : 'bg-amber-600 text-white'}`}>
+                                {timer.running ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
                             </button>
-                            <button onClick={() => setTimerExpanded(v => !v)} className="w-7 h-7 flex items-center justify-center text-zinc-600 hover:text-zinc-300 transition-colors">
-                                {timerExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+                            <button onClick={() => setTimerExpanded(v => !v)} className="w-10 h-10 flex items-center justify-center text-zinc-500 hover:text-zinc-300 transition-colors">
+                                {timerExpanded ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
                             </button>
                         </div>
                     </div>
