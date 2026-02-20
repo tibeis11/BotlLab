@@ -188,7 +188,7 @@ export default function SessionClient({ sessionId }: { sessionId: string }) {
             <div className="flex-1 flex flex-col min-w-0 relative">
                 
                 {/* Tab Content — flows naturally, browser scroll handles everything */}
-                <main className="flex-1 px-1 py-4 md:p-6 lg:p-8 pb-32 lg:pb-8 w-full max-w-6xl mx-auto animate-in fade-in duration-300">
+                <main className="flex-1 px-1 py-4 md:p-6 lg:p-8 pb-36 lg:pb-8 w-full max-w-6xl mx-auto animate-in fade-in duration-300">
                     {renderTabContent()}
                 </main>
 

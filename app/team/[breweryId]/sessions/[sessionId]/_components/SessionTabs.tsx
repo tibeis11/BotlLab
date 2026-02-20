@@ -107,7 +107,7 @@ export function MobileSessionTabs({ activeTab, setActiveTab }: SessionTabsProps)
     const isOverflowActive = overflowTabs.some(t => t.id === activeTab);
 
     return (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-zinc-950 border-t border-zinc-900 z-50 pb-safe">
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-zinc-950 border-t border-zinc-900 z-50" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 8px)' }}>
             
             {/* More Menu Drawer */}
             {isMoreOpen && (
