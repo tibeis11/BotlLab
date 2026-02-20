@@ -306,19 +306,19 @@ export function CompletedTab() {
 
             {/* Final Stats Card */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                 <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-lg">
+                 <div className="md:bg-zinc-900 md:border md:border-zinc-800 md:p-4 md:rounded-lg py-2 px-1 border-b border-zinc-800 md:border-b-0">
                     <div className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider mb-1">Stammwürze (OG)</div>
                     <div className="text-xl font-mono font-bold text-white">{stats.og?.toFixed(3) || '—'}</div>
                  </div>
-                 <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-lg">
+                 <div className="md:bg-zinc-900 md:border md:border-zinc-800 md:p-4 md:rounded-lg py-2 px-1 border-b border-zinc-800 md:border-b-0">
                     <div className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider mb-1">Restextrakt (FG)</div>
                     <div className="text-xl font-mono font-bold text-white">{stats.fg?.toFixed(3) || '—'}</div>
                  </div>
-                 <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-lg">
+                 <div className="md:bg-zinc-900 md:border md:border-zinc-800 md:p-4 md:rounded-lg py-2 px-1 border-b border-zinc-800 md:border-b-0">
                     <div className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider mb-1">Alkohol (ABV)</div>
                     <div className="text-xl font-mono font-bold text-emerald-400">{stats.abv}%</div>
                  </div>
-                 <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-lg">
+                 <div className="md:bg-zinc-900 md:border md:border-zinc-800 md:p-4 md:rounded-lg py-2 px-1 border-b border-zinc-800 md:border-b-0 md:last:border-0">
                     <div className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider mb-1">Vergärungsgrad</div>
                     <div className="text-xl font-mono font-bold text-cyan-400">{stats.attenuation}%</div>
                     <BotlGuideTrigger guideKey="effizienz.sudhausausbeute" />

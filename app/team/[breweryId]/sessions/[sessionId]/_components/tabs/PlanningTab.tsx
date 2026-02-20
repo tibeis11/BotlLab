@@ -161,7 +161,7 @@ export function PlanningTab() {
       </div>
 
       {/* Water Profile */}
-      <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-5 mb-8">
+      <div className="md:bg-zinc-900/40 md:border md:border-zinc-800 md:rounded-xl md:p-5 mb-8">
           <div className="flex items-center justify-between mb-4 border-b border-zinc-800 pb-2">
             <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
                     <Droplets className="w-3 h-3 text-cyan-500" /> 

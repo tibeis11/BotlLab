@@ -33,7 +33,7 @@ const MetricCard = ({ label, value, unit, subtext, color = 'zinc', guideKey }: {
     };
     
     return (
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4 flex flex-col justify-between h-full">
+        <div className="flex flex-col justify-between h-full md:bg-zinc-900/50 md:border md:border-zinc-800 md:rounded-lg md:p-4 py-2 px-1 border-b border-zinc-800/50 md:border-b-0 last:border-0">
             <div>
                 <div className="flex items-center justify-between mb-1">
                     <div className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider">{label}</div>
@@ -44,7 +44,7 @@ const MetricCard = ({ label, value, unit, subtext, color = 'zinc', guideKey }: {
                     {value && unit && <span className="text-xs text-zinc-600 font-bold ml-1">{unit}</span>}
                 </div>
             </div>
-            {subtext && <div className="text-[10px] text-zinc-600 font-medium mt-2 pt-2 border-t border-zinc-800/50">{subtext}</div>}
+            {subtext && <div className="text-[10px] text-zinc-600 font-medium mt-1 md:mt-2 md:pt-2 md:border-t md:border-zinc-800/50">{subtext}</div>}
         </div>
     );
 };

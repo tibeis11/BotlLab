@@ -36,7 +36,7 @@ const MetricCard = ({ label, value, unit, subtext, color = 'zinc', guideKey }: {
     };
     
     return (
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4 flex flex-col justify-between h-full min-w-0">
+        <div className="flex flex-col justify-between h-full min-w-0 md:bg-zinc-900/50 md:border md:border-zinc-800 md:rounded-lg md:p-4 py-2 px-1 border-b border-zinc-800/50 md:border-b-0 last:border-0">
             <div>
                 <div className="flex items-center justify-between mb-1 gap-2">
                     <div className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider truncate" title={label}>{label}</div>
@@ -47,7 +47,7 @@ const MetricCard = ({ label, value, unit, subtext, color = 'zinc', guideKey }: {
                     {value && unit && <span className="text-xs text-zinc-600 font-bold ml-1">{unit}</span>}
                 </div>
             </div>
-            {subtext && <div className="text-[10px] text-zinc-600 font-medium mt-2 pt-2 border-t border-zinc-800/50 truncate" title={subtext}>{subtext}</div>}
+            {subtext && <div className="text-[10px] text-zinc-600 font-medium mt-1 md:mt-2 md:pt-2 md:border-t md:border-zinc-800/50 truncate" title={subtext}>{subtext}</div>}
         </div>
     );
 };
@@ -227,8 +227,8 @@ export function OverviewTab({ setActiveTab }: { setActiveTab: (tab: any) => void
                 <div className="lg:col-span-2 space-y-6">
                     {/* Graph (if fermenting or later) */}
                     {(session.phase === 'fermenting' || session.phase === 'conditioning' || session.phase === 'completed') && measurements.length > 0 ? (
-                        <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-4">
-                            <div className="flex items-center justify-between mb-4">
+                        <div className="md:bg-zinc-900/30 md:border md:border-zinc-800 md:rounded-xl md:p-4 -mx-1 md:mx-0">
+                            <div className="flex items-center justify-between mb-4 px-1 md:px-0">
                                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
                                     <Activity className="w-4 h-4 text-cyan-500" /> Gärverlauf
                                 </h3>
@@ -236,7 +236,7 @@ export function OverviewTab({ setActiveTab }: { setActiveTab: (tab: any) => void
                             <FermentationGraph height={300} />
                         </div>
                     ) : (
-                         <div className="bg-zinc-900/30 border border-zinc-800 border-dashed rounded-xl p-8 flex flex-col items-center justify-center text-center h-full min-h-[200px]">
+                         <div className="md:bg-zinc-900/30 md:border md:border-zinc-800 border-dashed md:rounded-xl p-8 flex flex-col items-center justify-center text-center h-full min-h-[200px]">
                             <Activity className="w-8 h-8 text-zinc-700 mb-2" />
                             <p className="text-zinc-500 text-sm">Gärverlauf wird verfügbar sobald Messwerte vorhanden sind.</p>
                          </div>
@@ -245,8 +245,8 @@ export function OverviewTab({ setActiveTab }: { setActiveTab: (tab: any) => void
 
                 {/* Sidebar Content (1/3) */}
                 <div className="space-y-6">
-                    <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-4 h-full flex flex-col">
-                        <div className="flex items-center justify-between mb-4">
+                    <div className="md:bg-zinc-900/30 md:border md:border-zinc-800 md:rounded-xl md:p-4 h-full flex flex-col">
+                        <div className="flex items-center justify-between mb-4 md:px-0">
                             <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
                                 <Clock className="w-3 h-3" /> Letzte Aktivitäten
                             </label>
