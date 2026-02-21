@@ -12,12 +12,14 @@ CREATE TABLE IF NOT EXISTS public.botlguide_feedback (
 ALTER TABLE public.botlguide_feedback ENABLE ROW LEVEL SECURITY;
 
 -- Allow authenticated users to insert their own feedback
+DROP POLICY IF EXISTS "Users can insert own feedback" ON public.botlguide_feedback;
 CREATE POLICY "Users can insert own feedback" 
 ON public.botlguide_feedback FOR INSERT 
 TO authenticated 
 WITH CHECK (auth.uid() = user_id);
 
 -- Only admins/service role can read feedback
+DROP POLICY IF EXISTS "Service role can read feedback" ON public.botlguide_feedback;
 CREATE POLICY "Service role can read feedback" 
 ON public.botlguide_feedback FOR SELECT 
 TO service_role 

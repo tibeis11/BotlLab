@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, type ChangeEvent } from 'react';
+import { useEffect, useState, useRef, useMemo, type ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ChartBar, Thermometer, Leaf, FlaskConical, FileText, Grape, Wine, Apple, Settings, Hexagon, Citrus, Activity, Gauge, Droplets, Sprout, ScrollText, Tag, Crown, Microscope, Star, RefreshCw, AlertTriangle, Globe, Loader2, Sparkles, Upload, Trash2, Lightbulb, Search } from 'lucide-react';
@@ -12,6 +12,8 @@ import { useAchievementNotification } from '@/app/context/AchievementNotificatio
 import { useAuth } from '@/app/context/AuthContext';
 import { addToFeed } from '@/lib/feed-service';
 import CrownCap from '@/app/components/CrownCap';
+import { inferFermentationType, inferMashMethod, inferMashProcess } from '@/lib/brew-type-lookup';
+import CustomSelect from '@/app/components/CustomSelect';
 import { IngredientListEditor } from './IngredientListEditor';
 import { MaltListEditor } from './MaltListEditor';
 import { HopListEditor } from './HopListEditor';
@@ -21,6 +23,7 @@ import { RecipeStepsEditor } from './RecipeStepsEditor';
 import { calculateColorEBC, calculateIBU, calculateWaterProfile, calculateOG, calculateABV, calculateFG, ebcToHex, calculateBatchSizeFromWater, safeFloat, calculateTotalGrain } from '@/lib/brewing-calculations';
 import { FormulaInspector } from '@/app/components/FormulaInspector';
 import { SubscriptionTier, type PremiumStatus } from '@/lib/premium-config';
+import { type EquipmentProfile, profileToConfig, BREW_METHOD_LABELS } from '@/lib/types/equipment';
 import { getPremiumStatus } from '@/lib/actions/premium-actions';
 import { createBrew, updateBrew } from '@/lib/actions/brew-actions';
 import { notifyNewBrew } from '@/lib/actions/notification-actions';
@@ -293,6 +296,41 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
         if (user) refreshPremium();
     }, [user]);
 
+    // Lade Equipment-Profile der Brewery
+    useEffect(() => {
+        if (!breweryId) return;
+        (supabase as any)
+            .from('equipment_profiles')
+            .select('*')
+            .eq('brewery_id', breweryId)
+            .order('is_default', { ascending: false })
+            .then(({ data }: { data: EquipmentProfile[] | null }) => {
+                if (!data) return;
+                setEquipmentProfiles(data);
+                // Neues Rezept: Default-Profil automatisch vorladen
+                if (id === 'new') {
+                    const def = data.find(p => p.is_default) ?? data[0];
+                    if (def) {
+                        const cfg = profileToConfig(def);
+                        setBrew(prev => ({
+                            ...prev,
+                            data: {
+                                ...(prev.data || {}),
+                                boil_off_rate:     cfg.boilOffRate,
+                                trub_loss:         cfg.trubLoss,
+                                grain_absorption:  cfg.grainAbsorption,
+                                cooling_shrinkage: cfg.coolingShrinkage,
+                                mash_thickness:    cfg.mashThickness,
+                                efficiency:        def.default_efficiency ?? 75,
+                            },
+                        }));
+                        setLoadedFromProfile(def.name);
+                    }
+                }
+            });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [breweryId]);
+
     // Ensure a random cap color is assigned by default when editor loads
     useEffect(() => {
         if (!brew.cap_url) {
@@ -306,6 +344,8 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
     const [ratingsLoading, setRatingsLoading] = useState(false);
     const [ratingsMessage, setRatingsMessage] = useState<string | null>(null);
     const [showWaterProfile, setShowWaterProfile] = useState(false);
+    const [equipmentProfiles, setEquipmentProfiles] = useState<EquipmentProfile[]>([]);
+    const [loadedFromProfile, setLoadedFromProfile] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const fileInputCapRef = useRef<HTMLInputElement>(null);
     const [brew, setBrew] = useState<BrewForm>({
@@ -344,6 +384,68 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
     function updateData(key: string, value: any) {
         setBrew(prev => ({ ...prev, data: { ...(prev.data || {}), [key]: value } }));
     }
+
+    // --- Smart Suggestions: Braumethode, Maischverfahren, Gärungstyp ---
+    // Tracks which suggestions the user has explicitly dismissed
+    const [ignoredSuggestions, setIgnoredSuggestions] = useState<Set<string>>(new Set());
+    const ignoreSuggestion = (key: string) =>
+        setIgnoredSuggestions(prev => new Set([...prev, key]));
+
+    const FERMENTATION_LABELS: Record<string, string> = {
+        top: 'Obergärig (Ale)', bottom: 'Untergärig (Lager)',
+        spontaneous: 'Spontangärung', mixed: 'Gemischt',
+    };
+
+    // Tracks which mash fields were auto-derived (vs manually chosen by user)
+    const autoSetFields = useRef<Set<string>>(new Set());
+
+    // Auto-apply mash_method via lookup (Maischeschritte + Extrakt-Zutaten)
+    useEffect(() => {
+        const isUserSet = brew.data?.mash_method && !autoSetFields.current.has('mash_method');
+        if (isUserSet) return;
+        const suggested = inferMashMethod(
+            brew.data?.mash_steps ?? [],
+            brew.data?.malts ?? [],
+        );
+        if (brew.data?.mash_method === suggested) return;
+        autoSetFields.current.add('mash_method');
+        updateData('mash_method', suggested);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [brew.data?.mash_steps, brew.data?.malts]);
+
+    // Auto-apply mash_process via lookup (Schrittnamen + Anzahl); leer wenn extract
+    useEffect(() => {
+        if (brew.data?.mash_method === 'extract') {
+            if (brew.data?.mash_process) {
+                autoSetFields.current.add('mash_process');
+                updateData('mash_process', null);
+            }
+            return;
+        }
+        const isUserSet = brew.data?.mash_process && !autoSetFields.current.has('mash_process');
+        if (isUserSet) return;
+        const steps = brew.data?.mash_steps;
+        if (!Array.isArray(steps) || steps.length === 0) return;
+        const suggested = inferMashProcess(steps);
+        if (!suggested || brew.data?.mash_process === suggested) return;
+        autoSetFields.current.add('mash_process');
+        updateData('mash_process', suggested);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [brew.data?.mash_steps, brew.data?.mash_method]);
+
+    // Auto-apply fermentation_type via Lookup-Tabelle (Hefename → Typ, Bierstil als Fallback)
+    useEffect(() => {
+        const isUserSet = brew.data?.fermentation_type && !autoSetFields.current.has('fermentation_type');
+        if (isUserSet) return;
+        const yeastNames: string[] = Array.isArray(brew.data?.yeast)
+            ? (brew.data.yeast as any[]).map((y: any) => y.name || '')
+            : brew.data?.yeast ? [String(brew.data.yeast)] : [];
+        const suggested = inferFermentationType(yeastNames, brew.style || '');
+        if (!suggested || brew.data?.fermentation_type === suggested) return;
+        autoSetFields.current.add('fermentation_type');
+        updateData('fermentation_type', suggested);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [brew.data?.yeast, brew.style]);
 
     // --- Special Effect: Water -> Batch Size ---
     // Only runs when Water or Malts or BoilTime change.
@@ -592,6 +694,10 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
             is_public: brew.is_public || false,
             data: sanitizedData,
             brewery_id: breweryId,
+            // Mirror mash fields as top-level DB columns (for filtering / indexing)
+            mash_method: sanitizedData.mash_method ?? null,
+            mash_process: sanitizedData.mash_process ?? null,
+            fermentation_type: sanitizedData.fermentation_type ?? null,
         };
 
         if (id === 'new') {
@@ -1546,7 +1652,20 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                     <span className="text-[10px] uppercase font-bold text-cyan-600 tracking-widest">Rezept-Vorgaben</span>
                                                 </div>
                                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                                                    <NumberInput label="System-SHA (%)" value={brew.data?.efficiency || ''} onChange={(val) => updateData('efficiency', val)} placeholder="75" />
+                                                    <div>
+                                                        <NumberInput label="System-SHA (%)" value={brew.data?.efficiency || ''} onChange={(val) => updateData('efficiency', val)} placeholder="75" />
+                                                        {loadedFromProfile && (
+                                                            <p className="text-[10px] text-cyan-600 mt-1 flex items-center gap-1">
+                                                                <span>↑ Übernommen aus Anlage</span>
+                                                                <span className="font-semibold truncate">{loadedFromProfile}</span>
+                                                            </p>
+                                                        )}
+                                                        {equipmentProfiles.length === 0 && (
+                                                            <p className="text-[10px] text-zinc-600 mt-1">
+                                                                Tipp: <a href={`/team/${breweryId}/settings?tab=equipment`} className="text-cyan-600 hover:underline">Brauanlage hinterlegen</a> um SHA automatisch vorzubelegen.
+                                                            </p>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
 
@@ -1701,7 +1820,45 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                     </div>
                                                     
                                                     {showWaterProfile && (
-                                                        <div className="p-5 border-t border-zinc-800 bg-black/20 animate-in slide-in-from-top-2 duration-200">
+                                                        <div className="p-5 border-t border-zinc-800 bg-black/20 animate-in slide-in-from-top-2 duration-200 space-y-4">
+
+                                                            {/* Anlage-Dropdown */}
+                                                            {equipmentProfiles.length > 0 && (
+                                                                <div className="flex items-center gap-3">
+                                                                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider whitespace-nowrap">Anlage laden</label>
+                                                                    <select
+                                                                        defaultValue=""
+                                                                        onChange={e => {
+                                                                            const p = equipmentProfiles.find(x => x.id === e.target.value);
+                                                                            if (!p) return;
+                                                                            const cfg = profileToConfig(p);
+                                                                            updateData('boil_off_rate',     cfg.boilOffRate);
+                                                                            updateData('trub_loss',         cfg.trubLoss);
+                                                                            updateData('grain_absorption',  cfg.grainAbsorption);
+                                                                            updateData('cooling_shrinkage', cfg.coolingShrinkage);
+                                                                            updateData('mash_thickness',    cfg.mashThickness);
+                                                                            updateData('efficiency',        p.default_efficiency ?? 75);
+                                                                            setLoadedFromProfile(p.name);
+                                                                            e.target.value = '';
+                                                                        }}
+                                                                        className="flex-1 bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-white focus:border-cyan-500 focus:outline-none transition appearance-none"
+                                                                    >
+                                                                        <option value="">— Profil wählen —</option>
+                                                                        {equipmentProfiles.map(p => (
+                                                                            <option key={p.id} value={p.id}>
+                                                                                {p.is_default ? '★ ' : ''}{p.name} ({BREW_METHOD_LABELS[p.brew_method]}, {p.batch_volume_l} L)
+                                                                            </option>
+                                                                        ))}
+                                                                    </select>
+                                                                </div>
+                                                            )}
+                                                            {equipmentProfiles.length === 0 && (
+                                                                <div className="text-[10px] text-zinc-500 bg-zinc-900/50 px-3 py-2 rounded border border-zinc-800 flex items-center gap-2">
+                                                                    <span>Keine Brauanlage hinterlegt —</span>
+                                                                    <a href={`/team/${breweryId}/settings?tab=equipment`} className="text-cyan-500 hover:underline font-medium">Jetzt anlegen →</a>
+                                                                </div>
+                                                            )}
+
                                                             <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-4">
                                                                 <NumberInput label="Verdampfung (L/h)" value={brew.data?.boil_off_rate || ''} onChange={(val) => updateData('boil_off_rate', val)} placeholder="3.5" step={0.5} />
                                                                 <NumberInput label="Trubverlust (L)" value={brew.data?.trub_loss || ''} onChange={(val) => updateData('trub_loss', val)} placeholder="0.5" step={0.1} />
@@ -1709,7 +1866,12 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                                 <NumberInput label="Kornabsorption (L/kg)" value={brew.data?.grain_absorption || ''} onChange={(val) => updateData('grain_absorption', val)} placeholder="0.96" step={0.05} />
                                                                 <NumberInput label="Maischedicke (L/kg)" value={brew.data?.mash_thickness || ''} onChange={(val) => updateData('mash_thickness', val)} placeholder="3.5" step={0.1} />
                                                             </div>
-                                                            <p className="text-[10px] text-zinc-600 mt-4 italic">
+                                                            {loadedFromProfile && (
+                                                                <p className="text-[10px] text-cyan-600/70 italic">
+                                                                    Werte übernommen aus Anlage: <span className="font-semibold not-italic text-cyan-500">{loadedFromProfile}</span>
+                                                                </p>
+                                                            )}
+                                                            <p className="text-[10px] text-zinc-600 italic">
                                                                 Hinweis: Gib oben deine <strong>Ziel-Ausschlagwürze</strong> ein und drücke auf "Berechnen". Die Werte hier werden für die Berechnung verwendet.
                                                             </p>
                                                         </div>
@@ -1725,6 +1887,57 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                     value={brew.data?.mash_steps}
                                                     onChange={(val) => updateData('mash_steps', val)}
                                                 />
+
+                                                {/* Braumethode & Maischverfahren */}
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                    {/* Braumethode */}
+                                                    <div>
+                                                        <label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 block">
+                                                            Braumethode
+                                                        </label>
+                                                        <CustomSelect
+                                                            value={brew.data?.mash_method || ''}
+                                                            onChange={(val) => {
+                                                                autoSetFields.current.delete('mash_method');
+                                                                updateData('mash_method', val || null);
+                                                            }}
+                                                            variant="zinc"
+                                                            size="lg"
+                                                            placeholder="– bitte wählen –"
+                                                            options={[
+                                                                { value: 'all_grain', label: 'All-Grain' },
+                                                                { value: 'extract', label: 'Extrakt' },
+                                                                { value: 'partial_mash', label: 'Teilmaische' },
+                                                            ]}
+                                                        />
+                                                    </div>
+
+                                                    {/* Maischverfahren — nur wenn nicht Extrakt */}
+                                                    {brew.data?.mash_method !== 'extract' && (
+                                                        <div>
+                                                            <label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 block">
+                                                                Maischverfahren
+                                                            </label>
+                                                            <CustomSelect
+                                                                value={brew.data?.mash_process || ''}
+                                                                onChange={(val) => {
+                                                                    autoSetFields.current.delete('mash_process');
+                                                                    updateData('mash_process', val || null);
+                                                                }}
+                                                                variant="zinc"
+                                                                size="lg"
+                                                                placeholder="– bitte wählen –"
+                                                                options={[
+                                                                    { value: 'infusion', label: 'Infusion (Single Step)' },
+                                                                    { value: 'step_mash', label: 'Stufenmaische' },
+                                                                    { value: 'decoction', label: 'Dekoktion' },
+                                                                    { value: 'biab', label: 'BIAB (Brew in a Bag)' },
+                                                                    { value: 'no_sparge', label: 'No-Sparge' },
+                                                                ]}
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
 
@@ -1764,6 +1977,29 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                     <NumberInput label="Gärtemp. (°C)" value={brew.data?.primary_temp || ''} onChange={(val) => updateData('primary_temp', val)} placeholder="19" step={0.5} />
                                                     <NumberInput label="Karbonisierung (g/l)" value={brew.data?.carbonation_g_l || ''} onChange={(val) => updateData('carbonation_g_l', val)} placeholder="5.0" step={0.1} />
+                                                </div>
+
+                                                {/* Gärungstyp */}
+                                                <div className="max-w-sm">
+                                                    <label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 block">
+                                                        Gärungstyp
+                                                    </label>
+                                                    <CustomSelect
+                                                        value={brew.data?.fermentation_type || ''}
+                                                        onChange={(val) => {
+                                                            autoSetFields.current.delete('fermentation_type');
+                                                            updateData('fermentation_type', val || null);
+                                                        }}
+                                                        variant="zinc"
+                                                        size="lg"
+                                                        placeholder="– nicht angegeben –"
+                                                        options={[
+                                                            { value: 'top', label: 'Obergärig (Ale)' },
+                                                            { value: 'bottom', label: 'Untergärig (Lager)' },
+                                                            { value: 'spontaneous', label: 'Spontangärung' },
+                                                            { value: 'mixed', label: 'Gemischt' },
+                                                        ]}
+                                                    />
                                                 </div>
                                             </div>
                                         </div>
@@ -1880,19 +2116,31 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                 <div>
                                                     <label className="text-xs font-medium tracking-wider text-zinc-500 uppercase ml-1 mb-2 block">Gärung</label>
-                                                    <select className="w-full bg-black border border-zinc-800 rounded-md px-3 py-2 text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20 transition outline-none appearance-none" value={brew.data?.fermentation || ''} onChange={(e) => updateData('fermentation', e.target.value)}>
-                                                        <option value="">– bitte wählen –</option>
-                                                        <option value="wild">Wild (Spontan)</option>
-                                                        <option value="cultured">Reinzucht (Kulturhefe)</option>
-                                                    </select>
+                                                    <CustomSelect
+                                                        value={brew.data?.fermentation || ''}
+                                                        onChange={(val) => updateData('fermentation', val)}
+                                                        variant="zinc"
+                                                        size="lg"
+                                                        placeholder="– bitte wählen –"
+                                                        options={[
+                                                            { value: 'wild', label: 'Wild (Spontan)' },
+                                                            { value: 'cultured', label: 'Reinzucht (Kulturhefe)' },
+                                                        ]}
+                                                    />
                                                 </div>
                                                 <div>
                                                     <label className="text-xs font-medium tracking-wider text-zinc-500 uppercase ml-1 mb-2 block">Süßegrad</label>
-                                                    <select className="w-full bg-black border border-zinc-800 rounded-md px-3 py-2 text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20 transition outline-none appearance-none" value={brew.data?.sweetness || ''} onChange={(e) => updateData('sweetness', e.target.value)}>
-                                                        <option value="dry">Trocken</option>
-                                                        <option value="semi">Halbtrocken</option>
-                                                        <option value="sweet">Süß</option>
-                                                    </select>
+                                                    <CustomSelect
+                                                        value={brew.data?.sweetness || 'dry'}
+                                                        onChange={(val) => updateData('sweetness', val)}
+                                                        variant="zinc"
+                                                        size="lg"
+                                                        options={[
+                                                            { value: 'dry', label: 'Trocken' },
+                                                            { value: 'semi', label: 'Halbtrocken' },
+                                                            { value: 'sweet', label: 'Süß' },
+                                                        ]}
+                                                    />
                                                 </div>
                                             </div>
                                         </div>
@@ -2441,7 +2689,12 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                         spargeWater: safeFloat(brew.data?.sparge_water_liters),
                         hops: brew.data?.hops || [],
                         malts: brew.data?.malts || [],
-                        boilTime: safeFloat(brew.data?.boil_time) || 60
+                        boilTime: safeFloat(brew.data?.boil_time) || 60,
+                        // Equipment profile config (stored in recipe data)
+                        boilOffRate:      safeFloat(brew.data?.boil_off_rate)    || undefined,
+                        trubLoss:         safeFloat(brew.data?.trub_loss)        || undefined,
+                        grainAbsorption:  safeFloat(brew.data?.grain_absorption) || undefined,
+                        coolingShrinkage: safeFloat(brew.data?.cooling_shrinkage)|| undefined,
                     }}
                 />
 

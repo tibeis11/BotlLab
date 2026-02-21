@@ -205,7 +205,7 @@ WICHTIG: Antworte NUR mit dem JSON-Array, keine zusätzlichen Erklärungen!`;
         await trackAIUsage(user.id, "text");
 
         // Decrement credit via RPC
-        await supabase.rpc("increment_ai_usage", { p_user_id: user.id });
+        // await supabase.rpc("increment_ai_usage", { p_user_id: user.id });
 
         if (Array.isArray(suggestions)) {
           return NextResponse.json({ suggestions });
@@ -244,9 +244,9 @@ WICHTIG: Antworte NUR mit dem JSON-Array, keine zusätzlichen Erklärungen!`;
 
     // Track usage for billing
     await trackAIUsage(user.id, "text");
-    
+
     // Decrement credit via RPC
-    await supabase.rpc("increment_ai_usage", { p_user_id: user.id });
+    // await supabase.rpc("increment_ai_usage", { p_user_id: user.id });
 
     return NextResponse.json({ text: cleanText });
   } catch (error: any) {

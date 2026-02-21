@@ -5,7 +5,8 @@ import { useSupabase } from '@/lib/hooks/useSupabase';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
-import { ArrowLeft, Beaker, Calendar, Library, Search, Hash, Play, Beer, ChevronRight, BookOpen } from 'lucide-react';
+import { ArrowLeft, Beaker, Calendar, Library, Search, Hash, Play, Beer, ChevronRight, BookOpen, FlaskConical } from 'lucide-react';
+import { type EquipmentProfile, profileToConfig, BREW_METHOD_LABELS } from '@/lib/types/equipment';
 
 export default function NewSessionPage({ params }: { params: Promise<{ breweryId: string }> }) {
     const supabase = useSupabase();
@@ -28,6 +29,30 @@ export default function NewSessionPage({ params }: { params: Promise<{ breweryId
     const [scaleEfficiency, setScaleEfficiency] = useState<number>(65);
     const [originalVolume, setOriginalVolume] = useState<number>(20);
     const [originalEfficiency, setOriginalEfficiency] = useState<number>(65);
+
+    // Equipment Profile State
+    const [equipmentProfiles, setEquipmentProfiles] = useState<EquipmentProfile[]>([]);
+    const [selectedEquipmentProfileId, setSelectedEquipmentProfileId] = useState<string>('');
+    const [profileLoadedName, setProfileLoadedName] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!user || authLoading) return;
+        (supabase as any)
+            .from('equipment_profiles')
+            .select('*')
+            .eq('brewery_id', breweryId)
+            .order('is_default', { ascending: false })
+            .then(({ data }: { data: EquipmentProfile[] | null }) => {
+                if (!data) return;
+                setEquipmentProfiles(data);
+                const def = data.find(p => p.is_default);
+                if (def) {
+                    setSelectedEquipmentProfileId(def.id);
+                    setProfileLoadedName(def.name);
+                    setScaleEfficiency(def.default_efficiency ?? 65);
+                }
+            });
+    }, [breweryId, user, authLoading]);
 
     useEffect(() => {
         if (selectedRecipeId) {
@@ -130,7 +155,21 @@ export default function NewSessionPage({ params }: { params: Promise<{ breweryId
                         target_volume: scaleVolume,
                         target_efficiency: scaleEfficiency,
                         original_volume: originalVolume,
-                        original_efficiency: originalEfficiency
+                        original_efficiency: originalEfficiency,
+                        ...(selectedEquipmentProfileId ? (() => {
+                            const p = equipmentProfiles.find(x => x.id === selectedEquipmentProfileId);
+                            if (!p) return {};
+                            const cfg = profileToConfig(p);
+                            return {
+                                equipment_profile_id:   p.id,
+                                equipment_profile_name: p.name,
+                                boil_off_rate:     cfg.boilOffRate,
+                                trub_loss:         cfg.trubLoss,
+                                grain_absorption:  cfg.grainAbsorption,
+                                cooling_shrinkage: cfg.coolingShrinkage,
+                                mash_thickness:    cfg.mashThickness,
+                            };
+                        })() : {})
                     },
                     notes: `Session gestartet für ${recipe?.name || 'Rezept'}`
                 })
@@ -288,7 +327,44 @@ export default function NewSessionPage({ params }: { params: Promise<{ breweryId
                                         <h3 className="text-xs font-bold text-cyan-500 uppercase tracking-wider flex items-center gap-2">
                                             <Beaker size={12} /> Sudplanung
                                         </h3>
-                                        
+
+                                        {/* Anlage-Dropdown */}
+                                        {equipmentProfiles.length > 0 ? (
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
+                                                    <FlaskConical size={10} /> Brauanlage
+                                                </label>
+                                                <select
+                                                    value={selectedEquipmentProfileId}
+                                                    onChange={e => {
+                                                        const id = e.target.value;
+                                                        setSelectedEquipmentProfileId(id);
+                                                        const p = equipmentProfiles.find(x => x.id === id);
+                                                        if (p) {
+                                                            setScaleEfficiency(p.default_efficiency ?? 65);
+                                                            setProfileLoadedName(p.name);
+                                                        } else {
+                                                            setProfileLoadedName(null);
+                                                        }
+                                                    }}
+                                                    className="w-full bg-black border border-zinc-800 rounded-lg px-3 py-2 text-white focus:border-cyan-500 focus:outline-none transition text-sm appearance-none"
+                                                >
+                                                    <option value="">— Keine Anlage gewählt —</option>
+                                                    {equipmentProfiles.map(p => (
+                                                        <option key={p.id} value={p.id}>
+                                                            {p.is_default ? '★ ' : ''}{p.name} ({BREW_METHOD_LABELS[p.brew_method]}, {p.batch_volume_l} L)
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        ) : (
+                                            <div className="text-[10px] text-zinc-500 bg-zinc-900/50 px-3 py-2 rounded border border-zinc-800 flex items-center gap-2">
+                                                <FlaskConical size={10} className="flex-shrink-0" />
+                                                <span>Keine Brauanlage hinterlegt —</span>
+                                                <a href={`/team/${breweryId}/settings?tab=equipment`} className="text-cyan-500 hover:underline font-medium">Jetzt anlegen →</a>
+                                            </div>
+                                        )}
+
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
                                                 <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">
@@ -314,6 +390,11 @@ export default function NewSessionPage({ params }: { params: Promise<{ breweryId
                                                     onChange={(e) => setScaleEfficiency(parseFloat(e.target.value) || 0)}
                                                     className="w-full bg-black border border-zinc-800 rounded-lg px-3 py-2 text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 transition outline-none font-mono text-sm"
                                                 />
+                                                {profileLoadedName && (
+                                                    <p className="text-[10px] text-cyan-600">
+                                                        ↑ SHA aus Anlage <span className="font-semibold">{profileLoadedName}</span>
+                                                    </p>
+                                                )}
                                             </div>
                                         </div>
                                         

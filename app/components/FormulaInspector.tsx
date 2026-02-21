@@ -33,6 +33,12 @@ interface FormulaInspectorProps {
         hops?: HopItem[];
         malts?: MaltItem[];
         boilTime?: number;
+        // Equipment profile config
+        boilOffRate?: number;
+        trubLoss?: number;
+        grainAbsorption?: number;
+        coolingShrinkage?: number;
+        mashThickness?: number;
     };
 }
 
@@ -103,11 +109,22 @@ export function FormulaInspector({ isOpen, onClose, type, data }: FormulaInspect
 
 function BatchSizeInspector({ data }: { data: FormulaInspectorProps['data'] }) {
     // @ts-ignore - Ignore TS error for new return properties until full rebuild
+    const equipConfig = {
+        boilOffRate:      data.boilOffRate,
+        trubLoss:         data.trubLoss,
+        grainAbsorption:  data.grainAbsorption,
+        coolingShrinkage: data.coolingShrinkage,
+    };
+    const effectiveBoilOffRate  = data.boilOffRate  ?? 3.5;
+    const effectiveTrubLoss     = data.trubLoss     ?? 0.5;
+    const effectiveShrinkage    = data.coolingShrinkage ?? 0.04;
+    const effectiveGrainAbsorb  = data.grainAbsorption  ?? 0.96;
     const { batchSize, totalWater, grainAbsorption, preBoilVolume, boilOff, totalGrainKg, trubLoss, shrinkageLoss } = calculateBatchSizeDetails(
         data.mashWater || 0,
         data.spargeWater || 0,
         data.malts || [],
-        data.boilTime || 60
+        data.boilTime || 60,
+        equipConfig
     );
 
     return (
@@ -157,7 +174,7 @@ function BatchSizeInspector({ data }: { data: FormulaInspectorProps['data'] }) {
                         <div className="flex flex-col">
                             <span>- Verdampfung</span>
                             <span className="text-[10px] text-zinc-600 font-mono mt-0.5">
-                                3.5 L/h × {(data.boilTime || 60) / 60}h
+                                {effectiveBoilOffRate} L/h × {(data.boilTime || 60) / 60}h
                             </span>
                         </div>
                         <span>-{boilOff.toFixed(1)} L</span>
@@ -167,7 +184,7 @@ function BatchSizeInspector({ data }: { data: FormulaInspectorProps['data'] }) {
                          <div className="flex flex-col">
                             <span>- Hopfenseihverlust (Trub)</span>
                             <span className="text-[10px] text-zinc-600 font-mono mt-0.5">
-                                Pauschalverlust
+                                Pauschal {effectiveTrubLoss} L
                             </span>
                         </div>
                         <span>-{(trubLoss || 0).toFixed(1)} L</span>
@@ -175,7 +192,7 @@ function BatchSizeInspector({ data }: { data: FormulaInspectorProps['data'] }) {
 
                     <div className="grid grid-cols-[1fr,auto] gap-2 items-center text-red-500">
                          <div className="flex flex-col">
-                            <span>- Abkühlverlust (4%)</span>
+                            <span>- Abkühlverlust ({(effectiveShrinkage * 100).toFixed(0)}%)</span>
                             <span className="text-[10px] text-zinc-600 font-mono mt-0.5">
                                 thermische Kontraktion
                             </span>
@@ -189,7 +206,7 @@ function BatchSizeInspector({ data }: { data: FormulaInspectorProps['data'] }) {
                     </div>
                 </div>
                 <p className="text-xs text-zinc-500 bg-black p-3 rounded-lg border border-zinc-800">
-                    ℹ️ <span className="font-bold text-zinc-400">Physikalisches Modell:</span> Wir berechnen nun exakt nach Kochdauer (3,5L/h), Trubverlust (0,5L) und Schrumpfung (4%).
+                    ℹ️ <span className="font-bold text-zinc-400">Physikalisches Modell:</span> Wir berechnen exakt nach Kochdauer ({effectiveBoilOffRate} L/h), Trubverlust ({effectiveTrubLoss} L), Schrumpfung ({(effectiveShrinkage * 100).toFixed(0)} %) und Schüttungsabsorption ({effectiveGrainAbsorb} L/kg).
                 </p>
             </div>
         </div>

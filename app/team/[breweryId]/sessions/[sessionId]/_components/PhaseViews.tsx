@@ -404,6 +404,15 @@ export function PlanningView() {
   const effFactor = (scaleEfficiency && originalEfficiency) ? originalEfficiency / scaleEfficiency : 1;
   const maltFactor = volFactor * effFactor;
 
+  // Equipment config from session measurements (saved when session was created from profile)
+  const equipmentConfig = {
+      boilOffRate:      parseFloat(String(measurements.boil_off_rate      || 3.5)),
+      trubLoss:         parseFloat(String(measurements.trub_loss          || 0.5)),
+      grainAbsorption:  parseFloat(String(measurements.grain_absorption   || 0.96)),
+      coolingShrinkage: parseFloat(String(measurements.cooling_shrinkage  || 0.04)),
+      mashThickness:    parseFloat(String(measurements.mash_thickness     || 3.5)),
+  };
+
   // Normalize Ingredients
   const ingredients = {
       malts: data.ingredients?.malts || data.malts || [],
@@ -419,11 +428,12 @@ export function PlanningView() {
       return sum + (isNaN(amount) ? 0 : amount);
   }, 0);
 
-  // Default calculation (Physics Model)
+  // Default calculation (Physics Model) — using equipment config from session
   waterProfile = calculateWaterProfile(
       scaleVolume || 20, 
       totalMaltBase, 
-      boilTime
+      boilTime,
+      equipmentConfig
   );
 
   // If recipe has explicit water values (from manual entry in editor), use them!
@@ -441,10 +451,7 @@ export function PlanningView() {
       waterProfile.spargeWater = parseFloat((spargeBase * waterScale).toFixed(1));
       waterProfile.totalWater = parseFloat(((mashBase + spargeBase) * waterScale).toFixed(1));
       
-      // Recalculate Pre-Boil based on these values? 
-      // Physics: PreBoil = Mash + Sparge - GrainAbsorption
-      // We can use the physics model for absorption helper
-      const absorption = totalMaltBase * 0.96; // Standard absorption
+      const absorption = totalMaltBase * equipmentConfig.grainAbsorption;
       waterProfile.preBoilVolume = parseFloat((waterProfile.totalWater - absorption).toFixed(1));
   }
 

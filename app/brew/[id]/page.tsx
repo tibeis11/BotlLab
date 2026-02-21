@@ -11,6 +11,7 @@ import Header from '@/app/components/Header';
 import Logo from '@/app/components/Logo';
 import LikeButton from '@/app/components/LikeButton';
 import { ebcToHex, sgToPlato, calculateWaterProfile } from '@/lib/brewing-calculations';
+import { type EquipmentProfile, profileToConfig, DEFAULT_EQUIPMENT_CONFIG } from '@/lib/types/equipment';
 import { Star, Users, MessageCircle, Library, Shuffle, CheckCircle2, Wheat, Thermometer, Flame, Droplets, Clock, Scale, Timer, Microscope, Grape, Wine, Citrus } from 'lucide-react';
 import { saveBrewToLibrary } from '@/lib/actions/library-actions';
 import { useGlobalToast } from '@/app/context/AchievementNotificationContext';
@@ -338,6 +339,43 @@ export default function BrewDetailPage() {
   const [originalVolume, setOriginalVolume] = useState<number>(20);
   const [originalEfficiency, setOriginalEfficiency] = useState<number>(65);
 
+  // Equipment-Profil des eingeloggten Users (Wasserberechnung)
+  const [userEquipmentConfig, setUserEquipmentConfig] = useState<ReturnType<typeof profileToConfig>>(DEFAULT_EQUIPMENT_CONFIG);
+  const [userEquipmentName, setUserEquipmentName] = useState<string | null>(null);
+  const [userBreweryId, setUserBreweryId] = useState<string | null>(null);
+  const [userHasNoProfile, setUserHasNoProfile] = useState(false);
+
+  useEffect(() => {
+    async function loadEquipmentProfile() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      // Brewery des Users finden
+      const { data: membership } = await supabase
+        .from('brewery_members')
+        .select('brewery_id')
+        .eq('user_id', user.id)
+        .limit(1)
+        .single();
+      if (!membership) return;
+      setUserBreweryId(membership.brewery_id);
+      const { data: profiles } = await (supabase as any)
+        .from('equipment_profiles')
+        .select('*')
+        .eq('brewery_id', membership.brewery_id)
+        .order('is_default', { ascending: false })
+        .limit(1);
+      const p: EquipmentProfile | undefined = profiles?.[0];
+      if (p) {
+        setUserEquipmentConfig(profileToConfig(p));
+        setUserEquipmentName(p.name);
+      } else {
+        // User ist eingeloggt, hat aber noch kein Profil hinterlegt
+        setUserHasNoProfile(true);
+      }
+    }
+    loadEquipmentProfile();
+  }, []);
+
   const handleShare = async () => {
     const shareData = {
         title: `BotlLab: ${brew.name}`,
@@ -575,7 +613,22 @@ export default function BrewDetailPage() {
 
         setBrew(brewData);
 
-        // Init Scaling
+        // ── Seitenaufruf zählen ──────────────────────────────────
+        // Einmalig pro Browser-Session pro Rezept. Die RPC handhabt
+        // den view_count-Inkremente (auch anonym) und schreibt
+        // optional einen brew_views-Eintrag für die Personalisierung.
+        if (brewData.is_public && typeof sessionStorage !== 'undefined') {
+          const sessionKey = `botllab_pv_${id}`;
+          if (!sessionStorage.getItem(sessionKey)
+              && sessionStorage.getItem('botllab_analytics_opt_out') !== 'true') {
+            sessionStorage.setItem(sessionKey, '1');
+            (supabase as any).rpc('record_brew_page_view', {
+              p_brew_id: id,
+              ...(user?.id ? { p_user_id: user.id } : {}),
+            }).then(() => {}).catch(() => {});
+          }
+        }
+        // ─────────────────────────────────────────────────────────
         try {
             // Check both potential field names
             const rawVol = brewData.data?.batch_size_liters || brewData.data?.batch_size || 20;
@@ -738,7 +791,11 @@ export default function BrewDetailPage() {
     }
   }
 
-  const waterProfile = calculateWaterProfile(scaleVolume, totalScaledGrain, boilTime / 60, { mashThickness: originalMashThickness });
+  const waterProfile = calculateWaterProfile(scaleVolume, totalScaledGrain, boilTime / 60, {
+    ...userEquipmentConfig,
+    // Rezept-eigene Maischedicke hat Vorrang vor dem Anlage-Profil
+    mashThickness: originalMashThickness,
+  });
 
   return (
     <div className="min-h-screen bg-black text-white pb-24">
@@ -889,6 +946,15 @@ export default function BrewDetailPage() {
                         initialCount={likesCount} 
                         initialIsLiked={userHasLiked} 
                     />
+
+                     {(brew.times_brewed ?? 0) > 0 && (
+                       <>
+                         <div className="h-4 w-px bg-zinc-800"></div>
+                         <span className="text-sm text-zinc-400">
+                           <span className="font-bold text-white tabular-nums">{brew.times_brewed}×</span> gebraut
+                         </span>
+                       </>
+                     )}
                 </div>
             </div>
 
@@ -921,59 +987,59 @@ export default function BrewDetailPage() {
                     
                     {/* Recipe Scaler */}
                     {(!brew.brew_type || brew.brew_type === 'beer') && (
-                        <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-5 mb-10 flex flex-col md:flex-row gap-6 items-center justify-between shadow-inner">
-                            <div className="flex items-center gap-3 text-zinc-400">
-                                <div className="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center">
-                                    <Shuffle className="w-5 h-5 text-cyan-500" />
-                                </div>
+                        <div className="bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 mb-8 flex flex-wrap items-center gap-3">
+                            <div className="flex items-center gap-2 text-zinc-400 mr-auto">
+                                <Shuffle className="w-4 h-4 text-cyan-500 flex-shrink-0" />
                                 <div>
-                                    <span className="font-bold text-white block">Rezept skalieren</span>
-                                    <span className="text-xs text-zinc-500">Passe Menge und Effizienz an dein Setup an.</span>
+                                    <span className="font-semibold text-white text-sm">Rezept skalieren</span>
+                                    <span className="text-[10px] text-zinc-600 ml-2">
+                                        {userEquipmentName
+                                            ? <span className="text-cyan-600">Anlage: {userEquipmentName}</span>
+                                            : userHasNoProfile
+                                                ? <a href={userBreweryId ? `/team/${userBreweryId}/settings?tab=equipment` : '/dashboard'} className="text-cyan-700 hover:text-cyan-500 hover:underline">Brauanlage hinterlegen →</a>
+                                                : null}
+                                    </span>
                                 </div>
                             </div>
-                            
-                            <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
-                                <div className="flex-1 md:flex-none min-w-[140px]">
-                                    <label className="text-[10px] font-bold uppercase text-zinc-500 mb-1.5 block">Ausschlagwürze (L)</label>
-                                    <div className="relative group">
-                                        <input 
-                                            type="number" 
-                                            min="1"
-                                            value={scaleVolume}
-                                            onChange={(e) => setScaleVolume(parseFloat(e.target.value) || 0)}
-                                            className="bg-zinc-900 text-white font-mono font-bold px-3 py-2 rounded-lg border border-zinc-700 w-full focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 transition-colors"
-                                        />
-                                        {scaleVolume !== originalVolume && (
-                                            <button 
-                                                onClick={() => setScaleVolume(originalVolume)}
-                                                className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-cyan-500 font-bold hover:underline"
-                                            >
-                                                Reset
-                                            </button>
-                                        )}
-                                    </div>
+
+                            {/* Ausschlagwürze */}
+                            <div className="flex items-center gap-2">
+                                <label className="text-[10px] font-bold uppercase text-zinc-500 whitespace-nowrap">Ausschlag (L)</label>
+                                <div className="relative">
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        value={scaleVolume}
+                                        onChange={(e) => setScaleVolume(parseFloat(e.target.value) || 0)}
+                                        className="bg-zinc-900 text-white font-mono font-bold px-3 py-1.5 rounded-lg border border-zinc-700 w-24 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 transition-colors text-sm"
+                                    />
+                                    {scaleVolume !== originalVolume && (
+                                        <button
+                                            onClick={() => setScaleVolume(originalVolume)}
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-cyan-500 font-bold hover:underline leading-none"
+                                        >↺</button>
+                                    )}
                                 </div>
-                                
-                                <div className="flex-1 md:flex-none min-w-[140px]">
-                                    <label className="text-[10px] font-bold uppercase text-zinc-500 mb-1.5 block">Effizienz (SHA %)</label>
-                                    <div className="relative group">
-                                        <input 
-                                            type="number" 
-                                            min="1"
-                                            max="100"
-                                            value={scaleEfficiency}
-                                            onChange={(e) => setScaleEfficiency(parseFloat(e.target.value) || 0)}
-                                            className="bg-zinc-900 text-white font-mono font-bold px-3 py-2 rounded-lg border border-zinc-700 w-full focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 transition-colors"
-                                        />
-                                        {scaleEfficiency !== originalEfficiency && (
-                                            <button 
-                                                onClick={() => setScaleEfficiency(originalEfficiency)}
-                                                className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-cyan-500 font-bold hover:underline"
-                                            >
-                                                Reset
-                                            </button>
-                                        )}
-                                    </div>
+                            </div>
+
+                            {/* Effizienz */}
+                            <div className="flex items-center gap-2">
+                                <label className="text-[10px] font-bold uppercase text-zinc-500 whitespace-nowrap">SHA (%)</label>
+                                <div className="relative">
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        max="100"
+                                        value={scaleEfficiency}
+                                        onChange={(e) => setScaleEfficiency(parseFloat(e.target.value) || 0)}
+                                        className="bg-zinc-900 text-white font-mono font-bold px-3 py-1.5 rounded-lg border border-zinc-700 w-20 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 transition-colors text-sm"
+                                    />
+                                    {scaleEfficiency !== originalEfficiency && (
+                                        <button
+                                            onClick={() => setScaleEfficiency(originalEfficiency)}
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-cyan-500 font-bold hover:underline leading-none"
+                                        >↺</button>
+                                    )}
                                 </div>
                             </div>
                         </div>

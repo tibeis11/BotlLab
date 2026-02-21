@@ -6,8 +6,9 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
 import PremiumFeatureLock from '@/app/components/PremiumFeatureLock';
 import { SubscriptionTier } from '@/lib/premium-config';
-import { Settings, Bell, Users, Lock, Factory, Mail, ShieldAlert } from 'lucide-react';
+import { Settings, Bell, Users, Lock, Factory, Mail, ShieldAlert, FlaskConical, Plus, Trash2, Pencil, Check, Star, X, Loader2 } from 'lucide-react';
 import ResponsiveTabs from '@/app/components/ResponsiveTabs';
+import { EquipmentProfile, BREW_METHOD_LABELS } from '@/lib/types/equipment';
 
 export default function TeamSettingsPage({ params }: { params: Promise<{ breweryId: string }> }) {
   const { breweryId } = use(params);
@@ -19,7 +20,7 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
   const [ownerPremiumTier, setOwnerPremiumTier] = useState<SubscriptionTier>('free');
   
   // Tab State
-  const [activeTab, setActiveTab] = useState<'general' | 'notifications' | 'membership'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'notifications' | 'membership' | 'equipment'>('general');
 
   const router = useRouter();
 
@@ -75,7 +76,7 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
 
          // If regular member, default to notifications tab since they can't edit general
          if (!['owner', 'admin'].includes(membership.role || '')) {
-             setActiveTab('notifications');
+             setActiveTab('notifications' as any);
          }
       }
 
@@ -93,6 +94,7 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
 
   const menuItems = [
     { id: 'general', label: 'Allgemein', icon: Settings, requiredRole: ['owner', 'admin'] },
+    { id: 'equipment', label: 'Brauanlage', icon: FlaskConical, requiredRole: ['owner', 'admin'] },
     { id: 'notifications', label: 'Benachrichtigungen', icon: Bell, requiredRole: ['owner', 'admin', 'member', 'moderator'] },
     { id: 'membership', label: 'Mitgliedschaft', icon: Users, requiredRole: ['owner', 'admin', 'member', 'moderator'] }
   ];
@@ -147,6 +149,8 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
                       onUpdate={() => { loadData(); router.refresh(); }} 
                       ownerPremiumTier={ownerPremiumTier}
                     />
+                ) : activeTab === 'equipment' && isAdmin ? (
+                    <EquipmentSettings breweryId={brewery.id} />
                 ) : activeTab === 'notifications' ? (
                     <NotificationSettings breweryId={brewery.id} />
                 ) : activeTab === 'membership' ? (
@@ -303,6 +307,322 @@ function GeneralSettings({
                 </button>
             </div>
         </form>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EquipmentSettings — Brauanlage-Profile verwalten
+// ─────────────────────────────────────────────────────────────────────────────
+
+const EMPTY_FORM: Omit<EquipmentProfile, 'id' | 'brewery_id' | 'created_at' | 'updated_at'> = {
+  name:               '',
+  brew_method:        'all_grain',
+  batch_volume_l:     20,
+  boil_off_rate:      3.5,
+  trub_loss:          0.5,
+  grain_absorption:   0.96,
+  cooling_shrinkage:  0.04,
+  mash_thickness:     3.5,
+  default_efficiency: 75,
+  is_default:         false,
+};
+
+function EquipmentSettings({ breweryId }: { breweryId: string }) {
+  const supabase = useSupabase();
+
+  const [profiles, setProfiles]         = useState<EquipmentProfile[]>([]);
+  const [loading, setLoading]           = useState(true);
+  const [editingId, setEditingId]       = useState<string | 'new' | null>(null);
+  const [form, setForm]                 = useState(EMPTY_FORM);
+  const [saving, setSaving]             = useState(false);
+  const [settingDefault, setSettingDefault] = useState<string | null>(null);
+  const [deletingId, setDeletingId]     = useState<string | null>(null);
+  const [message, setMessage]           = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
+
+  useEffect(() => { loadProfiles(); }, [breweryId]);
+
+  async function loadProfiles() {
+    setLoading(true);
+    const { data, error } = await (supabase as any)
+      .from('equipment_profiles')
+      .select('*')
+      .eq('brewery_id', breweryId)
+      .order('created_at', { ascending: true });
+    if (!error) setProfiles(data ?? []);
+    setLoading(false);
+  }
+
+  function openNew() {
+    setForm({ ...EMPTY_FORM });
+    setEditingId('new');
+    setMessage(null);
+  }
+
+  function openEdit(p: EquipmentProfile) {
+    setForm({
+      name:               p.name,
+      brew_method:        p.brew_method,
+      batch_volume_l:     p.batch_volume_l,
+      boil_off_rate:      p.boil_off_rate,
+      trub_loss:          p.trub_loss,
+      grain_absorption:   p.grain_absorption,
+      cooling_shrinkage:  p.cooling_shrinkage,
+      mash_thickness:     p.mash_thickness,
+      default_efficiency: p.default_efficiency ?? 75,
+      is_default:         p.is_default,
+    });
+    setEditingId(p.id);
+    setMessage(null);
+  }
+
+  function cancelEdit() { setEditingId(null); setMessage(null); }
+
+  async function handleSave() {
+    if (!form.name.trim()) {
+      setMessage({ type: 'error', msg: 'Name darf nicht leer sein.' });
+      return;
+    }
+    setSaving(true);
+    setMessage(null);
+    try {
+      if (editingId === 'new') {
+        const { error } = await (supabase as any)
+          .from('equipment_profiles')
+          .insert({ ...form, brewery_id: breweryId });
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase as any)
+          .from('equipment_profiles')
+          .update({ ...form })
+          .eq('id', editingId)
+          .eq('brewery_id', breweryId);
+        if (error) throw error;
+      }
+      setMessage({ type: 'success', msg: 'Gespeichert!' });
+      setTimeout(() => { setEditingId(null); setMessage(null); }, 800);
+      await loadProfiles();
+    } catch (e: any) {
+      setMessage({ type: 'error', msg: e.message ?? 'Fehler beim Speichern.' });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleSetDefault(profileId: string) {
+    setSettingDefault(profileId);
+    try {
+      await (supabase as any).rpc('set_default_equipment_profile', {
+        p_profile_id: profileId,
+        p_brewery_id: breweryId,
+      });
+      await loadProfiles();
+    } finally {
+      setSettingDefault(null);
+    }
+  }
+
+  async function handleDelete(profileId: string) {
+    if (!confirm('Anlage-Profil wirklich löschen?')) return;
+    setDeletingId(profileId);
+    await (supabase as any)
+      .from('equipment_profiles')
+      .delete()
+      .eq('id', profileId)
+      .eq('brewery_id', breweryId);
+    setDeletingId(null);
+    await loadProfiles();
+  }
+
+  const numField = (
+    label: string,
+    key: keyof typeof form,
+    step = 0.1,
+    placeholder = ''
+  ) => (
+    <div>
+      <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1">{label}</label>
+      <input
+        type="number"
+        step={step}
+        placeholder={placeholder}
+        value={form[key] as number}
+        onChange={e => setForm(prev => ({ ...prev, [key]: parseFloat(e.target.value) || 0 }))}
+        className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-white font-mono text-sm focus:border-cyan-500 focus:outline-none transition"
+      />
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+
+      {/* Header */}
+      <div className="md:bg-black md:border md:border-zinc-800 md:rounded-lg md:p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-zinc-500 text-xs font-medium uppercase tracking-wider flex items-center gap-2">
+            <FlaskConical className="w-3.5 h-3.5" />
+            Brauanlage-Profile
+          </h3>
+          {editingId === null && (
+            <button
+              onClick={openNew}
+              className="flex items-center gap-1.5 text-xs font-bold bg-cyan-600 hover:bg-cyan-500 text-white px-3 py-1.5 rounded-lg transition"
+            >
+              <Plus className="w-3 h-3" /> Neue Anlage
+            </button>
+          )}
+        </div>
+
+        {loading ? (
+          <div className="text-zinc-500 text-sm animate-pulse font-mono">Lade Profile...</div>
+        ) : (
+          <div className="space-y-3">
+
+            {/* Profile-Liste */}
+            {profiles.length === 0 && editingId === null && (
+              <div className="text-center py-10 text-zinc-600 text-sm">
+                <FlaskConical className="w-8 h-8 mx-auto mb-3 opacity-30" />
+                <p>Noch keine Brauanlage konfiguriert.</p>
+                <p className="text-xs mt-1">Erstelle ein Profil um Verdampfung, Trubverlust und Co. einmalig zu hinterlegen.</p>
+              </div>
+            )}
+
+            {profiles.map(p => (
+              <div key={p.id} className={`border rounded-lg p-4 transition ${p.is_default ? 'border-cyan-700 bg-cyan-950/20' : 'border-zinc-800 bg-zinc-900/30'}`}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      {p.is_default && <Star className="w-3 h-3 text-cyan-400 fill-cyan-400 flex-shrink-0" />}
+                      <span className="font-semibold text-white text-sm truncate">{p.name}</span>
+                      <span className="text-[10px] bg-zinc-800 text-zinc-400 px-1.5 rounded font-mono uppercase">{BREW_METHOD_LABELS[p.brew_method]}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-zinc-500 font-mono">
+                      <span>{p.batch_volume_l} L</span>
+                      <span>{p.boil_off_rate} L/h Verdampfung</span>
+                      <span>{p.trub_loss} L Trub</span>
+                      <span>{p.grain_absorption} L/kg Absorption</span>
+                      <span>{p.mash_thickness} L/kg Maische</span>
+                      <span className="text-cyan-600">{p.default_efficiency ?? 75} % SHA</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    {!p.is_default && (
+                      <button
+                        onClick={() => handleSetDefault(p.id)}
+                        disabled={settingDefault === p.id}
+                        title="Als Standard setzen"
+                        className="p-1.5 rounded text-zinc-500 hover:text-cyan-400 hover:bg-cyan-950/30 transition disabled:opacity-50"
+                      >
+                        {settingDefault === p.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Star className="w-3.5 h-3.5" />}
+                      </button>
+                    )}
+                    <button
+                      onClick={() => openEdit(p)}
+                      title="Bearbeiten"
+                      className="p-1.5 rounded text-zinc-500 hover:text-white hover:bg-zinc-800 transition"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(p.id)}
+                      disabled={deletingId === p.id}
+                      title="Löschen"
+                      className="p-1.5 rounded text-zinc-500 hover:text-red-400 hover:bg-red-950/30 transition disabled:opacity-50"
+                    >
+                      {deletingId === p.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {/* Edit / New Form */}
+            {editingId !== null && (
+              <div className="border border-cyan-800/50 bg-cyan-950/10 rounded-xl p-5 space-y-5 animate-in slide-in-from-top-2 duration-200">
+                <h4 className="text-xs font-bold text-cyan-400 uppercase tracking-wider">
+                  {editingId === 'new' ? 'Neue Brauanlage' : 'Anlage bearbeiten'}
+                </h4>
+
+                {/* Name + Braumethode */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1">Name *</label>
+                    <input
+                      type="text"
+                      placeholder="z.B. Grainfather 35L"
+                      value={form.name}
+                      onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
+                      className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-white text-sm focus:border-cyan-500 focus:outline-none transition"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1">Braumethode</label>
+                    <select
+                      value={form.brew_method}
+                      onChange={e => setForm(prev => ({ ...prev, brew_method: e.target.value as EquipmentProfile['brew_method'] }))}
+                      className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-white text-sm focus:border-cyan-500 focus:outline-none transition appearance-none"
+                    >
+                      <option value="all_grain">All-Grain</option>
+                      <option value="extract">Extrakt</option>
+                      <option value="biab">BIAB</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Parameter-Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  {numField('Zielvolumen (L)', 'batch_volume_l', 0.5, '20')}
+                  {numField('Verdampfung (L/h)', 'boil_off_rate', 0.5, '3.5')}
+                  {numField('Trubverlust (L)', 'trub_loss', 0.1, '0.5')}
+                  {numField('Kornabsorption (L/kg)', 'grain_absorption', 0.05, '0.96')}
+                  {numField('Kühlschwand (0.04 = 4%)', 'cooling_shrinkage', 0.01, '0.04')}
+                  {form.brew_method !== 'extract' && numField('Maischedicke (L/kg)', 'mash_thickness', 0.1, '3.5')}
+                  {numField('Typische SHA (%)', 'default_efficiency', 1, '75')}
+                </div>
+                <p className="text-[10px] text-zinc-600 italic -mt-2">
+                  SHA = Sudhausausbeute. Wird als Vorschlagswert im Rezept-Editor und bei neuen Sessions verwendet. Kann pro Rezept überschrieben werden.
+                </p>
+
+                {/* Als Standard */}
+                <label className="flex items-center gap-2 cursor-pointer text-sm text-zinc-300">
+                  <input
+                    type="checkbox"
+                    checked={form.is_default}
+                    onChange={e => setForm(prev => ({ ...prev, is_default: e.target.checked }))}
+                    className="accent-cyan-500 w-4 h-4 rounded"
+                  />
+                  Als Standardanlage für neue Sude verwenden
+                </label>
+
+                {/* Feedback */}
+                {message && (
+                  <p className={`text-xs font-medium ${message.type === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+                    {message.msg}
+                  </p>
+                )}
+
+                {/* Actions */}
+                <div className="flex items-center gap-3 pt-1">
+                  <button
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm px-4 py-2 rounded-lg transition disabled:opacity-60"
+                  >
+                    {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                    Speichern
+                  </button>
+                  <button
+                    onClick={cancelEdit}
+                    className="flex items-center gap-1.5 text-zinc-400 hover:text-white text-sm px-3 py-2 rounded-lg border border-zinc-800 hover:border-zinc-700 transition"
+                  >
+                    <X className="w-3.5 h-3.5" /> Abbrechen
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

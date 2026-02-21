@@ -2,7 +2,7 @@
 
 import { toggleBrewLike } from "@/lib/actions/like-actions";
 import { Heart } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface LikeButtonProps {
   brewId: string;
@@ -17,6 +17,10 @@ export default function LikeButton({ brewId, initialIsLiked, initialCount, class
   // Use local state for immediate feedback that persists until reload
   const [isLiked, setIsLiked] = useState(initialIsLiked);
   const [count, setCount] = useState(initialCount);
+
+  // Sync when parent updates props after async user-data load
+  useEffect(() => { setIsLiked(initialIsLiked); }, [initialIsLiked]);
+  useEffect(() => { setCount(initialCount); }, [initialCount]);
 
   const handleToggle = async (e: React.MouseEvent) => {
     e.preventDefault(); 

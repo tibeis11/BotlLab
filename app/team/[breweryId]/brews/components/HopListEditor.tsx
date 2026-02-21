@@ -306,17 +306,19 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
                                 value={item.time || ''}
                                 onChange={(e) => updateRow(idx, 'time', e.target.value)}
                             />
-                            <select 
-                                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-2 text-xs text-white focus:border-cyan-500 outline-none appearance-none"
+                            <CustomSelect
                                 value={item.usage || 'Boil'}
-                                onChange={(e) => updateRow(idx, 'usage', e.target.value)}
-                            >
-                                <option value="Boil">Kochen</option>
-                                <option value="Dry Hop">Stopfen</option>
-                                <option value="Whirlpool">Whirlpool</option>
-                                <option value="Mash">Maische</option>
-                                <option value="First Wort">Vorderwürze</option>
-                            </select>
+                                onChange={(val) => updateRow(idx, 'usage', val)}
+                                variant="zinc"
+                                size="sm"
+                                options={[
+                                    { value: 'Boil', label: 'Kochen' },
+                                    { value: 'Dry Hop', label: 'Stopfen' },
+                                    { value: 'Whirlpool', label: 'Whirlpool' },
+                                    { value: 'Mash', label: 'Maische' },
+                                    { value: 'First Wort', label: 'Vorderwürze' },
+                                ]}
+                            />
                             <button 
                                 onClick={() => removeRow(idx)}
                                 className="text-zinc-600 hover:text-red-400 transition flex justify-center"

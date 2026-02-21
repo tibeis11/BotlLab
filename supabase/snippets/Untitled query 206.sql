@@ -20,8 +20,8 @@ INSERT INTO public.brews (
     data,
     created_at
 ) VALUES (
-    '9e126b0f-30fe-4c0a-8a27-0d0a6223218a'::uuid,      -- ⚠️ Replace with 'a2e7b77d-...' 
-    'e0d8aeeb-3c6b-43c7-92a2-066c54e8ffcb'::uuid,   -- ⚠️ Replace with Brewery ID
+    'e26e7848-9165-4941-ad3e-f14b43bd98cd'::uuid,      -- ⚠️ Replace with 'a2e7b77d-...' 
+    '13123cc6-f3ae-4217-9b92-2095a903ed18'::uuid,   -- ⚠️ Replace with Brewery ID
     'Rauensteiner Blonde',
     'Kölsch',
     'beer',

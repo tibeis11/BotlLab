@@ -92,6 +92,13 @@ export default function PrivacyPage() {
                 <li>Es findet keine langfristige Profilbildung oder personenbezogene Nachverfolgung statt.</li>
               </ul>
             </div>
+            <div>
+              <h3 className="font-bold text-foreground mb-2">3.5 Personalisierung & Profiling</h3>
+              <ul className="list-disc list-inside space-y-1 text-sm">
+                <li>Interaktionen mit Inhalten (z.B. welche Brews du ansiehst, wie lange du auf einer Karte verweilst, welche du likest).</li>
+                <li>Daraus abgeleitete Präferenzen (z.B. bevorzugte Bierstile, Zutaten), um dir im &quot;Für dich&quot;-Feed passendere Inhalte anzuzeigen.</li>
+              </ul>
+            </div>
           </div>
         </section>
 
@@ -101,6 +108,7 @@ export default function PrivacyPage() {
           <div className="text-zinc-300 space-y-2">
             <p>✓ <strong>Kontoverwaltung:</strong> Authentifizierung, Sicherheit, Account-Recovery</p>
             <p>✓ <strong>Servicebereitstellung:</strong> Rezept- und Flaschenmanagement, QR-Code-Generierung</p>
+            <p>✓ <strong>Personalisierung:</strong> Anpassung des Discover-Feeds an deine Interessen basierend auf deinem Nutzungsverhalten (z.B. angesehene oder gelikte Rezepte).</p>
             <p>✓ <strong>Kommunikation:</strong> Support, wichtige Mitteilungen über Änderungen</p>
             <p>✓ <strong>Verbesserung:</strong> Analyse von Nutzerverhalten zur Optimierung (anonym/aggregiert)</p>
             <p>✓ <strong>Sicherheit:</strong> Betrugsprävention, Missbrauchserkennung</p>
@@ -182,27 +190,28 @@ export default function PrivacyPage() {
 
         {/* 9. Cookies und Tracking */}
         <section>
-          <h2 className="text-2xl font-bold text-foreground mb-4">9. Cookies und Interne Analyse</h2>
+          <h2 className="text-2xl font-bold text-foreground mb-4">9. Cookies, Lokaler Speicher und Personalisierung</h2>
           <div className="text-zinc-300 leading-relaxed space-y-4">
             <div>
-              <p className="font-bold text-foreground mb-2">9.1 Essenzielle Cookies</p>
+              <p className="font-bold text-foreground mb-2">9.1 Essenzielle Cookies & Lokaler Speicher</p>
               <ul className="list-disc list-inside space-y-1">
               <li>Session-Management (Login-Daten)</li>
               <li>Sicherheitstoken (CSRF-Schutz)</li>
+              <li>Lokaler Speicher (sessionStorage) zur Vermeidung von Mehrfacherfassungen bei der Personalisierung (z.B. welche Brews du in der aktuellen Sitzung bereits gesehen hast).</li>
               </ul>
             </div>
             
             <div>
-              <p className="font-bold text-foreground mb-2">9.2 Interne Produktanalyse (First-Party)</p>
+              <p className="font-bold text-foreground mb-2">9.2 Interne Analyse & Personalisierung (First-Party)</p>
               <p className="mb-2">
                 Wir nutzen <strong>keine Drittanbieter-Tracker</strong> (wie Google Analytics, Facebook Pixel, etc.), die Daten an andere Unternehmen weitergeben.
               </p>
               <p className="mb-2">
-                Um BotlLab zu verbessern, erfassen wir anonymisierte Interaktionsdaten auf unseren eigenen Servern (z.B. "Wie oft wird ein Rezept erstellt?", "Welche Features werden genutzt?"). 
-                Dies geschieht auf Basis unseres berechtigten Interesses (Art. 6 Abs. 1 lit. f DSGVO) an der Optimierung unseres Dienstes.
+                Um BotlLab zu verbessern und dir relevante Inhalte im &quot;Für dich&quot;-Feed anzuzeigen, erfassen wir Interaktionsdaten (z.B. angesehene Brews, Verweildauer) verknüpft mit deinem Profil. 
+                Dies geschieht auf Basis unseres berechtigten Interesses (Art. 6 Abs. 1 lit. f DSGVO) an der Bereitstellung eines personalisierten und nutzerfreundlichen Dienstes.
               </p>
               <p>
-                <strong>Widerspruchsrecht:</strong> Du kannst dieser internen Analyse jederzeit in deinen <a href="/dashboard/account" className="text-brand underline">Kontoeinstellungen</a> widersprechen (Opt-Out).
+                <strong>Widerspruchsrecht:</strong> Du kannst dieser internen Analyse und Personalisierung jederzeit in deinen <a href="/dashboard/account" className="text-brand underline">Kontoeinstellungen</a> widersprechen (Opt-Out).
               </p>
             </div>
           </div>

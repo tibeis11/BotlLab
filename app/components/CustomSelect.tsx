@@ -15,10 +15,11 @@ interface CustomSelectProps {
     className?: string;
     icon?: React.ReactNode;
     placement?: 'bottom' | 'top';
-    variant?: 'zinc' | 'black'; // Add variant prop
+    variant?: 'zinc' | 'black';
+    size?: 'sm' | 'md' | 'lg'; // sm=compact rows, md=filter bar (default), lg=form fields (h-12)
 }
 
-export default function CustomSelect({ value, onChange, options, placeholder = 'Bitte wählen', className = '', icon, placement = 'bottom', variant = 'black' }: CustomSelectProps) {
+export default function CustomSelect({ value, onChange, options, placeholder = 'Bitte wählen', className = '', icon, placement = 'bottom', variant = 'black', size = 'md' }: CustomSelectProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [calculatedPlacement, setCalculatedPlacement] = useState(placement);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -71,13 +72,17 @@ export default function CustomSelect({ value, onChange, options, placeholder = '
     });
 
     const bgClass = variant === 'zinc' ? 'bg-zinc-900 border-zinc-800' : 'bg-black border-zinc-800';
+    const sizeClass =
+        size === 'sm' ? 'py-2 px-2 text-xs' :
+        size === 'lg' ? 'py-[14px] px-4 text-sm font-medium' :
+        'py-[10px] px-3 text-xs font-semibold'; // md
 
     return (
         <div className={`relative ${className} ${isOpen ? 'z-50' : 'z-0'}`} ref={containerRef}>
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className={`w-full ${bgClass} border rounded py-1.5 px-2 text-left text-xs text-white focus:border-zinc-500 outline-none transition-all cursor-pointer flex items-center justify-between gap-2`}
+                className={`w-full ${bgClass} border rounded-xl ${sizeClass} text-left text-white focus:border-zinc-600 outline-none transition-all cursor-pointer flex items-center justify-between gap-2`}
             >
                 <div className={`flex items-center gap-2 truncate ${!selectedOption && !value ? 'text-zinc-500' : ''} flex-1`}>
                     {icon}
@@ -96,7 +101,7 @@ export default function CustomSelect({ value, onChange, options, placeholder = '
             </button>
 
             {isOpen && (
-                <div className={`absolute left-0 right-0 z-[60] w-full bg-zinc-900 border border-zinc-700 rounded shadow-xl max-h-60 overflow-y-auto overflow-x-hidden animate-in fade-in zoom-in-95 duration-100 ${
+                <div className={`absolute left-0 z-[60] min-w-full w-max bg-zinc-900 border border-zinc-700 rounded-xl shadow-xl max-h-60 overflow-y-auto overflow-x-hidden animate-in fade-in zoom-in-95 duration-100 ${
                     calculatedPlacement === 'top' ? 'bottom-full mb-1' : 'top-full mt-1'
                 }`}>
                     <div className="p-1 space-y-0.5">
