@@ -26,15 +26,18 @@ export const metadata: Metadata = {
 export const BREW_PAGE_SIZE = 20;
 
 export const BREW_SELECT =
-  'id,name,style,image_url,created_at,user_id,brew_type,mash_method,fermentation_type,copy_count,times_brewed,view_count,trending_score,quality_score,is_featured,data,remix_parent_id,moderation_status,breweries!left(id,name,logo_url),ratings(rating),likes_count';
+  'id,name,style,image_url,created_at,user_id,brew_type,mash_method,fermentation_type,copy_count,times_brewed,view_count,trending_score,quality_score,is_featured,abv,ibu,data,remix_parent_id,moderation_status,breweries!left(id,name,logo_url),ratings(rating),likes_count';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapBrew(b: any) {
   const bData = b.data as any;
   return {
     ...b,
-    abv: bData?.abv ? parseFloat(bData.abv) : undefined,
-    ibu: bData?.ibu ? parseInt(bData.ibu, 10) : undefined,
+    // Prefer dedicated columns (kept in sync by trigger), fall back to JSON
+    abv: b.abv != null ? Number(b.abv)
+       : bData?.abv  ? parseFloat(bData.abv)  : undefined,
+    ibu: b.ibu != null ? Number(b.ibu)
+       : bData?.ibu  ? parseInt(bData.ibu, 10) : undefined,
     ebc: bData?.color ? parseInt(bData.color, 10) : undefined,
     original_gravity:
       bData?.original_gravity || bData?.og || bData?.plato

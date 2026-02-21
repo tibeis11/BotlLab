@@ -9,8 +9,9 @@
  * - Only fires when the user is logged in (userId provided)
  * - Deduplicates within the browser session via sessionStorage
  * - Fires at most once per (session × brewId) pair — no spam inserts
- * - Uses a callback ref: lifecycle (mount / unmount / userId change) is
- *   handled inside the ref callback, no separate useEffect needed
+ * - Uses a single module-level shared IntersectionObserver for all cards
+ *   (instead of N observers for N cards — saves memory and avoids
+ *   Safari's per-document observer limits)
  *
  * Usage:
  *   const cardRef = useBrewViewTracker({ brewId: brew.id, userId, source: 'discover' });
@@ -44,6 +45,28 @@ function markSessionViewed(brewId: string): void {
   }
 }
 
+// ─── Shared observer (module-level singleton) ─────────────────────────────────
+// One observer for all mounted cards — far cheaper than N separate observers.
+// Each Element maps to its intersection callback.
+
+type EntryCallback = (isIntersecting: boolean) => void;
+let sharedObserver: IntersectionObserver | null = null;
+const callbackMap = new Map<Element, EntryCallback>();
+
+function getSharedObserver(): IntersectionObserver {
+  if (!sharedObserver && typeof window !== 'undefined') {
+    sharedObserver = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          callbackMap.get(entry.target)?.(entry.isIntersecting);
+        }
+      },
+      { threshold: 0.5 }, // ≥50 % of the card must be visible
+    );
+  }
+  return sharedObserver!;
+}
+
 // ─── Hook ────────────────────────────────────────────────────────────────────
 
 interface Options {
@@ -55,16 +78,15 @@ interface Options {
 export function useBrewViewTracker({ brewId, userId, source = 'discover' }: Options) {
   const supabase    = useSupabase();
   const timerRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const observerRef = useRef<IntersectionObserver | null>(null);
+  // Tracks the currently observed element so we can unobserve on teardown
+  const elementRef  = useRef<Element | null>(null);
 
   /**
-   * Stable logView function — captured by the callback ref closure.
-   * useCallback deps include brewId/userId/source so a new function is only
-   * created when those change (i.e. when the ref callback also recreates).
+   * Stable logView — only recreated when brewId / userId / source change.
    */
   const logView = useCallback(async () => {
     if (!userId) return;
-    
+
     // Respektiere Opt-Out
     if (sessionStorage.getItem('botllab_analytics_opt_out') === 'true') return;
 
@@ -85,44 +107,45 @@ export function useBrewViewTracker({ brewId, userId, source = 'discover' }: Opti
   }, [brewId, userId, source, supabase]);
 
   /**
-   * Callback ref — sets up/tears down the IntersectionObserver whenever
-   * the element mounts, unmounts, or `userId` / `logView` changes.
+   * Callback ref — registers/unregisters this element with the shared observer.
+   * Recreated only when userId or logView changes.
    */
   const callbackRef = useCallback(
     (node: HTMLElement | null) => {
-      // ── Teardown any previous observer ─────────────────────────
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-        observerRef.current = null;
-      }
+      // ── Teardown previous registration ─────────────────────────
       if (timerRef.current !== null) {
         clearTimeout(timerRef.current);
         timerRef.current = null;
+      }
+      if (elementRef.current) {
+        callbackMap.delete(elementRef.current);
+        getSharedObserver().unobserve(elementRef.current);
+        elementRef.current = null;
       }
 
       // Skip for unauthenticated users, SSR, or unmounting
       if (!node || !userId || typeof window === 'undefined') return;
 
-      // ── Set up a fresh observer ─────────────────────────────────
-      const observer = new IntersectionObserver(
-        ([entry]) => {
-          if (entry.isIntersecting) {
-            timerRef.current = setTimeout(logView, DWELL_THRESHOLD_MS);
-          } else {
-            if (timerRef.current !== null) {
-              clearTimeout(timerRef.current);
-              timerRef.current = null;
-            }
-          }
-        },
-        { threshold: 0.5 }, // ≥50% of the card must be visible
-      );
+      // ── Register with the shared observer ─────────────────────
+      elementRef.current = node;
 
-      observer.observe(node);
-      observerRef.current = observer;
+      const handleIntersection = (isIntersecting: boolean) => {
+        if (isIntersecting) {
+          timerRef.current = setTimeout(logView, DWELL_THRESHOLD_MS);
+        } else {
+          if (timerRef.current !== null) {
+            clearTimeout(timerRef.current);
+            timerRef.current = null;
+          }
+        }
+      };
+
+      callbackMap.set(node, handleIntersection);
+      getSharedObserver().observe(node);
     },
     [userId, logView],
   );
 
   return callbackRef;
 }
+

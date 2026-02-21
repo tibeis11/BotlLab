@@ -17,6 +17,8 @@ import {
   NEEDS_MORE_DATA_THRESHOLD,
 } from '@/lib/utils/recommendation-engine';
 import { Flame, Heart, Star, Sparkles, Search, Filter, SearchX, ChevronDown, ChevronLeft, ChevronRight, X, ArrowLeft, Clock, Loader2, TrendingUp, BadgeCheck, Check } from 'lucide-react';
+import Image from 'next/image';
+import { Section, SectionHeader } from './_components/DiscoverSection';
 
 type Brew = {
   id: string;
@@ -299,17 +301,20 @@ export default function DiscoverClient({
         if (collabData && (collabData as unknown as { brew_id: string }[]).length >= 3) {
           collabIds = [...new Set((collabData as unknown as { brew_id: string }[]).map(r => r.brew_id as string))];
 
-          // Cache schreiben — fire-and-forget, blockiert nicht den UI-Aufbau
+          // Cache schreiben — upsert verhindert Race-Window zwischen DELETE und INSERT.
+          // Alte Empfehlungen werden via 2h-TTL beim Lesen automatisch gefiltert.
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const now = new Date().toISOString();
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const cacheRows = (collabData as any[]).map((r: any) => ({
-            user_id: user.id,
-            brew_id: r.brew_id,
-            score:   r.collab_score,
+            user_id:     user.id,
+            brew_id:     r.brew_id,
+            score:       r.collab_score,
+            computed_at: now,
           }));
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (supabase as any).from('user_recommendations')
-            .delete().eq('user_id', user.id)
-            .then(() => (supabase as any).from('user_recommendations').insert(cacheRows));
+            .upsert(cacheRows, { onConflict: 'user_id,brew_id' });
         }
       }
 
@@ -467,7 +472,7 @@ export default function DiscoverClient({
     let query = supabase
       .from('brews')
       .select(
-        'id,name,style,image_url,created_at,user_id,brew_type,mash_method,fermentation_type,copy_count,times_brewed,view_count,trending_score,quality_score,is_featured,data,remix_parent_id,moderation_status,breweries!left(id,name,logo_url),ratings(rating),likes_count'
+        'id,name,style,image_url,created_at,user_id,brew_type,mash_method,fermentation_type,copy_count,times_brewed,view_count,trending_score,quality_score,is_featured,abv,ibu,data,remix_parent_id,moderation_status,breweries!left(id,name,logo_url),ratings(rating),likes_count'
       )
       .eq('is_public', true);
 
@@ -483,6 +488,19 @@ export default function DiscoverClient({
     }
     if (fermentationFilter !== 'all') {
       query = query.eq('fermentation_type', fermentationFilter);
+    }
+
+    // Backend ABV filter — uses dedicated abv column (synced via DB trigger)
+    if (abvPreset !== 'all') {
+      if (abvPreset === 'session')  query = query.lt('abv', 4.5);
+      else if (abvPreset === 'craft')    query = query.gte('abv', 4.5).lte('abv', 7);
+      else if (abvPreset === 'imperial') query = query.gt('abv', 7);
+    }
+    // Backend IBU filter — uses dedicated ibu column (synced via DB trigger)
+    if (ibuPreset !== 'all') {
+      if (ibuPreset === 'mild')     query = query.lt('ibu', 20);
+      else if (ibuPreset === 'balanced') query = query.gte('ibu', 20).lte('ibu', 40);
+      else if (ibuPreset === 'hoppy')    query = query.gt('ibu', 40);
     }
 
     // Sorting
@@ -506,8 +524,11 @@ export default function DiscoverClient({
       const bData = b.data as any;
       return {
         ...b,
-        abv: bData?.abv ? parseFloat(bData.abv) : undefined,
-        ibu: bData?.ibu ? parseInt(bData.ibu, 10) : undefined,
+        // Prefer dedicated columns (synced by trigger), fall back to JSON
+        abv: b.abv != null ? Number(b.abv)
+           : bData?.abv  ? parseFloat(bData.abv)  : undefined,
+        ibu: b.ibu != null ? Number(b.ibu)
+           : bData?.ibu  ? parseInt(bData.ibu, 10) : undefined,
         ebc: bData?.color ? parseInt(bData.color, 10) : undefined,
         original_gravity: bData?.original_gravity || bData?.og || bData?.plato
           ? parseFloat(String(bData.original_gravity || bData.og || bData.plato))
@@ -520,7 +541,7 @@ export default function DiscoverClient({
     setBrews(prev => reset ? mapped : [...prev, ...mapped]);
     setLoadedOffset(from + data.length);
     setLoadingMore(false);
-  }, [loadingMore, hasMore, loadedOffset, supabase, search, styleFilter, brewTypeFilter, fermentationFilter, sort]);
+  }, [loadingMore, hasMore, loadedOffset, supabase, search, styleFilter, brewTypeFilter, fermentationFilter, sort, abvPreset, ibuPreset]);
 
   // Trigger reload when backend filters change
   useEffect(() => {
@@ -529,7 +550,7 @@ export default function DiscoverClient({
       loadMoreBrews(true);
     }, 300);
     return () => clearTimeout(timer);
-  }, [search, styleFilter, brewTypeFilter, fermentationFilter, sort]);
+  }, [search, styleFilter, brewTypeFilter, fermentationFilter, sort, abvPreset, ibuPreset]);
 
   // ── IntersectionObserver: trigger loadMore when sentinel is visible ──
   useEffect(() => {
@@ -681,226 +702,8 @@ export default function DiscoverClient({
     { value: 'hoppy', label: 'Hopfig > 40' },
   ];
 
-  // Shared section header — consistent across all section types
-  const SectionHeader = ({
-    title, icon, count, tabSlot, onMore, onScrollLeft, onScrollRight,
-  }: {
-    title: string;
-    icon: React.ReactNode;
-    count: number;
-    tabSlot?: React.ReactNode;
-    onMore?: () => void;
-    onScrollLeft?: () => void;
-    onScrollRight?: () => void;
-  }) => (
-    <div className="flex items-center gap-3 mb-6">
-      {tabSlot ? (
-        <div className="flex items-center gap-2">{tabSlot}</div>
-      ) : (
-        <h2 className="flex items-center gap-2 text-xl md:text-2xl font-bold text-white">
-          <div className="p-2 bg-zinc-900 rounded-lg border border-zinc-800">{icon}</div>
-          {title}
-        </h2>
-      )}
-      <div className="flex items-center gap-2 ml-auto">
-        <span className="text-xs bg-zinc-900 border border-zinc-800 text-zinc-500 px-2 py-0.5 rounded font-mono uppercase tracking-wider">
-          Top {count}
-        </span>
-        {onMore && (
-          <button
-            onClick={onMore}
-            className="hidden md:flex items-center gap-0.5 text-xs font-bold text-zinc-400 hover:text-cyan-400 transition-colors"
-          >
-            Mehr <ChevronRight className="w-3.5 h-3.5" />
-          </button>
-        )}
-        {(onScrollLeft || onScrollRight) && (
-          <div className="hidden md:flex items-center gap-1">
-            <button
-              onClick={onScrollLeft}
-              className="p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-600 text-zinc-400 hover:text-white transition-colors"
-              aria-label="Links scrollen"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button
-              onClick={onScrollRight}
-              className="p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-600 text-zinc-400 hover:text-white transition-colors"
-              aria-label="Rechts scrollen"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  const Section = ({ title, items, icon, layout = 'hero-scroll', onMore }: {
-    title: string;
-    items: Brew[];
-    icon: React.ReactNode;
-    layout?: 'hero-scroll' | 'portrait-only' | 'ranked-list';
-    onMore?: () => void;
-  }) => {
-    const scrollRef = useRef<HTMLDivElement>(null);
-    const scrollBy = (dir: 'left' | 'right') =>
-      scrollRef.current?.scrollBy({ left: dir === 'right' ? 500 : -500, behavior: 'smooth' });
-
-    // ─ ranked-list: Compact numbered rows with trend arrow based on recency
-    // Used for "Am besten bewertet"
-    if (layout === 'ranked-list') {
-      // Trend-Pfeile drücken Frische aus — ist das Rezept neu in der Liste
-      // oder ein alternder Klassiker? Gelesen aus dem _recencyFactor den
-      // topRated bereits berechnet und anhängt.
-      //   ↑ grün   recencyFactor > 0.75  → unter ~24 Tage alt (frisch)
-      //   ↓ rot    recencyFactor < 0.50  → über  ~80 Tage alt (verblassend)
-      //   •        dazwischen            → etabliert
-      const trendOf = (b: Brew & { _recencyFactor?: number }) => {
-        const rf = b._recencyFactor ?? 0.4;
-        if (rf > 0.75) return 'up' as const;
-        if (rf < 0.50) return 'down' as const;
-        return 'neutral' as const;
-      };
-      const capped = items.slice(0, 10) as (Brew & { _recencyFactor?: number })[];
-
-      // Stateful row so the like button works independently per item
-      const RankedRow = ({ brew, rank, trend }: { brew: Brew; rank: number; trend: 'up' | 'down' | 'neutral' }) => {
-        const [isLiked, setIsLiked] = useState(brew.user_has_liked ?? false);
-        const [likeCount, setLikeCount] = useState(brew.likes_count ?? 0);
-        const avgR = brew.ratings?.length
-          ? (brew.ratings.reduce((s, r) => s + r.rating, 0) / brew.ratings.length).toFixed(1)
-          : null;
-        const handleLike = async (e: React.MouseEvent) => {
-          e.preventDefault();
-          e.stopPropagation();
-          if (!currentUserId) return;
-          const prev = isLiked;
-          const prevCount = likeCount;
-          setIsLiked(!prev);
-          setLikeCount(prev ? prevCount - 1 : prevCount + 1);
-          try { await toggleBrewLike(brew.id); }
-          catch { setIsLiked(prev); setLikeCount(prevCount); }
-        };
-        return (
-          <a
-            href={`/brew/${brew.id}`}
-            className="group flex items-center gap-3 py-2.5 px-3 rounded-xl hover:bg-zinc-900/60 transition-colors border border-transparent hover:border-zinc-800"
-          >
-            <div className="w-5 text-center flex-shrink-0">
-              <span className="text-sm font-black text-zinc-500 group-hover:text-zinc-300 transition-colors tabular-nums">{rank}</span>
-            </div>
-            <div className="w-4 flex-shrink-0 text-center leading-none">
-              {trend === 'up'      && <span className="text-[13px] font-black text-green-400" style={{lineHeight:1}}>&#9650;</span>}
-              {trend === 'down'    && <span className="text-[13px] font-black text-red-500" style={{lineHeight:1}}>&#9660;</span>}
-              {trend === 'neutral' && <span className="text-[13px] text-zinc-700" style={{lineHeight:1}}>&bull;</span>}
-            </div>
-            <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-zinc-800 border border-zinc-700/50">
-              {brew.image_url
-                ? <img src={brew.image_url} alt={brew.name} className="w-full h-full object-cover" />
-                : <div className="w-full h-full flex items-center justify-center text-zinc-600 text-xs">🍺</div>
-              }
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-white truncate group-hover:text-cyan-300 transition-colors leading-tight">{brew.name}</p>
-              <p className="text-xs text-zinc-500 truncate leading-tight mt-0.5">
-                {[brew.brewery?.team_name || brew.brewery?.name, brew.style].filter(Boolean).join(' · ')}
-              </p>
-            </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {avgR && (
-                <div className="flex items-center gap-0.5">
-                  <Star size={11} className="fill-yellow-400 stroke-yellow-400" />
-                  <span className="text-xs font-bold text-yellow-400 tabular-nums">{avgR}</span>
-                </div>
-              )}
-              <button
-                onClick={handleLike}
-                className="flex items-center gap-0.5 group/like hover:scale-110 transition-transform"
-                title={isLiked ? 'Unlike' : 'Like'}
-              >
-                <Heart
-                  size={13}
-                  className={`transition-colors ${isLiked ? 'fill-red-500 stroke-red-500' : 'stroke-zinc-500 group-hover/like:stroke-red-400'}`}
-                />
-                {likeCount > 0 && (
-                  <span className={`text-xs font-semibold tabular-nums transition-colors ${isLiked ? 'text-red-400' : 'text-zinc-500 group-hover/like:text-red-400'}`}>
-                    {likeCount}
-                  </span>
-                )}
-              </button>
-            </div>
-          </a>
-        );
-      };
-
-      return (
-        <div className="mb-12">
-          <SectionHeader title={title} icon={icon} count={items.length} onMore={onMore} />
-          {/* grid-rows-5 + grid-flow-col = 5 rows per column, fills column-first */}
-          <div className="grid grid-rows-5 grid-flow-col gap-x-6 gap-y-0.5">
-            {capped.map((brew, i) => (
-              <RankedRow key={brew.id} brew={brew} rank={i + 1} trend={trendOf(brew)} />
-            ))}
-          </div>
-        </div>
-      );
-    }
-
-    // ─ portrait-only: Pure horizontal portrait scroll, no hero
-    // Used for "Neuheiten"
-    if (layout === 'portrait-only') {
-      return (
-        <div className="mb-12">
-          <SectionHeader
-            title={title} icon={icon} count={items.length} onMore={onMore}
-            onScrollLeft={() => scrollBy('left')} onScrollRight={() => scrollBy('right')}
-          />
-          <div className="relative">
-            <div ref={scrollRef} className="flex overflow-x-auto gap-4 pb-4 snap-x scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-zinc-900">
-              {items.map(brew => (
-                <div key={brew.id} className="snap-center flex-shrink-0" style={{ width: 220 }}>
-                  <DiscoverBrewCard brew={brew} currentUserId={currentUserId} isAdmin={isAdmin} variant="portrait" />
-                </div>
-              ))}
-              <div className="min-w-[40px] flex-shrink-0" aria-hidden="true" />
-            </div>
-            <div className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-zinc-950 to-transparent" />
-          </div>
-        </div>
-      );
-    }
-
-    // ─ hero-scroll (default): Hero left + portrait horizontal scroll right
-    // Used for "Empfohlen" and "Gerade angesagt"
-    const isTrending = title === 'Gerade angesagt';
-    return (
-      <div className="mb-12">
-        <SectionHeader
-          title={title} icon={icon} count={items.length} onMore={onMore}
-          onScrollLeft={() => scrollBy('left')} onScrollRight={() => scrollBy('right')}
-        />
-        <div className="md:flex md:gap-5 md:items-start">
-          {items.length > 0 && (
-            <div className="hidden md:block flex-shrink-0" style={{ width: 340, height: 340 }}>
-              <DiscoverBrewCard brew={items[0]} currentUserId={currentUserId} isAdmin={isAdmin} variant="hero" rank={isTrending ? 1 : undefined} />
-            </div>
-          )}
-          <div className="relative flex-1 min-w-0">
-            <div ref={scrollRef} className="flex overflow-x-auto gap-4 pb-4 snap-x scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-zinc-900">
-              {items.map((brew, i) => (
-                <div key={brew.id} className={`snap-center flex-shrink-0 ${i === 0 ? 'md:hidden' : ''}`} style={{ width: 220 }}>
-                  <DiscoverBrewCard brew={brew} currentUserId={currentUserId} isAdmin={isAdmin} variant="portrait" rank={isTrending ? i + 1 : undefined} />
-                </div>
-              ))}
-              <div className="min-w-[40px] flex-shrink-0" aria-hidden="true" />
-            </div>
-            <div className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-zinc-950 to-transparent" />
-          </div>
-        </div>
-      </div>
-    );
-  };
+  // SectionHeader and Section are imported from ./_components/DiscoverSection
+  // (extracted to prevent React from treating them as new component types on every render)
 
   return (
     <>
@@ -909,11 +712,15 @@ export default function DiscoverClient({
       <div className="w-full pt-0 pb-20">
         {/* Hero Banner - full bleed */}
         <div className="relative overflow-hidden mb-0 min-h-[260px] md:min-h-[300px] bg-zinc-900 border-b border-zinc-800">
-          {/* Background image from first trending brew */}
-          {(trending[0]?.image_url) && (
-            <div
-              className="absolute inset-0 bg-cover bg-center"
-              style={{ backgroundImage: `url(${trending[0].image_url})`, opacity: 0.18 }}
+          {/* Background image from first trending brew — using Next Image for LCP priority */}
+          {trending[0]?.image_url && (
+            <Image
+              src={trending[0].image_url}
+              alt=""
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover opacity-[0.18]"
             />
           )}
           <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/95 via-zinc-950/80 to-transparent" />
@@ -1519,6 +1326,8 @@ export default function DiscoverClient({
                      items={trending}
                      layout="hero-scroll"
                      onMore={() => { setSort('quality'); setShowAllGrid(true); }}
+                     currentUserId={currentUserId}
+                     isAdmin={isAdmin}
                    />
                  )}
 
@@ -1530,6 +1339,8 @@ export default function DiscoverClient({
                      items={featured}
                      layout="hero-scroll"
                      onMore={() => { setSort('quality'); setShowAllGrid(true); }}
+                     currentUserId={currentUserId}
+                     isAdmin={isAdmin}
                    />
                  )}
 
@@ -1542,6 +1353,8 @@ export default function DiscoverClient({
                        items={personalizedBrews}
                        layout="portrait-only"
                        onMore={() => { setSort('quality'); setShowAllGrid(true); }}
+                       currentUserId={currentUserId}
+                       isAdmin={isAdmin}
                      />
                      {userBrews.length + brews.filter(b => b.user_has_liked).length < NEEDS_MORE_DATA_THRESHOLD && (
                        <div className="-mt-6 mb-10 mx-1 flex items-start gap-3 rounded-2xl border border-zinc-800 bg-zinc-900/50 px-5 py-4">
@@ -1572,6 +1385,8 @@ export default function DiscoverClient({
                      items={topRated}
                      layout="ranked-list"
                      onMore={() => { setSort('top'); setShowAllGrid(true); }}
+                     currentUserId={currentUserId}
+                     isAdmin={isAdmin}
                    />
                  )}
 
@@ -1649,6 +1464,8 @@ export default function DiscoverClient({
                      items={newest}
                      layout="portrait-only"
                      onMore={() => { setSort('newest'); setShowAllGrid(true); }}
+                     currentUserId={currentUserId}
+                     isAdmin={isAdmin}
                    />
                  )}
 

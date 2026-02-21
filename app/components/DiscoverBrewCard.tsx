@@ -8,6 +8,7 @@ import { de } from 'date-fns/locale';
 import { ebcToHex } from '@/lib/brewing-calculations';
 import { toggleBrewLike } from '@/lib/actions/like-actions';
 import { useBrewViewTracker } from '@/lib/hooks/useBrewViewTracker';
+import { toast } from 'sonner';
 
 export interface DiscoverBrew {
   id: string;
@@ -97,7 +98,12 @@ export default function DiscoverBrewCard({ brew, currentUserId, isAdmin = false,
   const handleLike = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!currentUserId) return;
+    if (!currentUserId) {
+      toast('Anmelden um Brews zu liken', {
+        action: { label: 'Anmelden', onClick: () => { window.location.href = '/login'; } },
+      });
+      return;
+    }
     const prev = isLiked;
     const prevCount = likeCount;
     setIsLiked(!prev);
