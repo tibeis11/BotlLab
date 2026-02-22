@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -110,7 +110,7 @@ export default function DiscoverClient({
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
-  // ── Infinite Scroll ───────────────────────────────────────────────
+  // â”€â”€ Infinite Scroll â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const PAGE_SIZE = 20;
   const [loadedOffset, setLoadedOffset] = useState(initialBrews.length);
   const [hasMore, setHasMore] = useState(initialBrews.length >= PAGE_SIZE);
@@ -146,7 +146,7 @@ export default function DiscoverClient({
     searchRef.current?.focus();
   };
 
-  // Sync filter state → URL (replace so back-button works cleanly)
+  // Sync filter state â†’ URL (replace so back-button works cleanly)
   useEffect(() => {
     const params = new URLSearchParams();
     if (search) params.set('q', search);
@@ -179,7 +179,7 @@ export default function DiscoverClient({
     setIsAdmin(!!user?.email && adminEmails.includes(user.email.toLowerCase()));
 
     if (user) {
-      // Profil-Einstellungen laden (für Opt-Out)
+      // Profil-Einstellungen laden (fÃ¼r Opt-Out)
       const { data: profileData } = await supabase
         .from('profiles')
         .select('analytics_opt_out')
@@ -202,9 +202,9 @@ export default function DiscoverClient({
       setTrending(prev => prev.map(b => ({ ...b, user_has_liked: likedIds.has(b.id) })));
       setFeatured(prev => prev.map(b => ({ ...b, user_has_liked: likedIds.has(b.id) })));
 
-      // ── Empfehlungs-Engine: eigene Brews laden ──────────────────────────
-      // Enthält data-Feld für Hop/Malt-Overlap sowie remix_parent_id für
-      // "bereits kopiert"-Ausschluss. Limit 50 reicht für das Nutzerprofil.
+      // â”€â”€ Empfehlungs-Engine: eigene Brews laden â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      // EnthÃ¤lt data-Feld fÃ¼r Hop/Malt-Overlap sowie remix_parent_id fÃ¼r
+      // "bereits kopiert"-Ausschluss. Limit 50 reicht fÃ¼r das Nutzerprofil.
       const { data: ownBrewsData } = await supabase
         .from('brews')
         .select('id,name,style,mash_method,data,remix_parent_id,quality_score,ratings(rating)')
@@ -226,9 +226,9 @@ export default function DiscoverClient({
         setUserBrews(mapped);
       }
 
-      // ── Stufe A+: Hoch bewertete Brews laden (≥4★) ───────────────────────
-      // Brews die der Nutzer persönlich mit ≥4 Sternen bewertet hat.
-      // Zusätzliches Signal in buildUserProfile (Faktor 1.5).
+      // â”€â”€ Stufe A+: Hoch bewertete Brews laden (â‰¥4â˜…) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      // Brews die der Nutzer persÃ¶nlich mit â‰¥4 Sternen bewertet hat.
+      // ZusÃ¤tzliches Signal in buildUserProfile (Faktor 1.5).
       const { data: ratingsData } = await supabase
         .from('ratings')
         .select('brew_id')
@@ -245,8 +245,8 @@ export default function DiscoverClient({
         if (highRatedBrewsData) setHighRatedBrews(highRatedBrewsData as Brew[]);
       }
 
-      // ── Stufe B: Implizite Signale aus brew_views laden ───────────────────
-      // Brews die der Nutzer in den letzten 30 Tagen ≥3s angeschaut hat.
+      // â”€â”€ Stufe B: Implizite Signale aus brew_views laden â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      // Brews die der Nutzer in den letzten 30 Tagen â‰¥3s angeschaut hat.
       // Wird als schwaches Interesse-Signal im Nutzerprofil gewertet.
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -270,11 +270,11 @@ export default function DiscoverClient({
         if (viewedBrewsData) setViewedBrews(viewedBrewsData as Brew[]);
       }
 
-      // ── Stufe C: Kollaborative Empfehlungen (Cache-first) ────────────────
+      // â”€â”€ Stufe C: Kollaborative Empfehlungen (Cache-first) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       // Strategie: user_recommendations-Tabelle lesen (TTL 2h).
-      // Bei Cache-Miss → live RPC → Ergebnis in Cache schreiben (fire-and-forget).
+      // Bei Cache-Miss â†’ live RPC â†’ Ergebnis in Cache schreiben (fire-and-forget).
       // Ab ~500 aktiven Nutzern: pg_cron-Job in 20260221150000_collab_v2.sql aktivieren,
-      // dann entfällt der client-seitige Cache-Write.
+      // dann entfÃ¤llt der client-seitige Cache-Write.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const cacheMaxAge = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(); // 2h TTL
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -293,7 +293,7 @@ export default function DiscoverClient({
         : [];
 
       if (collabIds.length < 3) {
-        // Cache-Miss → live RPC v2.1 (Likes + Ratings ≥4★, konfigurierbarer Diversity-Cap)
+        // Cache-Miss â†’ live RPC v2.1 (Likes + Ratings â‰¥4â˜…, konfigurierbarer Diversity-Cap)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: collabData } = await (supabase as any).rpc('get_collaborative_recommendations', {
           p_user_id:       user.id,
@@ -304,7 +304,7 @@ export default function DiscoverClient({
         if (collabData && (collabData as unknown as { brew_id: string }[]).length >= 3) {
           collabIds = [...new Set((collabData as unknown as { brew_id: string }[]).map(r => r.brew_id as string))];
 
-          // Cache schreiben — upsert verhindert Race-Window zwischen DELETE und INSERT.
+          // Cache schreiben â€” upsert verhindert Race-Window zwischen DELETE und INSERT.
           // Alte Empfehlungen werden via 2h-TTL beim Lesen automatisch gefiltert.
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const now = new Date().toISOString();
@@ -356,8 +356,8 @@ export default function DiscoverClient({
     return Math.round((rs.reduce((s, r) => s + r.rating, 0) / rs.length) * 10) / 10;
   };
 
-  // Trending: DB-seitig sortiert via SSR (trending_score DESC, stündlich via pg_cron aktualisiert)
-  // initialTrending enthält Top-10 aus der *gesamten* brews-Tabelle — unabhängig vom Infinite-Scroll-Batch
+  // Trending: DB-seitig sortiert via SSR (trending_score DESC, stÃ¼ndlich via pg_cron aktualisiert)
+  // initialTrending enthÃ¤lt Top-10 aus der *gesamten* brews-Tabelle â€” unabhÃ¤ngig vom Infinite-Scroll-Batch
   const [trending, setTrending] = useState<Brew[]>(initialTrending);
 
   // Featured: Admin-markierte Empfehlungsbrews
@@ -365,29 +365,29 @@ export default function DiscoverClient({
 
   // Personalisierung: eigene Brews des eingeloggten Nutzers (wird in loadUserData geladen)
   const [userBrews, setUserBrews]                = useState<Brew[]>([]);
-  // Stufe B: Brews die der Nutzer ≥3s angeschaut hat (implizites Signal)
+  // Stufe B: Brews die der Nutzer â‰¥3s angeschaut hat (implizites Signal)
   const [viewedBrews, setViewedBrews]            = useState<Brew[]>([]);
-  // Stufe A erweiterung: Hoch bewertete Brews (≥4★)
+  // Stufe A erweiterung: Hoch bewertete Brews (â‰¥4â˜…)
   const [highRatedBrews, setHighRatedBrews]      = useState<Brew[]>([]);
   // Stufe C: IDs und Brew-Objekte aus kollaborativem Filtering
   const [collaborativeBrewIds, setCollaborativeBrewIds] = useState<Set<string>>(new Set());
   const [collaborativeBrews, setCollaborativeBrews]     = useState<Brew[]>([]);
 
   const topRated = useMemo(() => {
-    // ── Hot-Rating-Score ────────────────────────────────────────────────────
-    // Combiniert Bewertungsqualität mit Aktualität — verhindert dass alte
+    // â”€â”€ Hot-Rating-Score â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Combiniert BewertungsqualitÃ¤t mit AktualitÃ¤t â€” verhindert dass alte
     // Rezepte die Liste auf Dauer blockieren.
     //
-    // Formel:  hotScore = bayesianAvg × recencyFactor
-    //   bayesianAvg   = (M×C + n×avg) / (M+n)   ; M=3, C=3.5 (global avg)
-    //   recencyFactor = 0.4 + 0.6 × exp(-age_days / 45)  ; Halbwertszeit 45d
-    //     → Alter 0d:   1.00  (frisch)
-    //     → Alter 24d:  0.75  (Schwelle für ↑-Pfeil)
-    //     → Alter 45d:  0.62  (Halbwertszeit)
-    //     → Alter 80d:  0.50  (Schwelle für ↓-Pfeil)
-    //     → Alter ∞:    0.40  (Floor — Ausnahme-Klassiker bleiben sichtbar)
+    // Formel:  hotScore = bayesianAvg Ã— recencyFactor
+    //   bayesianAvg   = (MÃ—C + nÃ—avg) / (M+n)   ; M=3, C=3.5 (global avg)
+    //   recencyFactor = 0.4 + 0.6 Ã— exp(-age_days / 45)  ; Halbwertszeit 45d
+    //     â†’ Alter 0d:   1.00  (frisch)
+    //     â†’ Alter 24d:  0.75  (Schwelle fÃ¼r â†‘-Pfeil)
+    //     â†’ Alter 45d:  0.62  (Halbwertszeit)
+    //     â†’ Alter 80d:  0.50  (Schwelle fÃ¼r â†“-Pfeil)
+    //     â†’ Alter âˆž:    0.40  (Floor â€” Ausnahme-Klassiker bleiben sichtbar)
     //
-    // Minimum: ≥2 Ratings (verhindert 1×5★ ganz oben)
+    // Minimum: â‰¥2 Ratings (verhindert 1Ã—5â˜… ganz oben)
     const now = Date.now();
     const M = 3; const C = 3.5; // Bayesian-Konstanten
     return [...brews]
@@ -410,14 +410,14 @@ export default function DiscoverClient({
   }, [brews]);
 
   /**
-   * Personalised section: "Für dich"
+   * Personalised section: "FÃ¼r dich"
    *
-   * Signalstärke (stärkste → schwächste):
-   *  Stufe A: eigene Brews (3) + Likes (2) + Hohe Ratings (1.5) — immer aktiv
-   *  Stufe B: brew_views Dwell-Time (0.5) — aktiv sobald Views vorhanden
-   *  Stufe C: kollab. Filtering (+0.15 Bonus) — aktiv ab ≥3 ähnlichen Nutzern
+   * SignalstÃ¤rke (stÃ¤rkste â†’ schwÃ¤chste):
+   *  Stufe A: eigene Brews (3) + Likes (2) + Hohe Ratings (1.5) â€” immer aktiv
+   *  Stufe B: brew_views Dwell-Time (0.5) â€” aktiv sobald Views vorhanden
+   *  Stufe C: kollab. Filtering (+0.15 Bonus) â€” aktiv ab â‰¥3 Ã¤hnlichen Nutzern
    *
-   * Fallback: eigene Brews + Likes < NEEDS_MORE_DATA_THRESHOLD → Qualitäts-Fallback
+   * Fallback: eigene Brews + Likes < NEEDS_MORE_DATA_THRESHOLD â†’ QualitÃ¤ts-Fallback
    */
   const personalizedBrews = useMemo<Brew[]>(() => {
     if (!currentUserId) return [];
@@ -427,7 +427,7 @@ export default function DiscoverClient({
     const seen = new Set<string>();
     const uniquePool = pool.filter(b => { if (seen.has(b.id)) return false; seen.add(b.id); return true; });
 
-    // Liked brews müssen VOR dem Threshold-Check bekannt sein — Likes zählen als Signal
+    // Liked brews mÃ¼ssen VOR dem Threshold-Check bekannt sein â€” Likes zÃ¤hlen als Signal
     const likedBrews = uniquePool.filter(b => b.user_has_liked);
 
     if (userBrews.length + likedBrews.length + highRatedBrews.length < NEEDS_MORE_DATA_THRESHOLD) {
@@ -437,7 +437,7 @@ export default function DiscoverClient({
 
     // buildUserProfile jetzt mit allen Stufen-Signalen
     const profile = buildUserProfile(userBrews, likedBrews, highRatedBrews, viewedBrews, collaborativeBrewIds);
-    // Brews mit ihrem Personalisierungs-Score und Grund annotieren (für Portrait-Tooltip + Admin-Debug)
+    // Brews mit ihrem Personalisierungs-Score und Grund annotieren (fÃ¼r Portrait-Tooltip + Admin-Debug)
     return (getPersonalizedBrews(uniquePool, profile, trending, 10) as Brew[]).map(b => ({
       ...b,
       personalization_score: Math.round(scoreBrewForUser(b, profile) * 100) / 100,
@@ -465,7 +465,7 @@ export default function DiscoverClient({
     });
   };
 
-  // ── Load next batch from Supabase and append ─────────────────────
+  // â”€â”€ Load next batch from Supabase and append â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const loadMoreBrews = useCallback(async (reset = false) => {
     if (loadingMore || (!hasMore && !reset)) return;
     setLoadingMore(true);
@@ -493,13 +493,13 @@ export default function DiscoverClient({
       query = query.eq('fermentation_type', fermentationFilter);
     }
 
-    // Backend ABV filter — uses dedicated abv column (synced via DB trigger)
+    // Backend ABV filter â€” uses dedicated abv column (synced via DB trigger)
     if (abvPreset !== 'all') {
       if (abvPreset === 'session')  query = query.lt('abv', 4.5);
       else if (abvPreset === 'craft')    query = query.gte('abv', 4.5).lte('abv', 7);
       else if (abvPreset === 'imperial') query = query.gt('abv', 7);
     }
-    // Backend IBU filter — uses dedicated ibu column (synced via DB trigger)
+    // Backend IBU filter â€” uses dedicated ibu column (synced via DB trigger)
     if (ibuPreset !== 'all') {
       if (ibuPreset === 'mild')     query = query.lt('ibu', 20);
       else if (ibuPreset === 'balanced') query = query.gte('ibu', 20).lte('ibu', 40);
@@ -555,7 +555,7 @@ export default function DiscoverClient({
     return () => clearTimeout(timer);
   }, [search, styleFilter, brewTypeFilter, fermentationFilter, sort, abvPreset, ibuPreset]);
 
-  // ── IntersectionObserver: trigger loadMore when sentinel is visible ──
+  // â”€â”€ IntersectionObserver: trigger loadMore when sentinel is visible â”€â”€
   useEffect(() => {
     const sentinel = sentinelRef.current;
     if (!sentinel) return;
@@ -670,7 +670,7 @@ export default function DiscoverClient({
   }, [list, brews, search, styleFilter, brewTypeFilter, fermentationFilter, abvPreset, ibuPreset, hopFilter]);
 
   const sortOptions = [
-      { value: 'quality', label: 'Höchste Qualität' },
+      { value: 'quality', label: 'HÃ¶chste QualitÃ¤t' },
       { value: 'top', label: 'Top bewertet' },
       { value: 'most_liked', label: 'Meiste Likes' },
       { value: 'most_rated', label: 'Meist bewertet' },
@@ -678,7 +678,7 @@ export default function DiscoverClient({
   ];
 
   const POPULAR_STYLES = ['IPA', 'Weizen', 'Pils', 'Stout', 'Lager', 'Porter', 'Pale Ale', 'Sour'];
-  const POPULAR_SEARCHES = ['IPA', 'Weizen', 'Saison', 'Pils', 'Stout', 'Helles', 'Citra', 'Kölsch', 'Pale Ale', 'Sour'];
+  const POPULAR_SEARCHES = ['IPA', 'Weizen', 'Saison', 'Pils', 'Stout', 'Helles', 'Citra', 'KÃ¶lsch', 'Pale Ale', 'Sour'];
   const BREW_TYPES = [
     { value: 'all', label: 'Alle' },
     { value: 'all_grain', label: 'All-Grain' },
@@ -687,21 +687,21 @@ export default function DiscoverClient({
   ];
   const FERMENTATION_TYPES = [
     { value: 'all', label: 'Alle' },
-    { value: 'top', label: 'Obergärig' },
-    { value: 'bottom', label: 'Untergärig' },
+    { value: 'top', label: 'ObergÃ¤rig' },
+    { value: 'bottom', label: 'UntergÃ¤rig' },
     { value: 'spontaneous', label: 'Spontan' },
     { value: 'mixed', label: 'Gemischt' },
   ];
   const ABV_PRESETS = [
     { value: 'all', label: 'Alle' },
     { value: 'session', label: 'Session < 4,5 %' },
-    { value: 'craft', label: 'Craft 4,5–7 %' },
+    { value: 'craft', label: 'Craft 4,5â€“7 %' },
     { value: 'imperial', label: 'Imperial > 7 %' },
   ];
   const IBU_PRESETS = [
     { value: 'all', label: 'Alle' },
     { value: 'mild', label: 'Mild < 20' },
-    { value: 'balanced', label: 'Ausgewogen 20–40' },
+    { value: 'balanced', label: 'Ausgewogen 20â€“40' },
     { value: 'hoppy', label: 'Hopfig > 40' },
   ];
 
@@ -711,11 +711,11 @@ export default function DiscoverClient({
   return (
     <>
       <Header />
-      {/* Full-width outer shell — no max-width cap */}
+      {/* Full-width outer shell â€” no max-width cap */}
       <div className="w-full pt-0 pb-20">
         {/* Hero Banner - full bleed */}
         <div className="relative overflow-hidden mb-0 min-h-[260px] md:min-h-[300px] bg-zinc-900 border-b border-zinc-800">
-          {/* Background image from first trending brew — using Next Image for LCP priority */}
+          {/* Background image from first trending brew â€” using Next Image for LCP priority */}
           {trending[0]?.image_url && (
             <Image
               src={trending[0].image_url}
@@ -737,7 +737,7 @@ export default function DiscoverClient({
                 <span className="text-cyan-400">Braukreationen</span>
               </h1>
               <p className="text-zinc-400 max-w-md text-sm md:text-base mb-6">
-                Die besten Rezepte der Community — sortiert nach Bewertung, Trend und Neuheit.
+                Die besten Rezepte der Community â€” sortiert nach Bewertung, Trend und Neuheit.
               </p>
               <button
                 onClick={() => { searchRef.current?.focus(); }}
@@ -748,7 +748,7 @@ export default function DiscoverClient({
               </button>
             </div>
 
-            {/* Right: Image collage — up to 3 brew images */}
+            {/* Right: Image collage â€” up to 3 brew images */}
             <div className="hidden md:flex items-center gap-3 flex-shrink-0">
               {(trending.slice(0, 3)).map((brew, i) => (
                 <div
@@ -765,7 +765,7 @@ export default function DiscoverClient({
                     <img src={brew.image_url} alt={brew.name} className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-br from-zinc-700 to-zinc-800 flex items-center justify-center">
-                      <span className="text-zinc-500 text-3xl">🍺</span>
+                      <span className="text-zinc-500 text-3xl">ðŸº</span>
                     </div>
                   )}
                 </div>
@@ -796,7 +796,7 @@ export default function DiscoverClient({
           </div>
         </div>
 
-        {/* Sticky Search Bar — full width, between hero and content columns */}
+        {/* Sticky Search Bar â€” full width, between hero and content columns */}
         <div className="sticky top-0 z-30 bg-zinc-950/95 backdrop-blur-md border-b border-zinc-800">
           <div className="hidden md:flex items-center gap-4 max-w-screen-2xl mx-auto px-6 md:px-8 lg:px-12 xl:px-16 py-3">
             <div className="relative w-full max-w-xs lg:max-w-sm" ref={searchContainerRef}>
@@ -832,14 +832,14 @@ export default function DiscoverClient({
                     setSuggestionIndex(-1);
                   }
                 }}
-                placeholder="Rezept, Stil oder Zutat suchen…"
+                placeholder="Rezept, Stil oder Zutat suchenâ€¦"
                 className="w-full bg-zinc-900/50 border border-zinc-800 focus:border-zinc-600 rounded-lg pl-9 pr-8 py-2 outline-none text-sm text-white transition-all placeholder:text-zinc-600"
               />
               {search && (
                 <button
                   onClick={() => { setSearch(''); setShowSuggestions(false); searchRef.current?.focus(); }}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
-                  aria-label="Suche löschen"
+                  aria-label="Suche lÃ¶schen"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -907,8 +907,8 @@ export default function DiscoverClient({
                     >
                       <span className="flex-shrink-0 text-zinc-600">
                         {s.type === 'recipe'     && <Search className="w-3 h-3" />}
-                        {s.type === 'style'      && <span className="text-xs">🍺</span>}
-                        {s.type === 'ingredient' && <span className="text-xs">🌿</span>}
+                        {s.type === 'style'      && <span className="text-xs">ðŸº</span>}
+                        {s.type === 'ingredient' && <span className="text-xs">ðŸŒ¿</span>}
                       </span>
                       <span className="flex-1 truncate">{s.label}</span>
                       <span className="text-[10px] text-zinc-600 flex-shrink-0">
@@ -923,21 +923,21 @@ export default function DiscoverClient({
               <div className="flex items-center gap-2 text-xs">
                 <span className="font-medium text-zinc-300">{list.length} Treffer</span>
                 <button onClick={resetFilters} className="flex items-center gap-1 text-zinc-500 hover:text-white transition-colors">
-                  <X className="w-3 h-3" /> Zurücksetzen
+                  <X className="w-3 h-3" /> ZurÃ¼cksetzen
                 </button>
               </div>
             )}
           </div>
-          {/* ── Mobile sticky bar ────────────────────────────────────────── */}
+          {/* â”€â”€ Mobile sticky bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
           <div className="md:hidden flex items-center gap-2 px-4 py-2">
             <button
               onClick={() => setShowSearchOverlay(true)}
               className="flex items-center gap-2 flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-left min-w-0 hover:border-zinc-700 transition-colors"
-              aria-label="Suche öffnen"
+              aria-label="Suche Ã¶ffnen"
             >
               <Search className="w-4 h-4 text-zinc-500 flex-shrink-0" />
               <span className={`text-sm truncate flex-1 ${search ? 'text-white' : 'text-zinc-500'}`}>
-                {search || 'Suchen…'}
+                {search || 'Suchenâ€¦'}
               </span>
               {search && <span className="text-[10px] text-cyan-400 font-bold flex-shrink-0">Aktiv</span>}
             </button>
@@ -948,7 +948,7 @@ export default function DiscoverClient({
                   ? 'bg-cyan-500/10 border-cyan-500/40 text-cyan-400'
                   : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-white'
               }`}
-              aria-label="Filter öffnen"
+              aria-label="Filter Ã¶ffnen"
             >
               <Filter className="w-4 h-4" />
               Filter
@@ -1032,9 +1032,9 @@ export default function DiscoverClient({
               </div>
             </div>
 
-            {/* Gärungstyp */}
+            {/* GÃ¤rungstyp */}
             <div>
-              <h3 className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-2">Gärungstyp</h3>
+              <h3 className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-2">GÃ¤rungstyp</h3>
               <div className="flex flex-col">
                 {FERMENTATION_TYPES.map(({ value, label }) => (
                   <button
@@ -1098,7 +1098,7 @@ export default function DiscoverClient({
                   list="ingredient-suggestions-desktop"
                   value={hopFilter}
                   onChange={(e) => setHopFilter(e.target.value)}
-                  placeholder="z. B. Citra…"
+                  placeholder="z. B. Citraâ€¦"
                   className="w-full bg-zinc-900/50 border border-zinc-800 focus:border-zinc-600 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none transition-colors"
                 />
                 {hopFilter && (
@@ -1135,7 +1135,7 @@ export default function DiscoverClient({
                 onClick={resetFilters}
                 className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors text-left"
               >
-                ← Alle Filter zurücksetzen
+                â† Alle Filter zurÃ¼cksetzen
               </button>
             )}
           </aside>
@@ -1150,7 +1150,7 @@ export default function DiscoverClient({
                   <button
                     onClick={() => setShowSearchOverlay(false)}
                     className="p-2 -ml-1 text-zinc-400 hover:text-white rounded-lg transition-colors"
-                    aria-label="Suche schließen"
+                    aria-label="Suche schlieÃŸen"
                   >
                     <ArrowLeft className="w-5 h-5" />
                   </button>
@@ -1181,14 +1181,14 @@ export default function DiscoverClient({
                           setSuggestionIndex(i => Math.max(i - 1, -1));
                         }
                       }}
-                      placeholder="Suchen…"
+                      placeholder="Suchenâ€¦"
                       className="w-full bg-zinc-900 border border-zinc-800 focus:border-cyan-500 rounded-xl pl-9 pr-9 py-2.5 outline-none text-sm text-white placeholder:text-zinc-500 transition-colors"
                     />
                     {search && (
                       <button
                         onClick={() => setSearch('')}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
-                        aria-label="Eingabe löschen"
+                        aria-label="Eingabe lÃ¶schen"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -1210,7 +1210,7 @@ export default function DiscoverClient({
                           }}
                           className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors"
                         >
-                          Alle löschen
+                          Alle lÃ¶schen
                         </button>
                       </div>
                       {recentSearches.map(s => (
@@ -1262,8 +1262,8 @@ export default function DiscoverClient({
                         >
                           <span className="flex-shrink-0 w-5 text-center">
                             {s.type === 'recipe'     && <Search className="w-4 h-4 text-zinc-500 inline" />}
-                            {s.type === 'style'      && <span className="text-base leading-none">🍺</span>}
-                            {s.type === 'ingredient' && <span className="text-base leading-none">🌿</span>}
+                            {s.type === 'style'      && <span className="text-base leading-none">ðŸº</span>}
+                            {s.type === 'ingredient' && <span className="text-base leading-none">ðŸŒ¿</span>}
                           </span>
                           <span className="flex-1 truncate">{s.label}</span>
                           <span className="text-xs text-zinc-600 flex-shrink-0">{s.type === 'recipe' ? 'Rezept' : s.type === 'style' ? 'Stil' : 'Zutat'}</span>
@@ -1274,7 +1274,7 @@ export default function DiscoverClient({
 
                   {/* No suggestions while typing */}
                   {search && autocompleteSuggestions.length === 0 && (
-                    <p className="px-4 py-12 text-center text-zinc-600 text-sm">Keine Vorschläge für „{search}"</p>
+                    <p className="px-4 py-12 text-center text-zinc-600 text-sm">Keine VorschlÃ¤ge fÃ¼r â€ž{search}"</p>
                   )}
                 </div>
               </div>
@@ -1292,7 +1292,7 @@ export default function DiscoverClient({
               onClick={resetFilters}
               className="flex items-center gap-1 text-zinc-500 hover:text-white transition-colors"
             >
-              <X className="w-3 h-3" /> Alles zurücksetzen
+              <X className="w-3 h-3" /> Alles zurÃ¼cksetzen
             </button>
           </div>
         )}
@@ -1307,7 +1307,7 @@ export default function DiscoverClient({
           <div>
             {!isFiltering && !showAllGrid ? (
               <div className="space-y-4">
-                 {/* Gerade angesagt 🔥 */}
+                 {/* Gerade angesagt ðŸ”¥ */}
                  {trending.length > 0 && (
                    <Section
                      icon={<Flame className="w-5 h-5 text-orange-500" />}
@@ -1320,7 +1320,7 @@ export default function DiscoverClient({
                    />
                  )}
 
-                 {/* Empfohlen ✓ */}
+                 {/* Empfohlen âœ“ */}
                  {featured.length > 0 && (
                    <Section
                      icon={<BadgeCheck className="w-5 h-5 text-purple-500" />}
@@ -1333,19 +1333,19 @@ export default function DiscoverClient({
                    />
                  )}
 
-                 {/* Für dich ✨ – personalisierte Empfehlungen */}
+                 {/* FÃ¼r dich âœ¨ â€“ personalisierte Empfehlungen */}
                  {currentUserId && personalizedBrews.length > 0 && (
                    <>
                      <Section
                        icon={<Sparkles className="w-5 h-5 text-cyan-400" />}
-                       title={userBrews.length + brews.filter(b => b.user_has_liked).length >= NEEDS_MORE_DATA_THRESHOLD ? 'Für dich' : 'Empfohlen für dich'}
+                       title={userBrews.length + brews.filter(b => b.user_has_liked).length >= NEEDS_MORE_DATA_THRESHOLD ? 'FÃ¼r dich' : 'Empfohlen fÃ¼r dich'}
                        items={personalizedBrews}
                        layout="portrait-only"
                        onMore={() => { setSort('quality'); setShowAllGrid(true); }}
                        currentUserId={currentUserId}
                        isAdmin={isAdmin}
                        infoText={userBrews.length + brews.filter(b => b.user_has_liked).length < NEEDS_MORE_DATA_THRESHOLD
-                         ? 'Personalisierung wird besser mit mehr Daten. Like noch ein paar Rezepte oder erstelle eigene Brews – dann passen wir diesen Feed genau auf deinen Geschmack an.'
+                         ? 'Personalisierung wird besser mit mehr Daten. Like noch ein paar Rezepte oder erstelle eigene Brews â€“ dann passen wir diesen Feed genau auf deinen Geschmack an.'
                          : undefined}
                      />
                    </>
@@ -1354,13 +1354,13 @@ export default function DiscoverClient({
                    <div className="mb-10 flex items-start gap-3 rounded-2xl border border-zinc-800 bg-zinc-900/50 px-5 py-4">
                      <Sparkles className="w-4 h-4 text-cyan-500 mt-0.5 flex-shrink-0" />
                      <p className="text-sm text-zinc-400 leading-relaxed">
-                       <span className="font-semibold text-zinc-200">Dein persönlicher Feed wartet auf dich.</span>{' '}
-                       Like mindestens {NEEDS_MORE_DATA_THRESHOLD} Rezepte oder erstelle eigene Brews — dann zeigen wir dir hier Empfehlungen, die wirklich zu dir passen.
+                       <span className="font-semibold text-zinc-200">Dein persÃ¶nlicher Feed wartet auf dich.</span>{' '}
+                       Like mindestens {NEEDS_MORE_DATA_THRESHOLD} Rezepte oder erstelle eigene Brews â€” dann zeigen wir dir hier Empfehlungen, die wirklich zu dir passen.
                      </p>
                    </div>
                  )}
 
-                 {/* Am besten bewertet ★ — ranked chart list */}
+                 {/* Am besten bewertet â˜… â€” ranked chart list */}
                  {topRated.length > 0 && (
                    <Section
                      icon={<Star className="w-5 h-5 text-yellow-500" />}
@@ -1385,47 +1385,73 @@ export default function DiscoverClient({
 
                    // Build a real "why popular" sentence from actual data
                    const facts: string[] = [];
-                   if (ratingCount > 0) facts.push(`${ratingCount} Bewertung${ratingCount !== 1 ? 'en' : ''}${avgR ? ` (Ø ${avgR}★)` : ''}`);
-                   if (copyCount > 0) facts.push(`${copyCount}× nachgebraut`);
+                   if (ratingCount > 0) facts.push(`${ratingCount} Bewertung${ratingCount !== 1 ? 'en' : ''}${avgR ? ` (Ã˜ ${avgR}â˜…)` : ''}`);
+                   if (copyCount > 0) facts.push(`${copyCount}Ã— nachgebraut`);
                    if (likesCount > 0) facts.push(`${likesCount} Likes`);
-                   const statsLine = facts.length > 0 ? facts.join(', ') + ' — ' : '';
+                   const statsLine = facts.length > 0 ? facts.join(', ') + ' â€” ' : '';
 
                    const charParts: string[] = [];
                    if (t.abv != null) charParts.push(`${Number(t.abv).toFixed(1)}% Alkohol`);
-                   if (t.ibu != null) charParts.push(Number(t.ibu) < 15 ? 'mildes Hopfenspiel' : Number(t.ibu) < 35 ? 'ausgewogene Bittere' : 'kräftiger Hopfencharakter');
-                   const charLine = charParts.length > 0 ? `Mit ${charParts.join(' und ')} passt es zu vielen Geschmäckern.` : '';
+                   if (t.ibu != null) charParts.push(Number(t.ibu) < 15 ? 'mildes Hopfenspiel' : Number(t.ibu) < 35 ? 'ausgewogene Bittere' : 'krÃ¤ftiger Hopfencharakter');
+                   const charLine = charParts.length > 0 ? `Mit ${charParts.join(' und ')} passt es zu vielen GeschmÃ¤ckern.` : '';
 
                    return (
-                     <div className="mb-12 relative rounded-3xl overflow-hidden bg-zinc-900 border border-zinc-800 p-6 md:p-10 flex flex-col md:flex-row items-center gap-8">
+                     <div className="mb-12 relative rounded-xl overflow-hidden bg-zinc-900 border border-zinc-800">
                        <div className="absolute inset-0 bg-gradient-to-br from-cyan-950/30 to-zinc-900/80 pointer-events-none" />
-                       <div className="relative z-10 flex-1">
-                         <div className="flex items-center gap-2 text-cyan-400 mb-3">
-                           <TrendingUp className="w-5 h-5" />
-                           <span className="text-sm font-bold uppercase tracking-wider">Rezept Insight</span>
+
+                       {/* Mobile compact layout: small thumbnail left + text right */}
+                       <div className="md:hidden flex items-start gap-4 p-5 relative z-10">
+                         <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-zinc-800">
+                           {t.image_url
+                             ? <img src={t.image_url} alt={t.name} className="w-full h-full object-cover" />
+                             : <div className="w-full h-full flex items-center justify-center text-2xl">ðŸº</div>}
                          </div>
-                         <h3 className="text-2xl md:text-3xl font-black text-white mb-3">
-                           Warum ist &ldquo;{t.name}&rdquo; so beliebt?
-                         </h3>
-                         <p className="text-zinc-400 text-base leading-relaxed mb-6">
-                           {statsLine}dieses {t.style || 'Rezept'} trendet gerade in der Community. {charLine} Schau dir Zutaten und Maischeschritte selbst an.
-                         </p>
-                         <button
-                           onClick={() => router.push(`/brew/${t.id}`)}
-                           className="inline-flex items-center gap-2 border border-zinc-600 hover:border-cyan-500 text-zinc-300 hover:text-cyan-400 font-bold px-6 py-3 rounded-xl transition-all duration-200"
-                         >
-                           Rezept ansehen
-                           <ChevronRight className="w-4 h-4" />
-                         </button>
-                       </div>
-                       {/* Image — frameless, consistent with portrait card style */}
-                       <div className="relative z-10 w-full md:w-[30%] aspect-square rounded-2xl overflow-hidden flex-shrink-0">
-                         {t.image_url ? (
-                           <img src={t.image_url} alt={t.name} className="w-full h-full object-cover" />
-                         ) : (
-                           <div className="w-full h-full bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center">
-                             <span className="text-4xl">🍺</span>
+                         <div className="flex-1 min-w-0">
+                           <div className="flex items-center gap-1.5 text-cyan-400 mb-1">
+                             <TrendingUp className="w-3.5 h-3.5" />
+                             <span className="text-[10px] font-bold uppercase tracking-wider">Rezept Insight</span>
                            </div>
-                         )}
+                           <h3 className="text-base font-black text-white leading-snug mb-1 line-clamp-2">
+                             Warum ist &ldquo;{t.name}&rdquo; so beliebt?
+                           </h3>
+                           <p className="text-zinc-500 text-xs leading-relaxed line-clamp-2">
+                             {statsLine}{charLine || `Dieses ${t.style || 'Rezept'} trendet gerade.`}
+                           </p>
+                           <button
+                             onClick={() => router.push(`/brew/${t.id}`)}
+                             className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-cyan-400 hover:text-cyan-300 transition-colors"
+                           >
+                             Ansehen <ChevronRight className="w-3 h-3" />
+                           </button>
+                         </div>
+                       </div>
+
+                       {/* Desktop layout: existing side-by-side */}
+                       <div className="hidden md:flex flex-row items-center gap-8 p-10 relative z-10">
+                         <div className="flex-1">
+                           <div className="flex items-center gap-2 text-cyan-400 mb-3">
+                             <TrendingUp className="w-5 h-5" />
+                             <span className="text-sm font-bold uppercase tracking-wider">Rezept Insight</span>
+                           </div>
+                           <h3 className="text-2xl md:text-3xl font-black text-white mb-3">
+                             Warum ist &ldquo;{t.name}&rdquo; so beliebt?
+                           </h3>
+                           <p className="text-zinc-400 text-base leading-relaxed mb-6">
+                             {statsLine}dieses {t.style || 'Rezept'} trendet gerade in der Community. {charLine} Schau dir Zutaten und Maischeschritte selbst an.
+                           </p>
+                           <button
+                             onClick={() => router.push(`/brew/${t.id}`)}
+                             className="inline-flex items-center gap-2 border border-zinc-600 hover:border-cyan-500 text-zinc-300 hover:text-cyan-400 font-bold px-6 py-3 rounded-xl transition-all duration-200"
+                           >
+                             Rezept ansehen
+                             <ChevronRight className="w-4 h-4" />
+                           </button>
+                         </div>
+                         <div className="w-[30%] aspect-square rounded-2xl overflow-hidden flex-shrink-0">
+                           {t.image_url
+                             ? <img src={t.image_url} alt={t.name} className="w-full h-full object-cover" />
+                             : <div className="w-full h-full bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center"><span className="text-4xl">ðŸº</span></div>}
+                         </div>
                        </div>
                      </div>
                    );
@@ -1439,7 +1465,7 @@ export default function DiscoverClient({
                    </div>
                  )}
 
-                 {/* Neuheiten ✨ */}
+                 {/* Neuheiten âœ¨ */}
                  {newest.length > 0 && (
                    <Section
                      icon={<Sparkles className="w-5 h-5 text-cyan-500" />}
@@ -1473,7 +1499,7 @@ export default function DiscoverClient({
                       onClick={() => setShowAllGrid(false)}
                       className="flex items-center gap-2 text-zinc-400 hover:text-white text-sm font-medium transition-colors"
                     >
-                      ← Zurück zur Übersicht
+                      â† ZurÃ¼ck zur Ãœbersicht
                     </button>
                     <span className="text-zinc-500 text-sm">{list.length} Rezepte</span>
                   </div>
@@ -1504,19 +1530,19 @@ export default function DiscoverClient({
                       <div>
                         <p className="text-white font-semibold text-lg mb-1">Keine Rezepte gefunden</p>
                         <p className="text-zinc-500 text-sm max-w-sm">
-                          Versuch einen anderen Suchbegriff oder setze die Filter zurück.
+                          Versuch einen anderen Suchbegriff oder setze die Filter zurÃ¼ck.
                         </p>
                       </div>
                       <button
                         onClick={resetFilters}
                         className="bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 hover:border-zinc-600 text-white font-semibold px-5 py-2.5 rounded-xl transition-all text-sm"
                       >
-                        Filter zurücksetzen
+                        Filter zurÃ¼cksetzen
                       </button>
                       {suggestions.length > 0 && (
                         <div className="w-full mt-4">
                           <p className="text-zinc-500 text-xs font-medium uppercase tracking-wider mb-4">
-                            {styleFilter !== 'all' ? `Diese ${styleFilter}-Rezepte passen vielleicht:` : 'Diese Rezepte könnten dich interessieren:'}
+                            {styleFilter !== 'all' ? `Diese ${styleFilter}-Rezepte passen vielleicht:` : 'Diese Rezepte kÃ¶nnten dich interessieren:'}
                           </p>
                           <div className="flex flex-col gap-2">
                             {suggestions.map(brew => (
@@ -1536,7 +1562,7 @@ export default function DiscoverClient({
                     {loadingMore && (
                       <div className="flex justify-center items-center py-10 gap-3 text-zinc-500 text-sm">
                         <Loader2 className="w-5 h-5 animate-spin" />
-                        Weitere Rezepte laden…
+                        Weitere Rezepte ladenâ€¦
                       </div>
                     )}
                     {!hasMore && !loadingMore && (
@@ -1557,19 +1583,17 @@ export default function DiscoverClient({
       {/* Bottom Sheet: Mobile Filter */}
       {showBottomSheet && (
         <>
-          {/* Backdrop */}
           <div
             className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm"
             onClick={() => { setShowBottomSheet(false); setSheetDragY(0); }}
           />
-          {/* Panel */}
           <div
-            className="fixed bottom-0 left-0 right-0 z-50 bg-[#111113] border-t border-zinc-800/60 rounded-t-[28px] shadow-2xl max-h-[90dvh] flex flex-col animate-in slide-in-from-bottom duration-300"
+            className="fixed bottom-0 left-0 right-0 z-50 bg-zinc-950 border-t border-zinc-800 rounded-t-xl shadow-2xl max-h-[90dvh] flex flex-col animate-in slide-in-from-bottom duration-300"
             style={{ transform: `translateY(${sheetDragY}px)`, transition: sheetDragY > 0 ? 'none' : 'transform 0.3s ease' }}
           >
-            {/* Drag handle — pointer events only on this area */}
+            {/* Drag handle */}
             <div
-              className="flex justify-center pt-3 pb-2 flex-shrink-0 cursor-grab active:cursor-grabbing touch-none select-none"
+              className="flex justify-center pt-3 pb-1 flex-shrink-0 cursor-grab active:cursor-grabbing touch-none select-none"
               onPointerDown={(e) => {
                 sheetDragStartY.current = e.clientY;
                 sheetIsDragging.current = true;
@@ -1586,33 +1610,33 @@ export default function DiscoverClient({
                 sheetIsDragging.current = false;
               }}
             >
-              <div className="w-10 h-1.5 rounded-full bg-zinc-600" />
+              <div className="w-8 h-1 rounded-full bg-zinc-700" />
             </div>
             {/* Header */}
-            <div className="flex items-center justify-between px-5 pt-1 pb-4 flex-shrink-0">
-              <span className="text-lg font-bold text-white">Filter &amp; Sortierung</span>
+            <div className="flex items-center justify-between px-4 pt-2 pb-3 flex-shrink-0 border-b border-zinc-800">
+              <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Filter &amp; Sortierung</span>
               <button
                 onClick={() => { setShowBottomSheet(false); setSheetDragY(0); }}
-                className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors"
-                aria-label="Schließen"
+                className="p-1.5 rounded text-zinc-500 hover:text-white hover:bg-zinc-800 transition-colors"
+                aria-label="SchlieÃŸen"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
             {/* Scrollable content */}
-            <div className="overflow-y-auto flex-1 px-5 pb-2 space-y-7 touch-auto overscroll-contain">
+            <div className="overflow-y-auto flex-1 touch-auto overscroll-contain divide-y divide-zinc-800/60">
               {/* Sortierung */}
-              <div>
-                <p className="text-xs font-medium text-zinc-500 mb-3">Sortierung</p>
+              <div className="px-4 py-4">
+                <p className="text-[10px] font-medium text-zinc-600 uppercase tracking-wider mb-3">Sortierung</p>
                 <div className="flex flex-wrap gap-2">
                   {sortOptions.map(({ value, label }) => (
                     <button
                       key={value}
                       onClick={() => setSort(value as any)}
-                      className={`text-sm px-4 py-2.5 rounded-xl transition-all min-h-[44px] ${
+                      className={`text-sm px-3 py-2 rounded-lg border transition-all min-h-[38px] ${
                         sort === value
-                          ? 'bg-cyan-500 text-black font-bold'
-                          : 'bg-zinc-800 text-zinc-300 font-medium hover:bg-zinc-700'
+                          ? 'bg-white text-black font-semibold border-white'
+                          : 'bg-zinc-900 border-zinc-700 text-zinc-300 font-medium hover:bg-zinc-800 hover:text-white'
                       }`}
                     >
                       {label}
@@ -1621,17 +1645,17 @@ export default function DiscoverClient({
                 </div>
               </div>
               {/* Brautyp */}
-              <div>
-                <p className="text-xs font-medium text-zinc-500 mb-3">Brautyp</p>
+              <div className="px-4 py-4">
+                <p className="text-[10px] font-medium text-zinc-600 uppercase tracking-wider mb-3">Brautyp</p>
                 <div className="flex flex-wrap gap-2">
                   {BREW_TYPES.map(({ value, label }) => (
                     <button
                       key={value}
                       onClick={() => setBrewTypeFilter(value as 'all' | 'all_grain' | 'extract' | 'partial_mash')}
-                      className={`text-sm px-4 py-2.5 rounded-xl transition-all min-h-[44px] ${
+                      className={`text-sm px-3 py-2 rounded-lg border transition-all min-h-[38px] ${
                         brewTypeFilter === value
-                          ? 'bg-cyan-500 text-black font-bold'
-                          : 'bg-zinc-800 text-zinc-300 font-medium hover:bg-zinc-700'
+                          ? 'bg-white text-black font-semibold border-white'
+                          : 'bg-zinc-900 border-zinc-700 text-zinc-300 font-medium hover:bg-zinc-800 hover:text-white'
                       }`}
                     >
                       {label}
@@ -1639,18 +1663,18 @@ export default function DiscoverClient({
                   ))}
                 </div>
               </div>
-              {/* Gärungstyp */}
-              <div>
-                <p className="text-xs font-medium text-zinc-500 mb-3">Gärungstyp</p>
+              {/* GÃ¤rungstyp */}
+              <div className="px-4 py-4">
+                <p className="text-[10px] font-medium text-zinc-600 uppercase tracking-wider mb-3">GÃ¤rungstyp</p>
                 <div className="flex flex-wrap gap-2">
                   {FERMENTATION_TYPES.map(({ value, label }) => (
                     <button
                       key={value}
                       onClick={() => setFermentationFilter(value as 'all' | 'top' | 'bottom' | 'spontaneous' | 'mixed')}
-                      className={`text-sm px-4 py-2.5 rounded-xl transition-all min-h-[44px] ${
+                      className={`text-sm px-3 py-2 rounded-lg border transition-all min-h-[38px] ${
                         fermentationFilter === value
-                          ? 'bg-cyan-500 text-black font-bold'
-                          : 'bg-zinc-800 text-zinc-300 font-medium hover:bg-zinc-700'
+                          ? 'bg-white text-black font-semibold border-white'
+                          : 'bg-zinc-900 border-zinc-700 text-zinc-300 font-medium hover:bg-zinc-800 hover:text-white'
                       }`}
                     >
                       {label}
@@ -1659,17 +1683,17 @@ export default function DiscoverClient({
                 </div>
               </div>
               {/* Alkohol (ABV) */}
-              <div>
-                <p className="text-xs font-medium text-zinc-500 mb-3">Alkohol (ABV)</p>
+              <div className="px-4 py-4">
+                <p className="text-[10px] font-medium text-zinc-600 uppercase tracking-wider mb-3">Alkohol (ABV)</p>
                 <div className="flex flex-wrap gap-2">
                   {ABV_PRESETS.map(({ value, label }) => (
                     <button
                       key={value}
                       onClick={() => setAbvPreset(value as 'all' | 'session' | 'craft' | 'imperial')}
-                      className={`text-sm px-4 py-2.5 rounded-xl transition-all min-h-[44px] ${
+                      className={`text-sm px-3 py-2 rounded-lg border transition-all min-h-[38px] ${
                         abvPreset === value
-                          ? 'bg-cyan-500 text-black font-bold'
-                          : 'bg-zinc-800 text-zinc-300 font-medium hover:bg-zinc-700'
+                          ? 'bg-white text-black font-semibold border-white'
+                          : 'bg-zinc-900 border-zinc-700 text-zinc-300 font-medium hover:bg-zinc-800 hover:text-white'
                       }`}
                     >
                       {label}
@@ -1678,17 +1702,17 @@ export default function DiscoverClient({
                 </div>
               </div>
               {/* Bitterkeit (IBU) */}
-              <div>
-                <p className="text-xs font-medium text-zinc-500 mb-3">Bitterkeit (IBU)</p>
+              <div className="px-4 py-4">
+                <p className="text-[10px] font-medium text-zinc-600 uppercase tracking-wider mb-3">Bitterkeit (IBU)</p>
                 <div className="flex flex-wrap gap-2">
                   {IBU_PRESETS.map(({ value, label }) => (
                     <button
                       key={value}
                       onClick={() => setIbuPreset(value as 'all' | 'mild' | 'balanced' | 'hoppy')}
-                      className={`text-sm px-4 py-2.5 rounded-xl transition-all min-h-[44px] ${
+                      className={`text-sm px-3 py-2 rounded-lg border transition-all min-h-[38px] ${
                         ibuPreset === value
-                          ? 'bg-cyan-500 text-black font-bold'
-                          : 'bg-zinc-800 text-zinc-300 font-medium hover:bg-zinc-700'
+                          ? 'bg-white text-black font-semibold border-white'
+                          : 'bg-zinc-900 border-zinc-700 text-zinc-300 font-medium hover:bg-zinc-800 hover:text-white'
                       }`}
                     >
                       {label}
@@ -1697,22 +1721,22 @@ export default function DiscoverClient({
                 </div>
               </div>
               {/* Zutat */}
-              <div>
-                <p className="text-xs font-medium text-zinc-500 mb-3">Zutat (Hopfen oder Malz)</p>
+              <div className="px-4 py-4">
+                <p className="text-[10px] font-medium text-zinc-600 uppercase tracking-wider mb-3">Zutat (Hopfen oder Malz)</p>
                 <div className="relative">
                   <input
                     type="text"
                     list="ingredient-suggestions-sheet"
                     value={hopFilter}
                     onChange={(e) => setHopFilter(e.target.value)}
-                    placeholder="z. B. Citra, Hallertau, Pilsner Malz…"
-                    className="w-full bg-zinc-800 border border-zinc-700/50 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-500 transition-colors min-h-[44px]"
+                    placeholder="z. B. Citra, Hallertau, Pilsner Malzâ€¦"
+                    className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors min-h-[38px]"
                   />
                   {hopFilter && (
                     <button
                       onClick={() => setHopFilter('')}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white"
-                      aria-label="Löschen"
+                      aria-label="LÃ¶schen"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -1723,34 +1747,34 @@ export default function DiscoverClient({
                 </datalist>
               </div>
               {/* Einsteiger-Modus */}
-              <div>
-                <p className="text-xs font-medium text-zinc-500 mb-3">Schwierigkeitsgrad</p>
+              <div className="px-4 py-4">
+                <p className="text-[10px] font-medium text-zinc-600 uppercase tracking-wider mb-3">Schwierigkeitsgrad</p>
                 <button
                   onClick={() => setBeginnerMode(v => !v)}
-                  className={`flex items-center gap-3 text-sm px-4 py-3 rounded-xl transition-all min-h-[44px] text-left w-full ${
+                  className={`flex items-center gap-2 text-sm px-3 py-2 rounded-lg border transition-all min-h-[38px] text-left ${
                     beginnerMode
-                      ? 'bg-cyan-500 text-black font-bold'
-                      : 'bg-zinc-800 text-zinc-300 font-medium hover:bg-zinc-700'
+                      ? 'bg-white text-black font-semibold border-white'
+                      : 'bg-zinc-900 border-zinc-700 text-zinc-300 font-medium hover:bg-zinc-800 hover:text-white'
                   }`}
                 >
-                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${beginnerMode ? 'border-black bg-black/20' : 'border-zinc-500'}`}>
-                    {beginnerMode && <Check className="w-3 h-3" />}
+                  <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${beginnerMode ? 'border-black bg-black/10' : 'border-zinc-500'}`}>
+                    {beginnerMode && <Check className="w-2.5 h-2.5" />}
                   </div>
                   Nur Einsteiger-Rezepte
                 </button>
               </div>
             </div>
             {/* Sticky footer */}
-            <div className="flex gap-3 px-5 py-4 border-t border-zinc-800/60 flex-shrink-0">
+            <div className="flex gap-2 px-4 py-3 border-t border-zinc-800 flex-shrink-0">
               <button
                 onClick={() => { resetFilters(); setShowBottomSheet(false); setSheetDragY(0); }}
-                className="flex-1 py-3.5 rounded-2xl border border-zinc-700 bg-zinc-800 text-white font-semibold text-sm hover:bg-zinc-700 transition-all min-h-[50px]"
+                className="flex-1 py-2.5 rounded-lg border border-zinc-700 bg-zinc-900 text-white font-medium text-sm hover:bg-zinc-800 transition-all"
               >
-                Zurücksetzen
+                ZurÃ¼cksetzen
               </button>
               <button
                 onClick={() => { setShowBottomSheet(false); setSheetDragY(0); }}
-                className="flex-1 py-3.5 rounded-2xl bg-cyan-500 text-black font-bold text-sm hover:bg-cyan-400 transition-all min-h-[50px]"
+                className="flex-1 py-2.5 rounded-lg bg-white text-black font-semibold text-sm hover:bg-zinc-100 transition-all"
               >
                 Anwenden
               </button>

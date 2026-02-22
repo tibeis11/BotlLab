@@ -287,7 +287,7 @@ export function Section({
         <div className="relative -mx-6 md:mx-0">
           <div
             ref={scrollRef}
-            className="flex overflow-x-auto gap-4 pb-4 snap-x scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-zinc-900 pl-6 md:pl-0"
+            className="flex overflow-x-auto gap-4 pb-4 snap-x scrollbar-hide pl-6 md:pl-0"
           >
             {items.map(brew => (
               <div key={brew.id} className="snap-center flex-shrink-0 w-[45vw] max-w-[220px] md:w-[220px]">
@@ -327,12 +327,12 @@ export function Section({
         <div className="relative flex-1 min-w-0 -mx-6 md:mx-0">
           <div
             ref={scrollRef}
-            className="flex overflow-x-auto gap-4 pb-4 snap-x scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-zinc-900 pl-6 md:pl-0"
+            className="flex overflow-x-auto gap-4 pb-4 snap-x scrollbar-hide pl-6 md:pl-0"
           >
             {items.map((brew, i) => (
               <div
                 key={brew.id}
-                className={`snap-center flex-shrink-0 w-[45vw] max-w-[220px] md:w-[220px] ${i === 0 ? 'md:hidden' : ''}`}
+                className="snap-center flex-shrink-0 w-[45vw] max-w-[220px] md:w-[220px]"
               >
                 <DiscoverBrewCard
                   brew={brew}
