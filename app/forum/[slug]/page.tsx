@@ -122,7 +122,7 @@ export default async function ForumCategoryPage({ params, searchParams }: PagePr
                 <main className="flex-1 min-w-0 px-6 pt-6 space-y-5">
 
                     {/* ── Sort tabs (underline style) ─────────────────────── */}
-                    <div className="flex gap-4 border-b border-zinc-800/60 overflow-x-auto scrollbar-none">
+                    <div className="flex gap-4 border-b border-zinc-800/60 overflow-x-auto scrollbar-hide">
                         {SORT_TABS.map(t => (
                             <Link
                                 key={t.key}
