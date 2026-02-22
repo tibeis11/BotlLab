@@ -708,9 +708,154 @@ export default function DiscoverClient({
   // SectionHeader and Section are imported from ./_components/DiscoverSection
   // (extracted to prevent React from treating them as new component types on every render)
 
+  // ── Desktop search input (rendered inside Header via slot) ──────────────
+  const desktopSearchSlot = (
+    <div className="relative w-full max-w-sm lg:max-w-md" ref={searchContainerRef}>
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none" />
+      <input
+        ref={searchRef}
+        value={search}
+        onChange={(e) => {
+          setSearch(e.target.value);
+          setShowSuggestions(true);
+          setSuggestionIndex(-1);
+        }}
+        onFocus={() => setShowSuggestions(true)}
+        onKeyDown={(e) => {
+          if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setSuggestionIndex(i => Math.min(i + 1, autocompleteSuggestions.length - 1));
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setSuggestionIndex(i => Math.max(i - 1, -1));
+          } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (suggestionIndex >= 0 && autocompleteSuggestions.length > 0) {
+              setSearch(autocompleteSuggestions[suggestionIndex].label);
+              saveRecentSearch(autocompleteSuggestions[suggestionIndex].label);
+            } else if (search.trim()) {
+              saveRecentSearch(search);
+            }
+            setShowSuggestions(false);
+            setSuggestionIndex(-1);
+          } else if (e.key === 'Escape') {
+            setShowSuggestions(false);
+            setSuggestionIndex(-1);
+          }
+        }}
+        placeholder="Rezept, Stil oder Zutat suchen…"
+        className="w-full bg-zinc-900/50 border border-zinc-800 focus:border-zinc-600 rounded-lg pl-9 pr-8 py-2 outline-none text-sm text-white transition-all placeholder:text-zinc-600"
+      />
+      {search && (
+        <button
+          onClick={() => { setSearch(''); setShowSuggestions(false); searchRef.current?.focus(); }}
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
+          aria-label="Suche löschen"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      )}
+      {showSuggestions && (autocompleteSuggestions.length > 0 || !search) && (
+        <div className="absolute top-full left-0 right-0 mt-1 bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl overflow-hidden z-[60]">
+          {!search && recentSearches.length > 0 && (
+            <>
+              <p className="px-3 pt-3 pb-1 text-[10px] font-semibold text-zinc-600 uppercase tracking-wider">Letzte Suchen</p>
+              {recentSearches.map(s => (
+                <button
+                  key={s}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setSearch(s);
+                    setShowSuggestions(false);
+                    setSuggestionIndex(-1);
+                    searchRef.current?.focus();
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors"
+                >
+                  <Clock className="w-3 h-3 text-zinc-600 flex-shrink-0" />
+                  <span className="flex-1 truncate">{s}</span>
+                </button>
+              ))}
+            </>
+          )}
+          {!search && recentSearches.length === 0 && (
+            <div className="px-3 py-3">
+              <p className="text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-2">Beliebte Suchen</p>
+              {POPULAR_SEARCHES.slice(0, 6).map(s => (
+                <button
+                  key={s}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setSearch(s);
+                    saveRecentSearch(s);
+                    setShowSuggestions(false);
+                    searchRef.current?.focus();
+                  }}
+                  className="w-full flex items-center gap-2 px-2 py-2 text-left text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 rounded transition-colors"
+                >
+                  <TrendingUp className="w-3 h-3 text-cyan-600" />
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
+          {autocompleteSuggestions.map((s, i) => (
+            <button
+              key={`${s.type}-${s.label}`}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                setSearch(s.label);
+                saveRecentSearch(s.label);
+                setShowSuggestions(false);
+                setSuggestionIndex(-1);
+                searchRef.current?.focus();
+              }}
+              className={`w-full flex items-center gap-2 px-3 py-2 text-left text-sm transition-colors ${
+                i === suggestionIndex
+                  ? 'bg-zinc-800 text-white'
+                  : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
+              }`}
+            >
+              <span className="flex-shrink-0 text-zinc-600">
+                {s.type === 'recipe'     && <Search className="w-3 h-3" />}
+                {s.type === 'style'      && <span className="text-xs">🍺</span>}
+                {s.type === 'ingredient' && <span className="text-xs">🌿</span>}
+              </span>
+              <span className="flex-1 truncate">{s.label}</span>
+              <span className="text-[10px] text-zinc-600 flex-shrink-0">
+                {s.type === 'recipe' ? 'Rezept' : s.type === 'style' ? 'Stil' : 'Zutat'}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  // ── Mobile action buttons (rendered inside Header via slot) ─────────────
+  const mobileActions = (
+    <>
+      <button
+        onClick={() => setShowSearchOverlay(true)}
+        className="p-2 text-zinc-400 hover:text-white transition-colors"
+        aria-label="Suche öffnen"
+      >
+        <Search className="w-5 h-5" />
+      </button>
+      <button
+        onClick={() => setShowBottomSheet(true)}
+        className={`p-2 transition-colors ${isFiltering ? 'text-cyan-400' : 'text-zinc-400 hover:text-white'}`}
+        aria-label="Filter öffnen"
+      >
+        <Filter className="w-5 h-5" />
+        {isFiltering && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-cyan-400" />}
+      </button>
+    </>
+  );
+
   return (
     <>
-      <Header />
+      <Header discoverSearchSlot={desktopSearchSlot} discoverMobileActions={mobileActions} />
       {/* Full-width outer shell — no max-width cap */}
       <div className="w-full pt-0 pb-20">
         {/* Hero Banner - full bleed */}
@@ -796,171 +941,10 @@ export default function DiscoverClient({
           </div>
         </div>
 
-        {/* Sticky Search Bar — full width, between hero and content columns */}
-        <div className="sticky top-14 z-30 bg-zinc-950/95 backdrop-blur-md border-b border-zinc-800">
-          <div className="hidden md:flex items-center gap-4 max-w-screen-2xl mx-auto px-6 md:px-8 lg:px-12 xl:px-16 py-3">
-            <div className="relative w-full max-w-xs lg:max-w-sm" ref={searchContainerRef}>
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none" />
-              <input
-                ref={searchRef}
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setShowSuggestions(true);
-                  setSuggestionIndex(-1);
-                }}
-                onFocus={() => setShowSuggestions(true)}
-                onKeyDown={(e) => {
-                  if (e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    setSuggestionIndex(i => Math.min(i + 1, autocompleteSuggestions.length - 1));
-                  } else if (e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    setSuggestionIndex(i => Math.max(i - 1, -1));
-                  } else if (e.key === 'Enter') {
-                    e.preventDefault();
-                    if (suggestionIndex >= 0 && autocompleteSuggestions.length > 0) {
-                      setSearch(autocompleteSuggestions[suggestionIndex].label);
-                      saveRecentSearch(autocompleteSuggestions[suggestionIndex].label);
-                    } else if (search.trim()) {
-                      saveRecentSearch(search);
-                    }
-                    setShowSuggestions(false);
-                    setSuggestionIndex(-1);
-                  } else if (e.key === 'Escape') {
-                    setShowSuggestions(false);
-                    setSuggestionIndex(-1);
-                  }
-                }}
-                placeholder="Rezept, Stil oder Zutat suchen…"
-                className="w-full bg-zinc-900/50 border border-zinc-800 focus:border-zinc-600 rounded-lg pl-9 pr-8 py-2 outline-none text-sm text-white transition-all placeholder:text-zinc-600"
-              />
-              {search && (
-                <button
-                  onClick={() => { setSearch(''); setShowSuggestions(false); searchRef.current?.focus(); }}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
-                  aria-label="Suche löschen"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-              {showSuggestions && (autocompleteSuggestions.length > 0 || !search) && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl overflow-hidden z-30">
-                  {!search && recentSearches.length > 0 && (
-                    <>
-                      <p className="px-3 pt-3 pb-1 text-[10px] font-semibold text-zinc-600 uppercase tracking-wider">Letzte Suchen</p>
-                      {recentSearches.map(s => (
-                        <button
-                          key={s}
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            setSearch(s);
-                            setShowSuggestions(false);
-                            setSuggestionIndex(-1);
-                            searchRef.current?.focus();
-                          }}
-                          className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors"
-                        >
-                          <Clock className="w-3 h-3 text-zinc-600 flex-shrink-0" />
-                          <span className="flex-1 truncate">{s}</span>
-                        </button>
-                      ))}
-                    </>
-                  )}
-                  {!search && recentSearches.length === 0 && (
-                    <div className="px-3 py-3">
-                      <p className="text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-2">Beliebte Suchen</p>
-                      {POPULAR_SEARCHES.slice(0, 6).map(s => (
-                        <button
-                          key={s}
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            setSearch(s);
-                            saveRecentSearch(s);
-                            setShowSuggestions(false);
-                            searchRef.current?.focus();
-                          }}
-                          className="w-full flex items-center gap-2 px-2 py-2 text-left text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 rounded transition-colors"
-                        >
-                          <TrendingUp className="w-3 h-3 text-cyan-600" />
-                          {s}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {autocompleteSuggestions.map((s, i) => (
-                    <button
-                      key={`${s.type}-${s.label}`}
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        setSearch(s.label);
-                        saveRecentSearch(s.label);
-                        setShowSuggestions(false);
-                        setSuggestionIndex(-1);
-                        searchRef.current?.focus();
-                      }}
-                      className={`w-full flex items-center gap-2 px-3 py-2 text-left text-sm transition-colors ${
-                        i === suggestionIndex
-                          ? 'bg-zinc-800 text-white'
-                          : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
-                      }`}
-                    >
-                      <span className="flex-shrink-0 text-zinc-600">
-                        {s.type === 'recipe'     && <Search className="w-3 h-3" />}
-                        {s.type === 'style'      && <span className="text-xs">🍺</span>}
-                        {s.type === 'ingredient' && <span className="text-xs">🌿</span>}
-                      </span>
-                      <span className="flex-1 truncate">{s.label}</span>
-                      <span className="text-[10px] text-zinc-600 flex-shrink-0">
-                        {s.type === 'recipe' ? 'Rezept' : s.type === 'style' ? 'Stil' : 'Zutat'}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            {isFiltering && (
-              <div className="flex items-center gap-2 text-xs">
-                <span className="font-medium text-zinc-300">{list.length} Treffer</span>
-                <button onClick={resetFilters} className="flex items-center gap-1 text-zinc-500 hover:text-white transition-colors">
-                  <X className="w-3 h-3" /> Zurücksetzen
-                </button>
-              </div>
-            )}
-          </div>
-          {/* ── Mobile sticky bar ────────────────────────────────────────── */}
-          <div className="md:hidden flex items-center gap-2 px-4 py-2">
-            <button
-              onClick={() => setShowSearchOverlay(true)}
-              className="flex items-center gap-2 flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-left min-w-0 hover:border-zinc-700 transition-colors"
-              aria-label="Suche öffnen"
-            >
-              <Search className="w-4 h-4 text-zinc-500 flex-shrink-0" />
-              <span className={`text-sm truncate flex-1 ${search ? 'text-white' : 'text-zinc-500'}`}>
-                {search || 'Suchen…'}
-              </span>
-              {search && <span className="text-[10px] text-cyan-400 font-bold flex-shrink-0">Aktiv</span>}
-            </button>
-            <button
-              onClick={() => setShowBottomSheet(true)}
-              className={`flex items-center gap-1.5 text-sm font-semibold px-3 py-2.5 rounded-xl border flex-shrink-0 transition-all ${
-                isFiltering
-                  ? 'bg-cyan-500/10 border-cyan-500/40 text-cyan-400'
-                  : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-white'
-              }`}
-              aria-label="Filter öffnen"
-            >
-              <Filter className="w-4 h-4" />
-              Filter
-              {isFiltering && <span className="w-2 h-2 rounded-full bg-cyan-400 flex-shrink-0" />}
-            </button>
-          </div>
-        </div>
-
         {/* Main Layout: Sidebar + Content */}
         <div className="flex gap-0 max-w-screen-2xl mx-auto">
           {/* Left Sidebar - always visible on desktop, scrolls naturally with page */}
-          <aside className="hidden md:flex w-56 lg:w-64 xl:w-72 flex-shrink-0 flex-col border-r border-zinc-800/60 sticky top-12 self-start pt-8 pb-10 pl-6 md:pl-8 lg:pl-12 xl:pl-16 pr-6 space-y-8">
+          <aside className="hidden md:flex w-56 lg:w-64 xl:w-72 flex-shrink-0 flex-col border-r border-zinc-800/60 sticky top-14 self-start pt-8 pb-10 pl-6 md:pl-8 lg:pl-12 xl:pl-16 pr-6 space-y-8">
 
             {/* Sortierung */}
             <div>

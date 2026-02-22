@@ -35,7 +35,7 @@ import { getTierConfig } from "@/lib/tier-system";
 import { getBreweryBranding } from "@/lib/actions/premium-actions";
 import { getTierBorderColor } from "@/lib/premium-config";
 
-export default function Header({ breweryId }: { breweryId?: string }) {
+export default function Header({ breweryId, discoverSearchSlot, discoverMobileActions }: { breweryId?: string; discoverSearchSlot?: React.ReactNode; discoverMobileActions?: React.ReactNode }) {
   const supabase = useSupabase();
   const { user, loading, signOut } = useAuth();
   const [profile, setProfile] = useState<any>(null);
@@ -138,12 +138,19 @@ export default function Header({ breweryId }: { breweryId?: string }) {
     <>
     <nav className="border-b border-zinc-900 bg-zinc-950/80 p-3 sticky top-0 z-50 backdrop-blur-md">
       <div className="max-w-[1920px] w-full mx-auto px-6 flex justify-between items-center">
-        <Link href="/">
+        <Link href="/" className="flex-shrink-0">
           <Logo />
         </Link>
+
+        {/* Discover search slot — rendered between logo and nav on desktop */}
+        {discoverSearchSlot && (
+          <div className="hidden md:flex flex-1 justify-center px-4 min-w-0">
+            {discoverSearchSlot}
+          </div>
+        )}
         
         {/* Desktop Navigation */}
-        <div className="hidden md:flex gap-2 items-center">
+        <div className="hidden md:flex gap-2 items-center flex-shrink-0">
 
           <Link 
             href="/pricing"
@@ -161,13 +168,15 @@ export default function Header({ breweryId }: { breweryId?: string }) {
             <span className="hidden xl:inline">Forum</span>
           </Link>
 
-          <Link 
-            href="/discover" 
-            className="px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 text-zinc-500 hover:text-white hover:bg-zinc-800/50"
-          >
-            <Globe className="w-4 h-4" />
-            <span className="hidden xl:inline">Entdecken</span>
-          </Link>
+          {!discoverSearchSlot && (
+            <Link 
+              href="/discover" 
+              className="px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 text-zinc-500 hover:text-white hover:bg-zinc-800/50"
+            >
+              <Globe className="w-4 h-4" />
+              <span className="hidden xl:inline">Entdecken</span>
+            </Link>
+          )}
           
           <div className="h-4 w-px bg-zinc-800 mx-2"></div>
 
@@ -246,7 +255,8 @@ export default function Header({ breweryId }: { breweryId?: string }) {
         </div>
 
         {/* Mobile Menu Button & Notification */}
-        <div className="md:hidden flex items-center gap-4">
+        <div className="md:hidden flex items-center gap-3">
+          {discoverMobileActions}
           {user && <NotificationBell />}
           <button 
             className="p-2 text-zinc-400 hover:text-white"
