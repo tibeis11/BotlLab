@@ -30,10 +30,11 @@ export default function ReportButton({ targetId, targetType }: ReportButtonProps
         return (
             <button 
                 onClick={() => setIsOpen(true)}
-                className="text-xs text-zinc-600 hover:text-rose-500 flex items-center gap-1 transition"
-                 title="Beitrag melden"
+                className="flex items-center gap-1.5 py-2 px-2.5 rounded-lg text-zinc-600 hover:text-rose-500 hover:bg-rose-500/10 text-xs font-medium transition"
+                title="Beitrag melden"
             >
-                <Flag size={12} /> <span className="hidden md:inline">Melden</span>
+                <Flag size={13} />
+                <span className="hidden md:inline">Melden</span>
             </button>
         );
     }

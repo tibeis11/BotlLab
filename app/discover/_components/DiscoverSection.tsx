@@ -50,7 +50,7 @@ function InfoBubble({ text }: { text: string }) {
 
 export interface SectionHeaderProps {
   title: string;
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
   count: number;
   tabSlot?: React.ReactNode;
   onMore?: () => void;
@@ -61,7 +61,6 @@ export interface SectionHeaderProps {
 
 export function SectionHeader({
   title,
-  icon,
   count,
   tabSlot,
   onMore,
@@ -75,7 +74,6 @@ export function SectionHeader({
         <div className="flex items-center gap-2">{tabSlot}</div>
       ) : (
         <h2 className="flex items-center gap-2 text-xl md:text-2xl font-bold text-white">
-          <div className="p-2 bg-zinc-900 rounded-lg border border-zinc-800">{icon}</div>
           {title}
           {infoBubble && <InfoBubble text={infoBubble} />}
         </h2>
@@ -87,7 +85,7 @@ export function SectionHeader({
         {onMore && (
           <button
             onClick={onMore}
-            className="hidden md:flex items-center gap-0.5 text-xs font-bold text-zinc-400 hover:text-cyan-400 transition-colors"
+            className="flex items-center gap-0.5 text-xs font-bold text-zinc-400 hover:text-cyan-400 transition-colors"
           >
             Mehr <ChevronRight className="w-3.5 h-3.5" />
           </button>

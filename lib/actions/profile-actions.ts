@@ -39,6 +39,20 @@ export async function updateProfile(input: ProfileUpdateInput): Promise<ActionRe
       }
   }
 
+  // Uniqueness Check: display_name must be unique (case-insensitive)
+  if (payload.display_name) {
+    const { data: existing } = await supabase
+      .from('profiles')
+      .select('id')
+      .ilike('display_name', payload.display_name.trim())
+      .neq('id', user.id)
+      .maybeSingle();
+
+    if (existing) {
+      return { error: 'Dieser Anzeigename ist bereits vergeben. Bitte wähle einen anderen.' };
+    }
+  }
+
   const updates = {
     ...payload,
     updated_at: new Date().toISOString(),

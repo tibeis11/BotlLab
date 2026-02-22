@@ -13,7 +13,8 @@ export type NotificationType =
     | 'forum_mention'
     | 'image_approved'
     | 'image_rejected'
-    | 'report_resolved';
+    | 'report_resolved'
+    | 'content_moderated';
 
 export interface NotificationItem {
   id: string;

@@ -842,7 +842,7 @@ export default function BrewDetailPage() {
                     {copied ? <span className="text-lg">✅</span> : <Users className="w-5 h-5" />}
                 </button>
                 <Link 
-                    href={`/forum/t/new?brew_id=${brew.id}&title=Diskussion%20zu%20${encodeURIComponent(brew.name)}`}
+                    href={`/forum/create?categorySlug=rezepte&brewId=${brew.id}&title=${encodeURIComponent('Diskussion: ' + brew.name)}`}
                     title="Rezept diskutieren"
                     className="h-14 w-14 flex items-center justify-center bg-zinc-900 border border-zinc-700/50 hover:border-zinc-500 hover:text-white rounded-full transition"
                 >

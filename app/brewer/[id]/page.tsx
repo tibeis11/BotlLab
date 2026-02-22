@@ -9,7 +9,7 @@ import { getTierConfig } from '@/lib/tier-system';
 import Header from '@/app/components/Header';
 import Logo from '@/app/components/Logo';
 import ReportButton from '@/app/components/reporting/ReportButton';
-import { MessageSquare, Calendar } from 'lucide-react';
+import { MessageSquare, Calendar, Star } from 'lucide-react';
 
 export default function PublicBrewerPage() {
   const params = useParams();
@@ -19,6 +19,8 @@ export default function PublicBrewerPage() {
   const [brews, setBrews] = useState<any[]>([]);
   const [teams, setTeams] = useState<any[]>([]);
   const [forumThreads, setForumThreads] = useState<any[]>([]);
+  const [forumPosts, setForumPosts] = useState<any[]>([]);
+  const [forumReputation, setForumReputation] = useState(0);
   const [brewRatings, setBrewRatings] = useState<{[key: string]: {avg: number, count: number}}>({});
   const [loading, setLoading] = useState(true);
 
@@ -83,23 +85,44 @@ export default function PublicBrewerPage() {
          setBrewRatings(ratingsMap);
        }
 
-       // 4. Forum Threads laden
-       const { data: threadsData } = await supabase
-          .from('forum_threads')
-          .select(`
-            *,
-            category:forum_categories(title, slug),
-            posts:forum_posts(count)
-          `)
-          .eq('author_id', id)
-          .order('created_at', { ascending: false });
+       // 4. Forum Threads + Posts parallel laden
+       const [threadsResult, postsResult] = await Promise.all([
+           supabase
+               .from('forum_threads')
+               .select('*, category:forum_categories(title, slug), posts:forum_posts(count)')
+               .eq('author_id', id)
+               .order('created_at', { ascending: false }),
+           supabase
+               .from('forum_posts')
+               .select('id, content, created_at, thread_id, deleted_at, thread:forum_threads(id, title)')
+               .eq('author_id', id)
+               .is('deleted_at', null)
+               .order('created_at', { ascending: false })
+               .limit(20),
+       ]);
 
-       if (threadsData) {
-          const mappedThreads = threadsData.map((t: any) => ({
+       if (threadsResult.data) {
+          const mappedThreads = threadsResult.data.map((t: any) => ({
               ...t,
               reply_count: (t.posts?.[0]?.count || 0)
           }));
           setForumThreads(mappedThreads);
+       }
+       if (postsResult.data) {
+           setForumPosts(postsResult.data);
+       }
+
+       // Reputation = total votes on any post/thread by this user
+       const allIds = [
+           ...(threadsResult.data ?? []).map((t: any) => t.id),
+           ...(postsResult.data ?? []).map((p: any) => p.id),
+       ];
+       if (allIds.length > 0) {
+           const { count: repCount } = await supabase
+               .from('forum_votes')
+               .select('id', { count: 'exact', head: true })
+               .in('target_id', allIds);
+           setForumReputation(repCount ?? 0);
        }
 
     } else {
@@ -246,6 +269,20 @@ export default function PublicBrewerPage() {
                      <div className="text-zinc-500 text-[10px] uppercase font-bold mb-1 tracking-wider">Aktiv seit</div>
                      <div className="font-black text-3xl text-white">{profile.founded_year || new Date(profile.created_at || Date.now()).getFullYear()}</div>
                  </div>
+
+                 {/* Forum Threads */}
+                 <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 flex flex-col justify-center min-h-[100px]">
+                     <div className="text-emerald-500 text-[10px] uppercase font-bold mb-1 tracking-wider">Diskussionen</div>
+                     <div className="font-black text-3xl text-white">{forumThreads.length + forumPosts.length}</div>
+                     <div className="text-[10px] text-zinc-500 mt-1">{forumThreads.length} Threads · {forumPosts.length} Antworten</div>
+                 </div>
+
+                 {/* Forum Reputation */}
+                 <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 flex flex-col justify-center min-h-[100px]">
+                     <div className="text-amber-500 text-[10px] uppercase font-bold mb-1 tracking-wider flex items-center gap-1"><Star size={10} /> Reputation</div>
+                     <div className="font-black text-3xl text-white">{forumReputation}</div>
+                     <div className="text-[10px] text-zinc-500 mt-1">erhaltene Reaktionen</div>
+                 </div>
             </div>
 
             {/* Recipes Grid */}
@@ -281,6 +318,34 @@ export default function PublicBrewerPage() {
                 </div>
               )}
             </div>
+
+            {/* Recent Replies Section */}
+            {forumPosts.length > 0 && (
+            <div className="pt-8 border-t border-zinc-800/50">
+               <h3 className="text-xs font-black uppercase tracking-[0.3em] text-zinc-500 mb-8">Neueste Antworten ({forumPosts.length})</h3>
+               <div className="space-y-3">
+                   {forumPosts.slice(0, 10).map((post: any) => (
+                       <Link
+                           key={post.id}
+                           href={`/forum/thread/${post.thread_id}`}
+                           className="block bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 hover:bg-zinc-900 hover:border-zinc-700 transition group"
+                       >
+                           <div className="flex items-center gap-2 mb-2">
+                               <MessageSquare size={11} className="text-zinc-600" />
+                               <span className="text-xs font-bold text-zinc-400 group-hover:text-zinc-200 transition line-clamp-1">
+                                   {(post.thread as any)?.title ?? 'Thread'}
+                               </span>
+                               <span className="ml-auto text-[10px] text-zinc-600 flex items-center gap-1 whitespace-nowrap">
+                                   <Calendar size={10} />
+                                   {new Date(post.created_at).toLocaleDateString()}
+                               </span>
+                           </div>
+                           <p className="text-xs text-zinc-500 line-clamp-2">{post.content}</p>
+                       </Link>
+                   ))}
+               </div>
+            </div>
+            )}
 
             {/* Forum Posts Section */}
             <div className="pt-8 border-t border-zinc-800/50">

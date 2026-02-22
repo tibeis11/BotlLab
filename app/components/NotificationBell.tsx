@@ -43,6 +43,18 @@ export default function NotificationBell() {
           return `/brewery/${n.data.id}`;
       }
       if (n.type === 'report_resolved') return '#';
+      if (n.type === 'content_moderated') {
+          if (n.data.is_appeal_response) return '#';
+          if (n.data.can_appeal) {
+              const params = new URLSearchParams();
+              if (n.data.target_type) params.set('type', n.data.target_type);
+              if (n.data.target_title) params.set('title', n.data.target_title);
+              if (n.data.reason) params.set('reason', n.data.reason);
+              if (n.data.report_id) params.set('reportId', n.data.report_id);
+              return `/appeal?${params.toString()}`;
+          }
+          return '/terms';
+      }
       return '#';
   };
 
@@ -63,7 +75,7 @@ export default function NotificationBell() {
           case 'forum_mention':
               return (
                   <span>
-                       <span className="font-bold text-white">{n.actor?.display_name || 'Jemand'}</span> hat dich in <span className="text-emerald-400">"{n.data.thread_title || 'Unbekannt'}"</span> mit <span className="text-blue-400 font-bold bg-blue-500/10 px-1 rounded text-[10px] inline-block">@Autor</span> erwähnt.
+                       <span className="font-bold text-white">{n.actor?.display_name || 'Jemand'}</span> hat dich in <span className="text-emerald-400">"{n.data.thread_title || 'Unbekannt'}"</span> <span className="text-blue-400 font-bold">erw&auml;hnt</span>.
                   </span>
               );
           case 'image_approved':
@@ -82,6 +94,22 @@ export default function NotificationBell() {
               return (
                   <span>
                       👮 Update zu deiner Meldung: Wir haben den Fall geprüft und Maßnahmen ergriffen. Danke für deine Mithilfe!
+                  </span>
+              );
+          case 'content_moderated':
+              if (n.data.is_appeal_response) {
+                  const isAccepted = n.data.appeal_decision === 'accepted';
+                  return (
+                      <span>
+                          {isAccepted ? '✅' : '❌'} Dein Widerspruch {n.data.target_title ? <>zu <span className="font-bold text-white">&quot;{n.data.target_title}&quot;</span> </> : ''}wurde <span className={isAccepted ? 'text-emerald-400 font-bold' : 'text-red-400 font-bold'}>
+                              {isAccepted ? 'stattgegeben' : 'abgelehnt'}
+                          </span>.{n.data.admin_response ? <> Begründung: <span className="text-zinc-400 italic">&quot;{n.data.admin_response}&quot;</span></> : ''}
+                      </span>
+                  );
+              }
+              return (
+                  <span>
+                      ⚠️ Dein Inhalt {n.data.target_title ? <><span className="font-bold text-white">&quot;{n.data.target_title}&quot;</span> </> : ''}wurde entfernt. Grund: <span className="text-amber-500 italic">&quot;{n.data.reason_label || 'Verstoß gegen die Nutzungsbedingungen'}&quot;</span>.{n.data.can_appeal ? <> <span className="text-cyan-400 font-bold underline">Widerspruch einlegen →</span></> : ' Bei Fragen wende dich an unser Team.'}
                   </span>
               );
           default:

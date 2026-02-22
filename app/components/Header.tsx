@@ -35,7 +35,7 @@ import { getTierConfig } from "@/lib/tier-system";
 import { getBreweryBranding } from "@/lib/actions/premium-actions";
 import { getTierBorderColor } from "@/lib/premium-config";
 
-export default function Header({ breweryId, discoverSearchSlot, discoverMobileActions }: { breweryId?: string; discoverSearchSlot?: React.ReactNode; discoverMobileActions?: React.ReactNode }) {
+export default function Header({ breweryId, discoverSearchSlot, discoverMobileActions, forumSearchSlot, forumMobileActions }: { breweryId?: string; discoverSearchSlot?: React.ReactNode; discoverMobileActions?: React.ReactNode; forumSearchSlot?: React.ReactNode; forumMobileActions?: React.ReactNode }) {
   const supabase = useSupabase();
   const { user, loading, signOut } = useAuth();
   const [profile, setProfile] = useState<any>(null);
@@ -142,10 +142,10 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
           <Logo />
         </Link>
 
-        {/* Discover search slot — rendered between logo and nav on desktop */}
-        {discoverSearchSlot && (
+        {/* Search slot — rendered between logo and nav on desktop */}
+        {(discoverSearchSlot || forumSearchSlot) && (
           <div className="hidden md:flex flex-1 justify-center px-4 min-w-0">
-            {discoverSearchSlot}
+            {discoverSearchSlot || forumSearchSlot}
           </div>
         )}
         
@@ -160,13 +160,15 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
             <span className="hidden xl:inline">Preise</span>
           </Link>
 
-          <Link 
-            href="/forum"
-            className="px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 text-zinc-500 hover:text-white hover:bg-zinc-800/50"
-          >
-            <MessageSquare className="w-4 h-4" />
-            <span className="hidden xl:inline">Forum</span>
-          </Link>
+          {!forumSearchSlot && (
+            <Link 
+              href="/forum"
+              className="px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 text-zinc-500 hover:text-white hover:bg-zinc-800/50"
+            >
+              <MessageSquare className="w-4 h-4" />
+              <span className="hidden xl:inline">Forum</span>
+            </Link>
+          )}
 
           {!discoverSearchSlot && (
             <Link 
@@ -257,6 +259,7 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
         {/* Mobile Menu Button & Notification */}
         <div className="md:hidden flex items-center gap-3">
           {discoverMobileActions}
+          {forumMobileActions}
           {user && <NotificationBell />}
           <button 
             className="p-2 text-zinc-400 hover:text-white"

@@ -1,11 +1,46 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useActionState, useState, useRef } from 'react';
 import { createThread } from '@/lib/actions/forum-actions';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import CustomSelect from '@/app/components/CustomSelect';
+import MarkdownToolbar from '@/app/forum/_components/MarkdownToolbar';
+import PollCreator from './PollCreator';
+
+const AVAILABLE_TAGS = [
+  { label: 'Frage',        color: 'blue'    },
+  { label: 'Rezept',       color: 'green'   },
+  { label: 'Showcase',     color: 'amber'   },
+  { label: 'Equipment',    color: 'purple'  },
+  { label: 'Tipp',         color: 'emerald' },
+  { label: 'Problem',      color: 'rose'    },
+  { label: 'Diskussion',   color: 'zinc'    },
+  { label: 'Neuigkeit',    color: 'orange'  },
+] as const;
+
+const TAG_STYLES: Record<string, string> = {
+  blue:    'bg-blue-500/10 border-blue-500/30 text-blue-400 hover:bg-blue-500/20',
+  green:   'bg-green-500/10 border-green-500/30 text-green-400 hover:bg-green-500/20',
+  amber:   'bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20',
+  purple:  'bg-purple-500/10 border-purple-500/30 text-purple-400 hover:bg-purple-500/20',
+  emerald: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20',
+  rose:    'bg-rose-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500/20',
+  zinc:    'bg-zinc-800 border-zinc-700 text-zinc-400 hover:bg-zinc-700',
+  orange:  'bg-orange-500/10 border-orange-500/30 text-orange-400 hover:bg-orange-500/20',
+};
+
+const TAG_ACTIVE: Record<string, string> = {
+  blue:    'ring-2 ring-blue-500/40',
+  green:   'ring-2 ring-green-500/40',
+  amber:   'ring-2 ring-amber-500/40',
+  purple:  'ring-2 ring-purple-500/40',
+  emerald: 'ring-2 ring-emerald-500/40',
+  rose:    'ring-2 ring-rose-500/40',
+  zinc:    'ring-2 ring-zinc-500/40',
+  orange:  'ring-2 ring-orange-500/40',
+};
 
 // Categories passed from server component props ideally, or fetched client side if needed
 // Simplest: pass as prop to this client component wrapper
@@ -25,17 +60,28 @@ const initialState = {
 export default function NewThreadForm({ categories, preselectedBrewId, initialTitle, initialCategoryId, linkedBrew }: NewThreadFormProps) {
     const [state, formAction, isPending] = useActionState(createThread, initialState);
     const [selectedCategory, setSelectedCategory] = useState(initialCategoryId || '');
+    const [contentValue, setContentValue] = useState('');
+    const [selectedTags, setSelectedTags] = useState<string[]>([]);
+    const contentRef = useRef<HTMLTextAreaElement>(null);
 
     const categoryOptions = categories.map(c => ({ value: c.id, label: c.title }));
 
+    function toggleTag(tag: string) {
+        setSelectedTags(prev =>
+            prev.includes(tag)
+                ? prev.filter(t => t !== tag)
+                : prev.length < 3 ? [...prev, tag] : prev
+        );
+    }
+
     return (
-        <form action={formAction} className="max-w-2xl mx-auto space-y-8 bg-zinc-900/30 p-8 rounded-3xl border border-zinc-800">
+        <form action={formAction} className="max-w-2xl mx-auto space-y-8 bg-zinc-900/20 p-6 md:p-8 rounded-2xl border border-zinc-800/60">
             <div>
                  <Link href="/forum" className="text-sm text-zinc-500 hover:text-white flex items-center gap-1 mb-6 transition">
-                    <ArrowLeft size={16} /> Zurück
+                    <ArrowLeft size={16} /> Zurück zum Forum
                 </Link>
-                <h1 className="text-3xl font-black text-white mb-2">Neues Thema erstellen</h1>
-                <p className="text-zinc-400">Teile dein Wissen oder stelle eine Frage an die Community.</p>
+                <h1 className="text-2xl md:text-3xl font-black text-white mb-1">Neues Thema erstellen</h1>
+                <p className="text-sm text-zinc-400">Teile dein Wissen oder stelle eine Frage an die Community.</p>
             </div>
 
             {linkedBrew && (
@@ -91,17 +137,51 @@ export default function NewThreadForm({ categories, preselectedBrewId, initialTi
                  {/* Content */}
                  <div>
                      <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Inhalt</label>
-                     <textarea 
-                        name="content"
-                        required
-                        minLength={10}
-                        rows={8}
-                        placeholder="Beschreibe dein Anliegen so genau wie möglich..."
-                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white focus:outline-none focus:border-zinc-600 transition placeholder:text-zinc-700 resize-y"
-                     />
+                     <div className="bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden focus-within:border-zinc-600 transition">
+                         <MarkdownToolbar textareaRef={contentRef} value={contentValue} onChange={setContentValue} />
+                         <textarea 
+                            ref={contentRef}
+                            name="content"
+                            required
+                            minLength={10}
+                            rows={8}
+                            value={contentValue}
+                            onChange={(e) => setContentValue(e.target.value)}
+                            placeholder="Beschreibe dein Anliegen so genau wie möglich..."
+                            className="w-full bg-transparent border-0 p-3 text-white focus:outline-none focus:ring-0 placeholder:text-zinc-700 resize-y"
+                         />
+                     </div>
                 </div>
 
                 <input type="hidden" name="brewId" value={preselectedBrewId || ''} />
+                <input type="hidden" name="tags"   value={selectedTags.join(',')} />
+
+                {/* Tags */}
+                <div>
+                    <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">
+                        Tags <span className="normal-case font-normal text-zinc-600">(max. 3 auswählen)</span>
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                        {AVAILABLE_TAGS.map(({ label, color }) => {
+                            const active = selectedTags.includes(label);
+                            return (
+                                <button
+                                    key={label}
+                                    type="button"
+                                    onClick={() => toggleTag(label)}
+                                    className={`px-3 py-1 rounded-full text-xs font-bold border transition ${
+                                        TAG_STYLES[color]
+                                    } ${active ? TAG_ACTIVE[color] : 'opacity-60 hover:opacity-100'}`}
+                                >
+                                    {active && <span className="mr-1">&#10003;</span>}{label}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* Poll */}
+                <PollCreator />
 
                 <div className="pt-4 flex justify-end">
                     <button 

@@ -465,6 +465,111 @@ const EMAIL_TEMPLATES: Record<string, string> = {
     </p>
   </div>
 </body>
+</html>`,
+
+    'content-moderated': `<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inhalt entfernt — BotlLab</title>
+  <style>
+    body { margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+    .wrapper { width: 100%; background-color: #f8fafc; padding: 40px 0; }
+    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .header { background-color: #f8fafc; padding: 32px; border-bottom: 1px solid #e2e8f0; }
+    .content { padding: 40px; }
+    .heading { font-size: 24px; font-weight: 700; color: #0f172a; margin: 0 0 16px 0; letter-spacing: -0.025em; }
+    .text { font-size: 15px; line-height: 1.6; color: #475569; margin: 0 0 24px 0; }
+    .button-container { text-align: left; margin-top: 32px; }
+    .button { display: inline-block; background-color: #000000; color: #ffffff; font-weight: 600; font-size: 14px; padding: 14px 32px; border-radius: 6px; text-decoration: none; }
+    .footer { padding: 24px; background-color: #f8fafc; text-align: center; border-top: 1px solid #f1f5f9; }
+    .footer-text { font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0; }
+    .status-badge { display: inline-block; padding: 4px 12px; background-color: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; border-radius: 100px; font-size: 12px; font-weight: 700; margin-bottom: 16px; }
+    .info-box { background-color: #f8fafc; padding: 16px; border-radius: 6px; margin-bottom: 24px; border-left: 3px solid #fbbf24; }
+    @media only screen and (max-width: 600px) { .content { padding: 24px !important; } .wrapper { padding: 0 !important; } .container { border-radius: 0 !important; box-shadow: none !important; } }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr><td align="center">
+        <div class="container">
+          <div class="header">
+            <a href="https://botllab.de" target="_blank"><img src="https://botllab.de/brand/logo_withName.svg" alt="BotlLab" width="140" style="display: block; opacity: 0.9;"></a>
+          </div>
+          <div class="content">
+            <span class="status-badge">Inhalt entfernt</span>
+            <h1 class="heading">Dein Inhalt wurde entfernt</h1>
+            <p class="text">Wir haben einen deiner Inhalte aufgrund einer Meldung überprüft und entfernt.</p>
+            <div class="info-box">
+              <strong>Inhalt:</strong> {{contentTitle}}<br>
+              <span style="font-size: 14px; color: #64748b;"><strong>Grund:</strong> {{reasonLabel}}</span>
+            </div>
+            <p class="text">Wenn du der Meinung bist, dass diese Entscheidung nicht korrekt war, kannst du Widerspruch einlegen. Dein Widerspruch wird von unserem Team gemäß EU Digital Services Act (Art. 20 DSA) geprüft.</p>
+            <div class="button-container">
+              <a href="{{appealUrl}}" class="button" target="_blank">Widerspruch einlegen</a>
+            </div>
+            <p style="font-size: 13px; color: #94a3b8; margin-top: 24px;">Falls du keinen Widerspruch einlegen möchtest, musst du nichts weiter tun.</p>
+          </div>
+          <div class="footer"><p class="footer-text">BotlLab • <a href="https://botllab.de" target="_blank" style="color: #94a3b8; text-decoration: none;">botllab.de</a></p></div>
+        </div>
+      </td></tr>
+    </table>
+  </div>
+</body>
+</html>`,
+
+    'appeal-decision': `<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Widerspruch entschieden — BotlLab</title>
+  <style>
+    body { margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+    .wrapper { width: 100%; background-color: #f8fafc; padding: 40px 0; }
+    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .header { background-color: #f8fafc; padding: 32px; border-bottom: 1px solid #e2e8f0; }
+    .content { padding: 40px; }
+    .heading { font-size: 24px; font-weight: 700; color: #0f172a; margin: 0 0 16px 0; letter-spacing: -0.025em; }
+    .text { font-size: 15px; line-height: 1.6; color: #475569; margin: 0 0 24px 0; }
+    .button-container { text-align: left; margin-top: 32px; }
+    .button { display: inline-block; background-color: #000000; color: #ffffff; font-weight: 600; font-size: 14px; padding: 14px 32px; border-radius: 6px; text-decoration: none; }
+    .footer { padding: 24px; background-color: #f8fafc; text-align: center; border-top: 1px solid #f1f5f9; }
+    .footer-text { font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0; }
+    .status-badge { display: inline-block; padding: 4px 12px; background-color: #f0f9ff; color: #0369a1; border: 1px solid #e0f2fe; border-radius: 100px; font-size: 12px; font-weight: 700; margin-bottom: 16px; }
+    .info-box { background-color: #f8fafc; padding: 16px; border-radius: 6px; margin-bottom: 24px; border-left: 3px solid #e2e8f0; }
+    @media only screen and (max-width: 600px) { .content { padding: 24px !important; } .wrapper { padding: 0 !important; } .container { border-radius: 0 !important; box-shadow: none !important; } }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr><td align="center">
+        <div class="container">
+          <div class="header">
+            <a href="https://botllab.de" target="_blank"><img src="https://botllab.de/brand/logo_withName.svg" alt="BotlLab" width="140" style="display: block; opacity: 0.9;"></a>
+          </div>
+          <div class="content">
+            <span class="status-badge">Widerspruch entschieden</span>
+            <h1 class="heading">{{decisionHeading}}</h1>
+            <p class="text">Dein Widerspruch zu <strong>{{targetTitle}}</strong> wurde von unserem Team geprüft.</p>
+            <div class="info-box">
+              <strong>Entscheidung:</strong> {{decisionLabel}}<br>
+              <span style="font-size: 14px; color: #64748b;"><strong>Begründung:</strong> {{adminResponse}}</span>
+            </div>
+            <p class="text">{{outcomeText}}</p>
+            <div class="button-container">
+              <a href="{{dashboardUrl}}" class="button" target="_blank">Zum Dashboard</a>
+            </div>
+          </div>
+          <div class="footer"><p class="footer-text">BotlLab • <a href="https://botllab.de" target="_blank" style="color: #94a3b8; text-decoration: none;">botllab.de</a></p></div>
+        </div>
+      </td></tr>
+    </table>
+  </div>
+</body>
 </html>`
 };
 
@@ -680,6 +785,52 @@ export async function sendNewThreadEmail(to: string, threadTitle: string, catego
             category,
             authorName,
             threadUrl: `https://botllab.de/forum/thread/${threadId}`
+        }
+    });
+}
+
+/**
+ * DSA Art. 20 — Notify content author that their content was removed.
+ */
+export async function sendContentModeratedEmail(
+    to: string,
+    contentTitle: string,
+    reasonLabel: string,
+    appealUrl: string
+) {
+    return sendEmail({
+        to,
+        subject: 'Dein Inhalt wurde entfernt — BotlLab',
+        template: 'content-moderated',
+        placeholders: { contentTitle, reasonLabel, appealUrl }
+    });
+}
+
+/**
+ * DSA Art. 20 — Notify user about the outcome of their appeal.
+ */
+export async function sendAppealDecisionEmail(
+    to: string,
+    targetTitle: string,
+    decision: 'accepted' | 'rejected',
+    adminResponse: string
+) {
+    const isAccepted = decision === 'accepted';
+    return sendEmail({
+        to,
+        subject: isAccepted
+            ? 'Dein Widerspruch wurde stattgegeben — BotlLab'
+            : 'Dein Widerspruch wurde abgelehnt — BotlLab',
+        template: 'appeal-decision',
+        placeholders: {
+            targetTitle: targetTitle || 'deinen Inhalt',
+            decisionHeading: isAccepted ? 'Widerspruch stattgegeben ✅' : 'Widerspruch abgelehnt',
+            decisionLabel: isAccepted ? 'Stattgegeben' : 'Abgelehnt',
+            adminResponse,
+            outcomeText: isAccepted
+                ? 'Wir haben die Entscheidung revidiert. Der Inhalt wird wiederhergestellt oder die Einschränkung aufgehoben.'
+                : 'Nach erneuter Prüfung halten wir die ursprüngliche Entscheidung aufrecht. Bei weiteren Fragen kannst du dich an unser Team wenden.',
+            dashboardUrl: 'https://botllab.de/dashboard'
         }
     });
 }

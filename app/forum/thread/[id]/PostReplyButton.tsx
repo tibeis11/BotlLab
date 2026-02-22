@@ -19,7 +19,7 @@ export default function PostReplyButton({ post }: PostReplyButtonProps) {
     const handleReply = () => {
         setReplyTarget({
             id: post.id,
-            authorName: post.author?.display_name || 'Unbekannt',
+            authorName: post.author?.display_name || 'Gelöschter Nutzer',
             content: post.content
         });
         
@@ -34,10 +34,11 @@ export default function PostReplyButton({ post }: PostReplyButtonProps) {
     return (
         <button 
             onClick={handleReply}
-            className="p-1.5 text-zinc-500 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition"
+            className="flex items-center gap-1.5 py-2 px-2.5 text-zinc-500 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition text-xs font-medium"
             title="Auf diesen Beitrag antworten"
         >
-            <Reply size={16} />
+            <Reply size={14} />
+            <span className="hidden md:inline">Antworten</span>
         </button>
     );
 }

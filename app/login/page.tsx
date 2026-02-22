@@ -27,7 +27,43 @@ export default function LoginPage() {
   const [resendLoading, setResendLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [usernameError, setUsernameError] = useState("");
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
+  const [checkingUsername, setCheckingUsername] = useState(false);
   const router = useRouter();
+
+  // Debounced live username uniqueness check
+  useEffect(() => {
+    if (!isRegister || !username || username.length < 2) {
+      setUsernameError("");
+      setUsernameAvailable(null);
+      setCheckingUsername(false);
+      return;
+    }
+    if (username.trim().toLowerCase() === 'admin') {
+      setUsernameError("Der Benutzername 'admin' ist reserviert.");
+      setUsernameAvailable(false);
+      return;
+    }
+    setCheckingUsername(true);
+    setUsernameAvailable(null);
+    const timer = setTimeout(async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id')
+        .ilike('display_name', username.trim())
+        .maybeSingle();
+      setCheckingUsername(false);
+      if (data) {
+        setUsernameError("Dieser Username ist bereits vergeben. Bitte wähle einen anderen.");
+        setUsernameAvailable(false);
+      } else {
+        setUsernameError("");
+        setUsernameAvailable(true);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [username, isRegister]);
 
   // Check for timeout logout message
   useEffect(() => {
@@ -71,6 +107,12 @@ export default function LoginPage() {
             return;
         }
 
+        if (usernameError || usernameAvailable === false) {
+            setMessage(usernameError || "Dieser Username ist bereits vergeben. Bitte wähle einen anderen.");
+            setLoading(false);
+            return;
+        }
+
         if (!birthdate) {
             setMessage('Bitte gib dein Geburtsdatum ein.');
             setLoading(false);
@@ -109,10 +151,16 @@ export default function LoginPage() {
         });
         
         if (error) {
-            setMessage(error.message);
+            if (error.message.toLowerCase().includes('username') || error.message.toLowerCase().includes('display_name') || error.message.toLowerCase().includes('unique')) {
+                setMessage("Dieser Username ist bereits vergeben. Bitte wähle einen anderen.");
+            } else if (error.message.includes('Database error')) {
+                setMessage("Registrierung fehlgeschlagen. Der gewählte Username könnte bereits vergeben sein.");
+            } else {
+                setMessage(error.message);
+            }
         } else if (data.user) {
             // Profil wird automatisch per Datenbank-Trigger erstellt
-            setMessage("✅ Brauerei gegründet! Bestätige deine E-Mail-Adresse über den Link in deinem Postfach.");
+            setMessage("✅ Konto erstellt! Bestätige deine E-Mail-Adresse über den Link in deinem Postfach.");
             setAwaitingConfirmation(true);
             setIsRegister(false);
         }
@@ -269,7 +317,13 @@ export default function LoginPage() {
                       placeholder="z.B. tims_craft" 
                       required
                       value={username}
-                      className="w-full bg-cyan-950/10 border border-cyan-500/30 p-4 pl-12 rounded-xl focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 outline-none transition text-white placeholder:text-zinc-600 font-medium"
+                      className={`w-full bg-cyan-950/10 border p-4 pl-12 pr-10 rounded-xl focus:ring-2 outline-none transition text-white placeholder:text-zinc-600 font-medium ${
+                        usernameError
+                          ? 'border-red-500/60 focus:border-red-400 focus:ring-red-400/20'
+                          : usernameAvailable
+                          ? 'border-emerald-500/60 focus:border-emerald-400 focus:ring-emerald-400/20'
+                          : 'border-cyan-500/30 focus:border-cyan-400 focus:ring-cyan-400/20'
+                      }`}
                       onChange={(e) => setUsername(e.target.value)}
                     />
                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-cyan-500 pointer-events-none">
@@ -277,10 +331,26 @@ export default function LoginPage() {
                         <path fillRule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clipRule="evenodd" />
                       </svg>
                     </div>
+                    {/* Live status indicator */}
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                      {checkingUsername && (
+                        <div className="w-4 h-4 border-2 border-zinc-600 border-t-cyan-400 rounded-full animate-spin" />
+                      )}
+                      {!checkingUsername && usernameAvailable === true && (
+                        <span className="text-emerald-400 text-sm">✓</span>
+                      )}
+                      {!checkingUsername && usernameAvailable === false && (
+                        <span className="text-red-400 text-sm">✗</span>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-[10px] text-zinc-500 mt-2 px-1">
-                    So wirst du in der Community genannt.
-                  </p>
+                  {usernameError ? (
+                    <p className="text-[11px] text-red-400 mt-2 px-1 font-medium">{usernameError}</p>
+                  ) : usernameAvailable ? (
+                    <p className="text-[11px] text-emerald-400 mt-2 px-1 font-medium">Username ist verfügbar ✓</p>
+                  ) : (
+                    <p className="text-[10px] text-zinc-500 mt-2 px-1">So wirst du in der Community genannt.</p>
+                  )}
                 </div>
 
                 <div>
@@ -309,7 +379,7 @@ export default function LoginPage() {
                   Lade...
                 </span>
               ) : (
-                isRegister ? '🚀 Brauerei gründen' : '→ Einloggen'
+                isRegister ? '🍻 Community beitreten' : '→ Einloggen'
               )}
             </button>
           </form>
@@ -326,7 +396,9 @@ export default function LoginPage() {
                 setEmail(""); 
                 setPassword(""); 
                 setUsername(""); 
-                setBirthdate(""); 
+                setBirthdate("");
+                setUsernameError("");
+                setUsernameAvailable(null);
               }}
               className="text-sm font-bold text-cyan-400 hover:text-cyan-300 transition underline decoration-cyan-400/30 underline-offset-4 hover:decoration-cyan-300"
             >

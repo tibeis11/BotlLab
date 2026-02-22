@@ -11,6 +11,7 @@ import SystemView from '@/app/admin/dashboard/views/SystemView'
 import SettingsView from '@/app/admin/dashboard/views/SettingsView'
 import ModerationView from '@/app/admin/dashboard/views/ModerationView'
 import ReportsView from '@/app/admin/dashboard/views/ReportsView'
+import AppealsView from '@/app/admin/dashboard/views/AppealsView'
 
 export default function DashboardClient({ userId }: { userId: string }) {
   const [activeTab, setActiveTab] = useState<Tab>('overview')
@@ -34,6 +35,10 @@ export default function DashboardClient({ userId }: { userId: string }) {
 
         <ErrorBoundary>
           {activeTab === 'reports' && <ReportsView />}
+        </ErrorBoundary>
+
+        <ErrorBoundary>
+          {activeTab === 'appeals' && <AppealsView />}
         </ErrorBoundary>
         
         <ErrorBoundary>

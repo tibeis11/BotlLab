@@ -2,7 +2,7 @@
 
 import { createClient, createAdminClient } from '@/lib/supabase-server';
 import { revalidatePath } from 'next/cache';
-import { sendReportResolvedEmail } from '@/lib/email';
+import { sendReportResolvedEmail, sendContentModeratedEmail } from '@/lib/email';
 import { createNotification } from './notification-actions';
 
 export type ReportTargetType = 'brew' | 'user' | 'brewery' | 'forum_post' | 'forum_thread' | 'comment';
@@ -156,6 +156,9 @@ export async function updateReportStatus(reportId: string, status: 'resolved' | 
 /**
  * ADMIN ONLY: Delete reported content and resolve report.
  * WARNING: This is destructive and uses the service role!
+ * 
+ * DSA Compliance: Notifies the content author about the moderation action
+ * with the reason, so they can understand why content was removed.
  */
 export async function deleteReportedContent(targetId: string, targetType: ReportTargetType, reportId?: string) {
     const supabaseUser = await createClient();
@@ -163,13 +166,45 @@ export async function deleteReportedContent(targetId: string, targetType: Report
     
     // Basic auth check
     if (!user) throw new Error('Unauthorized');
-    
-    // Check if admin (optional, better to have it)
-    // For now assuming dashboard protection is enough, but adding email check for safety could be good.
-    // However, let's rely on the fact this action is only exposed in admin UI.
 
     const adminClient = createAdminClient();
 
+    // ── DSA: Fetch content author before deletion so we can notify them ──
+    let contentAuthorId: string | null = null;
+    let contentTitle: string | null = null;
+    let reportReason: string | null = null;
+
+    // Get report reason if available
+    if (reportId) {
+        const { data: report } = await adminClient
+            .from('reports')
+            .select('reason, details')
+            .eq('id', reportId)
+            .single();
+        reportReason = report?.reason ?? null;
+    }
+
+    // Determine content author based on target type
+    if (targetType === 'forum_thread') {
+        const { data } = await adminClient.from('forum_threads').select('author_id, title').eq('id', targetId).single();
+        contentAuthorId = data?.author_id ?? null;
+        contentTitle = data?.title ?? null;
+    } else if (targetType === 'forum_post') {
+        const { data } = await adminClient.from('forum_posts').select('author_id, content').eq('id', targetId).single();
+        contentAuthorId = data?.author_id ?? null;
+        contentTitle = data?.content ? data.content.substring(0, 80) : null;
+    } else if (targetType === 'brew') {
+        const { data } = await adminClient.from('brews').select('user_id, name').eq('id', targetId).single();
+        contentAuthorId = data?.user_id ?? null;
+        contentTitle = data?.name ?? null;
+    } else if (targetType === 'brewery') {
+        const { data: brewery } = await adminClient.from('breweries').select('name').eq('id', targetId).single();
+        const { data: ownerMember } = await adminClient.from('brewery_members').select('user_id').eq('brewery_id', targetId).eq('role', 'owner').single();
+        contentAuthorId = ownerMember?.user_id ?? null;
+        contentTitle = brewery?.name ?? null;
+    }
+
+    // ── Perform deletion ──
     let error = null;
 
     if (targetType === 'brew') {
@@ -200,6 +235,57 @@ export async function deleteReportedContent(targetId: string, targetType: Report
     if (error) {
         console.error('Delete Content Error:', error);
         throw new Error('Failed to delete content: ' + error.message);
+    }
+
+    // ── DSA: Notify content author about moderation action ──
+    if (contentAuthorId && contentAuthorId !== user.id) {
+        const reasonLabels: Record<string, string> = {
+            spam: 'Spam / Werbung',
+            nsfw: 'Unangemessener Inhalt (NSFW / Gewalt)',
+            harassment: 'Beleidigung / Mobbing',
+            copyright: 'Urheberrechtsverletzung',
+            other: 'Verstoß gegen die Nutzungsbedingungen',
+        };
+
+        try {
+            const reasonLabel = reportReason ? reasonLabels[reportReason] ?? reportReason : 'Verstoß gegen die Nutzungsbedingungen';
+
+            await createNotification({
+                userId: contentAuthorId,
+                actorId: user.id,
+                type: 'content_moderated',
+                data: {
+                    target_type: targetType,
+                    target_title: contentTitle,
+                    reason: reportReason,
+                    reason_label: reasonLabel,
+                    report_id: reportId,
+                    moderated_at: new Date().toISOString(),
+                    // DSA: Users must be able to appeal
+                    can_appeal: true,
+                },
+            });
+
+            // Also send email — DSA requires clear, accessible notification
+            const { data: { user: authorUser } } = await adminClient.auth.admin.getUserById(contentAuthorId);
+            if (authorUser?.email) {
+                const appealParams = new URLSearchParams();
+                appealParams.set('type', targetType);
+                if (contentTitle) appealParams.set('title', contentTitle);
+                if (reportReason) appealParams.set('reason', reportReason);
+                if (reportId) appealParams.set('reportId', reportId);
+                const appealUrl = `https://botllab.de/appeal?${appealParams.toString()}`;
+
+                await sendContentModeratedEmail(
+                    authorUser.email,
+                    contentTitle ?? 'Dein Inhalt',
+                    reasonLabel,
+                    appealUrl
+                );
+            }
+        } catch (e) {
+            console.error('Failed to send content moderation notification (DSA):', e);
+        }
     }
 
     // If successful and reportId provided, mark as resolved

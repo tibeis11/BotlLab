@@ -56,13 +56,16 @@ export default function TermsPage() {
           <h2 className="text-2xl font-bold text-foreground mb-4">4. Community Forum & Inhalte (UGC)</h2>
            <div className="text-zinc-300 space-y-3">
             <p>
-              <strong>4.1 Nutzungsrechte:</strong> Mit dem Erstellen von Beiträgen im Forum (Threads, Posts) räumst du BotlLab ein einfaches, räumlich und zeitlich unbeschränktes Nutzungsrecht an diesen Inhalten ein, um sie auf der Plattform anzuzeigen. Dies dient der langfristigen Lesbarkeit von Diskussionen. Dieses Recht bleibt auch nach Löschung des Benutzerkontos bestehen.
+              <strong>4.1 Nutzungsrechte:</strong> Mit dem Erstellen von Beiträgen im Forum (Threads, Posts) sowie dem Hochladen von Bildern und Medien (Brew-Labels, Kronkorken-Designs, Forum-Bilder) räumst du BotlLab ein einfaches, räumlich und zeitlich unbeschränktes Nutzungsrecht an diesen Inhalten ein, um sie auf der Plattform anzuzeigen und zu speichern. Dies dient der langfristigen Lesbarkeit von Diskussionen und der Darstellung deiner Brautätigkeit. Dieses Recht bleibt auch nach Löschung des Benutzerkontos bestehen.
             </p>
             <p>
-              <strong>4.2 Moderation:</strong> Wir behalten uns das Recht vor, Inhalte zu löschen oder zu sperren, die gegen geltendes Recht, die guten Sitten oder diese AGB verstoßen (z.B. Beleidigungen, Spam, extremistische Inhalte).
+              <strong>4.2 Moderation:</strong> Wir behalten uns das Recht vor, Inhalte zu löschen oder zu sperren, die gegen geltendes Recht, die guten Sitten oder diese AGB verstoßen (z.B. Beleidigungen, Spam, extremistische Inhalte). Dies gilt ausdrücklich auch für hochgeladene Bilder und Medien, unabhängig davon, ob diese im Forum oder in anderen Bereichen der Plattform veröffentlicht werden.
             </p>
              <p>
               <strong>4.3 Haftungsausschluss:</strong> Ratschläge und Rezepte im Forum werden von Nutzern für Nutzer erstellt. BotlLab übernimmt keine Haftung für die Richtigkeit oder Sicherheit von Anleitungen (z.B. Druckbehälter, Hygiene). Die Anwendung erfolgt auf eigene Gefahr.
+            </p>
+            <p>
+              <strong>4.4 Urheberrechts-Garantie bei Bild-Uploads:</strong> Mit dem Hochladen eines Bildes oder einer Mediendatei versicherst du, dass du die vollständigen Nutzungsrechte an diesem Inhalt besitzt oder anderweitig zur Veröffentlichung berechtigt bist. Der Upload von urheberrechtlich geschützten Inhalten Dritter ohne entsprechende Lizenz oder Erlaubnis ist nicht gestattet. BotlLab behält sich vor, gemeldete Urheberrechtsverletzungen unverzüglich (in der Regel innerhalb von 24 Stunden) zu prüfen und betroffene Inhalte im Rahmen eines Notice-and-Takedown-Verfahrens zu entfernen. Verstöße können zur Sperrung des Accounts führen.
             </p>
           </div>
         </section>

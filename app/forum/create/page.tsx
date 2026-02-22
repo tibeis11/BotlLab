@@ -36,7 +36,12 @@ export default async function CreateThreadPage({ searchParams }: CreateThreadPag
     // Resolve search params
     const brewId = typeof resolvedParams.brewId === 'string' ? resolvedParams.brewId : undefined;
     const title = typeof resolvedParams.title === 'string' ? resolvedParams.title : undefined;
-    const categoryId = typeof resolvedParams.categoryId === 'string' ? resolvedParams.categoryId : undefined;
+    // Support both categoryId (UUID) and categorySlug (slug) params — slug is preferred
+    const categorySlug = typeof resolvedParams.categorySlug === 'string' ? resolvedParams.categorySlug : undefined;
+    const categoryIdParam = typeof resolvedParams.categoryId === 'string' ? resolvedParams.categoryId : undefined;
+    const categoryId = categoryIdParam ?? (categorySlug
+        ? (categories as any[]).find((c: any) => c.slug === categorySlug)?.id
+        : undefined);
 
     let linkedBrew = null;
     if (brewId) {
@@ -50,7 +55,7 @@ export default async function CreateThreadPage({ searchParams }: CreateThreadPag
     }
 
     return (
-        <div className="py-8">
+        <div className="max-w-screen-2xl mx-auto px-6 md:px-12 lg:px-16 py-8">
             <NewThreadForm 
                 categories={categories} 
                 preselectedBrewId={brewId}

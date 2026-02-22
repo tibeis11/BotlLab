@@ -1,16 +1,25 @@
 import Header from "@/app/components/Header";
+import ForumSearch from "./_components/ForumSearch";
 
 export default function ForumLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const forumSearchSlot = (
+    <div className="relative w-full max-w-sm lg:max-w-md">
+      <ForumSearch />
+    </div>
+  );
+
+  const forumMobileActions = <ForumSearch compact />;
+
   return (
     <div className="min-h-screen bg-black text-white selection:bg-emerald-500/30">
-      <Header />
-      <main className="pt-8 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      <Header forumSearchSlot={forumSearchSlot} forumMobileActions={forumMobileActions} />
+      <div className="w-full pt-0 pb-20">
         {children}
-      </main>
+      </div>
     </div>
   );
 }

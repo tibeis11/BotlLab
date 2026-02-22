@@ -70,6 +70,13 @@ export default function PrivacyPage() {
                 <li>Flaschenverwaltungsdaten (Flaschenummern, Inhalt, Status)</li>
                 <li>QR-Code-Links und damit verbundene Daten</li>
                 <li>Bewertungen und Kommentare von Nutzern (falls öffentlich sichtbar)</li>
+                <li>
+                  Forum-Inhalte: Threads (Titel, Beschreibung), Posts (Kommentare, Antworten) sowie hochgeladene Bilder und Medien
+                  (Brew-Labels, Kronkorken-Designs) — Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung) bzw. lit. a (Einwilligung
+                  bei Bild-Uploads). Speicherdauer: für die Dauer des Kontos; Forum-Inhalte bleiben nach Konto-Löschung in anonymisierter Form
+                  erhalten (Autor-Referenz wird auf &quot;Gelöschter Nutzer&quot; gesetzt), um die Lesbarkeit von Diskussionen zu gewährleisten
+                  (berechtigtes Interesse der Community, Art. 6 Abs. 1 lit. f DSGVO). Bilder werden auf Anfrage vollständig gelöscht.
+                </li>
               </ul>
             </div>
             <div>

@@ -80,6 +80,7 @@ export default function DiscoverClient({
     () => (searchParams.get('sort') as 'newest'|'top'|'most_rated'|'quality'|'most_liked') || 'quality'
   );
   const [showAllGrid, setShowAllGrid] = useState(false);
+  const [moreSection, setMoreSection] = useState<{ title: string; items: Brew[] } | null>(null);
   const [brewTypeFilter, setBrewTypeFilter] = useState<'all' | 'all_grain' | 'extract' | 'partial_mash'>(
     () => (searchParams.get('mash') as 'all' | 'all_grain' | 'extract' | 'partial_mash') || 'all'
   );
@@ -611,9 +612,9 @@ export default function DiscoverClient({
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // Reset "showAllGrid" when user starts a new search or filter
+  // Reset "showAllGrid" and "moreSection" when user starts a new search or filter
   useEffect(() => {
-    if (isFiltering) setShowAllGrid(false);
+    if (isFiltering) { setShowAllGrid(false); setMoreSection(null); }
   }, [isFiltering]);
 
   const list = useMemo(() => {
@@ -859,7 +860,7 @@ export default function DiscoverClient({
       {/* Full-width outer shell — no max-width cap */}
       <div className="w-full pt-0 pb-20">
         {/* Hero Banner - full bleed */}
-        <div className="relative overflow-hidden mb-0 min-h-[260px] md:min-h-[300px] bg-zinc-900 border-b border-zinc-800">
+        <div className="relative overflow-hidden mb-0 md:min-h-[300px] bg-zinc-900 border-b border-zinc-800">
           {/* Background image from first trending brew — using Next Image for LCP priority */}
           {trending[0]?.image_url && (
             <Image
@@ -873,20 +874,26 @@ export default function DiscoverClient({
           )}
           <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/95 via-zinc-950/80 to-transparent" />
 
-          <div className="relative flex items-center gap-8 px-6 md:px-12 lg:px-16 py-10 md:py-12 max-w-screen-2xl mx-auto">
+          <div className="relative flex items-center gap-8 px-6 md:px-12 lg:px-16 py-6 md:py-12 max-w-screen-2xl mx-auto">
             {/* Left: Text */}
             <div className="flex-1 min-w-0">
-              <p className="text-cyan-400 font-bold uppercase tracking-widest text-xs mb-3">Community Discover</p>
-              <h1 className="text-3xl md:text-5xl font-black tracking-tight mb-4 leading-tight">
+              <p className="text-cyan-400 font-bold uppercase tracking-widest text-xs mb-2 md:mb-3">Community Discover</p>
+              <h1 className="text-2xl md:text-5xl font-black tracking-tight mb-2 md:mb-4 leading-tight">
                 Entdecke neue<br />
                 <span className="text-cyan-400">Braukreationen</span>
               </h1>
-              <p className="text-zinc-400 max-w-md text-sm md:text-base mb-6">
+              <p className="hidden md:block text-zinc-400 max-w-md text-sm md:text-base mb-6">
                 Die besten Rezepte der Community — sortiert nach Bewertung, Trend und Neuheit.
               </p>
               <button
-                onClick={() => { searchRef.current?.focus(); }}
-                className="inline-flex items-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-black font-bold px-5 py-2.5 rounded-xl transition-all text-sm"
+                onClick={() => {
+                  if (typeof window !== 'undefined' && window.innerWidth < 768) {
+                    setShowSearchOverlay(true);
+                  } else {
+                    searchRef.current?.focus();
+                  }
+                }}
+                className="inline-flex items-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-black font-bold px-4 py-2 md:px-5 md:py-2.5 rounded-xl transition-all text-sm"
               >
                 <Search className="w-4 h-4" />
                 Rezept suchen
@@ -1289,7 +1296,38 @@ export default function DiscoverClient({
           </div>
         ) : (
           <div>
-            {!isFiltering && !showAllGrid ? (
+            {moreSection ? (
+              /* ── Section "Mehr"-Ansicht: nur die Rezepte dieser Kategorie ── */
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <button
+                    onClick={() => setMoreSection(null)}
+                    className="flex items-center gap-2 text-zinc-400 hover:text-white text-sm font-medium transition-colors"
+                  >
+                    ← Zurück zur Übersicht
+                  </button>
+                  <div className="text-center">
+                    <span className="text-white font-bold">{moreSection.title}</span>
+                    <span className="text-zinc-500 text-sm ml-2">({moreSection.items.length} Rezepte)</span>
+                  </div>
+                  <div className="w-32" />
+                </div>
+                <div className="animate-in fade-in duration-300">
+                  <div className="flex flex-col gap-2 md:hidden">
+                    {moreSection.items.map(brew => (
+                      <DiscoverBrewCard key={brew.id} brew={brew} currentUserId={currentUserId} isAdmin={isAdmin} variant="compact" />
+                    ))}
+                  </div>
+                  <div className="hidden md:grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {moreSection.items.map(brew => (
+                      <div key={brew.id}>
+                        <DiscoverBrewCard brew={brew} currentUserId={currentUserId} isAdmin={isAdmin} variant="portrait" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : !isFiltering && !showAllGrid ? (
               <div className="space-y-4">
                  {/* Gerade angesagt 🔥 */}
                  {trending.length > 0 && (
@@ -1298,7 +1336,7 @@ export default function DiscoverClient({
                      title="Gerade angesagt"
                      items={trending}
                      layout="hero-scroll"
-                     onMore={() => { setSort('quality'); setShowAllGrid(true); }}
+                     onMore={() => setMoreSection({ title: 'Gerade angesagt', items: trending })}
                      currentUserId={currentUserId}
                      isAdmin={isAdmin}
                    />
@@ -1311,7 +1349,7 @@ export default function DiscoverClient({
                      title="Empfohlen"
                      items={featured}
                      layout="hero-scroll"
-                     onMore={() => { setSort('quality'); setShowAllGrid(true); }}
+                     onMore={() => setMoreSection({ title: 'Empfohlen', items: featured })}
                      currentUserId={currentUserId}
                      isAdmin={isAdmin}
                    />
@@ -1325,7 +1363,7 @@ export default function DiscoverClient({
                        title={userBrews.length + brews.filter(b => b.user_has_liked).length >= NEEDS_MORE_DATA_THRESHOLD ? 'Für dich' : 'Empfohlen für dich'}
                        items={personalizedBrews}
                        layout="portrait-only"
-                       onMore={() => { setSort('quality'); setShowAllGrid(true); }}
+                       onMore={() => setMoreSection({ title: 'Für dich', items: personalizedBrews })}
                        currentUserId={currentUserId}
                        isAdmin={isAdmin}
                        infoText={userBrews.length + brews.filter(b => b.user_has_liked).length < NEEDS_MORE_DATA_THRESHOLD
@@ -1351,7 +1389,7 @@ export default function DiscoverClient({
                      title="Am besten bewertet"
                      items={topRated}
                      layout="ranked-list"
-                     onMore={() => { setSort('top'); setShowAllGrid(true); }}
+                     onMore={() => setMoreSection({ title: 'Am besten bewertet', items: topRated })}
                      currentUserId={currentUserId}
                      isAdmin={isAdmin}
                    />
@@ -1462,7 +1500,7 @@ export default function DiscoverClient({
                      title="Neuheiten"
                      items={newest}
                      layout="portrait-only"
-                     onMore={() => { setSort('newest'); setShowAllGrid(true); }}
+                     onMore={() => setMoreSection({ title: 'Neuheiten', items: newest })}
                      currentUserId={currentUserId}
                      isAdmin={isAdmin}
                    />
