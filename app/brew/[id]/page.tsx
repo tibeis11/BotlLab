@@ -569,8 +569,14 @@ export default function BrewDetailPage() {
   useEffect(() => {
     async function fetchBrewInfo() {
       try {
-        // Auth holen
-        const { data: { user } } = await supabase.auth.getUser();
+        // Auth holen — bei Lock-Timeout oder Auth-Fehler als anonymous weiterladen
+        let user = null;
+        try {
+          const { data } = await supabase.auth.getUser();
+          user = data?.user ?? null;
+        } catch (authErr) {
+          console.warn('Auth check failed (lock timeout?), continuing as anonymous:', authErr);
+        }
 
         // Rezept laden (RLS kümmert sich um harte DB-Security, hier prüfen wir Logik)
         const { data: brewData, error: brewError } = await supabase

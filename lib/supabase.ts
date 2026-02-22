@@ -4,6 +4,38 @@ import { createBrowserClient } from '@supabase/ssr';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
+/**
+ * Custom lock implementation that falls back gracefully when Navigator.locks
+ * is unavailable or times out (common on mobile browsers).
+ * Prevents the "Acquiring an exclusive Navigator LockManager lock timed out" error.
+ */
+const navigatorLockWithFallback = async (
+  name: string,
+  acquireTimeout: number,
+  fn: () => Promise<any>
+) => {
+  if (typeof navigator !== 'undefined' && navigator?.locks?.request) {
+    try {
+      return await navigator.locks.request(
+        name,
+        acquireTimeout > 0 ? { mode: 'exclusive' } : { mode: 'exclusive', ifAvailable: true },
+        async (lock) => {
+          if (!lock) {
+            // Lock unavailable — run without lock protection
+            return await fn();
+          }
+          return await fn();
+        }
+      );
+    } catch {
+      // Lock request failed (timeout, security, etc.) — run without lock
+      return await fn();
+    }
+  }
+  // navigator.locks not available — run directly
+  return await fn();
+};
+
 // Das ist unser Funkgerät zur Datenbank
 // Use createBrowserClient for client-side usage (handles cookies automatically)
 // Use createClient for server-side usage (fallback, no automatic auth)
@@ -13,7 +45,13 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
  * Use `createClient` from `@/lib/supabase-server` for Server Components/Actions.
  */
 export const supabase = typeof window !== 'undefined'
-  ? createBrowserClient(supabaseUrl, supabaseAnonKey)
+  ? createBrowserClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        flowType: 'pkce',
+        persistSession: true,
+        lock: navigatorLockWithFallback,
+      },
+    })
   : createClient(supabaseUrl, supabaseAnonKey);
 
 // Hilfsfunktionen für das Squad-Modell (Brauerei-Gruppen)
