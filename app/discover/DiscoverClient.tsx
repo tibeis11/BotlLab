@@ -97,6 +97,9 @@ export default function DiscoverClient({
     () => !!(searchParams.get('abv') || searchParams.get('ibu') || searchParams.get('hop'))
   );
   const [showBottomSheet, setShowBottomSheet] = useState(false);
+  const [sheetDragY, setSheetDragY] = useState(0);
+  const sheetDragStartY = useRef<number>(0);
+  const sheetIsDragging = useRef(false);
   const [beginnerMode, setBeginnerMode] = useState(() => searchParams.get('beginner') === '1');
   const [showSearchOverlay, setShowSearchOverlay] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -794,7 +797,7 @@ export default function DiscoverClient({
         </div>
 
         {/* Sticky Search Bar — full width, between hero and content columns */}
-        <div className="sticky top-0 z-20 bg-zinc-950/95 backdrop-blur-md border-b border-zinc-800">
+        <div className="sticky top-0 z-30 bg-zinc-950/95 backdrop-blur-md border-b border-zinc-800">
           <div className="hidden md:flex items-center gap-4 max-w-screen-2xl mx-auto px-6 md:px-8 lg:px-12 xl:px-16 py-3">
             <div className="relative w-full max-w-xs lg:max-w-sm" ref={searchContainerRef}>
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none" />
@@ -924,6 +927,33 @@ export default function DiscoverClient({
                 </button>
               </div>
             )}
+          </div>
+          {/* ── Mobile sticky bar ────────────────────────────────────────── */}
+          <div className="md:hidden flex items-center gap-2 px-4 py-2">
+            <button
+              onClick={() => setShowSearchOverlay(true)}
+              className="flex items-center gap-2 flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-left min-w-0 hover:border-zinc-700 transition-colors"
+              aria-label="Suche öffnen"
+            >
+              <Search className="w-4 h-4 text-zinc-500 flex-shrink-0" />
+              <span className={`text-sm truncate flex-1 ${search ? 'text-white' : 'text-zinc-500'}`}>
+                {search || 'Suchen…'}
+              </span>
+              {search && <span className="text-[10px] text-cyan-400 font-bold flex-shrink-0">Aktiv</span>}
+            </button>
+            <button
+              onClick={() => setShowBottomSheet(true)}
+              className={`flex items-center gap-1.5 text-sm font-semibold px-3 py-2.5 rounded-xl border flex-shrink-0 transition-all ${
+                isFiltering
+                  ? 'bg-cyan-500/10 border-cyan-500/40 text-cyan-400'
+                  : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-white'
+              }`}
+              aria-label="Filter öffnen"
+            >
+              <Filter className="w-4 h-4" />
+              Filter
+              {isFiltering && <span className="w-2 h-2 rounded-full bg-cyan-400 flex-shrink-0" />}
+            </button>
           </div>
         </div>
 
@@ -1112,47 +1142,6 @@ export default function DiscoverClient({
 
           {/* Main Content */}
           <main className="flex-1 min-w-0 px-6 md:px-8 lg:px-10 xl:px-12 pt-8">
-            {/* Mobile Search & Filter Toggle */}
-            <div className="md:hidden mb-6 space-y-4">
-              <button
-                className="flex w-full items-center gap-3 bg-zinc-900/60 border border-zinc-800 rounded-xl px-4 py-3 text-left cursor-pointer hover:border-zinc-700 transition-colors"
-                onClick={() => setShowSearchOverlay(true)}
-                aria-label="Suche öffnen"
-              >
-                <Search className="w-5 h-5 text-zinc-400 flex-shrink-0" />
-                <span className={search ? 'text-white font-medium flex-1 truncate text-sm' : 'text-zinc-500 flex-1 text-sm'}>
-                  {search || 'Suchen…'}
-                </span>
-                {search && <span className="text-xs text-cyan-400 font-semibold">Aktiv</span>}
-              </button>
-
-              <div className="flex items-center gap-2">
-                <div className="flex-1">
-                  <CustomSelect
-                    value={sort}
-                    onChange={(val) => setSort(val as any)}
-                    options={sortOptions}
-                    placeholder="Sortierung"
-                    variant="zinc"
-                  />
-                </div>
-                <button
-                  onClick={() => setShowBottomSheet(true)}
-                  className={`flex items-center gap-2 text-sm font-semibold px-4 py-[10px] rounded-xl border transition-all ${
-                    brewTypeFilter !== 'all' || fermentationFilter !== 'all' || abvPreset !== 'all' || ibuPreset !== 'all' || hopFilter.trim().length > 0 || styleFilter !== 'all' || beginnerMode
-                      ? 'bg-cyan-500/10 border-cyan-500/40 text-cyan-400'
-                      : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-white'
-                  }`}
-                >
-                  <Filter className="w-4 h-4" />
-                  Filter
-                  {(brewTypeFilter !== 'all' || fermentationFilter !== 'all' || abvPreset !== 'all' || ibuPreset !== 'all' || hopFilter.trim().length > 0 || styleFilter !== 'all' || beginnerMode) && (
-                    <span className="w-2 h-2 rounded-full bg-cyan-400" />
-                  )}
-                </button>
-              </div>
-            </div>
-
             {/* Mobile Fullscreen Search Overlay */}
             {showSearchOverlay && (
               <div className="md:hidden fixed inset-0 z-[60] bg-zinc-950 flex flex-col">
@@ -1570,40 +1559,79 @@ export default function DiscoverClient({
         <>
           {/* Backdrop */}
           <div
-            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
-            onClick={() => setShowBottomSheet(false)}
+            className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm"
+            onClick={() => { setShowBottomSheet(false); setSheetDragY(0); }}
           />
           {/* Panel */}
-          <div className="fixed bottom-0 left-0 right-0 z-50 bg-zinc-950 border-t border-zinc-800 rounded-t-3xl shadow-2xl max-h-[85dvh] flex flex-col animate-in slide-in-from-bottom duration-300">
-            {/* Handle */}
-            <div className="flex justify-center pt-3 pb-2 flex-shrink-0">
-              <div className="w-10 h-1 rounded-full bg-zinc-700" />
+          <div
+            className="fixed bottom-0 left-0 right-0 z-50 bg-[#111113] border-t border-zinc-800/60 rounded-t-[28px] shadow-2xl max-h-[90dvh] flex flex-col animate-in slide-in-from-bottom duration-300"
+            style={{ transform: `translateY(${sheetDragY}px)`, transition: sheetDragY > 0 ? 'none' : 'transform 0.3s ease' }}
+          >
+            {/* Drag handle — pointer events only on this area */}
+            <div
+              className="flex justify-center pt-3 pb-2 flex-shrink-0 cursor-grab active:cursor-grabbing touch-none select-none"
+              onPointerDown={(e) => {
+                sheetDragStartY.current = e.clientY;
+                sheetIsDragging.current = true;
+                e.currentTarget.setPointerCapture(e.pointerId);
+              }}
+              onPointerMove={(e) => {
+                if (!sheetIsDragging.current) return;
+                const delta = e.clientY - sheetDragStartY.current;
+                if (delta > 0) setSheetDragY(delta);
+              }}
+              onPointerUp={() => {
+                if (sheetDragY > 80) setShowBottomSheet(false);
+                setSheetDragY(0);
+                sheetIsDragging.current = false;
+              }}
+            >
+              <div className="w-10 h-1.5 rounded-full bg-zinc-600" />
             </div>
             {/* Header */}
-            <div className="flex items-center justify-between px-5 pb-3 flex-shrink-0 border-b border-zinc-800">
-              <span className="text-base font-bold text-white">Filter</span>
+            <div className="flex items-center justify-between px-5 pt-1 pb-4 flex-shrink-0">
+              <span className="text-lg font-bold text-white">Filter &amp; Sortierung</span>
               <button
-                onClick={() => setShowBottomSheet(false)}
-                className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+                onClick={() => { setShowBottomSheet(false); setSheetDragY(0); }}
+                className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors"
                 aria-label="Schließen"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
             {/* Scrollable content */}
-            <div className="overflow-y-auto flex-1 px-5 py-4 space-y-6">
+            <div className="overflow-y-auto flex-1 px-5 pb-2 space-y-7 touch-auto overscroll-contain">
+              {/* Sortierung */}
+              <div>
+                <p className="text-xs font-medium text-zinc-500 mb-3">Sortierung</p>
+                <div className="flex flex-wrap gap-2">
+                  {sortOptions.map(({ value, label }) => (
+                    <button
+                      key={value}
+                      onClick={() => setSort(value as any)}
+                      className={`text-sm px-4 py-2.5 rounded-xl transition-all min-h-[44px] ${
+                        sort === value
+                          ? 'bg-cyan-500 text-black font-bold'
+                          : 'bg-zinc-800 text-zinc-300 font-medium hover:bg-zinc-700'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
               {/* Brautyp */}
               <div>
-                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3">Brautyp</p>
+                <p className="text-xs font-medium text-zinc-500 mb-3">Brautyp</p>
                 <div className="flex flex-wrap gap-2">
                   {BREW_TYPES.map(({ value, label }) => (
                     <button
                       key={value}
                       onClick={() => setBrewTypeFilter(value as 'all' | 'all_grain' | 'extract' | 'partial_mash')}
-                      className={`text-sm font-semibold px-4 py-2.5 rounded-xl border transition-all min-h-[44px] ${
+                      className={`text-sm px-4 py-2.5 rounded-xl transition-all min-h-[44px] ${
                         brewTypeFilter === value
-                          ? 'bg-cyan-500/15 border-cyan-500/50 text-cyan-300'
-                          : 'bg-zinc-900 border-zinc-800 text-zinc-300'
+                          ? 'bg-cyan-500 text-black font-bold'
+                          : 'bg-zinc-800 text-zinc-300 font-medium hover:bg-zinc-700'
                       }`}
                     >
                       {label}
@@ -1613,16 +1641,16 @@ export default function DiscoverClient({
               </div>
               {/* Gärungstyp */}
               <div>
-                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3">Gärungstyp</p>
+                <p className="text-xs font-medium text-zinc-500 mb-3">Gärungstyp</p>
                 <div className="flex flex-wrap gap-2">
                   {FERMENTATION_TYPES.map(({ value, label }) => (
                     <button
                       key={value}
                       onClick={() => setFermentationFilter(value as 'all' | 'top' | 'bottom' | 'spontaneous' | 'mixed')}
-                      className={`text-sm font-semibold px-4 py-2.5 rounded-xl border transition-all min-h-[44px] ${
+                      className={`text-sm px-4 py-2.5 rounded-xl transition-all min-h-[44px] ${
                         fermentationFilter === value
-                          ? 'bg-cyan-500/15 border-cyan-500/50 text-cyan-300'
-                          : 'bg-zinc-900 border-zinc-800 text-zinc-300'
+                          ? 'bg-cyan-500 text-black font-bold'
+                          : 'bg-zinc-800 text-zinc-300 font-medium hover:bg-zinc-700'
                       }`}
                     >
                       {label}
@@ -1632,16 +1660,16 @@ export default function DiscoverClient({
               </div>
               {/* Alkohol (ABV) */}
               <div>
-                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3">Alkohol (ABV)</p>
+                <p className="text-xs font-medium text-zinc-500 mb-3">Alkohol (ABV)</p>
                 <div className="flex flex-wrap gap-2">
                   {ABV_PRESETS.map(({ value, label }) => (
                     <button
                       key={value}
                       onClick={() => setAbvPreset(value as 'all' | 'session' | 'craft' | 'imperial')}
-                      className={`text-sm font-semibold px-4 py-2.5 rounded-xl border transition-all min-h-[44px] ${
+                      className={`text-sm px-4 py-2.5 rounded-xl transition-all min-h-[44px] ${
                         abvPreset === value
-                          ? 'bg-cyan-500/15 border-cyan-500/50 text-cyan-300'
-                          : 'bg-zinc-900 border-zinc-800 text-zinc-300'
+                          ? 'bg-cyan-500 text-black font-bold'
+                          : 'bg-zinc-800 text-zinc-300 font-medium hover:bg-zinc-700'
                       }`}
                     >
                       {label}
@@ -1651,16 +1679,16 @@ export default function DiscoverClient({
               </div>
               {/* Bitterkeit (IBU) */}
               <div>
-                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3">Bitterkeit (IBU)</p>
+                <p className="text-xs font-medium text-zinc-500 mb-3">Bitterkeit (IBU)</p>
                 <div className="flex flex-wrap gap-2">
                   {IBU_PRESETS.map(({ value, label }) => (
                     <button
                       key={value}
                       onClick={() => setIbuPreset(value as 'all' | 'mild' | 'balanced' | 'hoppy')}
-                      className={`text-sm font-semibold px-4 py-2.5 rounded-xl border transition-all min-h-[44px] ${
+                      className={`text-sm px-4 py-2.5 rounded-xl transition-all min-h-[44px] ${
                         ibuPreset === value
-                          ? 'bg-cyan-500/15 border-cyan-500/50 text-cyan-300'
-                          : 'bg-zinc-900 border-zinc-800 text-zinc-300'
+                          ? 'bg-cyan-500 text-black font-bold'
+                          : 'bg-zinc-800 text-zinc-300 font-medium hover:bg-zinc-700'
                       }`}
                     >
                       {label}
@@ -1670,7 +1698,7 @@ export default function DiscoverClient({
               </div>
               {/* Zutat */}
               <div>
-                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3">Zutat (Hopfen oder Malz)</p>
+                <p className="text-xs font-medium text-zinc-500 mb-3">Zutat (Hopfen oder Malz)</p>
                 <div className="relative">
                   <input
                     type="text"
@@ -1678,7 +1706,7 @@ export default function DiscoverClient({
                     value={hopFilter}
                     onChange={(e) => setHopFilter(e.target.value)}
                     placeholder="z. B. Citra, Hallertau, Pilsner Malz…"
-                    className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-500 transition-colors min-h-[44px]"
+                    className="w-full bg-zinc-800 border border-zinc-700/50 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-500 transition-colors min-h-[44px]"
                   />
                   {hopFilter && (
                     <button
@@ -1696,37 +1724,33 @@ export default function DiscoverClient({
               </div>
               {/* Einsteiger-Modus */}
               <div>
-                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3">Schwierigkeitsgrad</p>
+                <p className="text-xs font-medium text-zinc-500 mb-3">Schwierigkeitsgrad</p>
                 <button
                   onClick={() => setBeginnerMode(v => !v)}
-                  className={`w-full flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl border transition-all min-h-[44px] text-left ${
+                  className={`flex items-center gap-3 text-sm px-4 py-3 rounded-xl transition-all min-h-[44px] text-left w-full ${
                     beginnerMode
-                      ? 'bg-cyan-500/15 border-cyan-500/50 text-cyan-300'
-                      : 'bg-zinc-900 border-zinc-800 text-zinc-300'
+                      ? 'bg-cyan-500 text-black font-bold'
+                      : 'bg-zinc-800 text-zinc-300 font-medium hover:bg-zinc-700'
                   }`}
                 >
-                  {beginnerMode
-                    ? <Check className="w-4 h-4 flex-shrink-0" />
-                    : <span className="w-4 h-4 rounded-full border border-zinc-600 flex-shrink-0" />
-                  }
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${beginnerMode ? 'border-black bg-black/20' : 'border-zinc-500'}`}>
+                    {beginnerMode && <Check className="w-3 h-3" />}
+                  </div>
                   Nur Einsteiger-Rezepte
                 </button>
               </div>
             </div>
-            {/* Sticky footer buttons */}
-            <div className="flex gap-3 px-5 py-4 border-t border-zinc-800 flex-shrink-0">
+            {/* Sticky footer */}
+            <div className="flex gap-3 px-5 py-4 border-t border-zinc-800/60 flex-shrink-0">
               <button
-                onClick={() => {
-                  resetFilters();
-                  setShowBottomSheet(false);
-                }}
-                className="flex-1 py-3 rounded-2xl border border-zinc-700 bg-zinc-900 text-white font-semibold text-sm transition-all hover:bg-zinc-800 min-h-[48px]"
+                onClick={() => { resetFilters(); setShowBottomSheet(false); setSheetDragY(0); }}
+                className="flex-1 py-3.5 rounded-2xl border border-zinc-700 bg-zinc-800 text-white font-semibold text-sm hover:bg-zinc-700 transition-all min-h-[50px]"
               >
                 Zurücksetzen
               </button>
               <button
-                onClick={() => setShowBottomSheet(false)}
-                className="flex-1 py-3 rounded-2xl bg-cyan-500 text-black font-bold text-sm transition-all hover:bg-cyan-400 min-h-[48px]"
+                onClick={() => { setShowBottomSheet(false); setSheetDragY(0); }}
+                className="flex-1 py-3.5 rounded-2xl bg-cyan-500 text-black font-bold text-sm hover:bg-cyan-400 transition-all min-h-[50px]"
               >
                 Anwenden
               </button>

@@ -253,15 +253,12 @@ export function Section({
       return 'neutral' as const;
     };
     const capped = (items as BrewWithRecency[]).slice(0, 10);
-    // Dynamic grid: 2 columns only when we have enough rows to fill both cleanly
-    const cols = capped.length > 5 ? 2 : 1;
-    const rows = Math.ceil(capped.length / cols);
 
     return (
       <div className="mb-12">
         <SectionHeader title={title} icon={icon} count={items.length} onMore={onMore} infoBubble={infoText} />
-        {/* grid-flow-col fills column-first; rows computed dynamically to avoid empty trailing cells */}
-        <div className="grid grid-flow-col gap-x-6 gap-y-0.5" style={{ gridTemplateRows: `repeat(${rows}, auto)` }}>
+        {/* Single column on mobile, 2 columns on md+ when there are enough items */}
+        <div className={`grid gap-y-0.5 gap-x-6 ${capped.length > 5 ? 'md:grid-cols-2' : 'grid-cols-1'}`}>
           {capped.map((brew, i) => (
             <RankedRow
               key={brew.id}
@@ -286,17 +283,18 @@ export function Section({
           onScrollLeft={() => scrollBy('left')} onScrollRight={() => scrollBy('right')}
           infoBubble={infoText}
         />
-        <div className="relative">
+        {/* -mx-6 md:mx-0: break out of main's px-6 so scroll reaches screen edges on mobile */}
+        <div className="relative -mx-6 md:mx-0">
           <div
             ref={scrollRef}
-            className="flex overflow-x-auto gap-4 pb-4 snap-x scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-zinc-900"
+            className="flex overflow-x-auto gap-4 pb-4 snap-x scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-zinc-900 pl-6 md:pl-0"
           >
             {items.map(brew => (
-              <div key={brew.id} className="snap-center flex-shrink-0" style={{ width: 220 }}>
+              <div key={brew.id} className="snap-center flex-shrink-0 w-[45vw] max-w-[220px] md:w-[220px]">
                 <DiscoverBrewCard brew={brew} currentUserId={currentUserId} isAdmin={isAdmin} variant="portrait" />
               </div>
             ))}
-            <div className="min-w-[40px] flex-shrink-0" aria-hidden="true" />
+            <div className="min-w-6 flex-shrink-0 md:min-w-[40px]" aria-hidden="true" />
           </div>
           <div className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-zinc-950 to-transparent" />
         </div>
@@ -325,16 +323,16 @@ export function Section({
             />
           </div>
         )}
-        <div className="relative flex-1 min-w-0">
+        {/* -mx-6 md:mx-0: break out of main's px-6 so scroll reaches screen edges on mobile */}
+        <div className="relative flex-1 min-w-0 -mx-6 md:mx-0">
           <div
             ref={scrollRef}
-            className="flex overflow-x-auto gap-4 pb-4 snap-x scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-zinc-900"
+            className="flex overflow-x-auto gap-4 pb-4 snap-x scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-zinc-900 pl-6 md:pl-0"
           >
             {items.map((brew, i) => (
               <div
                 key={brew.id}
-                className={`snap-center flex-shrink-0 ${i === 0 ? 'md:hidden' : ''}`}
-                style={{ width: 220 }}
+                className={`snap-center flex-shrink-0 w-[45vw] max-w-[220px] md:w-[220px] ${i === 0 ? 'md:hidden' : ''}`}
               >
                 <DiscoverBrewCard
                   brew={brew}
