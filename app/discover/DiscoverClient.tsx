@@ -1355,16 +1355,10 @@ export default function DiscoverClient({
                        onMore={() => { setSort('quality'); setShowAllGrid(true); }}
                        currentUserId={currentUserId}
                        isAdmin={isAdmin}
+                       infoText={userBrews.length + brews.filter(b => b.user_has_liked).length < NEEDS_MORE_DATA_THRESHOLD
+                         ? 'Personalisierung wird besser mit mehr Daten. Like noch ein paar Rezepte oder erstelle eigene Brews – dann passen wir diesen Feed genau auf deinen Geschmack an.'
+                         : undefined}
                      />
-                     {userBrews.length + brews.filter(b => b.user_has_liked).length < NEEDS_MORE_DATA_THRESHOLD && (
-                       <div className="-mt-6 mb-10 mx-1 flex items-start gap-3 rounded-2xl border border-zinc-800 bg-zinc-900/50 px-5 py-4">
-                         <Sparkles className="w-4 h-4 text-cyan-500 mt-0.5 flex-shrink-0" />
-                         <p className="text-sm text-zinc-400 leading-relaxed">
-                           <span className="font-semibold text-zinc-200">Personalisierung wird besser mit mehr Daten.</span>{' '}
-                           Like noch ein paar Rezepte oder erstelle eigene Brews — dann passen wir diesen Feed genau auf deinen Geschmack an.
-                         </p>
-                       </div>
-                     )}
                    </>
                  )}
                  {currentUserId && personalizedBrews.length === 0 && (

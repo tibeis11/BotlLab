@@ -10,12 +10,39 @@
  */
 
 import React, { useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, Heart, Star } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Heart, Info, Star } from 'lucide-react';
 import { toast } from 'sonner';
 import DiscoverBrewCard, { DiscoverBrew } from '../../components/DiscoverBrewCard';
 import { toggleBrewLike } from '@/lib/actions/like-actions';
 
 type BrewWithRecency = DiscoverBrew & { _recencyFactor?: number };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// InfoBubble — small ℹ icon that shows a tooltip on hover/click
+// ─────────────────────────────────────────────────────────────────────────────
+
+function InfoBubble({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative inline-flex">
+      <button
+        onClick={e => { e.preventDefault(); setOpen(v => !v); }}
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+        onBlur={() => setOpen(false)}
+        className="w-5 h-5 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-500 hover:text-cyan-400 hover:border-zinc-600 transition-colors flex-shrink-0"
+        aria-label="Info"
+      >
+        <Info className="w-3 h-3" />
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full mt-2 w-64 z-50 bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 shadow-xl pointer-events-none">
+          <p className="text-xs text-zinc-400 leading-relaxed">{text}</p>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SectionHeader
@@ -29,6 +56,7 @@ export interface SectionHeaderProps {
   onMore?: () => void;
   onScrollLeft?: () => void;
   onScrollRight?: () => void;
+  infoBubble?: string;
 }
 
 export function SectionHeader({
@@ -39,6 +67,7 @@ export function SectionHeader({
   onMore,
   onScrollLeft,
   onScrollRight,
+  infoBubble,
 }: SectionHeaderProps) {
   return (
     <div className="flex items-center gap-3 mb-6">
@@ -48,6 +77,7 @@ export function SectionHeader({
         <h2 className="flex items-center gap-2 text-xl md:text-2xl font-bold text-white">
           <div className="p-2 bg-zinc-900 rounded-lg border border-zinc-800">{icon}</div>
           {title}
+          {infoBubble && <InfoBubble text={infoBubble} />}
         </h2>
       )}
       <div className="flex items-center gap-2 ml-auto">
@@ -186,6 +216,7 @@ export interface SectionProps {
   onMore?: () => void;
   currentUserId?: string;
   isAdmin?: boolean;
+  infoText?: string;
 }
 
 export function Section({
@@ -196,6 +227,7 @@ export function Section({
   onMore,
   currentUserId,
   isAdmin,
+  infoText,
 }: SectionProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const scrollBy = (dir: 'left' | 'right') =>
@@ -215,12 +247,15 @@ export function Section({
       return 'neutral' as const;
     };
     const capped = (items as BrewWithRecency[]).slice(0, 10);
+    // Dynamic grid: 2 columns only when we have enough rows to fill both cleanly
+    const cols = capped.length > 5 ? 2 : 1;
+    const rows = Math.ceil(capped.length / cols);
 
     return (
       <div className="mb-12">
-        <SectionHeader title={title} icon={icon} count={items.length} onMore={onMore} />
-        {/* grid-rows-5 + grid-flow-col = 5 rows per column, fills column-first */}
-        <div className="grid grid-rows-5 grid-flow-col gap-x-6 gap-y-0.5">
+        <SectionHeader title={title} icon={icon} count={items.length} onMore={onMore} infoBubble={infoText} />
+        {/* grid-flow-col fills column-first; rows computed dynamically to avoid empty trailing cells */}
+        <div className="grid grid-flow-col gap-x-6 gap-y-0.5" style={{ gridTemplateRows: `repeat(${rows}, auto)` }}>
           {capped.map((brew, i) => (
             <RankedRow
               key={brew.id}
@@ -243,6 +278,7 @@ export function Section({
         <SectionHeader
           title={title} icon={icon} count={items.length} onMore={onMore}
           onScrollLeft={() => scrollBy('left')} onScrollRight={() => scrollBy('right')}
+          infoBubble={infoText}
         />
         <div className="relative">
           <div
