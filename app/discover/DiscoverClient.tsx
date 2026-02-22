@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -179,7 +179,7 @@ export default function DiscoverClient({
     setIsAdmin(!!user?.email && adminEmails.includes(user.email.toLowerCase()));
 
     if (user) {
-      // Profil-Einstellungen laden (fÃ¼r Opt-Out)
+      // Profil-Einstellungen laden (fä¼r Opt-Out)
       const { data: profileData } = await supabase
         .from('profiles')
         .select('analytics_opt_out')
@@ -203,8 +203,8 @@ export default function DiscoverClient({
       setFeatured(prev => prev.map(b => ({ ...b, user_has_liked: likedIds.has(b.id) })));
 
       // â”€â”€ Empfehlungs-Engine: eigene Brews laden â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-      // EnthÃ¤lt data-Feld fÃ¼r Hop/Malt-Overlap sowie remix_parent_id fÃ¼r
-      // "bereits kopiert"-Ausschluss. Limit 50 reicht fÃ¼r das Nutzerprofil.
+      // Enthä¤lt data-Feld fä¼r Hop/Malt-Overlap sowie remix_parent_id fä¼r
+      // "bereits kopiert"-Ausschluss. Limit 50 reicht fä¼r das Nutzerprofil.
       const { data: ownBrewsData } = await supabase
         .from('brews')
         .select('id,name,style,mash_method,data,remix_parent_id,quality_score,ratings(rating)')
@@ -227,8 +227,8 @@ export default function DiscoverClient({
       }
 
       // â”€â”€ Stufe A+: Hoch bewertete Brews laden (â‰¥4â˜…) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-      // Brews die der Nutzer persÃ¶nlich mit â‰¥4 Sternen bewertet hat.
-      // ZusÃ¤tzliches Signal in buildUserProfile (Faktor 1.5).
+      // Brews die der Nutzer persä¶nlich mit â‰¥4 Sternen bewertet hat.
+      // Zusä¤tzliches Signal in buildUserProfile (Faktor 1.5).
       const { data: ratingsData } = await supabase
         .from('ratings')
         .select('brew_id')
@@ -274,7 +274,7 @@ export default function DiscoverClient({
       // Strategie: user_recommendations-Tabelle lesen (TTL 2h).
       // Bei Cache-Miss â†’ live RPC â†’ Ergebnis in Cache schreiben (fire-and-forget).
       // Ab ~500 aktiven Nutzern: pg_cron-Job in 20260221150000_collab_v2.sql aktivieren,
-      // dann entfÃ¤llt der client-seitige Cache-Write.
+      // dann entfä¤llt der client-seitige Cache-Write.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const cacheMaxAge = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(); // 2h TTL
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -356,8 +356,8 @@ export default function DiscoverClient({
     return Math.round((rs.reduce((s, r) => s + r.rating, 0) / rs.length) * 10) / 10;
   };
 
-  // Trending: DB-seitig sortiert via SSR (trending_score DESC, stÃ¼ndlich via pg_cron aktualisiert)
-  // initialTrending enthÃ¤lt Top-10 aus der *gesamten* brews-Tabelle â€” unabhÃ¤ngig vom Infinite-Scroll-Batch
+  // Trending: DB-seitig sortiert via SSR (trending_score DESC, stä¼ndlich via pg_cron aktualisiert)
+  // initialTrending enthä¤lt Top-10 aus der *gesamten* brews-Tabelle â€” unabhä¤ngig vom Infinite-Scroll-Batch
   const [trending, setTrending] = useState<Brew[]>(initialTrending);
 
   // Featured: Admin-markierte Empfehlungsbrews
@@ -375,19 +375,19 @@ export default function DiscoverClient({
 
   const topRated = useMemo(() => {
     // â”€â”€ Hot-Rating-Score â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    // Combiniert BewertungsqualitÃ¤t mit AktualitÃ¤t â€” verhindert dass alte
+    // Combiniert Bewertungsqualitä¤t mit Aktualitä¤t â€” verhindert dass alte
     // Rezepte die Liste auf Dauer blockieren.
     //
-    // Formel:  hotScore = bayesianAvg Ã— recencyFactor
-    //   bayesianAvg   = (MÃ—C + nÃ—avg) / (M+n)   ; M=3, C=3.5 (global avg)
-    //   recencyFactor = 0.4 + 0.6 Ã— exp(-age_days / 45)  ; Halbwertszeit 45d
+    // Formel:  hotScore = bayesianAvg ä— recencyFactor
+    //   bayesianAvg   = (Mä—C + nä—avg) / (M+n)   ; M=3, C=3.5 (global avg)
+    //   recencyFactor = 0.4 + 0.6 ä— exp(-age_days / 45)  ; Halbwertszeit 45d
     //     â†’ Alter 0d:   1.00  (frisch)
-    //     â†’ Alter 24d:  0.75  (Schwelle fÃ¼r â†‘-Pfeil)
+    //     â†’ Alter 24d:  0.75  (Schwelle fä¼r â†‘-Pfeil)
     //     â†’ Alter 45d:  0.62  (Halbwertszeit)
-    //     â†’ Alter 80d:  0.50  (Schwelle fÃ¼r â†“-Pfeil)
+    //     â†’ Alter 80d:  0.50  (Schwelle fä¼r â†“-Pfeil)
     //     â†’ Alter âˆž:    0.40  (Floor â€” Ausnahme-Klassiker bleiben sichtbar)
     //
-    // Minimum: â‰¥2 Ratings (verhindert 1Ã—5â˜… ganz oben)
+    // Minimum: â‰¥2 Ratings (verhindert 1ä—5â˜… ganz oben)
     const now = Date.now();
     const M = 3; const C = 3.5; // Bayesian-Konstanten
     return [...brews]
@@ -410,14 +410,14 @@ export default function DiscoverClient({
   }, [brews]);
 
   /**
-   * Personalised section: "FÃ¼r dich"
+   * Personalised section: "Fä¼r dich"
    *
-   * SignalstÃ¤rke (stÃ¤rkste â†’ schwÃ¤chste):
+   * Signalstä¤rke (stä¤rkste â†’ schwä¤chste):
    *  Stufe A: eigene Brews (3) + Likes (2) + Hohe Ratings (1.5) â€” immer aktiv
    *  Stufe B: brew_views Dwell-Time (0.5) â€” aktiv sobald Views vorhanden
-   *  Stufe C: kollab. Filtering (+0.15 Bonus) â€” aktiv ab â‰¥3 Ã¤hnlichen Nutzern
+   *  Stufe C: kollab. Filtering (+0.15 Bonus) â€” aktiv ab â‰¥3 ä¤hnlichen Nutzern
    *
-   * Fallback: eigene Brews + Likes < NEEDS_MORE_DATA_THRESHOLD â†’ QualitÃ¤ts-Fallback
+   * Fallback: eigene Brews + Likes < NEEDS_MORE_DATA_THRESHOLD â†’ Qualitä¤ts-Fallback
    */
   const personalizedBrews = useMemo<Brew[]>(() => {
     if (!currentUserId) return [];
@@ -427,7 +427,7 @@ export default function DiscoverClient({
     const seen = new Set<string>();
     const uniquePool = pool.filter(b => { if (seen.has(b.id)) return false; seen.add(b.id); return true; });
 
-    // Liked brews mÃ¼ssen VOR dem Threshold-Check bekannt sein â€” Likes zÃ¤hlen als Signal
+    // Liked brews mä¼ssen VOR dem Threshold-Check bekannt sein â€” Likes zä¤hlen als Signal
     const likedBrews = uniquePool.filter(b => b.user_has_liked);
 
     if (userBrews.length + likedBrews.length + highRatedBrews.length < NEEDS_MORE_DATA_THRESHOLD) {
@@ -437,7 +437,7 @@ export default function DiscoverClient({
 
     // buildUserProfile jetzt mit allen Stufen-Signalen
     const profile = buildUserProfile(userBrews, likedBrews, highRatedBrews, viewedBrews, collaborativeBrewIds);
-    // Brews mit ihrem Personalisierungs-Score und Grund annotieren (fÃ¼r Portrait-Tooltip + Admin-Debug)
+    // Brews mit ihrem Personalisierungs-Score und Grund annotieren (fä¼r Portrait-Tooltip + Admin-Debug)
     return (getPersonalizedBrews(uniquePool, profile, trending, 10) as Brew[]).map(b => ({
       ...b,
       personalization_score: Math.round(scoreBrewForUser(b, profile) * 100) / 100,
@@ -670,7 +670,7 @@ export default function DiscoverClient({
   }, [list, brews, search, styleFilter, brewTypeFilter, fermentationFilter, abvPreset, ibuPreset, hopFilter]);
 
   const sortOptions = [
-      { value: 'quality', label: 'HÃ¶chste QualitÃ¤t' },
+      { value: 'quality', label: 'Hä¶chste Qualitä¤t' },
       { value: 'top', label: 'Top bewertet' },
       { value: 'most_liked', label: 'Meiste Likes' },
       { value: 'most_rated', label: 'Meist bewertet' },
@@ -678,7 +678,7 @@ export default function DiscoverClient({
   ];
 
   const POPULAR_STYLES = ['IPA', 'Weizen', 'Pils', 'Stout', 'Lager', 'Porter', 'Pale Ale', 'Sour'];
-  const POPULAR_SEARCHES = ['IPA', 'Weizen', 'Saison', 'Pils', 'Stout', 'Helles', 'Citra', 'KÃ¶lsch', 'Pale Ale', 'Sour'];
+  const POPULAR_SEARCHES = ['IPA', 'Weizen', 'Saison', 'Pils', 'Stout', 'Helles', 'Citra', 'Kä¶lsch', 'Pale Ale', 'Sour'];
   const BREW_TYPES = [
     { value: 'all', label: 'Alle' },
     { value: 'all_grain', label: 'All-Grain' },
@@ -687,8 +687,8 @@ export default function DiscoverClient({
   ];
   const FERMENTATION_TYPES = [
     { value: 'all', label: 'Alle' },
-    { value: 'top', label: 'ObergÃ¤rig' },
-    { value: 'bottom', label: 'UntergÃ¤rig' },
+    { value: 'top', label: 'Obergä¤rig' },
+    { value: 'bottom', label: 'Untergä¤rig' },
     { value: 'spontaneous', label: 'Spontan' },
     { value: 'mixed', label: 'Gemischt' },
   ];
@@ -797,7 +797,7 @@ export default function DiscoverClient({
         </div>
 
         {/* Sticky Search Bar â€” full width, between hero and content columns */}
-        <div className="sticky top-0 z-30 bg-zinc-950/95 backdrop-blur-md border-b border-zinc-800">
+        <div className="sticky top-14 z-30 bg-zinc-950/95 backdrop-blur-md border-b border-zinc-800">
           <div className="hidden md:flex items-center gap-4 max-w-screen-2xl mx-auto px-6 md:px-8 lg:px-12 xl:px-16 py-3">
             <div className="relative w-full max-w-xs lg:max-w-sm" ref={searchContainerRef}>
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none" />
@@ -839,7 +839,7 @@ export default function DiscoverClient({
                 <button
                   onClick={() => { setSearch(''); setShowSuggestions(false); searchRef.current?.focus(); }}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
-                  aria-label="Suche lÃ¶schen"
+                  aria-label="Suche lä¶schen"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -923,7 +923,7 @@ export default function DiscoverClient({
               <div className="flex items-center gap-2 text-xs">
                 <span className="font-medium text-zinc-300">{list.length} Treffer</span>
                 <button onClick={resetFilters} className="flex items-center gap-1 text-zinc-500 hover:text-white transition-colors">
-                  <X className="w-3 h-3" /> ZurÃ¼cksetzen
+                  <X className="w-3 h-3" /> Zurä¼cksetzen
                 </button>
               </div>
             )}
@@ -933,7 +933,7 @@ export default function DiscoverClient({
             <button
               onClick={() => setShowSearchOverlay(true)}
               className="flex items-center gap-2 flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-left min-w-0 hover:border-zinc-700 transition-colors"
-              aria-label="Suche Ã¶ffnen"
+              aria-label="Suche ä¶ffnen"
             >
               <Search className="w-4 h-4 text-zinc-500 flex-shrink-0" />
               <span className={`text-sm truncate flex-1 ${search ? 'text-white' : 'text-zinc-500'}`}>
@@ -948,7 +948,7 @@ export default function DiscoverClient({
                   ? 'bg-cyan-500/10 border-cyan-500/40 text-cyan-400'
                   : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-white'
               }`}
-              aria-label="Filter Ã¶ffnen"
+              aria-label="Filter ä¶ffnen"
             >
               <Filter className="w-4 h-4" />
               Filter
@@ -1032,9 +1032,9 @@ export default function DiscoverClient({
               </div>
             </div>
 
-            {/* GÃ¤rungstyp */}
+            {/* Gä¤rungstyp */}
             <div>
-              <h3 className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-2">GÃ¤rungstyp</h3>
+              <h3 className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-2">Gä¤rungstyp</h3>
               <div className="flex flex-col">
                 {FERMENTATION_TYPES.map(({ value, label }) => (
                   <button
@@ -1135,7 +1135,7 @@ export default function DiscoverClient({
                 onClick={resetFilters}
                 className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors text-left"
               >
-                â† Alle Filter zurÃ¼cksetzen
+                â† Alle Filter zurä¼cksetzen
               </button>
             )}
           </aside>
@@ -1150,7 +1150,7 @@ export default function DiscoverClient({
                   <button
                     onClick={() => setShowSearchOverlay(false)}
                     className="p-2 -ml-1 text-zinc-400 hover:text-white rounded-lg transition-colors"
-                    aria-label="Suche schlieÃŸen"
+                    aria-label="Suche schlieäŸen"
                   >
                     <ArrowLeft className="w-5 h-5" />
                   </button>
@@ -1188,7 +1188,7 @@ export default function DiscoverClient({
                       <button
                         onClick={() => setSearch('')}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
-                        aria-label="Eingabe lÃ¶schen"
+                        aria-label="Eingabe lä¶schen"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -1210,7 +1210,7 @@ export default function DiscoverClient({
                           }}
                           className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors"
                         >
-                          Alle lÃ¶schen
+                          Alle lä¶schen
                         </button>
                       </div>
                       {recentSearches.map(s => (
@@ -1274,7 +1274,7 @@ export default function DiscoverClient({
 
                   {/* No suggestions while typing */}
                   {search && autocompleteSuggestions.length === 0 && (
-                    <p className="px-4 py-12 text-center text-zinc-600 text-sm">Keine VorschlÃ¤ge fÃ¼r â€ž{search}"</p>
+                    <p className="px-4 py-12 text-center text-zinc-600 text-sm">Keine Vorschlä¤ge fä¼r â€ž{search}"</p>
                   )}
                 </div>
               </div>
@@ -1292,7 +1292,7 @@ export default function DiscoverClient({
               onClick={resetFilters}
               className="flex items-center gap-1 text-zinc-500 hover:text-white transition-colors"
             >
-              <X className="w-3 h-3" /> Alles zurÃ¼cksetzen
+              <X className="w-3 h-3" /> Alles zurä¼cksetzen
             </button>
           </div>
         )}
@@ -1333,12 +1333,12 @@ export default function DiscoverClient({
                    />
                  )}
 
-                 {/* FÃ¼r dich âœ¨ â€“ personalisierte Empfehlungen */}
+                 {/* Fä¼r dich âœ¨ â€“ personalisierte Empfehlungen */}
                  {currentUserId && personalizedBrews.length > 0 && (
                    <>
                      <Section
                        icon={<Sparkles className="w-5 h-5 text-cyan-400" />}
-                       title={userBrews.length + brews.filter(b => b.user_has_liked).length >= NEEDS_MORE_DATA_THRESHOLD ? 'FÃ¼r dich' : 'Empfohlen fÃ¼r dich'}
+                       title={userBrews.length + brews.filter(b => b.user_has_liked).length >= NEEDS_MORE_DATA_THRESHOLD ? 'Fä¼r dich' : 'Empfohlen fä¼r dich'}
                        items={personalizedBrews}
                        layout="portrait-only"
                        onMore={() => { setSort('quality'); setShowAllGrid(true); }}
@@ -1354,7 +1354,7 @@ export default function DiscoverClient({
                    <div className="mb-10 flex items-start gap-3 rounded-2xl border border-zinc-800 bg-zinc-900/50 px-5 py-4">
                      <Sparkles className="w-4 h-4 text-cyan-500 mt-0.5 flex-shrink-0" />
                      <p className="text-sm text-zinc-400 leading-relaxed">
-                       <span className="font-semibold text-zinc-200">Dein persÃ¶nlicher Feed wartet auf dich.</span>{' '}
+                       <span className="font-semibold text-zinc-200">Dein persä¶nlicher Feed wartet auf dich.</span>{' '}
                        Like mindestens {NEEDS_MORE_DATA_THRESHOLD} Rezepte oder erstelle eigene Brews â€” dann zeigen wir dir hier Empfehlungen, die wirklich zu dir passen.
                      </p>
                    </div>
@@ -1385,15 +1385,15 @@ export default function DiscoverClient({
 
                    // Build a real "why popular" sentence from actual data
                    const facts: string[] = [];
-                   if (ratingCount > 0) facts.push(`${ratingCount} Bewertung${ratingCount !== 1 ? 'en' : ''}${avgR ? ` (Ã˜ ${avgR}â˜…)` : ''}`);
-                   if (copyCount > 0) facts.push(`${copyCount}Ã— nachgebraut`);
+                   if (ratingCount > 0) facts.push(`${ratingCount} Bewertung${ratingCount !== 1 ? 'en' : ''}${avgR ? ` (ä˜ ${avgR}â˜…)` : ''}`);
+                   if (copyCount > 0) facts.push(`${copyCount}ä— nachgebraut`);
                    if (likesCount > 0) facts.push(`${likesCount} Likes`);
                    const statsLine = facts.length > 0 ? facts.join(', ') + ' â€” ' : '';
 
                    const charParts: string[] = [];
                    if (t.abv != null) charParts.push(`${Number(t.abv).toFixed(1)}% Alkohol`);
-                   if (t.ibu != null) charParts.push(Number(t.ibu) < 15 ? 'mildes Hopfenspiel' : Number(t.ibu) < 35 ? 'ausgewogene Bittere' : 'krÃ¤ftiger Hopfencharakter');
-                   const charLine = charParts.length > 0 ? `Mit ${charParts.join(' und ')} passt es zu vielen GeschmÃ¤ckern.` : '';
+                   if (t.ibu != null) charParts.push(Number(t.ibu) < 15 ? 'mildes Hopfenspiel' : Number(t.ibu) < 35 ? 'ausgewogene Bittere' : 'krä¤ftiger Hopfencharakter');
+                   const charLine = charParts.length > 0 ? `Mit ${charParts.join(' und ')} passt es zu vielen Geschmä¤ckern.` : '';
 
                    return (
                      <div className="mb-12 relative rounded-xl overflow-hidden bg-zinc-900 border border-zinc-800">
@@ -1499,7 +1499,7 @@ export default function DiscoverClient({
                       onClick={() => setShowAllGrid(false)}
                       className="flex items-center gap-2 text-zinc-400 hover:text-white text-sm font-medium transition-colors"
                     >
-                      â† ZurÃ¼ck zur Ãœbersicht
+                      â† Zurä¼ck zur äœbersicht
                     </button>
                     <span className="text-zinc-500 text-sm">{list.length} Rezepte</span>
                   </div>
@@ -1530,19 +1530,19 @@ export default function DiscoverClient({
                       <div>
                         <p className="text-white font-semibold text-lg mb-1">Keine Rezepte gefunden</p>
                         <p className="text-zinc-500 text-sm max-w-sm">
-                          Versuch einen anderen Suchbegriff oder setze die Filter zurÃ¼ck.
+                          Versuch einen anderen Suchbegriff oder setze die Filter zurä¼ck.
                         </p>
                       </div>
                       <button
                         onClick={resetFilters}
                         className="bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 hover:border-zinc-600 text-white font-semibold px-5 py-2.5 rounded-xl transition-all text-sm"
                       >
-                        Filter zurÃ¼cksetzen
+                        Filter zurä¼cksetzen
                       </button>
                       {suggestions.length > 0 && (
                         <div className="w-full mt-4">
                           <p className="text-zinc-500 text-xs font-medium uppercase tracking-wider mb-4">
-                            {styleFilter !== 'all' ? `Diese ${styleFilter}-Rezepte passen vielleicht:` : 'Diese Rezepte kÃ¶nnten dich interessieren:'}
+                            {styleFilter !== 'all' ? `Diese ${styleFilter}-Rezepte passen vielleicht:` : 'Diese Rezepte kä¶nnten dich interessieren:'}
                           </p>
                           <div className="flex flex-col gap-2">
                             {suggestions.map(brew => (
@@ -1618,7 +1618,7 @@ export default function DiscoverClient({
               <button
                 onClick={() => { setShowBottomSheet(false); setSheetDragY(0); }}
                 className="p-1.5 rounded text-zinc-500 hover:text-white hover:bg-zinc-800 transition-colors"
-                aria-label="SchlieÃŸen"
+                aria-label="SchlieäŸen"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1663,9 +1663,9 @@ export default function DiscoverClient({
                   ))}
                 </div>
               </div>
-              {/* GÃ¤rungstyp */}
+              {/* Gä¤rungstyp */}
               <div className="px-4 py-4">
-                <p className="text-[10px] font-medium text-zinc-600 uppercase tracking-wider mb-3">GÃ¤rungstyp</p>
+                <p className="text-[10px] font-medium text-zinc-600 uppercase tracking-wider mb-3">Gä¤rungstyp</p>
                 <div className="flex flex-wrap gap-2">
                   {FERMENTATION_TYPES.map(({ value, label }) => (
                     <button
@@ -1736,7 +1736,7 @@ export default function DiscoverClient({
                     <button
                       onClick={() => setHopFilter('')}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white"
-                      aria-label="LÃ¶schen"
+                      aria-label="Lä¶schen"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -1770,7 +1770,7 @@ export default function DiscoverClient({
                 onClick={() => { resetFilters(); setShowBottomSheet(false); setSheetDragY(0); }}
                 className="flex-1 py-2.5 rounded-lg border border-zinc-700 bg-zinc-900 text-white font-medium text-sm hover:bg-zinc-800 transition-all"
               >
-                ZurÃ¼cksetzen
+                Zurä¼cksetzen
               </button>
               <button
                 onClick={() => { setShowBottomSheet(false); setSheetDragY(0); }}
