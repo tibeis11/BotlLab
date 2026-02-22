@@ -235,14 +235,9 @@ export default function DiscoverBrewCard({ brew, currentUserId, isAdmin = false,
             )}
           </div>
 
-          {/* Row 4: age · complexity | icon stats group */}
+          {/* Row 4: age | icon stats group */}
           <div className="flex items-center gap-2 flex-wrap">
             {ageLabel && <span className="text-xs text-zinc-500 drop-shadow-md">{ageLabel}</span>}
-            {complexity && (
-              <span className={`text-xs font-semibold drop-shadow-md ${COMPLEXITY[complexity].className}`}>
-                {COMPLEXITY[complexity].label}
-              </span>
-            )}
             {/* Community stats — icon + number, grouped right */}
             <div className="flex items-center gap-2 ml-auto">
               {avgRating && (
@@ -359,14 +354,9 @@ export default function DiscoverBrewCard({ brew, currentUserId, isAdmin = false,
             )}
           </div>
 
-          {/* Line 4: age · complexity | icon stats group */}
+          {/* Line 4: age | icon stats group */}
           <div className="flex items-center gap-2 flex-wrap mt-0.5">
             {ageLabel && <span className="text-[10px] text-zinc-600">{ageLabel}</span>}
-            {complexity && (
-              <span className={`text-[10px] font-semibold ${COMPLEXITY[complexity].className}`}>
-                {COMPLEXITY[complexity].label}
-              </span>
-            )}
             {/* Community stats — icon + number, grouped right */}
             <div className="flex items-center gap-2 ml-auto">
               {avgRating && (
@@ -593,11 +583,6 @@ export default function DiscoverBrewCard({ brew, currentUserId, isAdmin = false,
               </div>
             )}
             {ageLabel && <span className="text-[10px] text-zinc-600">{ageLabel}</span>}
-            {complexity && (
-              <span className={`text-[10px] font-semibold ${COMPLEXITY[complexity].className}`}>
-                {COMPLEXITY[complexity].label}
-              </span>
-            )}
             {/* Community stats — Like (interactive) + times_brewed + views */}
             <div className="flex items-center gap-2 ml-auto">
               <button

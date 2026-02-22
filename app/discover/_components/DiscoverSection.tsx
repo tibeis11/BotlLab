@@ -9,7 +9,7 @@
  * currentUserId / isAdmin as explicit props instead of closing over them.
  */
 
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Heart, Info, Star } from 'lucide-react';
 import { toast } from 'sonner';
 import DiscoverBrewCard, { DiscoverBrew } from '../../components/DiscoverBrewCard';
@@ -129,6 +129,12 @@ interface RankedRowProps {
 function RankedRow({ brew, rank, trend, currentUserId }: RankedRowProps) {
   const [isLiked, setIsLiked] = useState(brew.user_has_liked ?? false);
   const [likeCount, setLikeCount] = useState(brew.likes_count ?? 0);
+
+  // Sync if brew data arrives/updates after initial render (async load)
+  useEffect(() => {
+    setIsLiked(brew.user_has_liked ?? false);
+    setLikeCount(brew.likes_count ?? 0);
+  }, [brew.id, brew.user_has_liked, brew.likes_count]);
 
   const avgR = brew.ratings?.length
     ? (brew.ratings.reduce((s, r) => s + r.rating, 0) / brew.ratings.length).toFixed(1)
