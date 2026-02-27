@@ -66,20 +66,23 @@ export default function BrewSimilarTab({ brew }: Props) {
 
       const SELECT = 'id, name, style, brew_type, image_url, quality_score, avg_rating:ratings(rating.avg()), rating_count:ratings(count), user_id, brewery_id, brewer:profiles(display_name)';
 
-      // Similar by style — build complete query before awaiting
-      const stylePromise: Promise<{ data: any[] | null }> = (brew.style || brew.brew_type)
-        ? (brew.style
-            ? supabase.from('brews').select(SELECT).neq('id', brew.id).eq('moderation_status', 'approved').eq('style', brew.style).order('quality_score', { ascending: false }).limit(6)
-            : supabase.from('brews').select(SELECT).neq('id', brew.id).eq('moderation_status', 'approved').eq('brew_type', brew.brew_type).order('quality_score', { ascending: false }).limit(6)
+      // Similar by style
+      const stylePromise = (brew.style || brew.brew_type)
+        ? Promise.resolve(
+            brew.style
+              ? supabase.from('brews').select(SELECT).neq('id', brew.id).eq('moderation_status', 'approved').eq('style', brew.style).order('quality_score', { ascending: false }).limit(6)
+              : supabase.from('brews').select(SELECT).neq('id', brew.id).eq('moderation_status', 'approved').eq('brew_type', brew.brew_type).order('quality_score', { ascending: false }).limit(6)
           )
-        : Promise.resolve({ data: [] });
+        : Promise.resolve({ data: [] as any[] });
 
       // Same brewer
       const brewerId = brew.brewery_id ?? brew.user_id;
       const brewerField = brew.brewery_id ? 'brewery_id' : 'user_id';
-      const brewerPromise: Promise<{ data: any[] | null }> = brewerId
-        ? supabase.from('brews').select(SELECT).neq('id', brew.id).eq(brewerField, brewerId).eq('moderation_status', 'approved').order('quality_score', { ascending: false }).limit(6)
-        : Promise.resolve({ data: [] });
+      const brewerPromise = brewerId
+        ? Promise.resolve(
+            supabase.from('brews').select(SELECT).neq('id', brew.id).eq(brewerField, brewerId).eq('moderation_status', 'approved').order('quality_score', { ascending: false }).limit(6)
+          )
+        : Promise.resolve({ data: [] as any[] });
 
       const [styleRes, brewerRes] = await Promise.all([stylePromise, brewerPromise]);
       setStyleBrews(styleRes.data ?? []);
