@@ -179,8 +179,8 @@ export default function BrewDetailPage() {
     checkSavedStatus();
   }, [userBreweries, id]);
 
-  async function handleSaveToTeam(targetBreweryId?: string) {
-    if (!targetBreweryId) {
+  async function handleSaveToTeam(targetBreweryId?: string | any) {
+    if (!targetBreweryId || typeof targetBreweryId !== 'string') {
         // If multiple breweries, always open modal to allow selection
         if (userBreweries.length > 1) {
             setSaveModalOpen(true);
@@ -195,32 +195,43 @@ export default function BrewDetailPage() {
 
     setSaveLoading(true);
     try {
-        const res = await saveBrewToLibrary(targetBreweryId!, id);
-        if(res.success) {
+        // Ensure arguments act as primitives to avoid potential proxy issues
+        // Sanitize inputs strongly
+        const inputBreweryId = targetBreweryId && typeof targetBreweryId === 'string' 
+            ? targetBreweryId 
+            : "";
+        const inputBrewId = String(id || "");
+
+        if (!inputBreweryId || !inputBrewId) {
+             console.error("Invalid IDs in handleSaveToTeam:", { targetBreweryId, id });
+             throw new Error("Ungültige IDs beim Speichern");
+        }
+        
+        console.log("Saving with IDs (Primitive Check):", typeof inputBreweryId, inputBreweryId, typeof inputBrewId, inputBrewId);
+        
+        // Ensure we are passing ONLY strings, no proxy objects whatsoever
+        const res = await saveBrewToLibrary(inputBreweryId, inputBrewId);
+        
+        console.log("Speichern Ergebnis:", res);
+
+        if (res.success) {
              if (res.message === 'Bereits gespeichert') {
                 showToast("Info", "Dieses Rezept befindet sich bereits in der Bibliothek.", "info");
             } else {
                 showToast("Gespeichert", "Rezept zur Team-Bibliothek hinzugefügt", "success");
             }
-            
-            // Optimistically update the set
             setSavedInBreweryIds(prev => new Set(prev).add(targetBreweryId!));
-            
-            // Only close modal if it was open AND we processed the last/only one. 
-            // Better UX: keep open if multiple teams so user can click others? 
-            // Or close for simplicity. Let's keep it open if opened manually, or handling logic below.
-            // Actually, for multiple teams, maybe user wants to add to another one.
-            // But let's close if it was the modal flow.
-            // setSaveModalOpen(false); // Let user close it manually if they want to add more? Or maybe auto-close?
-            
-            // New UX decision: If single team (direct click), no modal involved.
-            // If modal (multiple teams), reflect state in modal button (change to "Saved"). 
-            // So we don't necessarily close the modal immediately, allowing multi-save.
+        } else {
+            // Safe error handling for Server Action response
+            const errorMessage = (res as any).error || "Unbekannter Fehler beim Speichern";
+            showToast("Fehler", errorMessage, "warning");
         }
     } catch (e: any) {
+        console.error("Client Error during save:", e);
         showToast("Fehler", e.message || "Fehler beim Speichern", "warning");
     } finally {
         setSaveLoading(false);
+        setSaveModalOpen(false);
     }
   }
 
