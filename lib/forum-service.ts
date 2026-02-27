@@ -22,6 +22,7 @@ export async function getRecentThreads(limit = 8, sort: 'new' | 'top' = 'new') {
             author:profiles(id, display_name, avatar_url:logo_url, tier, subscription_tier),
             brew:brews(id, name, image_url, moderation_status)
         `)
+        .neq('thread_type', 'brew_comments')
         .limit(limit);
 
     if (sort === 'top') {
@@ -81,6 +82,7 @@ export async function getTrendingThreads(limit = 5) {
         `)
         .gte('created_at', cutoff.toISOString())
         .is('deleted_at', null)
+        .neq('thread_type', 'brew_comments')
         .limit(100);
 
     if (!data || data.length === 0) return [];
@@ -165,7 +167,7 @@ export async function getThread(id: string) {
             *,
             author:profiles(id, display_name, avatar_url:logo_url, tier, subscription_tier),
             category:forum_categories(*),
-            brew:brews(id, name, image_url, moderation_status, brewery_id, brewery:breweries(name))
+            brew:brews(id, name, image_url, moderation_status, brewery_id, style, brew_type, description, likes_count, brewery:breweries(name))
         `)
         .eq('id', id)
         .single();

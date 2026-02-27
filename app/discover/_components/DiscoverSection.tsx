@@ -122,17 +122,22 @@ interface RankedRowProps {
   rank: number;
   trend: 'up' | 'down' | 'neutral';
   currentUserId?: string;
+  likedBrewIds?: Set<string>;
+  onLikeToggle?: (brewId: string) => void;
 }
 
-function RankedRow({ brew, rank, trend, currentUserId }: RankedRowProps) {
-  const [isLiked, setIsLiked] = useState(brew.user_has_liked ?? false);
+function RankedRow({ brew, rank, trend, currentUserId, likedBrewIds, onLikeToggle }: RankedRowProps) {
+  const [localIsLiked, setLocalIsLiked] = useState(brew.user_has_liked ?? false);
   const [likeCount, setLikeCount] = useState(brew.likes_count ?? 0);
 
   // Sync if brew data arrives/updates after initial render (async load)
   useEffect(() => {
-    setIsLiked(brew.user_has_liked ?? false);
+    setLocalIsLiked(brew.user_has_liked ?? false);
     setLikeCount(brew.likes_count ?? 0);
   }, [brew.id, brew.user_has_liked, brew.likes_count]);
+
+  // Controlled mode: derive from parent Set; fallback to local state
+  const isLiked = likedBrewIds ? likedBrewIds.has(brew.id) : localIsLiked;
 
   const avgR = brew.ratings?.length
     ? (brew.ratings.reduce((s, r) => s + r.rating, 0) / brew.ratings.length).toFixed(1)
@@ -147,12 +152,16 @@ function RankedRow({ brew, rank, trend, currentUserId }: RankedRowProps) {
       });
       return;
     }
-    const prev = isLiked;
     const prevCount = likeCount;
-    setIsLiked(!prev);
-    setLikeCount(prev ? prevCount - 1 : prevCount + 1);
-    try { await toggleBrewLike(brew.id); }
-    catch { setIsLiked(prev); setLikeCount(prevCount); }
+    setLikeCount(isLiked ? prevCount - 1 : prevCount + 1);
+    if (onLikeToggle) {
+      onLikeToggle(brew.id);
+    } else {
+      const prev = localIsLiked;
+      setLocalIsLiked(!prev);
+      try { await toggleBrewLike(brew.id); }
+      catch { setLocalIsLiked(prev); setLikeCount(prevCount); }
+    }
   };
 
   return (
@@ -221,6 +230,8 @@ export interface SectionProps {
   currentUserId?: string;
   isAdmin?: boolean;
   infoText?: string;
+  likedBrewIds?: Set<string>;
+  onLikeToggle?: (brewId: string) => void;
 }
 
 export function Section({
@@ -232,6 +243,8 @@ export function Section({
   currentUserId,
   isAdmin,
   infoText,
+  likedBrewIds,
+  onLikeToggle,
 }: SectionProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const scrollBy = (dir: 'left' | 'right') =>
@@ -264,6 +277,8 @@ export function Section({
               rank={i + 1}
               trend={trendOf(brew)}
               currentUserId={currentUserId}
+              likedBrewIds={likedBrewIds}
+              onLikeToggle={onLikeToggle}
             />
           ))}
         </div>
@@ -289,7 +304,7 @@ export function Section({
           >
             {items.map(brew => (
               <div key={brew.id} className="snap-center flex-shrink-0 w-[45vw] max-w-[220px] md:w-[220px]">
-                <DiscoverBrewCard brew={brew} currentUserId={currentUserId} isAdmin={isAdmin} variant="portrait" />
+                <DiscoverBrewCard brew={brew} currentUserId={currentUserId} isAdmin={isAdmin} variant="portrait" likedBrewIds={likedBrewIds} onLikeToggle={onLikeToggle} />
               </div>
             ))}
             <div className="min-w-6 flex-shrink-0 md:min-w-[40px]" aria-hidden="true" />
@@ -318,6 +333,8 @@ export function Section({
               isAdmin={isAdmin}
               variant="hero"
               rank={isTrending ? 1 : undefined}
+              likedBrewIds={likedBrewIds}
+              onLikeToggle={onLikeToggle}
             />
           </div>
         )}
@@ -338,6 +355,8 @@ export function Section({
                   isAdmin={isAdmin}
                   variant="portrait"
                   rank={isTrending ? i + 1 : undefined}
+                  likedBrewIds={likedBrewIds}
+                  onLikeToggle={onLikeToggle}
                 />
               </div>
             ))}

@@ -73,14 +73,45 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
     async function loadData() {
       if (user) {
         // 1. Profile
-        const { data: profileData } = await supabase
+        const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('logo_url, tier, display_name, subscription_tier')
           .eq('id', user.id)
           .single();
         
-        if (!cancelled && profileData) {
-          setProfile(profileData);
+        if (!cancelled) {
+          if (profileData) {
+            setProfile(profileData);
+          } else if (profileError && profileError.code === 'PGRST116') {
+            // Profile does not exist (likely created before trigger was active or improved)
+            console.warn("User has no profile, attempting to cure...");
+            
+            // Construct a default profile
+            const fallbackName = user.user_metadata?.display_name || user.email?.split('@')[0] || 'Brewer';
+            const { error: createError } = await supabase
+              .from('profiles')
+              .insert({
+                id: user.id,
+                display_name: fallbackName,
+                subscription_tier: 'free',
+                subscription_status: 'active',
+                ai_credits_used_this_month: 0
+              });
+            
+            if (!createError) {
+              // Set local state immediately to avoid reload need
+              setProfile({ 
+                display_name: fallbackName, 
+                logo_url: null, 
+                tier: 'lehrling', 
+                subscription_tier: 'free' 
+              });
+            } else {
+              console.error("Failed to auto-create profile", createError);
+              // Optional: Force logout if state is unrecoverable?
+              // await signOut(); 
+            }
+          }
         }
 
         // 2. Breweries

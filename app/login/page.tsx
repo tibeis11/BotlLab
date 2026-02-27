@@ -21,6 +21,7 @@ export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [birthdate, setBirthdate] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [mounted, setMounted] = useState(false);
   
   const [isRegister, setIsRegister] = useState(false);
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
@@ -31,6 +32,13 @@ export default function LoginPage() {
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
   const [checkingUsername, setCheckingUsername] = useState(false);
   const router = useRouter();
+
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  
+  const [timeoutMessage, setTimeoutMessage] = useState("");
 
   // Debounced live username uniqueness check
   useEffect(() => {
@@ -67,13 +75,20 @@ export default function LoginPage() {
 
   // Check for timeout logout message
   useEffect(() => {
+    // Only check window on client side after mounting
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
-      if (params.get('reason') === 'timeout') {
-        setMessage("Du wurdest wegen Inaktivität automatisch abgemeldet.");
+      if (params.get('reason') === 'timeout' && !timeoutMessage) {
+        setTimeoutMessage("Du wurdest wegen Inaktivität automatisch abgemeldet.");
       }
     }
   }, []);
+
+  useEffect(() => {
+    if (timeoutMessage) {
+      setMessage(timeoutMessage);
+    }
+  }, [timeoutMessage]);
 
   // Redirect if already logged in
   useEffect(() => {
@@ -213,6 +228,8 @@ export default function LoginPage() {
     }
     setResendLoading(false);
   };
+
+if (!mounted) return null;
 
   return (
     <div className="min-h-screen bg-black text-white flex items-center justify-center p-4 relative overflow-hidden">

@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
             brew_id, rating, comment, author_name, ip_address,
             taste_bitterness, taste_sweetness, taste_body, taste_carbonation, taste_acidity,
             flavor_tags, appearance_color, appearance_clarity, aroma_intensity,
-            user_id, form_start_time
+            user_id, form_start_time, qr_verified
         } = body;
 
         if (!brew_id || !rating || !author_name || !ip_address) {
@@ -127,6 +127,7 @@ export async function POST(req: NextRequest) {
                 appearance_color,
                 appearance_clarity,
                 aroma_intensity,
+                qr_verified: qr_verified === true, // Only true when submitted from /b/[id] (QR scan)
                 moderation_status: 'auto_approved',
                 user_id: user_id || null // Link User!
             }])

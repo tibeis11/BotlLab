@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import { getThread, getPosts, getVotesForThread, getUserBookmarkedIds, getThreadSubscription, getThreadPoll } from '@/lib/forum-service';
 import ViewCountTracker from './ViewCountTracker';
-import { MessageSquare, Calendar, User, Eye, Lock, ChevronDown } from 'lucide-react';
+import { MessageSquare, Calendar, User, Eye, Lock, ChevronDown, CheckCircle2, Beaker } from 'lucide-react';
 import ForumSidebar from '../../_components/ForumSidebar';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
@@ -23,6 +23,8 @@ import PollBlock from './PollBlock';
 import RealtimePostBanner from './RealtimePostBanner';
 import PostsLoadMore from './PostsLoadMore';
 import MarkdownContent from '@/app/forum/_components/MarkdownContent';
+import ThreadRightRail from './ThreadRightRail';
+import BrewCommentsBanner from './BrewCommentsBanner';
 
 const POSTS_PAGE_SIZE = 30;
 
@@ -135,7 +137,7 @@ export default async function ThreadPage({ params }: PageProps) {
                                 <h1 className="text-xl md:text-3xl font-black tracking-tight leading-tight">{thread.title}</h1>
                                 {thread.is_solved && (
                                     <span className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[11px] font-bold shrink-0">
-                                        ✅ Gelöst
+                                        <CheckCircle2 size={11} /> Gelöst
                                     </span>
                                 )}
                                 {thread.is_locked && (
@@ -179,7 +181,10 @@ export default async function ThreadPage({ params }: PageProps) {
                     </div>
                 </div>
             </div>
-
+            {/* Brew-comments banner — shown when thread was auto-created for a brew */}
+            {(thread as any).thread_type === 'brew_comments' && thread.brew && (
+              <BrewCommentsBanner brew={thread.brew} />
+            )}
             {/* ── Main Layout ─────────────────────────────────────────── */}
             <div className="flex gap-0 max-w-screen-2xl mx-auto">
 
@@ -201,9 +206,9 @@ export default async function ThreadPage({ params }: PageProps) {
                     )}
 
                     {/* ── OP (Original Post) ───────────────────────────── */}
-                    <div className="border border-zinc-800/40 hover:border-zinc-700/50 rounded-lg overflow-hidden transition">
-                        {/* Author row — compact */}
-                        <div className="px-4 py-2.5 border-b border-zinc-800/40 flex items-center justify-between">
+                    <div>
+                        {/* Author row */}
+                        <div className="flex items-center justify-between pb-3 border-b border-zinc-800/40">
                             <div className="flex items-center gap-2.5">
                                 {thread.author ? (
                                     <Link href={`/brewer/${thread.author.id}`} className="flex items-center gap-2.5 group/author">
@@ -257,7 +262,7 @@ export default async function ThreadPage({ params }: PageProps) {
 
                         {/* Linked brew */}
                         {thread.brew && (
-                            <div className="mx-4 mt-3 max-w-sm">
+                            <div className="mt-3 max-w-sm">
                                 <Link href={`/brew/${thread.brew.id}`} className="inline-flex items-center gap-2.5 bg-zinc-950/30 border border-zinc-800/60 rounded-lg px-2.5 py-1.5 hover:bg-zinc-900/40 hover:border-zinc-700 transition group/brew">
                                     <div className="w-8 h-8 bg-zinc-900 rounded overflow-hidden border border-zinc-800 flex-shrink-0">
                                         {thread.brew.image_url ? (
@@ -269,7 +274,9 @@ export default async function ThreadPage({ params }: PageProps) {
                                                 }`}
                                             />
                                         ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-sm">🍺</div>
+                                            <div className="w-full h-full flex items-center justify-center bg-zinc-900">
+                                                <Beaker className="w-4 h-4 text-zinc-600" />
+                                            </div>
                                         )}
                                     </div>
                                     <div>
@@ -282,19 +289,19 @@ export default async function ThreadPage({ params }: PageProps) {
                         )}
 
                         {/* Content */}
-                        <div className="px-4 py-3">
+                        <div className="mt-3">
                             <MarkdownContent content={thread.content} />
                         </div>
 
-                        {/* Poll */}
+                        {/* Poll — inline on mobile/tablet; hidden on xl (shown in right sidebar) */}
                         {poll && (
-                            <div className="px-4 pb-2">
+                            <div className="mt-4 xl:hidden">
                                 <PollBlock poll={poll} currentUserId={user?.id ?? null} />
                             </div>
                         )}
 
                         {/* Vote bar + mobile actions */}
-                        <div className="px-4 pb-3 flex items-center justify-between gap-3 flex-wrap">
+                        <div className="mt-4 pb-4 border-b border-zinc-800/40 flex items-center justify-between gap-3 flex-wrap">
                             <VoteBar
                                 targetId={thread.id}
                                 targetType="thread"
@@ -379,6 +386,14 @@ export default async function ThreadPage({ params }: PageProps) {
                         </div>
                     )}
                 </main>
+
+                {/* ── Right rail (xl only) — poll, brew, tags ──────────── */}
+                <ThreadRightRail
+                    poll={poll}
+                    brew={thread.brew ?? null}
+                    tags={(thread as any).tags ?? null}
+                    currentUserId={user?.id ?? null}
+                />
             </div>
             </>
             <ViewCountTracker threadId={id} />

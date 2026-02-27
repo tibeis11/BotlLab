@@ -60,7 +60,7 @@ function applyAction(
 
 const TOOLS: { icon: React.ReactNode; title: string; action: ToolAction }[] = [
     { icon: <Bold size={13} />,    title: 'Fett',       action: { type: 'wrap',   before: '**', after: '**', placeholder: 'fetter Text' } },
-    { icon: <Italic size={13} />,  title: 'Kursiv',     action: { type: 'wrap',   before: '_',  after: '_',  placeholder: 'kursiver Text' } },
+    { icon: <Italic size={13} />,  title: 'Kursiv',     action: { type: 'wrap',   before: '*',  after: '*',  placeholder: 'kursiver Text' } },
     { icon: <Code size={13} />,    title: 'Code',       action: { type: 'wrap',   before: '`',  after: '`',  placeholder: 'code' } },
     { icon: <Quote size={13} />,   title: 'Zitat',      action: { type: 'prefix', prefix: '> ' } },
     { icon: <List size={13} />,    title: 'Liste',      action: { type: 'prefix', prefix: '- ' } },

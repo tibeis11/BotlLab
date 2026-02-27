@@ -16,7 +16,7 @@ import {
   scoreBrewForUser,
   NEEDS_MORE_DATA_THRESHOLD,
 } from '@/lib/utils/recommendation-engine';
-import { Flame, Heart, Star, Sparkles, Search, Filter, SearchX, ChevronDown, ChevronLeft, ChevronRight, X, ArrowLeft, Clock, Loader2, TrendingUp, BadgeCheck, Check } from 'lucide-react';
+import { Flame, Heart, Star, Sparkles, Search, Filter, SearchX, ChevronDown, ChevronLeft, ChevronRight, X, ArrowLeft, Clock, Loader2, TrendingUp, BadgeCheck, Check, LayoutGrid, List } from 'lucide-react';
 import Image from 'next/image';
 import { Section, SectionHeader } from './_components/DiscoverSection';
 
@@ -80,6 +80,7 @@ export default function DiscoverClient({
     () => (searchParams.get('sort') as 'newest'|'top'|'most_rated'|'quality'|'most_liked') || 'quality'
   );
   const [showAllGrid, setShowAllGrid] = useState(false);
+  const [viewMode, setViewMode] = useState<'compact' | 'portrait'>('compact');
   const [moreSection, setMoreSection] = useState<{ title: string; items: Brew[] } | null>(null);
   const [brewTypeFilter, setBrewTypeFilter] = useState<'all' | 'all_grain' | 'extract' | 'partial_mash'>(
     () => (searchParams.get('mash') as 'all' | 'all_grain' | 'extract' | 'partial_mash') || 'all'
@@ -116,6 +117,7 @@ export default function DiscoverClient({
   const [loadedOffset, setLoadedOffset] = useState(initialBrews.length);
   const [hasMore, setHasMore] = useState(initialBrews.length >= PAGE_SIZE);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [likedBrewIds, setLikedBrewIds] = useState<Set<string>>(new Set());
 
   // Load recent searches from localStorage on mount
   useEffect(() => {
@@ -199,6 +201,7 @@ export default function DiscoverClient({
         .eq('user_id', user.id);
 
       const likedIds = new Set((likesData || []).map((l: any) => l.brew_id));
+      setLikedBrewIds(likedIds);
       setBrews(prev => prev.map(b => ({ ...b, user_has_liked: likedIds.has(b.id) })));
       setTrending(prev => prev.map(b => ({ ...b, user_has_liked: likedIds.has(b.id) })));
       setFeatured(prev => prev.map(b => ({ ...b, user_has_liked: likedIds.has(b.id) })));
@@ -705,6 +708,29 @@ export default function DiscoverClient({
     { value: 'balanced', label: 'Ausgewogen 20–40' },
     { value: 'hoppy', label: 'Hopfig > 40' },
   ];
+
+  // ── Centralised like toggle — shared across all card instances ──────────
+  // Optimistically updates the likedBrewIds Set so every card showing the same brew
+  // reflects the new state immediately, regardless of how many times it appears.
+  const handleLikeToggle = useCallback(async (brewId: string) => {
+    let wasLiked = false;
+    setLikedBrewIds(prev => {
+      wasLiked = prev.has(brewId);
+      const next = new Set(prev);
+      if (wasLiked) next.delete(brewId); else next.add(brewId);
+      return next;
+    });
+    try {
+      await toggleBrewLike(brewId);
+    } catch {
+      // Revert on error
+      setLikedBrewIds(prev => {
+        const next = new Set(prev);
+        if (wasLiked) next.add(brewId); else next.delete(brewId);
+        return next;
+      });
+    }
+  }, []);
 
   // SectionHeader and Section are imported from ./_components/DiscoverSection
   // (extracted to prevent React from treating them as new component types on every render)
@@ -1285,6 +1311,18 @@ export default function DiscoverClient({
             >
               <X className="w-3 h-3" /> Alles zurücksetzen
             </button>
+            {/* View mode toggle — mobile only */}
+            <div className="flex items-center ml-auto md:hidden">
+              <button
+                onClick={() => setViewMode(v => v === 'compact' ? 'portrait' : 'compact')}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-600 transition-all text-xs"
+                title={viewMode === 'compact' ? 'Raster-Ansicht' : 'Listen-Ansicht'}
+              >
+                {viewMode === 'compact'
+                  ? <><LayoutGrid className="w-3.5 h-3.5" /><span>Raster</span></>
+                  : <><List className="w-3.5 h-3.5" /><span>Liste</span></>}
+              </button>
+            </div>
           </div>
         )}
 
@@ -1299,29 +1337,29 @@ export default function DiscoverClient({
             {moreSection ? (
               /* ── Section "Mehr"-Ansicht: nur die Rezepte dieser Kategorie ── */
               <div>
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3 mb-6">
                   <button
                     onClick={() => setMoreSection(null)}
-                    className="flex items-center gap-2 text-zinc-400 hover:text-white text-sm font-medium transition-colors"
+                    className="flex items-center gap-1.5 text-zinc-400 hover:text-white text-sm font-medium transition-colors shrink-0"
                   >
-                    ← Zurück zur Übersicht
+                    <ChevronLeft className="w-4 h-4" /> Zurück
                   </button>
-                  <div className="text-center">
-                    <span className="text-white font-bold">{moreSection.title}</span>
-                    <span className="text-zinc-500 text-sm ml-2">({moreSection.items.length} Rezepte)</span>
+                  <div className="flex-1 min-w-0 text-center">
+                    <span className="text-white font-bold truncate">{moreSection.title}</span>
+                    <span className="text-zinc-500 text-sm ml-1.5">({moreSection.items.length})</span>
                   </div>
-                  <div className="w-32" />
+                  <div className="w-16 shrink-0" />
                 </div>
                 <div className="animate-in fade-in duration-300">
                   <div className="flex flex-col gap-2 md:hidden">
                     {moreSection.items.map(brew => (
-                      <DiscoverBrewCard key={brew.id} brew={brew} currentUserId={currentUserId} isAdmin={isAdmin} variant="compact" />
+                      <DiscoverBrewCard key={brew.id} brew={brew} currentUserId={currentUserId} isAdmin={isAdmin} variant="compact" likedBrewIds={likedBrewIds} onLikeToggle={handleLikeToggle} />
                     ))}
                   </div>
                   <div className="hidden md:grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {moreSection.items.map(brew => (
                       <div key={brew.id}>
-                        <DiscoverBrewCard brew={brew} currentUserId={currentUserId} isAdmin={isAdmin} variant="portrait" />
+                        <DiscoverBrewCard brew={brew} currentUserId={currentUserId} isAdmin={isAdmin} variant="portrait" likedBrewIds={likedBrewIds} onLikeToggle={handleLikeToggle} />
                       </div>
                     ))}
                   </div>
@@ -1339,6 +1377,8 @@ export default function DiscoverClient({
                      onMore={() => setMoreSection({ title: 'Gerade angesagt', items: trending })}
                      currentUserId={currentUserId}
                      isAdmin={isAdmin}
+                     likedBrewIds={likedBrewIds}
+                     onLikeToggle={handleLikeToggle}
                    />
                  )}
 
@@ -1352,6 +1392,8 @@ export default function DiscoverClient({
                      onMore={() => setMoreSection({ title: 'Empfohlen', items: featured })}
                      currentUserId={currentUserId}
                      isAdmin={isAdmin}
+                     likedBrewIds={likedBrewIds}
+                     onLikeToggle={handleLikeToggle}
                    />
                  )}
 
@@ -1369,6 +1411,8 @@ export default function DiscoverClient({
                        infoText={userBrews.length + brews.filter(b => b.user_has_liked).length < NEEDS_MORE_DATA_THRESHOLD
                          ? 'Personalisierung wird besser mit mehr Daten. Like noch ein paar Rezepte oder erstelle eigene Brews – dann passen wir diesen Feed genau auf deinen Geschmack an.'
                          : undefined}
+                       likedBrewIds={likedBrewIds}
+                       onLikeToggle={handleLikeToggle}
                      />
                    </>
                  )}
@@ -1392,6 +1436,8 @@ export default function DiscoverClient({
                      onMore={() => setMoreSection({ title: 'Am besten bewertet', items: topRated })}
                      currentUserId={currentUserId}
                      isAdmin={isAdmin}
+                     likedBrewIds={likedBrewIds}
+                     onLikeToggle={handleLikeToggle}
                    />
                  )}
 
@@ -1489,7 +1535,7 @@ export default function DiscoverClient({
                  {featured.length > 1 && (
                    <div className="mb-12">
                      <SectionHeader title="Community Highlight" icon={<Flame className="w-5 h-5 text-orange-500" />} count={1} />
-                     <DiscoverBrewCard brew={featured[1]} currentUserId={currentUserId} isAdmin={isAdmin} variant="highlight" />
+                     <DiscoverBrewCard brew={featured[1]} currentUserId={currentUserId} isAdmin={isAdmin} variant="highlight" likedBrewIds={likedBrewIds} onLikeToggle={handleLikeToggle} />
                    </div>
                  )}
 
@@ -1503,6 +1549,8 @@ export default function DiscoverClient({
                      onMore={() => setMoreSection({ title: 'Neuheiten', items: newest })}
                      currentUserId={currentUserId}
                      isAdmin={isAdmin}
+                     likedBrewIds={likedBrewIds}
+                     onLikeToggle={handleLikeToggle}
                    />
                  )}
 
@@ -1535,17 +1583,25 @@ export default function DiscoverClient({
                 <div className="animate-in fade-in duration-500">
                   {list.length > 0 ? (
                     <>
-                      {/* Mobile: compact list */}
-                      <div className="flex flex-col gap-2 md:hidden">
-                        {list.map(brew => (
-                          <DiscoverBrewCard key={brew.id} brew={brew} currentUserId={currentUserId} isAdmin={isAdmin} variant="compact" />
-                        ))}
-                      </div>
+                      {/* Mobile: compact list or portrait grid depending on viewMode */}
+                      {viewMode === 'compact' ? (
+                        <div className="flex flex-col gap-2 md:hidden">
+                          {list.map(brew => (
+                            <DiscoverBrewCard key={brew.id} brew={brew} currentUserId={currentUserId} isAdmin={isAdmin} variant="compact" likedBrewIds={likedBrewIds} onLikeToggle={handleLikeToggle} />
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-2 gap-3 md:hidden">
+                          {list.map(brew => (
+                            <DiscoverBrewCard key={brew.id} brew={brew} currentUserId={currentUserId} isAdmin={isAdmin} variant="portrait" likedBrewIds={likedBrewIds} onLikeToggle={handleLikeToggle} />
+                          ))}
+                        </div>
+                      )}
                       {/* Desktop: portrait grid */}
                       <div className="hidden md:grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {list.map(brew => (
                           <div key={brew.id}>
-                            <DiscoverBrewCard brew={brew} currentUserId={currentUserId} isAdmin={isAdmin} variant="portrait" />
+                            <DiscoverBrewCard brew={brew} currentUserId={currentUserId} isAdmin={isAdmin} variant="portrait" likedBrewIds={likedBrewIds} onLikeToggle={handleLikeToggle} />
                           </div>
                         ))}
                       </div>
@@ -1574,7 +1630,7 @@ export default function DiscoverClient({
                           </p>
                           <div className="flex flex-col gap-2">
                             {suggestions.map(brew => (
-                              <DiscoverBrewCard key={brew.id} brew={brew} currentUserId={currentUserId} isAdmin={isAdmin} variant="compact" />
+                              <DiscoverBrewCard key={brew.id} brew={brew} currentUserId={currentUserId} isAdmin={isAdmin} variant="compact" likedBrewIds={likedBrewIds} onLikeToggle={handleLikeToggle} />
                             ))}
                           </div>
                         </div>

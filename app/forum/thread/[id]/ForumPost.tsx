@@ -1,6 +1,6 @@
 
 import { createClient } from '@/lib/supabase-server';
-import { User, MessageSquare } from 'lucide-react';
+import { User, MessageSquare, Beaker } from 'lucide-react';
 import Link from 'next/link';
 import ReportButton from './ReportButton';
 import PostReplyButton from './PostReplyButton';
@@ -10,6 +10,7 @@ import VoteBar from './VoteBar';
 import type { VoteCounts } from '@/lib/forum-service';
 import EditDeletePostButtons from './EditDeletePostButtons';
 import MarkdownContent from '@/app/forum/_components/MarkdownContent';
+import { formatRelativeTime } from '@/app/forum/_components/forum-utils';
 
 interface PostAuthor {
     id: string;
@@ -80,7 +81,7 @@ export default async function ForumPost({ post, threadAuthorId, initialCounts, i
     // (content is rendered via MarkdownContent below)
 
     return (
-        <div className="group flex gap-3 py-3.5 px-3 rounded-lg bg-zinc-900/50 border border-zinc-800/60 hover:border-zinc-700/60 hover:bg-zinc-900/70 transition duration-150">
+        <div className="group flex gap-3 py-4 border-b border-zinc-800/30 last:border-b-0 hover:bg-zinc-900/20 transition-colors rounded px-2">
             {/* Avatar column */}
             <div className="shrink-0 pt-0.5">
                 {post.author ? (
@@ -128,7 +129,7 @@ export default async function ForumPost({ post, threadAuthorId, initialCounts, i
                     )}
 
                     <span className="text-[11px] text-zinc-600 leading-none">
-                        {new Date(post.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        {formatRelativeTime(post.created_at)}
                     </span>
                 </div>
 
@@ -154,7 +155,9 @@ export default async function ForumPost({ post, threadAuthorId, initialCounts, i
                                         }`} 
                                     />
                                 ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-sm">🍺</div>
+                                    <div className="w-full h-full flex items-center justify-center bg-zinc-900">
+                                        <Beaker className="w-3.5 h-3.5 text-zinc-600" />
+                                    </div>
                                 )}
                             </div>
                             <div className="min-w-0">

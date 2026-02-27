@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { BarChart2, CheckCircle2, Clock } from 'lucide-react';
+import { Check, Clock } from 'lucide-react';
 import { voteOnPoll } from '@/lib/actions/forum-actions';
 
 export interface PollOption {
@@ -41,9 +41,7 @@ export default function PollBlock({ poll, currentUserId }: PollBlockProps) {
         if (!currentUserId || isPending || isExpired) return;
         const alreadyVoted = userVotes.has(optionId);
 
-        // Optimistic update
         if (!poll.multiple_choice) {
-            // Single choice: remove all previous votes, add new
             const prev = [...userVotes][0];
             setUserVotes(new Set([optionId]));
             setCounts(c => {
@@ -65,25 +63,24 @@ export default function PollBlock({ poll, currentUserId }: PollBlockProps) {
     }
 
     return (
-        <div className="bg-zinc-950/50 border border-zinc-800 rounded-xl p-4 space-y-3">
-            <div className="flex items-start gap-2">
-                <BarChart2 size={15} className="text-emerald-500 mt-0.5 flex-shrink-0" />
-                <div className="flex-1">
-                    <p className="font-bold text-white text-sm">{poll.question}</p>
-                    <div className="flex items-center gap-3 mt-0.5 text-[10px] text-zinc-500">
-                        <span>{totalVotes} {totalVotes === 1 ? 'Stimme' : 'Stimmen'}</span>
-                        {poll.multiple_choice && <span>· Mehrfachauswahl</span>}
-                        {poll.ends_at && (
-                            <span className="flex items-center gap-1">
-                                <Clock size={9} />
-                                {isExpired ? 'Beendet' : `bis ${new Date(poll.ends_at).toLocaleDateString()}`}
-                            </span>
-                        )}
-                    </div>
+        <div className="space-y-3">
+            {/* Header */}
+            <div>
+                <p className="font-bold text-white text-sm leading-snug">{poll.question}</p>
+                <div className="flex items-center gap-2 mt-1 text-[11px] text-zinc-500">
+                    <span className="font-semibold tabular-nums">{totalVotes} {totalVotes === 1 ? 'Stimme' : 'Stimmen'}</span>
+                    {poll.multiple_choice && <span className="text-zinc-700">· Mehrfachauswahl</span>}
+                    {poll.ends_at && (
+                        <span className="flex items-center gap-1 text-zinc-700">
+                            <Clock size={9} />
+                            {isExpired ? 'Beendet' : `bis ${new Date(poll.ends_at).toLocaleDateString('de-DE')}`}
+                        </span>
+                    )}
                 </div>
             </div>
 
-            <div className="space-y-2">
+            {/* Options */}
+            <div className="space-y-3">
                 {poll.options
                     .sort((a, b) => a.sort_order - b.sort_order)
                     .map(option => {
@@ -91,6 +88,7 @@ export default function PollBlock({ poll, currentUserId }: PollBlockProps) {
                         const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
                         const voted = userVotes.has(option.id);
                         const canVote = !!currentUserId && !isExpired;
+                        const showBar = hasVoted || isExpired;
 
                         return (
                             <button
@@ -98,32 +96,43 @@ export default function PollBlock({ poll, currentUserId }: PollBlockProps) {
                                 type="button"
                                 disabled={!canVote || isPending}
                                 onClick={() => handleVote(option.id)}
-                                className={`w-full text-left rounded-lg overflow-hidden border transition disabled:cursor-default ${
-                                    voted
-                                        ? 'border-emerald-500/50 bg-emerald-950/30'
-                                        : 'border-zinc-700/60 bg-zinc-900/60 hover:border-zinc-600'
-                                }`}
+                                className={`w-full text-left group transition-opacity disabled:cursor-default
+                                    ${canVote && !isPending ? 'hover:opacity-80' : ''}
+                                `}
                             >
-                                <div className="relative px-3 py-2">
-                                    {/* Progress bar */}
-                                    {(hasVoted || isExpired) && (
-                                        <div
-                                            className={`absolute inset-0 transition-all duration-500 ${voted ? 'bg-emerald-500/10' : 'bg-zinc-700/20'}`}
-                                            style={{ width: `${pct}%` }}
-                                        />
-                                    )}
-                                    <div className="relative flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            {voted && <CheckCircle2 size={12} className="text-emerald-400 flex-shrink-0" />}
-                                            <span className={`text-sm font-medium ${voted ? 'text-emerald-300' : 'text-zinc-300'}`}>
+                                <div className="flex items-center gap-3">
+                                    {/* Large tap-target circle — WhatsApp style */}
+                                    <div className={`w-7 h-7 rounded-full shrink-0 flex items-center justify-center transition-colors ${
+                                        voted
+                                            ? 'bg-emerald-500'
+                                            : 'border-2 border-zinc-600 bg-transparent'
+                                    }`}>
+                                        {voted && <Check size={14} className="text-white" strokeWidth={3} />}
+                                    </div>
+
+                                    {/* Label + bar */}
+                                    <div className="flex-1 min-w-0">
+                                        {/* Label row */}
+                                        <div className="flex items-center justify-between mb-1.5">
+                                            <span className={`text-sm font-medium truncate ${voted ? 'text-white' : 'text-zinc-300'}`}>
                                                 {option.label}
                                             </span>
+                                            {showBar && (
+                                                <span className={`text-xs font-bold tabular-nums ml-3 shrink-0 ${voted ? 'text-emerald-400' : 'text-zinc-500'}`}>
+                                                    {pct}%
+                                                </span>
+                                            )}
                                         </div>
-                                        {(hasVoted || isExpired) && (
-                                            <span className={`text-xs font-bold ${voted ? 'text-emerald-400' : 'text-zinc-500'}`}>
-                                                {pct}%
-                                            </span>
-                                        )}
+
+                                        {/* Thin progress bar */}
+                                        <div className="w-full h-1 rounded-full bg-zinc-800 overflow-hidden">
+                                            <div
+                                                className={`h-full rounded-full transition-all duration-700 ease-out ${
+                                                    voted ? 'bg-emerald-500' : 'bg-zinc-600'
+                                                }`}
+                                                style={{ width: showBar ? `${pct}%` : '0%' }}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             </button>
@@ -132,7 +141,7 @@ export default function PollBlock({ poll, currentUserId }: PollBlockProps) {
             </div>
 
             {!currentUserId && (
-                <p className="text-[11px] text-zinc-500 text-center">Einloggen um abzustimmen</p>
+                <p className="text-[11px] text-zinc-600 text-center pt-1">Einloggen, um abzustimmen</p>
             )}
         </div>
     );

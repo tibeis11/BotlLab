@@ -112,7 +112,7 @@ export default async function SavedPage({ searchParams }: PageProps) {
 
                     {/* ── Empty state ────────────────────────────────── */}
                     {filtered.length === 0 && (
-                        <div className="text-center py-20 border border-dashed border-zinc-800 rounded-2xl">
+                        <div className="text-center py-20">
                             <Bookmark size={36} className="mx-auto text-zinc-700 mb-4" />
                             <h3 className="font-bold text-zinc-300 mb-1">Nichts gespeichert</h3>
                             <p className="text-sm text-zinc-600 mb-6">
@@ -120,7 +120,7 @@ export default async function SavedPage({ searchParams }: PageProps) {
                                     ? 'Du hast noch keine Threads gespeichert.'
                                     : activeTab === 'posts'
                                     ? 'Du hast noch keine Beiträge gespeichert.'
-                                    : 'Klicke auf das 🔖-Symbol in einem Thread oder Beitrag, um ihn hier zu speichern.'}
+                                    : 'Klicke auf das Lesezeichen-Symbol in einem Thread oder Beitrag, um ihn hier zu speichern.'}
                             </p>
                             <Link
                                 href="/forum"

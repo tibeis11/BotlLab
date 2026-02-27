@@ -174,8 +174,7 @@ export default async function ForumCategoryPage({ params, searchParams }: PagePr
                             tag={tag}
                         />
                     ) : (
-                        <div className="text-center py-16 border border-dashed border-zinc-800 rounded-2xl">
-                            <div className="text-3xl mb-3">🦗</div>
+                        <div className="text-center py-16">
                             <h3 className="font-bold text-zinc-300 mb-1">Hier ist es noch still</h3>
                             <p className="text-sm text-zinc-600 mb-5">Keine Threads in dieser Kategorie.</p>
                             <Link

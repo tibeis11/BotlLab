@@ -401,7 +401,8 @@ export default function PublicScanPage() {
       const payload = {
         ...submissionData,
         brew_id: brewId,
-        ip_address: userIp
+        ip_address: userIp,
+        qr_verified: true, // Route /b/[id] is only reachable via QR-code scan
       };
       console.log('Sende Rating:', payload);
 

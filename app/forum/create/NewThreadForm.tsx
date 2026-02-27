@@ -4,7 +4,7 @@ import { useActionState, useState, useRef } from 'react';
 import { createThread } from '@/lib/actions/forum-actions';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, Beaker } from 'lucide-react';
 import CustomSelect from '@/app/components/CustomSelect';
 import MarkdownToolbar from '@/app/forum/_components/MarkdownToolbar';
 import PollCreator from './PollCreator';
@@ -90,7 +90,9 @@ export default function NewThreadForm({ categories, preselectedBrewId, initialTi
                          {linkedBrew.image_url ? (
                             <img src={linkedBrew.image_url} className="w-full h-full object-cover" />
                         ) : (
-                            <div className="w-full h-full flex items-center justify-center text-xl">🍺</div>
+                            <div className="w-full h-full flex items-center justify-center bg-zinc-900">
+                                <Beaker className="w-5 h-5 text-zinc-600" />
+                            </div>
                         )}
                     </div>
                     <div>
@@ -102,7 +104,7 @@ export default function NewThreadForm({ categories, preselectedBrewId, initialTi
 
             {state.error && (
                 <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 p-4 rounded-xl text-sm font-bold">
-                    ⚠️ {typeof state.error === 'string' ? state.error : 'Bitte überprüfe deine Eingaben.'}
+                    <AlertTriangle className="inline w-3.5 h-3.5 mr-1" />{typeof state.error === 'string' ? state.error : 'Bitte überprüfe deine Eingaben.'}
                 </div>
             )}
 

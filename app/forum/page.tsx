@@ -63,7 +63,7 @@ export default async function ForumIndexPage({ searchParams }: PageProps) {
                         <div>
                             <p className="text-emerald-400 font-bold uppercase tracking-widest text-xs mb-2">Community Forum</p>
                             <h1 className="text-2xl md:text-4xl font-black tracking-tight mb-2 leading-tight">
-                                Diskutiere mit<br className="hidden md:block" />
+                                Diskutiere mit{' '}<br className="hidden md:block" />
                                 <span className="text-emerald-400">Craft Beer Brauern</span>
                             </h1>
                             <p className="hidden md:block text-zinc-400 max-w-md text-sm mb-4">
@@ -85,8 +85,8 @@ export default async function ForumIndexPage({ searchParams }: PageProps) {
                             <span className="font-bold text-white">{stats.threadCount}</span> Threads
                         </div>
                         <div className="flex items-center gap-1.5 text-xs text-zinc-400">
-                            <Users className="w-3.5 h-3.5 text-blue-400" />
-                            <span className="font-bold text-white">{stats.postCount}</span> Beiträge
+                            <Users className="w-3.5 h-3.5 text-zinc-400" />
+                            <span className="font-bold text-white">{stats.postCount + stats.threadCount}</span> Beiträge
                         </div>
                     </div>
                 </div>
@@ -101,19 +101,15 @@ export default async function ForumIndexPage({ searchParams }: PageProps) {
                     >
                         Alle
                     </Link>
-                    {categories.map((cat: any, i: number) => {
-                        const Icon = iconMap[cat.icon ?? ''] ?? MessageSquare;
-                        return (
-                            <Link
-                                key={cat.id}
-                                href={`/forum/${cat.slug}`}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 border border-zinc-800 text-zinc-300 text-sm font-medium rounded-full shrink-0 hover:border-zinc-600 transition"
-                            >
-                                <Icon className={`w-3.5 h-3.5 ${categoryAccents[i % categoryAccents.length]}`} />
-                                {cat.title}
-                            </Link>
-                        );
-                    })}
+                    {categories.map((cat: any) => (
+                        <Link
+                            key={cat.id}
+                            href={`/forum/${cat.slug}`}
+                            className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 text-zinc-300 text-sm font-medium rounded-full shrink-0 hover:border-zinc-600 transition"
+                        >
+                            {cat.title}
+                        </Link>
+                    ))}
                 </div>
             </div>
 
@@ -156,8 +152,7 @@ export default async function ForumIndexPage({ searchParams }: PageProps) {
                                 ))}
                             </div>
                         ) : (
-                            <div className="text-center py-16 border border-dashed border-zinc-800 rounded-2xl">
-                                <div className="text-3xl mb-3">🍺</div>
+                            <div className="text-center py-16">
                                 <p className="font-bold text-zinc-400 mb-1">Noch keine Diskussionen</p>
                                 <p className="text-sm text-zinc-600 mb-4">Sei der Erste und starte ein Thema!</p>
                                 <Link

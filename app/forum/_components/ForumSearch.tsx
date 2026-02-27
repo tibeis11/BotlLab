@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, X, MessageSquare, ArrowRight, Loader2 } from 'lucide-react';
+import { Search, X, MessageSquare, CheckCircle2, Loader2 } from 'lucide-react';
 
 interface SearchThread {
     id: string;
@@ -34,6 +34,20 @@ interface ForumSearchProps {
     compact?: boolean;
 }
 
+/** Strip common markdown syntax for clean preview text */
+function stripMarkdown(text: string): string {
+    return text
+        .replace(/^#{1,6}\s+/gm, '')
+        .replace(/\*\*(.+?)\*\*/g, '$1')
+        .replace(/\*(.+?)\*/g, '$1')
+        .replace(/`{1,3}[^`]*`{1,3}/g, '')
+        .replace(/\[(.+?)\]\(.+?\)/g, '$1')
+        .replace(/^>\s+/gm, '')
+        .replace(/^[-*+]\s+/gm, '')
+        .replace(/\n+/g, ' ')
+        .trim();
+}
+
 export default function ForumSearch({ compact }: ForumSearchProps = {}) {
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState('');
@@ -56,6 +70,12 @@ export default function ForumSearch({ compact }: ForumSearchProps = {}) {
         document.addEventListener('keydown', handler);
         return () => document.removeEventListener('keydown', handler);
     }, []);
+
+    // Lock body scroll when open
+    useEffect(() => {
+        document.body.style.overflow = open ? 'hidden' : '';
+        return () => { document.body.style.overflow = ''; };
+    }, [open]);
 
     // Focus input when opened
     useEffect(() => {
@@ -102,6 +122,7 @@ export default function ForumSearch({ compact }: ForumSearchProps = {}) {
 
     const totalResults = results.threads.length + results.posts.length;
 
+    // ── Trigger ────────────────────────────────────────────────────────
     if (!open) {
         if (compact) {
             return (
@@ -122,25 +143,24 @@ export default function ForumSearch({ compact }: ForumSearchProps = {}) {
             >
                 <Search className="w-4 h-4 shrink-0" />
                 <span className="flex-1 text-left text-zinc-600">Forum durchsuchen…</span>
-                <kbd className="hidden sm:inline-flex items-center gap-0.5 text-[10px] bg-zinc-800 text-zinc-600 px-1.5 py-0.5 rounded border border-zinc-700 font-mono">
-                    ⌘K
-                </kbd>
             </button>
         );
     }
 
+    // ── Open overlay ───────────────────────────────────────────────────
     return (
-        <div className="fixed inset-0 z-[100] flex items-start justify-center pt-[10vh] px-4">
-            {/* Backdrop */}
+        <div className="fixed inset-0 z-[100] flex flex-col sm:flex-row sm:items-start sm:justify-center sm:pt-[10vh] sm:px-4">
+            {/* Backdrop — only on sm+ (on mobile the overlay IS the full screen) */}
             <div
-                className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+                className="hidden sm:block absolute inset-0 bg-black/70 backdrop-blur-sm"
                 onClick={() => setOpen(false)}
             />
 
-            {/* Modal */}
-            <div className="relative w-full max-w-xl bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-                {/* Search input */}
-                <div className="flex items-center gap-3 px-4 py-3.5 border-b border-zinc-800">
+            {/* Panel — full-screen on mobile, modal on desktop */}
+            <div className="relative flex-1 flex flex-col w-full sm:flex-none sm:h-auto sm:max-w-xl sm:rounded-2xl bg-zinc-950 sm:border sm:border-zinc-800 sm:shadow-2xl sm:overflow-hidden animate-in fade-in sm:zoom-in-95 duration-150">
+
+                {/* ── Input row ── */}
+                <div className="flex items-center gap-3 px-4 py-3.5 border-b border-zinc-800 shrink-0">
                     {loading ? (
                         <Loader2 className="w-5 h-5 text-zinc-500 shrink-0 animate-spin" />
                     ) : (
@@ -153,40 +173,43 @@ export default function ForumSearch({ compact }: ForumSearchProps = {}) {
                         placeholder="Forum durchsuchen…"
                         className="flex-1 bg-transparent text-white placeholder:text-zinc-600 outline-none text-base"
                     />
-                    {query && (
-                        <button
-                            onClick={() => { setQuery(''); setResults({ threads: [], posts: [] }); setHasSearched(false); inputRef.current?.focus(); }}
-                            className="text-zinc-600 hover:text-zinc-400 transition"
-                        >
-                            <X className="w-4 h-4" />
-                        </button>
-                    )}
                     <button
-                        onClick={() => setOpen(false)}
-                        className="text-zinc-600 hover:text-zinc-400 transition text-xs font-medium bg-zinc-900 border border-zinc-800 px-2 py-1 rounded-lg"
+                        onClick={() => {
+                            if (query) {
+                                setQuery('');
+                                setResults({ threads: [], posts: [] });
+                                setHasSearched(false);
+                                inputRef.current?.focus();
+                            } else {
+                                setOpen(false);
+                            }
+                        }}
+                        className="text-zinc-500 hover:text-white transition"
+                        aria-label={query ? 'Eingabe löschen' : 'Suche schließen'}
                     >
-                        Esc
+                        <X className="w-5 h-5" />
                     </button>
                 </div>
 
-                {/* Results */}
-                <div className="max-h-[60vh] overflow-y-auto">
+                {/* ── Results ── */}
+                <div className="flex-1 min-h-0 overflow-y-auto">
                     {!query && !hasSearched && (
-                        <div className="py-10 text-center text-zinc-600 text-sm">
+                        <div className="py-16 text-center text-zinc-600 text-sm">
                             Suchbegriff eingeben…
                         </div>
                     )}
 
                     {query.length > 0 && query.length < 2 && (
-                        <div className="py-8 text-center text-zinc-600 text-sm">
+                        <div className="py-12 text-center text-zinc-600 text-sm">
                             Mindestens 2 Zeichen eingeben
                         </div>
                     )}
 
                     {hasSearched && !loading && totalResults === 0 && (
-                        <div className="py-10 text-center">
-                            <div className="text-2xl mb-2">🍺</div>
-                            <p className="text-zinc-500 font-medium text-sm">Keine Ergebnisse für <span className="text-zinc-300">&quot;{query}&quot;</span></p>
+                        <div className="py-16 text-center">
+                            <p className="text-zinc-500 font-medium text-sm">
+                                Keine Ergebnisse für <span className="text-zinc-300">&quot;{query}&quot;</span>
+                            </p>
                         </div>
                     )}
 
@@ -199,11 +222,9 @@ export default function ForumSearch({ compact }: ForumSearchProps = {}) {
                                 <button
                                     key={thread.id}
                                     onClick={() => navigate(`/forum/thread/${thread.id}`)}
-                                    className="w-full text-left flex items-start gap-3 px-3 py-3 rounded-xl hover:bg-zinc-900 transition group"
+                                    className="w-full text-left flex items-start gap-3 px-3 py-3 rounded-xl hover:bg-zinc-900 active:bg-zinc-900 transition group"
                                 >
-                                    <div className="mt-0.5 p-1.5 bg-zinc-900 group-hover:bg-zinc-800 border border-zinc-800 rounded-lg shrink-0 transition">
-                                        <MessageSquare className="w-3.5 h-3.5 text-emerald-500" />
-                                    </div>
+                                    <MessageSquare className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-1" />
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                                             {thread.category && (
@@ -212,7 +233,9 @@ export default function ForumSearch({ compact }: ForumSearchProps = {}) {
                                                 </span>
                                             )}
                                             {thread.is_solved && (
-                                                <span className="text-[10px] font-bold text-emerald-400">✅ Gelöst</span>
+                                                <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-500">
+                                                    <CheckCircle2 className="w-3 h-3" /> Gelöst
+                                                </span>
                                             )}
                                         </div>
                                         <p className="text-sm font-semibold text-zinc-200 group-hover:text-white transition line-clamp-1">
@@ -220,17 +243,14 @@ export default function ForumSearch({ compact }: ForumSearchProps = {}) {
                                         </p>
                                         {thread.content && (
                                             <p className="text-xs text-zinc-600 line-clamp-1 mt-0.5">
-                                                {thread.content.slice(0, 120)}
+                                                {stripMarkdown(thread.content).slice(0, 120)}
                                             </p>
                                         )}
                                         <div className="flex items-center gap-2 mt-1 text-[11px] text-zinc-600">
                                             {thread.author?.display_name && <span>@{thread.author.display_name}</span>}
-                                            {thread.reply_count != null && (
-                                                <span>{thread.reply_count} Antworten</span>
-                                            )}
+                                            {thread.reply_count != null && <span>{thread.reply_count} Antworten</span>}
                                         </div>
                                     </div>
-                                    <ArrowRight className="w-4 h-4 text-zinc-700 group-hover:text-zinc-400 transition shrink-0 mt-1" />
                                 </button>
                             ))}
                         </div>
@@ -245,11 +265,9 @@ export default function ForumSearch({ compact }: ForumSearchProps = {}) {
                                 <button
                                     key={post.id}
                                     onClick={() => navigate(`/forum/thread/${post.thread?.id}`)}
-                                    className="w-full text-left flex items-start gap-3 px-3 py-3 rounded-xl hover:bg-zinc-900 transition group"
+                                    className="w-full text-left flex items-start gap-3 px-3 py-3 rounded-xl hover:bg-zinc-900 active:bg-zinc-900 transition group"
                                 >
-                                    <div className="mt-0.5 p-1.5 bg-zinc-900 group-hover:bg-zinc-800 border border-zinc-800 rounded-lg shrink-0 transition">
-                                        <MessageSquare className="w-3.5 h-3.5 text-blue-400" />
-                                    </div>
+                                    <MessageSquare className="w-3.5 h-3.5 text-zinc-500 shrink-0 mt-1" />
                                     <div className="flex-1 min-w-0">
                                         {post.thread && (
                                             <p className="text-xs text-zinc-500 mb-0.5 line-clamp-1">
@@ -257,26 +275,19 @@ export default function ForumSearch({ compact }: ForumSearchProps = {}) {
                                             </p>
                                         )}
                                         <p className="text-sm text-zinc-300 group-hover:text-white transition line-clamp-2">
-                                            {post.content.slice(0, 160)}
+                                            {stripMarkdown(post.content).slice(0, 160)}
                                         </p>
                                         {post.author?.display_name && (
                                             <p className="text-[11px] text-zinc-600 mt-1">@{post.author.display_name}</p>
                                         )}
                                     </div>
-                                    <ArrowRight className="w-4 h-4 text-zinc-700 group-hover:text-zinc-400 transition shrink-0 mt-1" />
                                 </button>
                             ))}
                         </div>
                     )}
                 </div>
-
-                {/* Footer */}
-                <div className="border-t border-zinc-900 px-4 py-2 flex items-center gap-3 text-[11px] text-zinc-700">
-                    <span><kbd className="font-mono">↑↓</kbd> navigieren</span>
-                    <span><kbd className="font-mono">↵</kbd> öffnen</span>
-                    <span><kbd className="font-mono">Esc</kbd> schließen</span>
-                </div>
             </div>
         </div>
     );
 }
+
