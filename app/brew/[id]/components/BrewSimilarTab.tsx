@@ -64,43 +64,24 @@ export default function BrewSimilarTab({ brew }: Props) {
 
     (async () => {
 
-      const queries: Promise<any>[] = [];
+      const SELECT = 'id, name, style, brew_type, image_url, quality_score, avg_rating:ratings(rating.avg()), rating_count:ratings(count), user_id, brewery_id, brewer:profiles(display_name)';
 
-      // Similar by style
-      if (brew.style || brew.brew_type) {
-        const q = supabase
-          .from('brews')
-          .select('id, name, style, brew_type, image_url, quality_score, avg_rating:ratings(rating.avg()), rating_count:ratings(count), user_id, brewery_id, brewer:profiles(display_name)')
-          .neq('id', brew.id)
-          .eq('moderation_status', 'approved')
-          .order('quality_score', { ascending: false })
-          .limit(6);
-        if (brew.style) q.eq('style', brew.style);
-        else q.eq('brew_type', brew.brew_type);
-        queries.push(q);
-      } else {
-        queries.push(Promise.resolve({ data: [] }));
-      }
+      // Similar by style — build complete query before awaiting
+      const stylePromise: Promise<{ data: any[] | null }> = (brew.style || brew.brew_type)
+        ? (brew.style
+            ? supabase.from('brews').select(SELECT).neq('id', brew.id).eq('moderation_status', 'approved').eq('style', brew.style).order('quality_score', { ascending: false }).limit(6)
+            : supabase.from('brews').select(SELECT).neq('id', brew.id).eq('moderation_status', 'approved').eq('brew_type', brew.brew_type).order('quality_score', { ascending: false }).limit(6)
+          )
+        : Promise.resolve({ data: [] });
 
       // Same brewer
       const brewerId = brew.brewery_id ?? brew.user_id;
-      if (brewerId) {
-        const brewerField = brew.brewery_id ? 'brewery_id' : 'user_id';
-        queries.push(
-          supabase
-            .from('brews')
-            .select('id, name, style, brew_type, image_url, quality_score, avg_rating:ratings(rating.avg()), rating_count:ratings(count), user_id, brewery_id, brewer:profiles(display_name)')
-            .neq('id', brew.id)
-            .eq(brewerField, brewerId)
-            .eq('moderation_status', 'approved')
-            .order('quality_score', { ascending: false })
-            .limit(6)
-        );
-      } else {
-        queries.push(Promise.resolve({ data: [] }));
-      }
+      const brewerField = brew.brewery_id ? 'brewery_id' : 'user_id';
+      const brewerPromise: Promise<{ data: any[] | null }> = brewerId
+        ? supabase.from('brews').select(SELECT).neq('id', brew.id).eq(brewerField, brewerId).eq('moderation_status', 'approved').order('quality_score', { ascending: false }).limit(6)
+        : Promise.resolve({ data: [] });
 
-      const [styleRes, brewerRes] = await Promise.all(queries);
+      const [styleRes, brewerRes] = await Promise.all([stylePromise, brewerPromise]);
       setStyleBrews(styleRes.data ?? []);
       setBrewerBrews(brewerRes.data ?? []);
       setLoading(false);

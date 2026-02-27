@@ -157,8 +157,8 @@ export default function BrewRatingsTab({ ratings, tasteProfile, flavorTags, avgR
               <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-4">Radar</p>
               <TasteRadarChart profile={tasteProfile} />
             </div>
-            <div className="flex flex-col py-4">
-              <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-4 text-center">Häufigste Attribute</p>
+            <div className="flex flex-col justify-center py-4">
+              <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-5">Häufigste Attribute</p>
               <FlavorTagCloud tags={flavorTags} />
             </div>
           </div>
