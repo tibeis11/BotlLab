@@ -9,6 +9,7 @@ import {
     Plus,
     LayoutList,
     Bookmark,
+    FlaskConical,
 } from 'lucide-react';
 import { getForumCategories } from '@/lib/forum-service';
 
@@ -76,6 +77,22 @@ export default async function ForumSidebar({ activeSlug, activeSaved }: Props) {
                         <span className="flex items-center gap-2">
                             <Bookmark className={`w-3.5 h-3.5 ${activeSaved ? 'fill-amber-400' : ''}`} />
                             Gespeichert
+                        </span>
+                    </Link>
+                    <Link
+                        href="/forum/rezept-kommentare"
+                        className={`relative text-left py-1.5 text-sm transition-colors ${
+                            activeSlug === 'rezept-kommentare'
+                                ? 'text-cyan-400 font-semibold'
+                                : 'text-zinc-500 hover:text-cyan-400'
+                        }`}
+                    >
+                        {activeSlug === 'rezept-kommentare' && (
+                            <span className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 w-0.5 h-4 bg-cyan-500 rounded-full" />
+                        )}
+                        <span className="flex items-center gap-2">
+                            <FlaskConical className="w-3.5 h-3.5" />
+                            Rezept-Kommentare
                         </span>
                     </Link>
                 </div>

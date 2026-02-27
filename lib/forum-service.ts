@@ -5,6 +5,7 @@ export async function getForumCategories() {
     const { data } = await supabase
         .from('forum_categories')
         .select('*, thread_count:forum_threads(count)')
+        .neq('slug', 'rezept-kommentare')
         .order('sort_order');
     return (data || []).map((cat: any) => ({
         ...cat,
@@ -101,6 +102,21 @@ export async function getTrendingThreads(limit = 5) {
     return scored
         .sort((a, b) => b._hotScore - a._hotScore)
         .slice(0, limit);
+}
+
+export async function getRecentBrewCommentThreads(limit = 8) {
+    const supabase = await createClient();
+    const { data } = await supabase
+        .from('forum_threads')
+        .select(`
+            id, title, reply_count, last_reply_at, created_at,
+            brew:brews(id, name, image_url, style, brew_type)
+        `)
+        .eq('thread_type', 'brew_comments')
+        .is('deleted_at', null)
+        .order('last_reply_at', { ascending: false })
+        .limit(limit);
+    return data || [];
 }
 
 export async function getForumStats() {
