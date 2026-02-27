@@ -4,7 +4,7 @@ import {
     Megaphone, Scroll, Wrench, ShoppingBag, Coffee,
     MessageSquare, Flame, Plus, Users, FlaskConical,
 } from 'lucide-react';
-import { getForumCategories, getRecentThreads, getTrendingThreads, getForumStats, getRecentBrewCommentThreads } from '@/lib/forum-service';
+import { getForumCategories, getRecentThreads, getTrendingThreads, getForumStats } from '@/lib/forum-service';
 import ForumSidebar from './_components/ForumSidebar';
 import ForumRightRail from './_components/ForumRightRail';
 import ForumThreadCard from './_components/ForumThreadCard';
@@ -46,12 +46,11 @@ export default async function ForumIndexPage({ searchParams }: PageProps) {
     const { tab = 'new' } = await searchParams;
     const sort = tab === 'top' ? 'top' : ('new' as const);
 
-    const [categories, threads, trending, stats, brewCommentThreads] = await Promise.all([
+    const [categories, threads, trending, stats] = await Promise.all([
         getForumCategories(),
         getRecentThreads(12, sort),
         getTrendingThreads(6),
         getForumStats(),
-        getRecentBrewCommentThreads(8),
     ]);
 
     return (
@@ -173,67 +172,7 @@ export default async function ForumIndexPage({ searchParams }: PageProps) {
                         )}
                     </section>
 
-                    {/* ── Rezept-Kommentare Kachel ─────────────────────────── */}
-                    {brewCommentThreads.length > 0 && (
-                        <section className="border border-cyan-900/30 rounded-2xl bg-cyan-950/10 p-5">
-                            {/* Header */}
-                            <div className="flex items-center justify-between gap-3 mb-4">
-                                <div className="flex items-center gap-2">
-                                    <FlaskConical className="w-4 h-4 text-cyan-400" />
-                                    <h2 className="text-sm font-black uppercase tracking-[0.18em] text-cyan-300/90">
-                                        Rezept-Kommentare
-                                    </h2>
-                                </div>
-                                <Link
-                                    href="/forum/rezept-kommentare"
-                                    className="text-xs font-bold text-zinc-600 hover:text-cyan-400 transition-colors"
-                                >
-                                    Alle ansehen →
-                                </Link>
-                            </div>
 
-                            {/* Brew cards grid */}
-                            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-3 lg:grid-cols-4 gap-2 mb-4">
-                                {brewCommentThreads.slice(0, 8).map((thread: any) => {
-                                    const brew = thread.brew;
-                                    const href = brew
-                                        ? `/brew/${brew.id}?tab=kommentare`
-                                        : `/forum/thread/${thread.id}`;
-                                    return (
-                                        <Link
-                                            key={thread.id}
-                                            href={href}
-                                            className="flex flex-col gap-1.5 group"
-                                            title={brew?.name ?? thread.title}
-                                        >
-                                            <div className="w-full aspect-square rounded-xl bg-zinc-900 border border-zinc-800 group-hover:border-cyan-900/60 overflow-hidden flex items-center justify-center transition-colors">
-                                                {brew?.image_url ? (
-                                                    <img
-                                                        src={brew.image_url}
-                                                        alt={brew.name ?? ''}
-                                                        className="w-full h-full object-cover"
-                                                    />
-                                                ) : (
-                                                    <FlaskConical className="w-5 h-5 text-cyan-700/40" />
-                                                )}
-                                            </div>
-                                            <p className="text-[10px] font-semibold text-zinc-400 group-hover:text-cyan-300 truncate text-center transition-colors leading-tight px-0.5">
-                                                {brew?.name ?? thread.title}
-                                            </p>
-                                        </Link>
-                                    );
-                                })}
-                            </div>
-
-                            {/* Footer CTA */}
-                            <Link
-                                href="/forum/rezept-kommentare"
-                                className="flex items-center justify-center gap-2 w-full py-2 rounded-xl bg-cyan-950/40 hover:bg-cyan-950/70 border border-cyan-900/30 text-xs font-bold text-cyan-400/80 hover:text-cyan-300 transition-colors"
-                            >
-                                Alle Rezept-Diskussionen anzeigen
-                            </Link>
-                        </section>
-                    )}
                 </main>
 
                 {/* ── Right rail (xl only) ──────────────────────────────── */}
