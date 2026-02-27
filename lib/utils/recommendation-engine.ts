@@ -54,6 +54,45 @@ export interface UserProfile {
 /** Minimum number of own brews before full personalisation kicks in */
 export const NEEDS_MORE_DATA_THRESHOLD = 3;
 
+// ── Tunable weight structures (used by Admin → AlgorithmsView) ───────────────
+
+export interface RecWeights {
+  styleExact:   number;  // 0.35
+  styleFamily:  number;  // 0.20
+  hopJaccard:   number;  // 0.20
+  maltJaccard:  number;  // 0.10
+  abvProximity: number;  // 0.10
+  quality:      number;  // 0.05
+  likedStyle:   number;  // 0.05
+  complexity:   number;  // 0.03
+  viewedStyle:  number;  // 0.02
+  collab:       number;  // 0.15
+}
+
+export const DEFAULT_REC_WEIGHTS: RecWeights = {
+  styleExact:   0.35,
+  styleFamily:  0.20,
+  hopJaccard:   0.20,
+  maltJaccard:  0.10,
+  abvProximity: 0.10,
+  quality:      0.05,
+  likedStyle:   0.05,
+  complexity:   0.03,
+  viewedStyle:  0.02,
+  collab:       0.15,
+};
+
+export interface DiversitySplits {
+  comfort:     number;  // 0.80
+  exploration: number;  // 0.10
+  // freshness = 1 - comfort - exploration
+}
+
+export const DEFAULT_DIVERSITY_SPLITS: DiversitySplits = {
+  comfort:     0.80,
+  exploration: 0.10,
+};
+
 /** BJCP-inspired style family groupings for "close but different" recommendations */
 const STYLE_FAMILIES: Record<string, string[]> = {
   ipa:     ['IPA', 'NEIPA', 'West Coast IPA', 'Hazy IPA', 'Session IPA', 'Double IPA', 'DIPA', 'Imperial IPA'],
@@ -220,74 +259,73 @@ export function buildUserProfile(
  *  +0.05 liked-style bonus
  *  +0.03 complexity comfort bonus
  */
-export function scoreBrewForUser(brew: AnyBrew, profile: UserProfile): number {
+export function scoreBrewForUser(brew: AnyBrew, profile: UserProfile, weights?: Partial<RecWeights>): number {
+  const w: RecWeights = { ...DEFAULT_REC_WEIGHTS, ...weights };
   let score = 0;
 
-  // 1. Style exact match (0.35)
+  // 1. Style exact match
   if (brew.style && profile.ownStyles[brew.style]) {
-    score += 0.35 * Math.min(profile.ownStyles[brew.style] / 3, 1);
+    score += w.styleExact * Math.min(profile.ownStyles[brew.style] / 3, 1);
   }
 
-  // 2. Style family match (0.20)
+  // 2. Style family match
   const brewFam = styleFamily(brew.style);
   if (brewFam) {
     let famScore = 0;
     for (const [style, weight] of Object.entries(profile.ownStyles)) {
       if (styleFamily(style) === brewFam) famScore += weight;
     }
-    score += 0.20 * Math.min(famScore / 5, 1);
+    score += w.styleFamily * Math.min(famScore / 5, 1);
   }
 
-  // 3. Hop overlap – Jaccard (0.20)
+  // 3. Hop overlap – Jaccard
   const userHops = new Set(Object.keys(profile.ownHops));
   const brewHops = new Set<string>(
     (Array.isArray(brew.data?.hops) ? brew.data.hops : [])
       .map((h: AnyBrew) => h.name as string)
       .filter(Boolean),
   );
-  score += 0.20 * jaccard(userHops, brewHops);
+  score += w.hopJaccard * jaccard(userHops, brewHops);
 
-  // 4. Malt overlap – Jaccard (0.10)
+  // 4. Malt overlap – Jaccard
   const userMalts = new Set(Object.keys(profile.ownMalts));
   const brewMalts = new Set<string>(
     (Array.isArray(brew.data?.malts) ? brew.data.malts : [])
       .map((m: AnyBrew) => m.name as string)
       .filter(Boolean),
   );
-  score += 0.10 * jaccard(userMalts, brewMalts);
+  score += w.maltJaccard * jaccard(userMalts, brewMalts);
 
-  // 5. ABV proximity (0.10)
+  // 5. ABV proximity
   const brewAbv = extractAbv(brew);
   if (brewAbv != null && profile.avgAbv > 0) {
     const diff = Math.abs(profile.avgAbv - brewAbv);
-    score += 0.10 * Math.max(0, 1 - diff / 5);
+    score += w.abvProximity * Math.max(0, 1 - diff / 5);
   }
 
-  // 6. Quality normalised (0.05)
+  // 6. Quality normalised
   if (brew.quality_score != null) {
-    score += 0.05 * Math.min(brew.quality_score / 100, 1);
+    score += w.quality * Math.min(brew.quality_score / 100, 1);
   }
 
-  // Liked-style bonus (+0.05)
+  // Liked-style bonus
   if (brew.style && profile.likedStyles[brew.style]) {
-    score += 0.05 * Math.min(profile.likedStyles[brew.style] / 4, 1);
+    score += w.likedStyle * Math.min(profile.likedStyles[brew.style] / 4, 1);
   }
 
-  // Complexity comfort bonus (+0.03)
+  // Complexity comfort bonus
   if (profile.complexityMode && getComplexity(brew) === profile.complexityMode) {
-    score += 0.03;
+    score += w.complexity;
   }
 
-  // Viewed-style curiosity bonus (+0.02) — Stufe B
-  // User dwelt on similar brews → soft interest signal
+  // Viewed-style curiosity bonus — Stufe B
   if (brew.style && profile.viewedStyles[brew.style]) {
-    score += 0.02 * Math.min(profile.viewedStyles[brew.style] / 3, 1);
+    score += w.viewedStyle * Math.min(profile.viewedStyles[brew.style] / 3, 1);
   }
 
-  // Collaborative filtering bonus (+0.15) — Stufe C
-  // Similar users liked/brewed this → strong cross-user signal
+  // Collaborative filtering bonus — Stufe C
   if (profile.collaborativeBrewIds.has(brew.id)) {
-    score += 0.15;
+    score += w.collab;
   }
 
   return score;
@@ -348,7 +386,11 @@ export function getPersonalizedBrews(
   profile:    UserProfile,
   trending:   AnyBrew[],
   maxResults = 10,
+  weights?:   Partial<RecWeights>,
+  splits?:    Partial<DiversitySplits>,
 ): AnyBrew[] {
+  const s: DiversitySplits = { ...DEFAULT_DIVERSITY_SPLITS, ...splits };
+
   // Exclude the user's own brews and brews they already copied
   const candidates = pool.filter(
     b => !profile.ownBrewIds.has(b.id) && !profile.copiedBrewIds.has(b.id),
@@ -358,31 +400,31 @@ export function getPersonalizedBrews(
 
   // Score + rank
   const scored = candidates
-    .map(b => ({ brew: b, score: scoreBrewForUser(b, profile) }))
+    .map(b => ({ brew: b, score: scoreBrewForUser(b, profile, weights) }))
     .sort((a, b) => b.score - a.score);
 
-  // Comfort slice (80%)
-  const comfortCount = Math.max(1, Math.floor(maxResults * 0.8));
-  const comfort      = scored.slice(0, comfortCount).map(s => s.brew);
+  // Comfort slice
+  const comfortCount = Math.max(1, Math.floor(maxResults * s.comfort));
+  const comfort      = scored.slice(0, comfortCount).map(sc => sc.brew);
   const resultIds    = new Set(comfort.map(b => b.id));
 
-  // Exploration slot (10%) — style family the user has *never* brewed
+  // Exploration slot — style family the user has *never* brewed
   const seenFamilies = new Set<string | null>(comfort.map(b => styleFamily(b.style)));
   const userFamilies = new Set<string | null>(
-    Object.keys(profile.ownStyles).map(s => styleFamily(s)),
+    Object.keys(profile.ownStyles).map(st => styleFamily(st)),
   );
   let exploration: AnyBrew | null = null;
-  for (const s of scored) {
-    if (resultIds.has(s.brew.id)) continue;
-    const f = styleFamily(s.brew.style);
+  for (const sc of scored) {
+    if (resultIds.has(sc.brew.id)) continue;
+    const f = styleFamily(sc.brew.style);
     if (f && !seenFamilies.has(f) && !userFamilies.has(f)) {
-      exploration = s.brew;
+      exploration = sc.brew;
       break;
     }
   }
   // Fallback: next best not already in comfort
   if (!exploration) {
-    exploration = scored.find(s => !resultIds.has(s.brew.id))?.brew ?? null;
+    exploration = scored.find(sc => !resultIds.has(sc.brew.id))?.brew ?? null;
   }
 
   const result = [...comfort];
@@ -391,7 +433,7 @@ export function getPersonalizedBrews(
     resultIds.add(exploration.id);
   }
 
-  // Freshness slot (10%) — highest trending_score not already in result
+  // Freshness slot — highest trending_score not already in result
   const freshnessCandidate = trending.find(
     b => !resultIds.has(b.id) && !profile.ownBrewIds.has(b.id),
   );

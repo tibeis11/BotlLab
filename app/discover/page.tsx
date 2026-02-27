@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { Metadata } from 'next';
 import { createClient } from '@/lib/supabase-server';
+import { getAlgorithmSettings } from '@/lib/algorithm-settings';
 import { getDiscoverSettings } from '@/lib/actions/brew-admin-actions';
 import DiscoverClient from './DiscoverClient';
 
@@ -113,11 +114,12 @@ const FACTS = [
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default async function DiscoverPage() {
   // Parallel — unabhängige Queries, kein Waterfall
-  const [initialBrews, initialTrending, initialFeatured, settings] = await Promise.all([
+  const [initialBrews, initialTrending, initialFeatured, settings, algoSettings] = await Promise.all([
     getInitialBrews(),
     getTrendingBrews(),
     getFeaturedBrews(),
     getDiscoverSettings().catch(() => ({ collab_diversity_cap: 3 })),
+    getAlgorithmSettings().catch(() => undefined),
   ]);
 
   const randomFact = FACTS[Math.floor(Math.random() * FACTS.length)];
@@ -130,6 +132,7 @@ export default async function DiscoverPage() {
         initialFeatured={initialFeatured} 
         initialRandomFact={randomFact}
         collabDiversityCap={settings.collab_diversity_cap ?? 3}
+        algoSettings={algoSettings}
       />
     </Suspense>
   );

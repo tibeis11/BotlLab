@@ -15,7 +15,12 @@ import {
   getRecommendationReason,
   scoreBrewForUser,
   NEEDS_MORE_DATA_THRESHOLD,
+  DEFAULT_REC_WEIGHTS,
+  DEFAULT_DIVERSITY_SPLITS,
+  type RecWeights,
+  type DiversitySplits,
 } from '@/lib/utils/recommendation-engine';
+import type { AlgorithmSettings } from '@/lib/algorithm-settings';
 import { Flame, Heart, Star, Sparkles, Search, Filter, SearchX, ChevronDown, ChevronLeft, ChevronRight, X, ArrowLeft, Clock, Loader2, TrendingUp, BadgeCheck, Check, LayoutGrid, List } from 'lucide-react';
 import Image from 'next/image';
 import { Section, SectionHeader } from './_components/DiscoverSection';
@@ -58,6 +63,7 @@ export default function DiscoverClient({
   initialFeatured,
   initialRandomFact,
   collabDiversityCap = 3,
+  algoSettings,
 }: { 
   initialBrews: Brew[]; 
   initialTrending: Brew[]; 
@@ -65,6 +71,8 @@ export default function DiscoverClient({
   initialRandomFact: string;
   /** Diversity-Cap aus platform_settings.collab_diversity_cap (SSR) */
   collabDiversityCap?: number;
+  /** Admin-konfigurierbare Algorithmus-Parameter (SSR) */
+  algoSettings?: AlgorithmSettings;
 }) {
   // Singleton imported
   const supabase = useSupabase();
@@ -393,21 +401,25 @@ export default function DiscoverClient({
     //
     // Minimum: ≥2 Ratings (verhindert 1×5★ ganz oben)
     const now = Date.now();
-    const M = 3; const C = 3.5; // Bayesian-Konstanten
+    const M    = algoSettings?.bestrated_bayesian_m       ?? 3;
+    const C    = algoSettings?.bestrated_bayesian_c       ?? 3.5;
+    const floor = algoSettings?.bestrated_recency_floor   ?? 0.4;
+    const hl    = algoSettings?.bestrated_recency_halflife ?? 45;
+    const minR  = algoSettings?.bestrated_min_ratings     ?? 2;
     return [...brews]
-      .filter(b => (b.ratings?.length || 0) >= 2)
+      .filter(b => (b.ratings?.length || 0) >= minR)
       .map(b => {
         const n = b.ratings!.length;
         const r = b.ratings!.reduce((s, x) => s + x.rating, 0) / n;
         const bayesianAvg = (M * C + n * r) / (M + n);
         const ageDays = (now - new Date(b.created_at).getTime()) / 86_400_000;
-        const recencyFactor = 0.4 + 0.6 * Math.exp(-ageDays / 45);
+        const recencyFactor = floor + (1 - floor) * Math.exp(-ageDays / hl);
         return { brew: b, hotScore: bayesianAvg * recencyFactor, recencyFactor };
       })
       .sort((a, b) => b.hotScore - a.hotScore)
       .slice(0, 10)
       .map(x => ({ ...x.brew, _recencyFactor: x.recencyFactor }));
-  }, [brews]) as (Brew & { _recencyFactor?: number })[];
+  }, [brews, algoSettings]) as (Brew & { _recencyFactor?: number })[];
 
   const newest = useMemo(() => {
     return [...brews].sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 10);
@@ -439,15 +451,33 @@ export default function DiscoverClient({
       return getQualityFallback(uniquePool, ownIds, 10) as Brew[];
     }
 
+    // Admin-konfigurierbare Gewichte und Splits aus SSR-Props
+    const recWeights: Partial<RecWeights> = algoSettings ? {
+      styleExact:   algoSettings.rec_weight_style_exact,
+      styleFamily:  algoSettings.rec_weight_style_family,
+      hopJaccard:   algoSettings.rec_weight_hop_jaccard,
+      maltJaccard:  algoSettings.rec_weight_malt_jaccard,
+      abvProximity: algoSettings.rec_weight_abv_proximity,
+      quality:      algoSettings.rec_weight_quality,
+      likedStyle:   algoSettings.rec_weight_liked_style,
+      complexity:   algoSettings.rec_weight_complexity,
+      viewedStyle:  algoSettings.rec_weight_viewed_style,
+      collab:       algoSettings.rec_weight_collab,
+    } : {};
+    const diversitySplits: Partial<DiversitySplits> = algoSettings ? {
+      comfort:     algoSettings.rec_diversity_comfort,
+      exploration: algoSettings.rec_diversity_exploration,
+    } : {};
+
     // buildUserProfile jetzt mit allen Stufen-Signalen
     const profile = buildUserProfile(userBrews, likedBrews, highRatedBrews, viewedBrews, collaborativeBrewIds);
     // Brews mit ihrem Personalisierungs-Score und Grund annotieren (für Portrait-Tooltip + Admin-Debug)
-    return (getPersonalizedBrews(uniquePool, profile, trending, 10) as Brew[]).map(b => ({
+    return (getPersonalizedBrews(uniquePool, profile, trending, 10, recWeights, diversitySplits) as Brew[]).map(b => ({
       ...b,
-      personalization_score: Math.round(scoreBrewForUser(b, profile) * 100) / 100,
+      personalization_score: Math.round(scoreBrewForUser(b, profile, recWeights) * 100) / 100,
       recommendation_reason: getRecommendationReason(b, profile),
     }));
-  }, [currentUserId, userBrews, highRatedBrews, brews, trending, featured, viewedBrews, collaborativeBrewIds, collaborativeBrews]);
+  }, [currentUserId, userBrews, highRatedBrews, brews, trending, featured, viewedBrews, collaborativeBrewIds, collaborativeBrews, algoSettings]);
 
   const isFiltering =
     search.length > 0 ||

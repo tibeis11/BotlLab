@@ -1,0 +1,143 @@
+/**
+ * Algorithm Settings
+ * ------------------
+ * Liest Algorithmus-Parameter aus der platform_settings-Tabelle.
+ * Dient als gemeinsamer Utility für forum-service.ts (Server) und
+ * den Admin-Actions (brew-admin-actions.ts).
+ *
+ * Keine 'use server'-Direktive — kann von beliebigem Server-Code importiert werden.
+ */
+
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+
+/** Defaults — gelten wenn kein DB-Eintrag vorhanden */
+export const ALGORITHM_DEFAULTS = {
+  // ── Forum Hot Score ────────────────────────────────────────────
+  forum_hot_replies_weight: 3,
+  forum_hot_views_divisor: 20,
+  forum_hot_age_exponent: 1.5,
+  forum_hot_window_days: 14,
+
+  // ── Brew Trending Score (DB-Cronjob + JS-Recalc) ─────────────
+  trending_likes_weight: 1,
+  trending_brewed_weight: 3,
+  trending_age_exponent: 1.5,
+
+  // ── Best-Rated Score (Bayesian Average + Recency Decay) ───────
+  bestrated_bayesian_m: 3,          // Min-Vote-Anker (Stimmgewicht des Priors)
+  bestrated_bayesian_c: 3.5,        // Prior-Schnitt (geschätzter globaler Durchschnitt)
+  bestrated_recency_floor: 0.4,     // Untergrenze des Recency-Faktors (0–1)
+  bestrated_recency_halflife: 45,   // Alter in Tagen, bei dem der Recency-Faktor auf ~62 % sinkt
+  bestrated_min_ratings: 2,         // Mindest-Bewertungsanzahl für Aufnahme
+
+  // ── Personalisierung – Ähnlichkeits-Gewichte (Summe ≈ 1.10) ──
+  rec_weight_style_exact: 0.35,     // Exaktes Style-Match (eigene Brews)
+  rec_weight_style_family: 0.20,    // Style-Familie (BJCP-Gruppe)
+  rec_weight_hop_jaccard: 0.20,     // Hopfen-Überschneidung (Jaccard)
+  rec_weight_malt_jaccard: 0.10,    // Malz-Überschneidung (Jaccard)
+  rec_weight_abv_proximity: 0.10,   // ABV-Nähe (±5% Toleranz)
+  rec_weight_quality: 0.05,         // Quality-Score-Bonus (0–100 normiert)
+  rec_weight_liked_style: 0.05,     // Bonus für gelikte Styles
+  rec_weight_complexity: 0.03,      // Bonus für Komplexitäts-Match
+  rec_weight_viewed_style: 0.02,    // Implizites Signal: angeschauter Style
+  rec_weight_collab: 0.15,          // Collaborative-Filtering-Bonus (Stufe C)
+
+  // ── Personalisierung – Diversitäts-Mix ────────────────────────
+  rec_diversity_comfort: 0.80,      // Anteil "Comfort"-Ergebnisse (0–1)
+  rec_diversity_exploration: 0.10,  // Anteil "Exploration" (neues Style-Family)
+  // freshness = rest (1 - comfort - exploration)
+
+  // ── Personalisierung – Schwellen ──────────────────────────────
+  rec_needs_data_threshold: 3,      // Min. eigene Brews für Personalisierung
+  rec_collab_min_overlap: 2,        // Min. gemeinsame Likes für "ähnlicher User"
+};
+
+export interface AlgorithmSettings {
+  forum_hot_replies_weight: number;
+  forum_hot_views_divisor: number;
+  forum_hot_age_exponent: number;
+  forum_hot_window_days: number;
+  trending_likes_weight: number;
+  trending_brewed_weight: number;
+  trending_age_exponent: number;
+  bestrated_bayesian_m: number;
+  bestrated_bayesian_c: number;
+  bestrated_recency_floor: number;
+  bestrated_recency_halflife: number;
+  bestrated_min_ratings: number;
+  rec_weight_style_exact: number;
+  rec_weight_style_family: number;
+  rec_weight_hop_jaccard: number;
+  rec_weight_malt_jaccard: number;
+  rec_weight_abv_proximity: number;
+  rec_weight_quality: number;
+  rec_weight_liked_style: number;
+  rec_weight_complexity: number;
+  rec_weight_viewed_style: number;
+  rec_weight_collab: number;
+  rec_diversity_comfort: number;
+  rec_diversity_exploration: number;
+  rec_needs_data_threshold: number;
+  rec_collab_min_overlap: number;
+}
+
+function getServiceRoleClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error('Missing Supabase service role credentials');
+  return createSupabaseClient(url, key, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
+
+/** Liest alle Algorithmus-Parameter aus platform_settings. Fehlende Keys → Defaults. */
+export async function getAlgorithmSettings(): Promise<AlgorithmSettings> {
+  try {
+    const db = getServiceRoleClient();
+    const keys = Object.keys(ALGORITHM_DEFAULTS) as (keyof AlgorithmSettings)[];
+    const { data } = await db
+      .from('platform_settings')
+      .select('key,value')
+      .in('key', keys);
+
+    const map: Record<string, string> = {};
+    for (const row of data ?? []) map[row.key] = row.value;
+
+    const p = (key: keyof typeof ALGORITHM_DEFAULTS) =>
+      parseFloat(map[key] ?? '') || ALGORITHM_DEFAULTS[key];
+    const i = (key: keyof typeof ALGORITHM_DEFAULTS) =>
+      parseInt(map[key] ?? '') || ALGORITHM_DEFAULTS[key];
+
+    return {
+      forum_hot_replies_weight:   p('forum_hot_replies_weight'),
+      forum_hot_views_divisor:    p('forum_hot_views_divisor'),
+      forum_hot_age_exponent:     p('forum_hot_age_exponent'),
+      forum_hot_window_days:      i('forum_hot_window_days'),
+      trending_likes_weight:      p('trending_likes_weight'),
+      trending_brewed_weight:     p('trending_brewed_weight'),
+      trending_age_exponent:      p('trending_age_exponent'),
+      bestrated_bayesian_m:       p('bestrated_bayesian_m'),
+      bestrated_bayesian_c:       p('bestrated_bayesian_c'),
+      bestrated_recency_floor:    p('bestrated_recency_floor'),
+      bestrated_recency_halflife: p('bestrated_recency_halflife'),
+      bestrated_min_ratings:      i('bestrated_min_ratings'),
+      rec_weight_style_exact:     p('rec_weight_style_exact'),
+      rec_weight_style_family:    p('rec_weight_style_family'),
+      rec_weight_hop_jaccard:     p('rec_weight_hop_jaccard'),
+      rec_weight_malt_jaccard:    p('rec_weight_malt_jaccard'),
+      rec_weight_abv_proximity:   p('rec_weight_abv_proximity'),
+      rec_weight_quality:         p('rec_weight_quality'),
+      rec_weight_liked_style:     p('rec_weight_liked_style'),
+      rec_weight_complexity:      p('rec_weight_complexity'),
+      rec_weight_viewed_style:    p('rec_weight_viewed_style'),
+      rec_weight_collab:          p('rec_weight_collab'),
+      rec_diversity_comfort:      p('rec_diversity_comfort'),
+      rec_diversity_exploration:  p('rec_diversity_exploration'),
+      rec_needs_data_threshold:   i('rec_needs_data_threshold'),
+      rec_collab_min_overlap:     i('rec_collab_min_overlap'),
+    };
+  } catch {
+    // Fallback auf Defaults wenn DB nicht erreichbar
+    return { ...ALGORITHM_DEFAULTS };
+  }
+}
