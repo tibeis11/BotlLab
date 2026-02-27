@@ -84,7 +84,11 @@ export default function BrewCommentsTab({ brew }: BrewCommentsTabProps) {
   const getReplies = (parentId: string) => comments.filter(c => c.parent_id === parentId);
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-10">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+      <div className="flex gap-10 items-start">
+
+      {/* ── Left: Kommentare ─────────────────────────────────────── */}
+      <div className="flex-1 min-w-0 space-y-10">
 
       {/* ── Eingabe ─────────────────────────────────────────────── */}
       {user ? (
@@ -134,7 +138,6 @@ export default function BrewCommentsTab({ brew }: BrewCommentsTabProps) {
                 >
                   <Send size={12} />
                   {isPending ? 'Wird gesendet...' : 'Senden'}
-                  <span className="text-zinc-600 font-normal hidden sm:inline ml-1">⌘↵</span>
                 </button>
               </div>
               {submitError && (
@@ -197,55 +200,76 @@ export default function BrewCommentsTab({ brew }: BrewCommentsTabProps) {
         </div>
       )}
 
-      {/* ── Forum-Diskussionen ───────────────────────────────────── */}
-      {discussions.length > 0 && (
-        <div className="border-t border-zinc-800/50 pt-8 space-y-4">
-          <h3 className="text-[10px] font-bold uppercase tracking-widest text-zinc-600">
-            Weitere Diskussionen im Forum
-          </h3>
-          <div className="space-y-2">
-            {discussions.map(thread => (
-              <Link
-                key={thread.id}
-                href={`/forum/thread/${thread.id}`}
-                className="flex items-center justify-between gap-4 py-3 px-4 rounded-xl bg-zinc-900/30 border border-zinc-800/50 hover:bg-zinc-900/60 hover:border-zinc-700 transition group"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <MessageSquare size={14} className="text-zinc-600 shrink-0" />
-                  <span className="text-sm text-zinc-300 group-hover:text-white transition font-medium truncate">
-                    {thread.title}
-                  </span>
-                </div>
-                <span className="text-xs text-zinc-700 shrink-0">{thread.reply_count ?? 0} Posts</span>
-              </Link>
-            ))}
-          </div>
-          <Link
-            href={`/forum/create?brewId=${brew.id}&title=${encodeURIComponent('Diskussion: ' + (brew.name ?? ''))}&categorySlug=rezepte`}
-            className="inline-flex items-center gap-2 text-xs text-zinc-600 hover:text-cyan-400 transition"
-          >
-            <MessageSquare size={12} />
-            Neue Diskussion starten
-          </Link>
-        </div>
-      )}
+      {/* ── Forum-Diskussionen (mobile: unten) ──────────────────── */}
+      <div className="md:hidden border-t border-zinc-800/50 pt-6 space-y-3">
+        <DiscussionsSidebar brew={brew} discussions={discussions} rootCommentCount={rootComments.length} />
+      </div>
 
-      {discussions.length === 0 && rootComments.length > 0 && (
-        <div className="border-t border-zinc-800/50 pt-6 text-center">
-          <Link
-            href={`/forum/create?brewId=${brew.id}&title=${encodeURIComponent('Diskussion: ' + (brew.name ?? ''))}&categorySlug=rezepte`}
-            className="inline-flex items-center gap-2 text-xs text-zinc-600 hover:text-cyan-400 transition"
-          >
-            <MessageSquare size={12} />
-            Diskussion im Forum starten
-          </Link>
-        </div>
-      )}
+      </div>{/* end left column */}
+
+      {/* ── Right sidebar: Diskussionen ──────────────────────────── */}
+      <div className="hidden md:block w-56 lg:w-64 shrink-0 sticky top-20 space-y-4">
+        <DiscussionsSidebar brew={brew} discussions={discussions} rootCommentCount={rootComments.length} />
+      </div>
+
+      </div>{/* end flex */}
     </div>
   );
 }
 
 /* ── Sub-components ── */
+
+function DiscussionsSidebar({
+  brew,
+  discussions,
+  rootCommentCount,
+}: {
+  brew: any;
+  discussions: any[];
+  rootCommentCount: number;
+}) {
+  const createUrl = `/forum/create?brewId=${brew.id}&title=${encodeURIComponent('Diskussion: ' + (brew.name ?? ''))}&categorySlug=rezepte`;
+
+  return (
+    <div className="space-y-3">
+      <h3 className="text-[10px] font-bold uppercase tracking-widest text-zinc-600">
+        Diskussionen im Forum
+      </h3>
+
+      {discussions.length > 0 ? (
+        <div className="space-y-1.5">
+          {discussions.map(thread => (
+            <Link
+              key={thread.id}
+              href={`/forum/thread/${thread.id}`}
+              className="flex items-center justify-between gap-3 py-2.5 px-3 rounded-xl bg-zinc-900/40 border border-zinc-800/50 hover:bg-zinc-900/80 hover:border-zinc-700 transition group"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <MessageSquare size={12} className="text-zinc-600 shrink-0" />
+                <span className="text-xs text-zinc-300 group-hover:text-white transition font-medium truncate">
+                  {thread.title}
+                </span>
+              </div>
+              <span className="text-[10px] text-zinc-700 shrink-0 tabular-nums">
+                {thread.reply_count ?? 0}
+              </span>
+            </Link>
+          ))}
+        </div>
+      ) : (
+        <p className="text-xs text-zinc-700">Noch keine Forum-Diskussion zu diesem Rezept.</p>
+      )}
+
+      <Link
+        href={createUrl}
+        className="flex items-center gap-2 text-xs text-zinc-600 hover:text-cyan-400 transition pt-1"
+      >
+        <MessageSquare size={12} />
+        {discussions.length > 0 ? 'Neue Diskussion starten' : 'Diskussion im Forum starten'}
+      </Link>
+    </div>
+  );
+}
 
 function CommentBlock({
   comment,

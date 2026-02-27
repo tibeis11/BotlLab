@@ -270,9 +270,6 @@ function StatItem({ label, value, unit, accent, colorHex }: {
 }) {
   return (
     <div className="flex flex-col relative overflow-hidden">
-      {colorHex && (
-        <div className="absolute inset-x-0 top-0 h-0.5 rounded-t" style={{ backgroundColor: colorHex }} />
-      )}
       <span className={`text-[10px] font-bold uppercase tracking-wider mb-1.5 ${accent ? 'text-cyan-500' : 'text-zinc-500'}`}>
         {label}
       </span>
@@ -335,59 +332,62 @@ export default function BrewRecipeTab({
 
       {/* ── Scaler (Beer only) ── */}
       {isBeer && (
-        <div className="space-y-3 py-3 border-t border-b border-zinc-800/60">
-          {/* Row 1: label + equipment link */}
-          <div className="flex items-center gap-2">
-            <Shuffle className="w-4 h-4 text-cyan-500 shrink-0" />
-            <span className="font-semibold text-white text-sm">Skalieren</span>
-            {userEquipmentName && (
-              <span className="text-[10px] text-cyan-600 font-medium">· {userEquipmentName}</span>
-            )}
-            {!userEquipmentName && userHasNoProfile && (
-              <Link
-                href={userBreweryId ? `/team/${userBreweryId}/settings?tab=equipment` : '/dashboard'}
-                className="text-[10px] text-zinc-600 hover:text-cyan-500 transition hover:underline ml-1"
-              >
-                Brauanlage hinterlegen →
-              </Link>
-            )}
-          </div>
-
-          {/* Row 2: both inputs always on same row */}
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold uppercase text-zinc-600 whitespace-nowrap">Ausschlag (L)</span>
-              <div className="relative">
-                <input
-                  type="number" min="1"
-                  value={scaleVolume}
-                  onChange={(e) => setScaleVolume(parseFloat(e.target.value) || 0)}
-                  className="bg-zinc-900 text-white font-mono font-bold px-3 py-1.5 rounded-lg border border-zinc-800 w-20 focus:border-cyan-500 focus:outline-none text-sm"
-                />
-                {scaleVolume !== originalVolume && (
-                  <button
-                    onClick={() => setScaleVolume(originalVolume)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-cyan-500 font-bold hover:underline"
-                  >↺</button>
-                )}
-              </div>
+        <div className="py-3 border-t border-b border-zinc-800/60">
+          {/* Single flex-wrap row: label + inputs stay on same line, wrap only when needed */}
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+            {/* Label + equipment link */}
+            <div className="flex items-center gap-2 shrink-0">
+              <Shuffle className="w-4 h-4 text-cyan-500 shrink-0" />
+              <span className="font-semibold text-white text-sm">Skalieren</span>
+              {userEquipmentName && (
+                <span className="text-[10px] text-cyan-600 font-medium">· {userEquipmentName}</span>
+              )}
+              {!userEquipmentName && userHasNoProfile && (
+                <Link
+                  href={userBreweryId ? `/team/${userBreweryId}/settings?tab=equipment` : '/dashboard'}
+                  className="text-[10px] text-zinc-600 hover:text-cyan-500 transition hover:underline"
+                >
+                  Brauanlage hinterlegen →
+                </Link>
+              )}
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold uppercase text-zinc-600 whitespace-nowrap">SHA (%)</span>
-              <div className="relative">
-                <input
-                  type="number" min="1" max="100"
-                  value={scaleEfficiency}
-                  onChange={(e) => setScaleEfficiency(parseFloat(e.target.value) || 0)}
-                  className="bg-zinc-900 text-white font-mono font-bold px-3 py-1.5 rounded-lg border border-zinc-800 w-20 focus:border-cyan-500 focus:outline-none text-sm"
-                />
-                {scaleEfficiency !== originalEfficiency && (
-                  <button
-                    onClick={() => setScaleEfficiency(originalEfficiency)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-cyan-500 font-bold hover:underline"
-                  >↺</button>
-                )}
+            {/* Inputs */}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold uppercase text-zinc-600 whitespace-nowrap">Ausschlag (L)</span>
+                <div className="relative">
+                  <input
+                    type="number" min="1"
+                    value={scaleVolume}
+                    onChange={(e) => setScaleVolume(parseFloat(e.target.value) || 0)}
+                    className="bg-zinc-900 text-white font-mono font-bold px-3 py-1.5 rounded-lg border border-zinc-800 w-20 focus:border-cyan-500 focus:outline-none text-sm"
+                  />
+                  {scaleVolume !== originalVolume && (
+                    <button
+                      onClick={() => setScaleVolume(originalVolume)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-cyan-500 font-bold hover:underline"
+                    >↺</button>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold uppercase text-zinc-600 whitespace-nowrap">SHA (%)</span>
+                <div className="relative">
+                  <input
+                    type="number" min="1" max="100"
+                    value={scaleEfficiency}
+                    onChange={(e) => setScaleEfficiency(parseFloat(e.target.value) || 0)}
+                    className="bg-zinc-900 text-white font-mono font-bold px-3 py-1.5 rounded-lg border border-zinc-800 w-20 focus:border-cyan-500 focus:outline-none text-sm"
+                  />
+                  {scaleEfficiency !== originalEfficiency && (
+                    <button
+                      onClick={() => setScaleEfficiency(originalEfficiency)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-cyan-500 font-bold hover:underline"
+                    >↺</button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
