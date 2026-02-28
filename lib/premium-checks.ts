@@ -144,6 +144,8 @@ export async function getUserPremiumStatus(
       canUseBreweryLogo: limits.brewery_logo_on_labels,
       bypassBrewLimits: limits.bypass_brew_limits,
       bypassBottleLimits: limits.bypass_bottle_limits,
+      bypassLabelLimits: limits.bypass_label_limits,
+      bypassMemberLimits: limits.bypass_member_limits,
     },
     expiresAt: profile.subscription_expires_at
       ? new Date(profile.subscription_expires_at)

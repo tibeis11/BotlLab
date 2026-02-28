@@ -6,6 +6,8 @@ export interface TierFeatures {
   brewery_logo_on_labels: boolean;
   bypass_brew_limits: boolean;
   bypass_bottle_limits: boolean;
+  bypass_label_limits: boolean; // Unlimited label templates (max 100 enforced in UI)
+  bypass_member_limits: boolean; // Unlimited crew members (max 100 enforced in UI)
   priority_support: boolean;
   analytics_access: boolean;
 }
@@ -29,6 +31,8 @@ export interface PremiumStatus {
     canUseBreweryLogo: boolean;
     bypassBrewLimits: boolean;
     bypassBottleLimits: boolean;
+    bypassLabelLimits: boolean;
+    bypassMemberLimits: boolean;
   };
   expiresAt: Date | null;
 }
@@ -56,6 +60,8 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier, TierConfig> = {
       brewery_logo_on_labels: false,
       bypass_brew_limits: false,
       bypass_bottle_limits: false,
+      bypass_label_limits: false,
+      bypass_member_limits: false,
       priority_support: false,
       analytics_access: false,
     },
@@ -73,6 +79,8 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier, TierConfig> = {
       brewery_logo_on_labels: false,
       bypass_brew_limits: false,
       bypass_bottle_limits: false,
+      bypass_label_limits: false,
+      bypass_member_limits: false,
       priority_support: false,
       analytics_access: true,
     },
@@ -90,6 +98,8 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier, TierConfig> = {
       brewery_logo_on_labels: true,
       bypass_brew_limits: true,
       bypass_bottle_limits: true,
+      bypass_label_limits: true,
+      bypass_member_limits: true,
       priority_support: true,
       analytics_access: true,
     },
@@ -107,6 +117,8 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier, TierConfig> = {
       brewery_logo_on_labels: true,
       bypass_brew_limits: true,
       bypass_bottle_limits: true,
+      bypass_label_limits: true,
+      bypass_member_limits: true,
       priority_support: true,
       analytics_access: true,
     },

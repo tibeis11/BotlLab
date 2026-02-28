@@ -7,8 +7,9 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
 import { addToFeed } from '@/lib/feed-service';
 import { getTierConfig, getBreweryTierConfig, BreweryTierName } from '@/lib/tier-system';
+import { getBreweryPremiumStatus } from '@/lib/actions/premium-actions';
 import { trackEvent } from '@/lib/actions/analytics-actions';
-import { Users, Shield, Copy, RefreshCcw, Trash2, Crown, Sparkles, Check, Search } from 'lucide-react';
+import { Users, Shield, Copy, RefreshCcw, Trash2, Crown, Sparkles, Check, Search, Infinity as InfinityIcon } from 'lucide-react';
 
 export default function TeamMembersPage({ params }: { params: Promise<{ breweryId: string }> }) {
   const supabase = useSupabase();
@@ -19,6 +20,7 @@ export default function TeamMembersPage({ params }: { params: Promise<{ breweryI
   const [activeBrewery, setActiveBrewery] = useState<any>(null);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [memberLimit, setMemberLimit] = useState(3);
+  const [memberLimitBypassed, setMemberLimitBypassed] = useState(false);
   
   const [inviteLink, setInviteLink] = useState("");
   const [copied, setCopied] = useState(false);
@@ -53,7 +55,14 @@ export default function TeamMembersPage({ params }: { params: Promise<{ breweryI
       if (brewery) {
         setActiveBrewery(brewery);
         const config = getBreweryTierConfig((brewery.tier || 'garage') as BreweryTierName);
-        setMemberLimit(config.limits.maxMembers);
+        // Load owner's subscription to check member-limit bypass
+        const premiumStatus = await getBreweryPremiumStatus(breweryId);
+        if (premiumStatus?.features.bypassMemberLimits) {
+          setMemberLimitBypassed(true);
+          setMemberLimit(100);
+        } else {
+          setMemberLimit(config.limits.maxMembers);
+        }
       }
 
       // Get Members
@@ -162,7 +171,13 @@ export default function TeamMembersPage({ params }: { params: Promise<{ breweryI
                  <div className="text-right hidden md:block">
                     <p className="text-[10px] uppercase font-bold text-zinc-600 tracking-wider mb-0.5">Crew Kapazität</p>
                     <div className="text-zinc-300 font-mono text-xs text-right flex items-center justify-end gap-2">
-                        <span className={limitReached ? "text-amber-500" : ""}>{members.length} / {memberLimit}</span>
+                        {memberLimitBypassed ? (
+                            <span className="text-emerald-500 flex items-center gap-1">
+                                {members.length} / <InfinityIcon size={13} />
+                            </span>
+                        ) : (
+                            <span className={limitReached ? "text-amber-500" : ""}>{members.length} / {memberLimit}</span>
+                        )}
                     </div>
                  </div>
             </div>

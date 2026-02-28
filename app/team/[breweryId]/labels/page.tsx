@@ -384,12 +384,12 @@ export default function LabelsPage({ params }: { params: Promise<{ breweryId: st
         return <div className="p-12 text-center text-zinc-500">Lade Designs...</div>;
     }
 
-    // Limits & Progressbar: Dynamisch aus tier-system
+    // Limits & Progressbar: Dynamisch aus tier-system + subscription bypass
     const { getBreweryTierConfig } = require('@/lib/tier-system');
     const tierConfig = getBreweryTierConfig(breweryTier);
-    const LABEL_LIMIT = (premiumStatus?.tier === 'brewery' || premiumStatus?.tier === 'enterprise') ? Infinity : (tierConfig?.limits?.maxLabels ?? 1);
+    const LABEL_LIMIT = premiumStatus?.features.bypassLabelLimits ? 100 : (tierConfig?.limits?.maxLabels ?? 1);
     const labelCount = templates.length;
-    const limitReached = LABEL_LIMIT !== Infinity && labelCount >= LABEL_LIMIT;
+    const limitReached = labelCount >= LABEL_LIMIT;
     
     // Find default template
     const defaultTemplate = templates.find(t => t.is_default);
@@ -435,12 +435,10 @@ export default function LabelsPage({ params }: { params: Promise<{ breweryId: st
                          <div className="text-right hidden md:block">
                             <p className="text-[10px] uppercase font-bold text-zinc-600 tracking-wider mb-0.5">Kapazität</p>
                             <div className="text-zinc-300 font-mono text-xs text-right flex items-center justify-end gap-2">
-                                {(premiumStatus?.tier === 'brewer' || isFreeTier) ? (
-                                    <>
-                                        <span className={limitReached ? "text-amber-500" : ""}>{labelCount} / {LABEL_LIMIT}</span>
-                                    </>
-                                ) : (
+                                {premiumStatus?.features.bypassLabelLimits ? (
                                     <span className="text-emerald-500"><InfinityIcon size={14} /></span>
+                                ) : (
+                                    <span className={limitReached ? "text-amber-500" : ""}>{labelCount} / {LABEL_LIMIT}</span>
                                 )}
                             </div>
                          </div>

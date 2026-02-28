@@ -176,7 +176,9 @@ export default function BreweryTierWidget({ breweryId }: { breweryId: string }) 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <FeaturePill icon="♾️" label="Unbegrenzte Rezepte" active={premiumStatus.features.bypassBrewLimits} />
               <FeaturePill icon="🍾" label="Unbegrenzte Flaschen" active={premiumStatus.features.bypassBottleLimits} />
-              <FeaturePill icon="🏷️" label="Eigenes Brauerei-Logo" active={premiumStatus.features.canUseBreweryLogo} />
+              <FeaturePill icon="👥" label="100 Crew-Mitglieder" active={premiumStatus.features.bypassMemberLimits} />
+              <FeaturePill icon="🏷️" label="100 Etiketten-Designs" active={premiumStatus.features.bypassLabelLimits} />
+              <FeaturePill icon="🖼️" label="Eigenes Brauerei-Logo" active={premiumStatus.features.canUseBreweryLogo} />
               <FeaturePill icon="💬" label="Custom Slogan" active={premiumStatus.features.canUseCustomSlogan} />
               <FeaturePill icon="📊" label="Erweiterte Analytics" active={true} />
               <FeaturePill icon="🤖" label={premiumStatus.features.aiGenerationsRemaining === -1 ? 'Unbegrenzte AI' : `${premiumStatus.features.aiGenerationsRemaining} AI/Monat`} active={true} />
