@@ -9,6 +9,7 @@ import { SubscriptionTier } from '@/lib/premium-config';
 import { Settings, Bell, Users, Lock, Factory, Mail, ShieldAlert, FlaskConical, Plus, Trash2, Pencil, Check, Star, X, Loader2 } from 'lucide-react';
 import ResponsiveTabs from '@/app/components/ResponsiveTabs';
 import { EquipmentProfile, BREW_METHOD_LABELS } from '@/lib/types/equipment';
+import { dissolveBrewery, transferOwnership } from '@/lib/actions/team-actions';
 
 export default function TeamSettingsPage({ params }: { params: Promise<{ breweryId: string }> }) {
   const { breweryId } = use(params);
@@ -798,19 +799,37 @@ function MembershipSettings({ breweryId, userRole }: { breweryId: string, userRo
     const { user } = useAuth();
     const router = useRouter();
     const [isLeaving, setIsLeaving] = useState(false);
+    const [isDissolving, setIsDissolving] = useState(false);
+    const [isTransferring, setIsTransferring] = useState(false);
+    const [dangerMsg, setDangerMsg] = useState<{ type: 'error' | 'success'; msg: string } | null>(null);
+    const [members, setMembers] = useState<{ user_id: string; role: string; display_name: string }[]>([]);
+    const [selectedNewOwner, setSelectedNewOwner] = useState('');
+    const [showTransfer, setShowTransfer] = useState(false);
+
+    useEffect(() => {
+        if (userRole === 'owner') loadMembers();
+    }, [breweryId, userRole]);
+
+    async function loadMembers() {
+        const { data } = await supabase
+            .from('brewery_members')
+            .select('user_id, role, profiles(display_name)')
+            .eq('brewery_id', breweryId)
+            .neq('user_id', user?.id);
+        if (data) {
+            setMembers(
+                data.map((m: any) => ({
+                    user_id: m.user_id,
+                    role: m.role,
+                    display_name: m.profiles?.display_name || m.user_id.slice(0, 8),
+                }))
+            );
+        }
+    }
 
     async function handleLeaveSquad() {
         if (!user) return;
-        
-        if (userRole === 'owner') {
-             alert("Du bist der Owner dieses Squads. Bitte übertrage zuerst die Eigentumsrechte oder lösche den Squad, um auszutreten.");
-             return;
-        }
-
-        if (!confirm("Bist du sicher, dass du diesen Squad verlassen möchtest? Dein Zugriff auf interne Rezepte und Inhalte geht sofort verloren.")) {
-            return;
-        }
-
+        if (!confirm("Bist du sicher, dass du diesen Squad verlassen möchtest? Dein Zugriff auf interne Rezepte und Inhalte geht sofort verloren.")) return;
         setIsLeaving(true);
         try {
             const { error } = await supabase
@@ -818,41 +837,145 @@ function MembershipSettings({ breweryId, userRole }: { breweryId: string, userRo
                 .delete()
                 .eq('brewery_id', breweryId)
                 .eq('user_id', user.id);
-
             if (error) throw error;
-            
-            // Success
-            window.location.href = '/dashboard'; 
+            window.location.href = '/dashboard';
         } catch (e: any) {
-            console.error(e);
-            alert("Fehler beim Austreten: " + e.message);
+            alert('Fehler beim Austreten: ' + e.message);
             setIsLeaving(false);
+        }
+    }
+
+    async function handleTransferOwnership() {
+        if (!selectedNewOwner) return;
+        const target = members.find((m) => m.user_id === selectedNewOwner);
+        if (!confirm(`Eigentumsrechte wirklich an "${target?.display_name}" übertragen? Du wirst zum normalen Mitglied.`)) return;
+        setIsTransferring(true);
+        setDangerMsg(null);
+        const res = await transferOwnership(breweryId, selectedNewOwner);
+        if (res.ok) {
+            setDangerMsg({ type: 'success', msg: 'Eigentumsrechte übertragen. Du bist jetzt reguläres Mitglied.' });
+            setTimeout(() => { window.location.reload(); }, 1500);
+        } else {
+            setDangerMsg({ type: 'error', msg: res.error || 'Fehler' });
+            setIsTransferring(false);
+        }
+    }
+
+    async function handleDissolve() {
+        if (!confirm('Team wirklich dauerhaft auflösen?\n\nAlle Rezepte und Flaschen bleiben als anonymisierter Community-Inhalt erhalten, werden aber von diesem Team getrennt. Diese Aktion kann nicht rückgängig gemacht werden.')) return;
+        setIsDissolving(true);
+        setDangerMsg(null);
+        const res = await dissolveBrewery(breweryId);
+        if (res.ok) {
+            window.location.href = '/dashboard';
+        } else {
+            setDangerMsg({ type: 'error', msg: res.error || 'Fehler beim Auflösen' });
+            setIsDissolving(false);
         }
     }
 
     return (
         <div className="space-y-6">
-             <div className="md:bg-black md:border md:border-red-900/30 md:rounded-lg md:p-6">
-                <h3 className="text-red-500 text-xs font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
+            <div className="md:bg-black md:border md:border-red-900/30 md:rounded-lg md:p-6 space-y-6">
+                <h3 className="text-red-500 text-xs font-bold uppercase tracking-wider flex items-center gap-2">
                     <ShieldAlert className="w-3.5 h-3.5" />
                     Danger Zone
                 </h3>
 
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div>
-                         <h4 className="text-white font-medium text-sm mb-1">Squad verlassen</h4>
-                         <p className="text-zinc-500 text-xs max-w-md">
-                            Du verlierst Zugriff auf alle internen Rezepte, den Chatverlauf sowie exklusive Inhalte dieses Squads.
-                         </p>
+                {dangerMsg && (
+                    <p className={`text-xs px-3 py-2 rounded ${dangerMsg.type === 'error' ? 'bg-red-500/10 text-red-400' : 'bg-green-500/10 text-green-400'}`}>
+                        {dangerMsg.msg}
+                    </p>
+                )}
+
+                {/* Non-owner: leave */}
+                {userRole !== 'owner' && (
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div>
+                            <h4 className="text-white font-medium text-sm mb-1">Squad verlassen</h4>
+                            <p className="text-zinc-500 text-xs max-w-md">
+                                Du verlierst Zugriff auf alle internen Rezepte, den Chatverlauf sowie exklusive Inhalte dieses Squads.
+                            </p>
+                        </div>
+                        <button
+                            onClick={handleLeaveSquad}
+                            disabled={isLeaving}
+                            className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded text-xs transition-colors disabled:opacity-50 whitespace-nowrap"
+                        >
+                            {isLeaving ? 'Verlasse...' : 'Squad verlassen'}
+                        </button>
                     </div>
-                    <button 
-                        onClick={handleLeaveSquad}
-                        disabled={isLeaving}
-                        className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded text-xs transition-colors disabled:opacity-50 whitespace-nowrap"
-                    >
-                        {isLeaving ? 'Verlasse...' : 'Squad verlassen'}
-                    </button>
-                </div>
+                )}
+
+                {/* Owner: transfer ownership */}
+                {userRole === 'owner' && (
+                    <div className="space-y-3">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                            <div>
+                                <h4 className="text-white font-medium text-sm mb-1">Eigentumsrechte übertragen</h4>
+                                <p className="text-zinc-500 text-xs max-w-md">
+                                    Übertrage die Owner-Rolle an ein anderes Teammitglied. Du wirst zum normalen Mitglied.
+                                </p>
+                            </div>
+                            {members.length > 0 && (
+                                <button
+                                    onClick={() => setShowTransfer((v) => !v)}
+                                    className="border border-zinc-700 hover:border-zinc-500 text-zinc-300 font-bold py-2 px-4 rounded text-xs transition-colors whitespace-nowrap"
+                                >
+                                    {showTransfer ? 'Abbrechen' : 'Ownership übertragen'}
+                                </button>
+                            )}
+                            {members.length === 0 && (
+                                <span className="text-zinc-600 text-xs italic">Keine weiteren Mitglieder</span>
+                            )}
+                        </div>
+                        {showTransfer && members.length > 0 && (
+                            <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                                <select
+                                    value={selectedNewOwner}
+                                    onChange={(e) => setSelectedNewOwner(e.target.value)}
+                                    className="flex-1 bg-zinc-900 border border-zinc-700 text-zinc-200 text-sm rounded px-3 py-2"
+                                >
+                                    <option value="">Mitglied auswählen…</option>
+                                    {members.map((m) => (
+                                        <option key={m.user_id} value={m.user_id}>
+                                            {m.display_name} ({m.role})
+                                        </option>
+                                    ))}
+                                </select>
+                                <button
+                                    onClick={handleTransferOwnership}
+                                    disabled={!selectedNewOwner || isTransferring}
+                                    className="bg-yellow-600 hover:bg-yellow-500 text-black font-bold py-2 px-4 rounded text-xs transition-colors disabled:opacity-50 whitespace-nowrap"
+                                >
+                                    {isTransferring ? 'Übertrage...' : 'Bestätigen'}
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Owner: dissolve team */}
+                {userRole === 'owner' && (
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-t border-red-900/20 pt-5">
+                        <div>
+                            <h4 className="text-red-400 font-medium text-sm mb-1">Team auflösen</h4>
+                            <p className="text-zinc-500 text-xs max-w-md">
+                                {members.length > 0
+                                    ? `Das Team hat noch ${members.length} Mitglied(er). Bitte übertrage zuerst die Owner-Rolle oder entferne alle Mitglieder.`
+                                    : 'Löscht das Team dauerhaft. Rezepte und Flaschen bleiben als anonymisierter Community-Inhalt erhalten.'}
+                            </p>
+                        </div>
+                        <button
+                            onClick={handleDissolve}
+                            disabled={isDissolving || members.length > 0}
+                            className="bg-red-900 hover:bg-red-700 text-white font-bold py-2 px-4 rounded text-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+                            title={members.length > 0 ? 'Zuerst alle Mitglieder entfernen oder Ownership übertragen' : ''}
+                        >
+                            {isDissolving ? 'Auflösen...' : 'Team auflösen'}
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );

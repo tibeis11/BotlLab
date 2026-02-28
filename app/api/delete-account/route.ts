@@ -30,6 +30,42 @@ export async function POST(req: Request) {
     // Load profile for asset URLs (personal data to be deleted)
     const { data: profile } = await admin.from('profiles').select('logo_url,banner_url').eq('id', userId).single();
 
+    // ── Handle owned breweries (teams) ──────────────────────────────────────
+    // Find all breweries where this user is the owner.
+    const { data: ownedMemberships } = await admin
+      .from('brewery_members')
+      .select('brewery_id')
+      .eq('user_id', userId)
+      .eq('role', 'owner');
+
+    if (ownedMemberships && ownedMemberships.length > 0) {
+      for (const { brewery_id } of ownedMemberships) {
+        // Get all OTHER members of this brewery
+        const { data: otherMembers } = await admin
+          .from('brewery_members')
+          .select('user_id, role')
+          .eq('brewery_id', brewery_id)
+          .neq('user_id', userId)
+          .order('role'); // 'admin' < 'member' < 'owner' alphabetically → prefer admin
+
+        if (otherMembers && otherMembers.length > 0) {
+          // Transfer ownership: prefer existing admin, else first member
+          const nextOwner =
+            otherMembers.find((m) => m.role === 'admin') || otherMembers[0];
+          await admin
+            .from('brewery_members')
+            .update({ role: 'owner' })
+            .eq('brewery_id', brewery_id)
+            .eq('user_id', nextOwner.user_id);
+        } else {
+          // No other members → dissolve the brewery entirely.
+          // brews.brewery_id and bottles.brewery_id have ON DELETE SET NULL,
+          // so all associated content is preserved but freed from the team.
+          await admin.from('breweries').delete().eq('id', brewery_id);
+        }
+      }
+    }
+
     // Anonymize brews: set user_id to NULL so recipes remain accessible for
     // other users who based sessions/bottles on them (DSGVO Art. 6 I lit. f).
     // Label images are part of the brew content, not personal data → keep them.
@@ -54,6 +90,8 @@ export async function POST(req: Request) {
     }
 
     // Delete profile row (display_name, bio, location, etc.)
+    // Note: brewery_members.user_id → profiles(id) ON DELETE CASCADE, so
+    // all remaining memberships (non-owner) are cleaned up automatically.
     await admin.from('profiles').delete().eq('id', userId);
 
     // Finally, delete auth user (email + credentials)
