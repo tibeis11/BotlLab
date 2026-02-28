@@ -258,16 +258,18 @@ export default function TeamMembersPage({ params }: { params: Promise<{ breweryI
       <div className="space-y-6">
         
         {/* Toolbar */}
-        <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-3 flex flex-col sm:flex-row gap-4 items-center justify-between">
-            <div className="relative group w-full sm:w-auto flex-1 max-w-md">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within:text-white transition-colors" />
-                <input 
-                    type="text" 
-                    placeholder="Mitglied suchen..." 
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-zinc-950/50 border border-zinc-800/80 rounded-lg py-2 pl-9 pr-3 text-sm text-white focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/20 focus:outline-none transition-all placeholder:text-zinc-600"
-                />
+        <div className="flex flex-col gap-4 bg-zinc-900/30 p-1 rounded-xl border border-zinc-800/50">
+            <div className="flex flex-col sm:flex-row gap-4 items-center">
+                <div className="relative group w-full">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within:text-white transition-colors" />
+                    <input
+                        type="text"
+                        placeholder="Mitglied suchen..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full bg-transparent text-sm text-white pl-9 pr-3 py-2 focus:outline-none placeholder:text-zinc-600 rounded-lg"
+                    />
+                </div>
             </div>
         </div>
 

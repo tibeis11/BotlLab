@@ -815,7 +815,7 @@ function MembershipSettings({ breweryId, userRole }: { breweryId: string, userRo
             .from('brewery_members')
             .select('user_id, role, profiles(display_name)')
             .eq('brewery_id', breweryId)
-            .neq('user_id', user?.id);
+            .neq('user_id', user?.id ?? null);
         if (data) {
             setMembers(
                 data.map((m: any) => ({
