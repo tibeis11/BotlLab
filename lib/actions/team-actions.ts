@@ -156,3 +156,24 @@ export async function transferOwnership(
 
   return { ok: true };
 }
+
+/**
+ * Returns the subset of the provided userIds that already own at least one brewery.
+ * Uses the service role client to bypass RLS.
+ */
+export async function getMembersOwnerStatus(userIds: string[]): Promise<string[]> {
+  if (userIds.length === 0) return [];
+
+  const serviceClient = createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  const { data } = await serviceClient
+    .from('brewery_members')
+    .select('user_id')
+    .in('user_id', userIds)
+    .eq('role', 'owner');
+
+  return (data ?? []).map((row: { user_id: string }) => row.user_id);
+}
