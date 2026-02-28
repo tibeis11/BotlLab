@@ -26,6 +26,9 @@ export default function LoginPage() {
   const [isRegister, setIsRegister] = useState(false);
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false)
+  const [forgotLoading, setForgotLoading] = useState(false)
+  const [forgotSent, setForgotSent] = useState(false)
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [usernameError, setUsernameError] = useState("");
@@ -229,6 +232,23 @@ export default function LoginPage() {
     setResendLoading(false);
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setForgotLoading(true)
+    setMessage('')
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: typeof window !== 'undefined'
+        ? `${window.location.origin}/auth/callback?type=recovery`
+        : undefined,
+    })
+    if (error) {
+      setMessage(error.message)
+    } else {
+      setForgotSent(true)
+    }
+    setForgotLoading(false)
+  }
+
 if (!mounted) return null;
 
   return (
@@ -264,7 +284,67 @@ if (!mounted) return null;
 
         {/* Main Card */}
         <div className="bg-zinc-900/50 backdrop-blur-xl border border-zinc-800/50 rounded-3xl p-8 shadow-2xl">
-          
+
+          {isForgotPassword ? (
+            /* ---- Passwort vergessen ---- */
+            <div className="space-y-5">
+              {forgotSent ? (
+                <div className="text-center space-y-4 py-6">
+                  <div className="text-4xl">📬</div>
+                  <p className="text-white font-bold text-lg">E-Mail versendet!</p>
+                  <p className="text-zinc-400 text-sm">Schau in dein Postfach und klicke auf den Reset-Link. Der Link ist 1 Stunde gültig.</p>
+                </div>
+              ) : (
+                <form onSubmit={handleForgotPassword} className="space-y-5">
+                  <p className="text-sm text-zinc-400 leading-relaxed">
+                    Gib deine E-Mail-Adresse ein — wir schicken dir einen Link zum Zurücksetzen deines Passworts.
+                  </p>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Email</label>
+                    <input
+                      type="email"
+                      placeholder="dein@email.de"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full bg-zinc-950/50 border border-zinc-800 p-4 rounded-xl focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition text-white placeholder:text-zinc-600"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={forgotLoading || !email}
+                    className="w-full bg-white text-black py-4 rounded-xl font-black text-lg hover:bg-cyan-400 hover:scale-105 transition transform disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                  >
+                    {forgotLoading ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <div className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                        Sendet…
+                      </span>
+                    ) : (
+                      '📩 Reset-Link senden'
+                    )}
+                  </button>
+                </form>
+              )}
+              {message && (
+                <div className={`mt-4 p-4 rounded-xl text-sm font-medium text-center border ${
+                  message.includes('✅') || forgotSent
+                    ? 'bg-green-950/30 border-green-800/30 text-green-400'
+                    : 'bg-red-950/30 border-red-800/30 text-red-400'
+                }`}>{message}</div>
+              )}
+              <div className="mt-8 pt-6 border-t border-zinc-800 text-center">
+                <button
+                  type="button"
+                  onClick={() => { setIsForgotPassword(false); setMessage(''); setForgotSent(false); }}
+                  className="text-sm font-bold text-cyan-400 hover:text-cyan-300 transition underline decoration-cyan-400/30 underline-offset-4 hover:decoration-cyan-300"
+                >
+                  ← Zurück zum Login
+                </button>
+              </div>
+            </div>
+          ) : (
+          <>
           <form onSubmit={handleAuth} className="space-y-5">
             
             {/* Email Field */}
@@ -320,6 +400,19 @@ if (!mounted) return null;
                   </p>
               )}
             </div>
+
+            {/* Passwort vergessen Link */}
+            {!isRegister && (
+              <div className="text-right -mt-1">
+                <button
+                  type="button"
+                  onClick={() => { setIsForgotPassword(true); setMessage(''); }}
+                  className="text-xs text-zinc-500 hover:text-cyan-400 transition"
+                >
+                  Passwort vergessen?
+                </button>
+              </div>
+            )}
 
             {/* Username & Birthdate (nur bei Registrierung) */}
             {isRegister && (
@@ -449,6 +542,8 @@ if (!mounted) return null;
               </button>
             </div>
           )}
+          </>
+          )} {/* end isForgotPassword */}
         </div>
 
         {/* Footer Info */}
