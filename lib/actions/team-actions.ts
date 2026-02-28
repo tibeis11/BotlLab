@@ -120,6 +120,22 @@ export async function transferOwnership(
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
+  // Guard: new owner must not already own another brewery
+  const { count: existingOwnerCount } = await serviceClient
+    .from('brewery_members')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', newOwnerUserId)
+    .eq('role', 'owner');
+
+  if ((existingOwnerCount ?? 0) > 0) {
+    return {
+      ok: false,
+      error:
+        'Dieser Nutzer ist bereits Owner eines anderen Teams. ' +
+        'Jeder Nutzer kann nur ein Team besitzen.',
+    };
+  }
+
   // Promote new owner
   const { error: promoteError } = await serviceClient
     .from('brewery_members')

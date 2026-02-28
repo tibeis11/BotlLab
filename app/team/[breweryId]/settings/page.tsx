@@ -9,7 +9,7 @@ import { SubscriptionTier } from '@/lib/premium-config';
 import { Settings, Bell, Users, Lock, Factory, Mail, ShieldAlert, FlaskConical, Plus, Trash2, Pencil, Check, Star, X, Loader2 } from 'lucide-react';
 import ResponsiveTabs from '@/app/components/ResponsiveTabs';
 import { EquipmentProfile, BREW_METHOD_LABELS } from '@/lib/types/equipment';
-import { dissolveBrewery, transferOwnership } from '@/lib/actions/team-actions';
+import { dissolveBrewery, transferOwnership, getMembersOwnerStatus } from '@/lib/actions/team-actions';
 
 export default function TeamSettingsPage({ params }: { params: Promise<{ breweryId: string }> }) {
   const { breweryId } = use(params);
@@ -802,7 +802,7 @@ function MembershipSettings({ breweryId, userRole }: { breweryId: string, userRo
     const [isDissolving, setIsDissolving] = useState(false);
     const [isTransferring, setIsTransferring] = useState(false);
     const [dangerMsg, setDangerMsg] = useState<{ type: 'error' | 'success'; msg: string } | null>(null);
-    const [members, setMembers] = useState<{ user_id: string; role: string; display_name: string }[]>([]);
+    const [members, setMembers] = useState<{ user_id: string; role: string; display_name: string; alreadyOwner: boolean }[]>([]);
     const [selectedNewOwner, setSelectedNewOwner] = useState('');
     const [showTransfer, setShowTransfer] = useState(false);
 
@@ -817,11 +817,15 @@ function MembershipSettings({ breweryId, userRole }: { breweryId: string, userRo
             .eq('brewery_id', breweryId)
             .neq('user_id', user?.id ?? null);
         if (data) {
+            const memberIds = data.map((m: any) => m.user_id);
+            const alreadyOwnerIds = await getMembersOwnerStatus(memberIds);
+            const ownerSet = new Set(alreadyOwnerIds);
             setMembers(
                 data.map((m: any) => ({
                     user_id: m.user_id,
                     role: m.role,
                     display_name: m.profiles?.display_name || m.user_id.slice(0, 8),
+                    alreadyOwner: ownerSet.has(m.user_id),
                 }))
             );
         }
@@ -848,6 +852,10 @@ function MembershipSettings({ breweryId, userRole }: { breweryId: string, userRo
     async function handleTransferOwnership() {
         if (!selectedNewOwner) return;
         const target = members.find((m) => m.user_id === selectedNewOwner);
+        if (target?.alreadyOwner) {
+            setDangerMsg({ type: 'error', msg: `${target.display_name} besitzt bereits ein eigenes Team und kann keine zweite Ownership übernehmen.` });
+            return;
+        }
         if (!confirm(`Eigentumsrechte wirklich an "${target?.display_name}" übertragen? Du wirst zum normalen Mitglied.`)) return;
         setIsTransferring(true);
         setDangerMsg(null);
@@ -938,8 +946,8 @@ function MembershipSettings({ breweryId, userRole }: { breweryId: string, userRo
                                 >
                                     <option value="">Mitglied auswählen…</option>
                                     {members.map((m) => (
-                                        <option key={m.user_id} value={m.user_id}>
-                                            {m.display_name} ({m.role})
+                                        <option key={m.user_id} value={m.user_id} disabled={m.alreadyOwner}>
+                                            {m.display_name} ({m.role}){m.alreadyOwner ? ' — bereits Owner' : ''}
                                         </option>
                                     ))}
                                 </select>
