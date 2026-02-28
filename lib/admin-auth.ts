@@ -30,11 +30,13 @@ function getSRClient() {
 // Public Types
 // ============================================================================
 
+export type AdminRole = 'admin' | 'super_admin' | 'moderator'
+
 export interface AdminUser {
   id: number
   profile_id: string
   email: string
-  role: 'admin' | 'super_admin'
+  role: AdminRole
   is_active: boolean
   added_by: string | null
   added_at: string

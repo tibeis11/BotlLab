@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import SidebarNav, { type Section, getDefaultView } from './SidebarNav'
 import MobileNav from './MobileNav'
 import ErrorBoundary from './ErrorBoundary'
+import type { AdminRole } from '@/lib/admin-auth'
 
 // Views — Overview
 import OverviewView from '@/app/admin/dashboard/views/OverviewView'
@@ -46,7 +47,10 @@ function isValidSection(s: string): s is Section {
   return ['overview', 'analytics', 'operations', 'product', 'system', 'settings'].includes(s)
 }
 
-function renderView(section: Section, view: string | undefined) {
+function renderView(section: Section, view: string | undefined, role: AdminRole) {
+  const isModerator = role === 'moderator'
+  const isSuperAdmin = role === 'super_admin'
+
   if (section === 'overview') return <OverviewView />
 
   if (section === 'analytics') {
@@ -76,7 +80,7 @@ function renderView(section: Section, view: string | undefined) {
   }
 
   if (section === 'settings') {
-    if (view === 'admins')   return <AdminAccessView />
+    if (view === 'admins')   return <AdminAccessView canWrite={isSuperAdmin} />
     if (view === 'discover') return <DiscoverView />
     return <SettingsView />      // default: plans
   }
@@ -90,12 +94,14 @@ function renderView(section: Section, view: string | undefined) {
 
 interface DashboardClientProps {
   userId: string
+  role: AdminRole
   initialSection?: Section
   initialView?: string
 }
 
 export default function DashboardClient({
   userId,
+  role,
   initialSection = 'overview',
   initialView,
 }: DashboardClientProps) {
@@ -135,15 +141,14 @@ export default function DashboardClient({
             activeView={view}
             onNavigate={navigate}
             alertCount={alertCount}
-            moderationCount={moderationCount}
-          />
+            moderationCount={moderationCount}            role={role}          />
         </div>
       </aside>
 
       {/* Main content */}
       <main className="flex-1 min-w-0">
         <ErrorBoundary>
-          {renderView(section, view)}
+          {renderView(section, view, role)}
         </ErrorBoundary>
       </main>
 
@@ -153,6 +158,7 @@ export default function DashboardClient({
         onNavigate={navigate}
         alertCount={alertCount}
         moderationCount={moderationCount}
+        role={role}
       />
     </div>
   )

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useTransition } from 'react'
-import { UserPlus, RefreshCw, ShieldCheck, Shield, ToggleLeft, ToggleRight, X, Plus, AlertTriangle } from 'lucide-react'
+import { UserPlus, RefreshCw, ShieldCheck, Shield, ToggleLeft, ToggleRight, X, Plus, AlertTriangle, Lock } from 'lucide-react'
 import {
   getAdminUserList,
   addAdminUserByEmail,
@@ -9,19 +9,21 @@ import {
   updateAdminUserRole,
   type AdminUserWithAddedBy,
 } from '@/lib/actions/admin-user-actions'
+import type { AdminRole } from '@/lib/admin-auth'
 
 // ============================================================================
 // Role badge
 // ============================================================================
-const ROLE_CONFIG = {
+const ROLE_CONFIG: Record<string, { label: string; color: string }> = {
   super_admin: { label: 'Super Admin', color: 'bg-amber-500/15 text-amber-400 border-amber-500/30' },
   admin:       { label: 'Admin',       color: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30' },
+  moderator:   { label: 'Moderator',   color: 'bg-purple-500/15 text-purple-400 border-purple-500/30' },
 }
 
 // ============================================================================
 // Main Component
 // ============================================================================
-export default function AdminAccessView() {
+export default function AdminAccessView({ canWrite = false }: { canWrite?: boolean }) {
   const [users, setUsers] = useState<AdminUserWithAddedBy[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -30,7 +32,7 @@ export default function AdminAccessView() {
 
   // Add-modal state
   const [addEmail, setAddEmail] = useState('')
-  const [addRole, setAddRole] = useState<'admin' | 'super_admin'>('admin')
+  const [addRole, setAddRole] = useState<AdminRole>('admin')
   const [addLoading, setAddLoading] = useState(false)
   const [addError, setAddError] = useState<string | null>(null)
 
@@ -57,7 +59,7 @@ export default function AdminAccessView() {
     } catch (e: any) { setError(e.message) }
   }
 
-  async function handleRoleChange(u: AdminUserWithAddedBy, role: 'admin' | 'super_admin') {
+  async function handleRoleChange(u: AdminUserWithAddedBy, role: AdminRole) {
     try {
       const res = await updateAdminUserRole(u.profile_id, role)
       if (!res.success) { setError(res.error ?? 'Fehler'); return }
@@ -102,28 +104,23 @@ export default function AdminAccessView() {
           >
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           </button>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-3 py-2 bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 rounded-lg text-sm hover:bg-cyan-500/20 transition-colors"
-          >
-            <UserPlus size={14} />
-            Admin hinzufügen
-          </button>
+          {canWrite && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-2 px-3 py-2 bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 rounded-lg text-sm hover:bg-cyan-500/20 transition-colors"
+            >
+              <UserPlus size={14} />
+              Admin hinzufügen
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Bootstrap banner */}
-      {bootstrapUser && (
-        <div className="flex items-start gap-3 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl text-sm">
-          <AlertTriangle size={16} className="text-amber-400 mt-0.5 shrink-0" />
-          <div>
-            <p className="text-amber-300 font-medium">Bootstrap-Modus</p>
-            <p className="text-amber-400/70 text-xs mt-0.5">
-              <strong>{bootstrapUser.email}</strong> wurde automatisch als erster Admin eingetragen
-              (aus der <code className="text-amber-300 text-[11px]">ADMIN_EMAILS</code> Umgebungsvariable).
-              Füge weitere Admins hinzu und entferne ggf. den Env-Eintrag.
-            </p>
-          </div>
+      {/* Read-only notice for non-super-admins */}
+      {!canWrite && (
+        <div className="flex items-center gap-2 p-3 bg-zinc-900 border border-zinc-800 rounded-xl text-sm text-zinc-500">
+          <Lock size={14} className="shrink-0" />
+          Nur Super-Admins können Admin-Zugänge verwalten. Du kannst die Liste einsehen, aber keine Änderungen vornehmen.
         </div>
       )}
 
@@ -163,14 +160,21 @@ export default function AdminAccessView() {
                   <tr key={u.profile_id} className={`hover:bg-zinc-800/30 transition-colors ${!u.is_active ? 'opacity-50' : ''}`}>
                     <td className="px-5 py-3.5 text-zinc-200 font-mono text-xs">{u.email}</td>
                     <td className="px-5 py-3.5">
-                      <select
-                        value={u.role}
-                        onChange={(e) => handleRoleChange(u, e.target.value as 'admin' | 'super_admin')}
-                        className={`text-xs font-medium px-2 py-1 rounded border bg-transparent cursor-pointer ${roleCfg.color}`}
-                      >
-                        <option value="admin">Admin</option>
-                        <option value="super_admin">Super Admin</option>
-                      </select>
+                      {canWrite ? (
+                        <select
+                          value={u.role}
+                          onChange={(e) => handleRoleChange(u, e.target.value as AdminRole)}
+                          className={`text-xs font-medium px-2 py-1 rounded border bg-transparent cursor-pointer ${roleCfg.color}`}
+                        >
+                          <option value="admin">Admin</option>
+                          <option value="super_admin">Super Admin</option>
+                          <option value="moderator">Moderator</option>
+                        </select>
+                      ) : (
+                        <span className={`text-xs font-medium px-2 py-1 rounded border ${roleCfg.color}`}>
+                          {roleCfg.label}
+                        </span>
+                      )}
                     </td>
                     <td className="px-5 py-3.5 text-zinc-500 text-xs hidden md:table-cell">
                       {u.added_by_email ?? '—'}
@@ -179,16 +183,25 @@ export default function AdminAccessView() {
                       {new Date(u.added_at).toLocaleDateString('de-DE')}
                     </td>
                     <td className="px-5 py-3.5 text-center">
-                      <button
-                        onClick={() => handleToggleActive(u)}
-                        className="text-zinc-400 hover:text-white transition-colors"
-                        title={u.is_active ? 'Deaktivieren' : 'Aktivieren'}
-                      >
-                        {u.is_active
-                          ? <ToggleRight size={20} className="text-cyan-500" />
-                          : <ToggleLeft size={20} />
-                        }
-                      </button>
+                      {canWrite ? (
+                        <button
+                          onClick={() => handleToggleActive(u)}
+                          className="text-zinc-400 hover:text-white transition-colors"
+                          title={u.is_active ? 'Deaktivieren' : 'Aktivieren'}
+                        >
+                          {u.is_active
+                            ? <ToggleRight size={20} className="text-cyan-500" />
+                            : <ToggleLeft size={20} />
+                          }
+                        </button>
+                      ) : (
+                        <span className="text-zinc-600">
+                          {u.is_active
+                            ? <ToggleRight size={20} className="text-zinc-600" />
+                            : <ToggleLeft size={20} />
+                          }
+                        </span>
+                      )}
                     </td>
                   </tr>
                 )
@@ -198,8 +211,8 @@ export default function AdminAccessView() {
         )}
       </div>
 
-      {/* Add modal */}
-      {showAddModal && (
+      {/* Add modal — only for super-admins */}
+      {showAddModal && canWrite && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
           <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
             <div className="flex items-center justify-between mb-5">
@@ -228,9 +241,10 @@ export default function AdminAccessView() {
                 <label className="block text-xs text-zinc-400 mb-1.5">Rolle</label>
                 <select
                   value={addRole}
-                  onChange={(e) => setAddRole(e.target.value as 'admin' | 'super_admin')}
+                  onChange={(e) => setAddRole(e.target.value as AdminRole)}
                   className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-cyan-500"
                 >
+                  <option value="moderator">Moderator</option>
                   <option value="admin">Admin</option>
                   <option value="super_admin">Super Admin</option>
                 </select>

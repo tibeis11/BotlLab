@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase-server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
 import { checkAdminAccess } from '@/lib/admin-auth'
-import type { AdminUser } from '@/lib/admin-auth'
+import type { AdminUser, AdminRole } from '@/lib/admin-auth'
 
 // ============================================================================
 // Service Role Client
@@ -18,15 +18,26 @@ function getSRClient() {
 }
 
 // ============================================================================
-// Auth Guard — caller must be an active admin
+// Auth Guards
 // ============================================================================
+
+/** Any active admin (super_admin, admin, moderator) */
 async function requireAdmin() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Nicht angemeldet')
 
-  const { isAdmin } = await checkAdminAccess({ id: user.id, email: user.email! })
+  const { isAdmin, adminUser } = await checkAdminAccess({ id: user.id, email: user.email! })
   if (!isAdmin) throw new Error('Keine Admin-Berechtigung')
+  return { user, role: adminUser?.role ?? 'admin' as AdminRole }
+}
+
+/** Only super_admin — for admin access management */
+async function requireSuperAdmin() {
+  const { user, role } = await requireAdmin()
+  if (role !== 'super_admin') {
+    throw new Error('Diese Aktion erfordert Super-Admin-Rechte.')
+  }
   return user
 }
 
@@ -48,17 +59,18 @@ export async function getAdminUserList(): Promise<AdminUserWithAddedBy[]> {
 
   if (error) throw new Error(error.message)
 
-  // Enrich with the "added_by" user's email
+  // Enrich with the "added_by" user's email — look up directly in admin_users
+  // (the person who added someone must also be/have been an admin, so their email is stored there)
   const addedByIds = [...new Set((data ?? []).map((u: AdminUser) => u.added_by).filter(Boolean))]
   let addedByMap: Record<string, string> = {}
 
   if (addedByIds.length > 0) {
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('id, email')
-      .in('id', addedByIds)
-    ;(profiles ?? []).forEach((p: { id: string; email: string }) => {
-      addedByMap[p.id] = p.email
+    const { data: addedByAdmins } = await supabase
+      .from('admin_users')
+      .select('profile_id, email')
+      .in('profile_id', addedByIds)
+    ;(addedByAdmins ?? []).forEach((a: { profile_id: string; email: string }) => {
+      addedByMap[a.profile_id] = a.email
     })
   }
 
@@ -74,20 +86,19 @@ export async function getAdminUserList(): Promise<AdminUserWithAddedBy[]> {
 
 export async function addAdminUserByEmail(
   targetEmail: string,
-  role: 'admin' | 'super_admin' = 'admin'
+  role: AdminRole = 'admin'
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const caller = await requireAdmin()
+    const caller = await requireSuperAdmin()
     const supabase = getSRClient()
 
-    // Find profile by email
-    const { data: profile, error: findErr } = await supabase
-      .from('profiles')
-      .select('id, email')
-      .ilike('email', targetEmail.trim())
-      .maybeSingle()
+    // Find user in auth.users by email (profiles table has no email column)
+    const { data: { users }, error: findErr } = await supabase.auth.admin.listUsers()
+    const authUser = users?.find(
+      (u) => u.email?.toLowerCase() === targetEmail.trim().toLowerCase()
+    )
 
-    if (findErr || !profile) {
+    if (findErr || !authUser) {
       return { success: false, error: 'E-Mail-Adresse nicht gefunden. Nutzer muss sich zuerst registrieren.' }
     }
 
@@ -95,7 +106,7 @@ export async function addAdminUserByEmail(
     const { data: existing } = await supabase
       .from('admin_users')
       .select('id, is_active')
-      .eq('profile_id', profile.id)
+      .eq('profile_id', authUser.id)
       .maybeSingle()
 
     if (existing) {
@@ -110,8 +121,8 @@ export async function addAdminUserByEmail(
     } else {
       // New entry
       const { error: insertErr } = await supabase.from('admin_users').insert({
-        profile_id: profile.id,
-        email: profile.email,
+        profile_id: authUser.id,
+        email: authUser.email ?? targetEmail.trim(),
         role,
         is_active: true,
         added_by: caller.id,
@@ -131,7 +142,7 @@ export async function setAdminUserActive(
   isActive: boolean
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
     const supabase = getSRClient()
 
     // Prevent deactivating last active admin
@@ -160,10 +171,10 @@ export async function setAdminUserActive(
 
 export async function updateAdminUserRole(
   profileId: string,
-  role: 'admin' | 'super_admin'
+  role: AdminRole
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
     const supabase = getSRClient()
     const { error } = await supabase
       .from('admin_users')

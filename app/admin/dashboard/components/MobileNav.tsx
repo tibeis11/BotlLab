@@ -5,12 +5,14 @@ import {
 } from 'lucide-react'
 import type { Section } from './SidebarNav'
 import { getDefaultView } from './SidebarNav'
+import type { AdminRole } from '@/lib/admin-auth'
 
 interface MobileNavProps {
   activeSection: Section
   onNavigate: (section: Section, view?: string) => void
   alertCount: number
   moderationCount: number
+  role: AdminRole
 }
 
 const MOBILE_SECTIONS: { section: Section; label: string; Icon: React.ElementType }[] = [
@@ -22,8 +24,12 @@ const MOBILE_SECTIONS: { section: Section; label: string; Icon: React.ElementTyp
   { section: 'settings',    label: 'Settings',   Icon: Wrench },
 ]
 
-export default function MobileNav({ activeSection, onNavigate, alertCount, moderationCount }: MobileNavProps) {
+export default function MobileNav({ activeSection, onNavigate, alertCount, moderationCount, role }: MobileNavProps) {
   const totalBadge = alertCount + moderationCount
+  // Moderators don't get a settings tab (no admin management for them)
+  const visibleSections = role === 'moderator'
+    ? MOBILE_SECTIONS.filter(s => s.section !== 'settings')
+    : MOBILE_SECTIONS
 
   return (
     <nav
@@ -32,7 +38,7 @@ export default function MobileNav({ activeSection, onNavigate, alertCount, moder
       aria-label="Mobile Navigation"
     >
       <div className="flex items-stretch justify-around h-14">
-        {MOBILE_SECTIONS.map(({ section, label, Icon }) => {
+        {visibleSections.map(({ section, label, Icon }) => {
           const isActive = activeSection === section
           // Show combined badge only on system (alerts) and operations (moderation)
           const badge =

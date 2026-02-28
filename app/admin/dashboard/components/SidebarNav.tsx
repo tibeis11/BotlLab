@@ -7,8 +7,9 @@ import {
   FlaskConical, BookOpen, QrCode, Settings2,
   Server, Activity, Bell, ClipboardList,
   Wrench, Search, CreditCard, UserCog,
-  ChevronDown,
+  ChevronDown, EyeOff,
 } from 'lucide-react'
+import type { AdminRole } from '@/lib/admin-auth'
 
 // ============================================================================
 // Types
@@ -114,6 +115,7 @@ interface SidebarNavProps {
   onNavigate: (section: Section, view?: string) => void
   alertCount: number
   moderationCount: number
+  role: AdminRole
 }
 
 // ============================================================================
@@ -126,7 +128,22 @@ export default function SidebarNav({
   onNavigate,
   alertCount,
   moderationCount,
+  role,
 }: SidebarNavProps) {
+  const isModerator = role === 'moderator'
+  const isSuperAdmin = role === 'super_admin'
+
+  // Sections where moderators have full write access
+  const MODERATOR_WRITE_SECTIONS: Section[] = ['operations']
+
+  // Filter nav config based on role:
+  // - non-super-admins don't see settings/admins
+  const filteredConfig = NAV_CONFIG.map(sec => {
+    if (sec.section === 'settings' && !isSuperAdmin) {
+      return { ...sec, views: sec.views.filter(v => v.id !== 'admins') }
+    }
+    return sec
+  })
   // Track which sections are expanded. Active section always open.
   const [expanded, setExpanded] = useState<Set<Section>>(() => new Set([activeSection]))
 
@@ -167,10 +184,12 @@ export default function SidebarNav({
   return (
     <nav className="w-full" role="navigation" aria-label="Admin Dashboard Navigation">
       <div className="flex flex-col gap-0.5">
-        {NAV_CONFIG.map(({ section, label, Icon, views }) => {
+        {filteredConfig.map(({ section, label, Icon, views }) => {
           const isActiveSection = activeSection === section
           const isExpanded = expanded.has(section)
           const hasViews = views.length > 0
+          // For moderators: sections outside their write-access are read-only
+          const isReadOnly = isModerator && !MODERATOR_WRITE_SECTIONS.includes(section)
 
           // Section-level badge (for sections with badged views)
           const sectionBadge = views.reduce((sum, v) => sum + getBadgeCount(v.badgeKey), 0)
@@ -189,6 +208,9 @@ export default function SidebarNav({
               >
                 <Icon className="w-4 h-4 shrink-0" aria-hidden="true" />
                 <span className="flex-1 truncate">{label}</span>
+                {isReadOnly && (
+                  <EyeOff className="w-3 h-3 shrink-0 text-zinc-600" aria-label="Nur Lesezugriff" />
+                )}
                 {sectionBadge > 0 && (
                   <span className="bg-red-600 text-white text-[10px] font-bold rounded-full px-1.5 py-0.5 min-w-[18px] text-center leading-none">
                     {sectionBadge > 99 ? '99+' : sectionBadge}

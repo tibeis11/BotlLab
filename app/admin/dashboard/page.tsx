@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import { checkAdminAccess } from '@/lib/admin-auth'
+import type { AdminRole } from '@/lib/admin-auth'
 import DashboardClient from './components/DashboardClient'
 import type { Section } from './components/SidebarNav'
 import SkipLink from './components/SkipLink'
@@ -20,7 +21,8 @@ export default async function AdminDashboardPage({
   }
 
   // Check if user is admin (table-based, with ADMIN_EMAILS bootstrap fallback)
-  const { isAdmin, bootstrapped } = await checkAdminAccess({ id: user.id, email: user.email! })
+  const { isAdmin, adminUser } = await checkAdminAccess({ id: user.id, email: user.email! })
+  const role: AdminRole = adminUser?.role ?? 'admin'
 
   if (!isAdmin) {
     return (
@@ -61,8 +63,12 @@ export default async function AdminDashboardPage({
                 <h1 className="text-2xl font-bold text-white tracking-tight">
                   Admin Dashboard
                 </h1>
-                <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-zinc-800 text-zinc-400 border border-zinc-700 uppercase tracking-wide">
-                  Admin
+                <span className={`px-2 py-0.5 rounded text-[10px] font-medium border uppercase tracking-wide ${
+                  role === 'super_admin' ? 'bg-amber-500/15 text-amber-400 border-amber-500/30' :
+                  role === 'moderator'   ? 'bg-purple-500/15 text-purple-400 border-purple-500/30' :
+                  'bg-zinc-800 text-zinc-400 border-zinc-700'
+                }`}>
+                  {role === 'super_admin' ? 'Super Admin' : role === 'moderator' ? 'Moderator' : 'Admin'}
                 </span>
               </div>
               <p className="text-sm text-zinc-500">BotlLab Analytics & Insights</p>
@@ -89,6 +95,7 @@ export default async function AdminDashboardPage({
           <main id="main-content">
             <DashboardClient
               userId={user.id}
+              role={role}
               initialSection={initialSection}
               initialView={view}
             />
