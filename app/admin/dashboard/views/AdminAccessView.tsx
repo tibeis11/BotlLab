@@ -7,6 +7,7 @@ import {
   addAdminUserByEmail,
   setAdminUserActive,
   updateAdminUserRole,
+  toggleAdminDailyReport,
   type AdminUserWithAddedBy,
 } from '@/lib/actions/admin-user-actions'
 import type { AdminRole } from '@/lib/admin-auth'
@@ -56,6 +57,14 @@ export default function AdminAccessView({ canWrite = false }: { canWrite?: boole
       const res = await setAdminUserActive(u.profile_id, !u.is_active)
       if (!res.success) { setError(res.error ?? 'Fehler'); return }
       setUsers(prev => prev.map(x => x.profile_id === u.profile_id ? { ...x, is_active: !u.is_active } : x))
+    } catch (e: any) { setError(e.message) }
+  }
+
+  async function handleDailyReportToggle(u: AdminUserWithAddedBy) {
+    try {
+      const res = await toggleAdminDailyReport(u.profile_id, !u.daily_report_enabled)
+      if (!res.success) { setError(res.error ?? 'Fehler'); return }
+      setUsers(prev => prev.map(x => x.profile_id === u.profile_id ? { ...x, daily_report_enabled: !u.daily_report_enabled } : x))
     } catch (e: any) { setError(e.message) }
   }
 
@@ -151,6 +160,7 @@ export default function AdminAccessView({ canWrite = false }: { canWrite?: boole
                 <th className="text-left px-5 py-3 text-zinc-500 font-medium text-xs uppercase tracking-wide hidden md:table-cell">Hinzugefügt von</th>
                 <th className="text-left px-5 py-3 text-zinc-500 font-medium text-xs uppercase tracking-wide hidden lg:table-cell">Datum</th>
                 <th className="text-center px-5 py-3 text-zinc-500 font-medium text-xs uppercase tracking-wide">Aktiv</th>
+                <th className="text-center px-5 py-3 text-zinc-500 font-medium text-xs uppercase tracking-wide hidden lg:table-cell">Tagesbericht</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800/60">
@@ -201,6 +211,31 @@ export default function AdminAccessView({ canWrite = false }: { canWrite?: boole
                             : <ToggleLeft size={20} />
                           }
                         </span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3.5 text-center hidden lg:table-cell">
+                      {u.role === 'super_admin' ? (
+                        canWrite ? (
+                          <button
+                            onClick={() => handleDailyReportToggle(u)}
+                            className="text-zinc-400 hover:text-white transition-colors"
+                            title={u.daily_report_enabled ? 'Tagesbericht deaktivieren' : 'Tagesbericht aktivieren'}
+                          >
+                            {u.daily_report_enabled
+                              ? <ToggleRight size={20} className="text-amber-400" />
+                              : <ToggleLeft size={20} />
+                            }
+                          </button>
+                        ) : (
+                          <span className="text-zinc-600">
+                            {u.daily_report_enabled
+                              ? <ToggleRight size={20} className="text-zinc-600" />
+                              : <ToggleLeft size={20} />
+                            }
+                          </span>
+                        )
+                      ) : (
+                        <span className="text-zinc-700">—</span>
                       )}
                     </td>
                   </tr>

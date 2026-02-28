@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BotlLab Daily Report</title>
+  <style>
+    body { margin: 0; padding: 0; background-color: #0a0a0a; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+    .wrapper { width: 100%; background-color: #0a0a0a; padding: 40px 0; }
+    .container { max-width: 600px; margin: 0 auto; background-color: #111111; border-radius: 12px; overflow: hidden; border: 1px solid #1f1f1f; }
+    .header { background-color: #0a0a0a; padding: 28px 32px; border-bottom: 1px solid #1f1f1f; }
+    .content { padding: 36px 40px; }
+    .heading { font-size: 22px; font-weight: 700; color: #ffffff; margin: 0 0 6px 0; letter-spacing: -0.025em; }
+    .subheading { font-size: 14px; color: #71717a; margin: 0 0 32px 0; }
+    .label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #52525b; margin: 0 0 12px 0; }
+    .kpi-grid { display: table; width: 100%; border-collapse: separate; border-spacing: 8px; margin-bottom: 28px; }
+    .kpi-row { display: table-row; }
+    .kpi-cell { display: table-cell; background-color: #18181b; border: 1px solid #27272a; border-radius: 8px; padding: 18px 20px; width: 50%; vertical-align: top; }
+    .kpi-value { font-size: 28px; font-weight: 800; color: #ffffff; margin: 0; letter-spacing: -0.04em; }
+    .kpi-value.accent { color: #22d3ee; }
+    .kpi-value.warning { color: #fb923c; }
+    .kpi-label { font-size: 11px; font-weight: 600; color: #71717a; text-transform: uppercase; letter-spacing: 0.06em; margin: 6px 0 0 0; }
+    .divider { border: none; border-top: 1px solid #1f1f1f; margin: 28px 0; }
+    .stat-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #1f1f1f; }
+    .stat-label { font-size: 13px; color: #a1a1aa; }
+    .stat-value { font-size: 13px; font-weight: 600; color: #e4e4e7; }
+    .button-container { text-align: center; margin-top: 32px; }
+    .button { display: inline-block; background-color: #ffffff; color: #000000; font-weight: 700; font-size: 13px; padding: 12px 28px; border-radius: 6px; text-decoration: none; letter-spacing: -0.01em; }
+    .footer { padding: 20px 32px; background-color: #0a0a0a; border-top: 1px solid #1f1f1f; }
+    .footer-text { font-size: 12px; color: #52525b; line-height: 1.5; margin: 0; }
+    .badge { display: inline-block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; padding: 3px 8px; border-radius: 4px; background-color: #fbbf2420; color: #fbbf24; border: 1px solid #fbbf2430; margin-bottom: 16px; }
+    @media only screen and (max-width: 600px) {
+      .content { padding: 24px !important; }
+      .wrapper { padding: 0 !important; }
+      .container { border-radius: 0 !important; }
+      .kpi-cell { display: block; width: 100% !important; margin-bottom: 8px; box-sizing: border-box; }
+      .kpi-grid { display: block; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td align="center">
+          <div class="container">
+            <!-- Header -->
+            <div class="header">
+              <a href="https://botllab.de" target="_blank">
+                <img src="https://botllab.de/brand/logo_withName.svg" alt="BotlLab" width="120" style="display: block; opacity: 0.8;">
+              </a>
+            </div>
+
+            <!-- Content -->
+            <div class="content">
+              <span class="badge">Admin · Tagesbericht</span>
+              <h1 class="heading">Platform Status</h1>
+              <p class="subheading">{{date}} · Automatischer Tagesbericht</p>
+
+              <!-- Primary KPIs -->
+              <p class="label">Nutzer</p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 8px;">
+                <tr>
+                  <td style="width: 48%; background-color: #18181b; border: 1px solid #27272a; border-radius: 8px; padding: 18px 20px; vertical-align: top;">
+                    <p style="font-size: 28px; font-weight: 800; color: #ffffff; margin: 0; letter-spacing: -0.04em;">{{totalUsers}}</p>
+                    <p style="font-size: 11px; font-weight: 600; color: #71717a; text-transform: uppercase; letter-spacing: 0.06em; margin: 6px 0 0 0;">Gesamt</p>
+                  </td>
+                  <td style="width: 4%;"></td>
+                  <td style="width: 48%; background-color: #18181b; border: 1px solid #27272a; border-radius: 8px; padding: 18px 20px; vertical-align: top;">
+                    <p style="font-size: 28px; font-weight: 800; color: #22d3ee; margin: 0; letter-spacing: -0.04em;">{{activeUsers30d}}</p>
+                    <p style="font-size: 11px; font-weight: 600; color: #71717a; text-transform: uppercase; letter-spacing: 0.06em; margin: 6px 0 0 0;">Aktiv (30d)</p>
+                  </td>
+                </tr>
+              </table>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 28px;">
+                <tr>
+                  <td style="width: 48%; background-color: #18181b; border: 1px solid #27272a; border-radius: 8px; padding: 18px 20px; vertical-align: top;">
+                    <p style="font-size: 28px; font-weight: 800; color: #4ade80; margin: 0; letter-spacing: -0.04em;">+{{newUsersToday}}</p>
+                    <p style="font-size: 11px; font-weight: 600; color: #71717a; text-transform: uppercase; letter-spacing: 0.06em; margin: 6px 0 0 0;">Neu heute</p>
+                  </td>
+                  <td style="width: 4%;"></td>
+                  <td style="width: 48%; background-color: #18181b; border: 1px solid #27272a; border-radius: 8px; padding: 18px 20px; vertical-align: top;">
+                    <p style="font-size: 28px; font-weight: 800; color: {{errorColor}}; margin: 0; letter-spacing: -0.04em;">{{errorCount24h}}</p>
+                    <p style="font-size: 11px; font-weight: 600; color: #71717a; text-transform: uppercase; letter-spacing: 0.06em; margin: 6px 0 0 0;">Fehler (24h)</p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Secondary stats -->
+              <p class="label">Content & Activity</p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 28px; background-color: #18181b; border: 1px solid #27272a; border-radius: 8px; overflow: hidden;">
+                <tr style="border-bottom: 1px solid #27272a;">
+                  <td style="padding: 12px 16px; font-size: 13px; color: #a1a1aa;">Brews gesamt</td>
+                  <td style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #e4e4e7; text-align: right;">{{totalBrews}}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #27272a;">
+                  <td style="padding: 12px 16px; font-size: 13px; color: #a1a1aa;">Bottle-Scans gesamt</td>
+                  <td style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #e4e4e7; text-align: right;">{{totalScans}}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #27272a;">
+                  <td style="padding: 12px 16px; font-size: 13px; color: #a1a1aa;">Brauereien</td>
+                  <td style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #e4e4e7; text-align: right;">{{totalBreweries}}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 12px 16px; font-size: 13px; color: #a1a1aa;">Ø Bewertung</td>
+                  <td style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #e4e4e7; text-align: right;">{{avgRating}} / 5</td>
+                </tr>
+              </table>
+
+              <div class="button-container">
+                <a href="{{dashboardUrl}}" class="button" target="_blank">→ Admin Dashboard</a>
+              </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="footer">
+              <p class="footer-text">
+                Du erhältst diesen Bericht als Super-Admin von BotlLab. 
+                <a href="{{settingsUrl}}" style="color: #71717a; text-decoration: underline;">Benachrichtigung deaktivieren</a>
+              </p>
+              <p class="footer-text" style="margin-top: 6px;">
+                BotlLab · <a href="https://botllab.de" style="color: #52525b; text-decoration: none;">botllab.de</a>
+              </p>
+            </div>
+          </div>
+        </td>
+      </tr>
+    </table>
+  </div>
+</body>
+</html>

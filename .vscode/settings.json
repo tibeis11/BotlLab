@@ -1,12 +1,10 @@
 {
-  "deno.enable": true,
-  "deno.unstable": true,
-  "deno.lint": true
-}
-{
   "css.lint.unknownAtRules": "ignore",
   "scss.lint.unknownAtRules": "ignore",
-  "deno.enablePaths": ["supabase/functions"],
+  "html.validate.styles": false,
+  "deno.enable": true,
+  "deno.lint": true,
   "deno.unstable": true,
+  "deno.enablePaths": ["supabase/functions"],
   "deno.importMap": "./supabase/functions/deno.json"
 }

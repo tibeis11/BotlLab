@@ -570,7 +570,110 @@ const EMAIL_TEMPLATES: Record<string, string> = {
     </table>
   </div>
 </body>
-</html>`
+</html>`,
+
+  // -------------------------------------------------------------------------
+  // Admin Daily Platform Report
+  // -------------------------------------------------------------------------
+  'admin-daily-report': `<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BotlLab Daily Report</title>
+  <style>
+    body { margin: 0; padding: 0; background-color: #0a0a0a; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+    .wrapper { width: 100%; background-color: #0a0a0a; padding: 40px 0; }
+    .container { max-width: 600px; margin: 0 auto; background-color: #111111; border-radius: 12px; overflow: hidden; border: 1px solid #1f1f1f; }
+    .header { background-color: #0a0a0a; padding: 28px 32px; border-bottom: 1px solid #1f1f1f; }
+    .content { padding: 36px 40px; }
+    .badge { display: inline-block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; padding: 3px 8px; border-radius: 4px; background-color: rgba(251,191,36,0.1); color: #fbbf24; border: 1px solid rgba(251,191,36,0.2); margin-bottom: 16px; }
+    .heading { font-size: 22px; font-weight: 700; color: #ffffff; margin: 0 0 6px 0; letter-spacing: -0.025em; }
+    .subheading { font-size: 14px; color: #71717a; margin: 0 0 28px 0; }
+    .section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #52525b; margin: 0 0 10px 0; }
+    .button-container { text-align: center; margin-top: 32px; }
+    .button { display: inline-block; background-color: #ffffff; color: #000000; font-weight: 700; font-size: 13px; padding: 12px 28px; border-radius: 6px; text-decoration: none; }
+    .footer { padding: 20px 32px; background-color: #0a0a0a; border-top: 1px solid #1f1f1f; }
+    .footer-text { font-size: 12px; color: #52525b; line-height: 1.5; margin: 0; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr><td align="center">
+        <div class="container">
+          <div class="header">
+            <a href="https://botllab.de" target="_blank">
+              <img src="https://botllab.de/brand/logo_withName.svg" alt="BotlLab" width="120" style="display:block;opacity:0.8;">
+            </a>
+          </div>
+          <div class="content">
+            <span class="badge">Admin · Tagesbericht</span>
+            <h1 class="heading">Platform Status</h1>
+            <p class="subheading">{{date}} · Automatischer Tagesbericht</p>
+
+            <p class="section-label">Nutzer</p>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:8px;">
+              <tr>
+                <td style="width:48%;background:#18181b;border:1px solid #27272a;border-radius:8px;padding:18px 20px;vertical-align:top;">
+                  <p style="font-size:28px;font-weight:800;color:#fff;margin:0;letter-spacing:-0.04em;">{{totalUsers}}</p>
+                  <p style="font-size:11px;font-weight:600;color:#71717a;text-transform:uppercase;letter-spacing:0.06em;margin:6px 0 0 0;">Gesamt</p>
+                </td>
+                <td style="width:4%;"></td>
+                <td style="width:48%;background:#18181b;border:1px solid #27272a;border-radius:8px;padding:18px 20px;vertical-align:top;">
+                  <p style="font-size:28px;font-weight:800;color:#22d3ee;margin:0;letter-spacing:-0.04em;">{{activeUsers30d}}</p>
+                  <p style="font-size:11px;font-weight:600;color:#71717a;text-transform:uppercase;letter-spacing:0.06em;margin:6px 0 0 0;">Aktiv (30d)</p>
+                </td>
+              </tr>
+            </table>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
+              <tr>
+                <td style="width:48%;background:#18181b;border:1px solid #27272a;border-radius:8px;padding:18px 20px;vertical-align:top;">
+                  <p style="font-size:28px;font-weight:800;color:#4ade80;margin:0;letter-spacing:-0.04em;">+{{newUsersToday}}</p>
+                  <p style="font-size:11px;font-weight:600;color:#71717a;text-transform:uppercase;letter-spacing:0.06em;margin:6px 0 0 0;">Neu heute</p>
+                </td>
+                <td style="width:4%;"></td>
+                <td style="width:48%;background:#18181b;border:1px solid #27272a;border-radius:8px;padding:18px 20px;vertical-align:top;">
+                  <p style="font-size:28px;font-weight:800;color:{{errorColor}};margin:0;letter-spacing:-0.04em;">{{errorCount24h}}</p>
+                  <p style="font-size:11px;font-weight:600;color:#71717a;text-transform:uppercase;letter-spacing:0.06em;margin:6px 0 0 0;">Fehler (24h)</p>
+                </td>
+              </tr>
+            </table>
+
+            <p class="section-label">Content &amp; Activity</p>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;background:#18181b;border:1px solid #27272a;border-radius:8px;overflow:hidden;">
+              <tr style="border-bottom:1px solid #27272a;">
+                <td style="padding:12px 16px;font-size:13px;color:#a1a1aa;">Brews gesamt</td>
+                <td style="padding:12px 16px;font-size:13px;font-weight:600;color:#e4e4e7;text-align:right;">{{totalBrews}}</td>
+              </tr>
+              <tr style="border-bottom:1px solid #27272a;">
+                <td style="padding:12px 16px;font-size:13px;color:#a1a1aa;">Bottle-Scans gesamt</td>
+                <td style="padding:12px 16px;font-size:13px;font-weight:600;color:#e4e4e7;text-align:right;">{{totalScans}}</td>
+              </tr>
+              <tr style="border-bottom:1px solid #27272a;">
+                <td style="padding:12px 16px;font-size:13px;color:#a1a1aa;">Brauereien</td>
+                <td style="padding:12px 16px;font-size:13px;font-weight:600;color:#e4e4e7;text-align:right;">{{totalBreweries}}</td>
+              </tr>
+              <tr>
+                <td style="padding:12px 16px;font-size:13px;color:#a1a1aa;">&#216; Bewertung</td>
+                <td style="padding:12px 16px;font-size:13px;font-weight:600;color:#e4e4e7;text-align:right;">{{avgRating}} / 5</td>
+              </tr>
+            </table>
+
+            <div class="button-container">
+              <a href="{{dashboardUrl}}" class="button" target="_blank">&#8594; Admin Dashboard</a>
+            </div>
+          </div>
+          <div class="footer">
+            <p class="footer-text">Du erhältst diesen Bericht als Super-Admin von BotlLab. <a href="{{settingsUrl}}" style="color:#71717a;text-decoration:underline;">Benachrichtigung deaktivieren</a></p>
+            <p class="footer-text" style="margin-top:6px;">BotlLab · <a href="https://botllab.de" style="color:#52525b;text-decoration:none;">botllab.de</a></p>
+          </div>
+        </div>
+      </td></tr>
+    </table>
+  </div>
+</body>
+</html>`,
 };
 
 // Lazy initialization to prevent crash if API key is missing during module evaluation
@@ -831,6 +934,49 @@ export async function sendAppealDecisionEmail(
                 ? 'Wir haben die Entscheidung revidiert. Der Inhalt wird wiederhergestellt oder die Einschränkung aufgehoben.'
                 : 'Nach erneuter Prüfung halten wir die ursprüngliche Entscheidung aufrecht. Bei weiteren Fragen kannst du dich an unser Team wenden.',
             dashboardUrl: 'https://botllab.de/dashboard'
+        }
+    });
+}
+
+// ============================================================================
+// Admin Daily Platform Report
+// ============================================================================
+
+export interface AdminDailyReportData {
+  totalUsers: number
+  activeUsers30d: number
+  newUsersToday: number
+  totalBrews: number
+  totalScans: number
+  totalBreweries: number
+  errorCount24h: number
+  avgRating: number
+}
+
+/**
+ * Sends the daily platform status report to a super-admin.
+ */
+export async function sendAdminDailyReport(to: string, data: AdminDailyReportData) {
+    const date = new Date().toLocaleDateString('de-DE', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+    });
+    return sendEmail({
+        to,
+        subject: `BotlLab Daily Report · ${new Date().toLocaleDateString('de-DE')}`,
+        template: 'admin-daily-report',
+        placeholders: {
+            date,
+            totalUsers:      data.totalUsers.toLocaleString('de-DE'),
+            activeUsers30d:  data.activeUsers30d.toLocaleString('de-DE'),
+            newUsersToday:   data.newUsersToday.toLocaleString('de-DE'),
+            totalBrews:      data.totalBrews.toLocaleString('de-DE'),
+            totalScans:      data.totalScans.toLocaleString('de-DE'),
+            totalBreweries:  data.totalBreweries.toLocaleString('de-DE'),
+            errorCount24h:   data.errorCount24h.toLocaleString('de-DE'),
+            avgRating:       data.avgRating.toFixed(1),
+            errorColor:      data.errorCount24h > 10 ? '#fb923c' : '#4ade80',
+            dashboardUrl:    'https://botllab.de/admin/dashboard',
+            settingsUrl:     'https://botllab.de/admin/dashboard?section=settings&view=admins',
         }
     });
 }

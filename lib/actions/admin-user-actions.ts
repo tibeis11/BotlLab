@@ -187,3 +187,31 @@ export async function updateAdminUserRole(
     return { success: false, error: e.message }
   }
 }
+
+export async function toggleAdminDailyReport(
+  profileId: string,
+  enabled: boolean
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requireSuperAdmin()
+    const supabase = getSRClient()
+    // Only super_admins receive the report — enforce on the target row too
+    const { data: target } = await supabase
+      .from('admin_users')
+      .select('role')
+      .eq('profile_id', profileId)
+      .maybeSingle()
+    if (!target || target.role !== 'super_admin') {
+      return { success: false, error: 'Tagesbericht ist nur für Super-Admins verfügbar.' }
+    }
+    const { error } = await supabase
+      .from('admin_users')
+      .update({ daily_report_enabled: enabled })
+      .eq('profile_id', profileId)
+    if (error) return { success: false, error: error.message }
+    revalidatePath('/admin/dashboard')
+    return { success: true }
+  } catch (e: any) {
+    return { success: false, error: e.message }
+  }
+}

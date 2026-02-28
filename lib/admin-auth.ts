@@ -38,6 +38,7 @@ export interface AdminUser {
   email: string
   role: AdminRole
   is_active: boolean
+  daily_report_enabled: boolean
   added_by: string | null
   added_at: string
   notes: string | null
