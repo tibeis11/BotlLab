@@ -119,10 +119,19 @@ export default function TermsPage() {
         {/* 9. Beendigung */}
         <section>
           <h2 className="text-2xl font-bold text-foreground mb-4">9. Beendigung</h2>
-          <p className="text-zinc-300 leading-relaxed">
-            Du kannst dein Konto jederzeit löschen. Wir können Konten bei Verstoß gegen diese AGB suspendieren oder löschen. 
-            Nach Löschung werden Daten gemäß unserer Datenschutzrichtlinie verwaltet.
-          </p>
+          <div className="text-zinc-300 space-y-3">
+            <p>
+              Du kannst dein Konto jederzeit löschen. Wir können Konten bei Verstoß gegen diese AGB suspendieren oder löschen.
+              Nach Löschung werden Daten gemäß unserer Datenschutzrichtlinie verwaltet.
+            </p>
+            <p>
+              <strong>Anonymisierung von Rezepten und Flaschendaten:</strong> Beim Löschen deines Kontos werden deine erstellten Rezepte und
+              Flaschendaten <strong>anonymisiert</strong> (d. h. die Verknüpfung zu deiner Person wird entfernt) und bleiben als Teil der
+              Community erhalten. Dies ist notwendig, da andere Nutzer ihre eigenen Brausitzungen und Flaschen auf diesen Rezepten aufgebaut
+              haben können. Alle persönlichen Profilinformationen (Name, Bio, Standort, Profilbilder) sowie deine Authentifizierungsdaten
+              (E-Mail, Passwort) werden vollständig und unwiderruflich gelöscht.
+            </p>
+          </div>
         </section>
 
         {/* 10. Geltung */}

@@ -151,7 +151,11 @@ export default function PrivacyPage() {
               sofern keine gesetzliche Aufbewahrungspflicht besteht.
             </p>
             <p>
-              <strong>Rezepte & Flaschen:</strong> Solange du sie nicht löschst. Bei Account-Löschung werden diese mit gelöscht.
+              <strong>Rezepte & Flaschen:</strong> Solange du sie nicht löschst. Bei Account-Löschung werden Rezepte und Flaschendaten
+              <strong> anonymisiert</strong>: Die Verknüpfung zu deinem Konto wird entfernt, die Inhalte bleiben jedoch als Teil der Community
+              erhalten, da andere Nutzer ihre Brausitzungen und Flaschen darauf aufgebaut haben könnten. Profilbilder (Logo, Banner) und alle
+              personenbezogenen Profildaten (Name, Bio, Standort) werden vollständig gelöscht. Rechtsgrundlage für die Aufbewahrung anonymisierter
+              Rezeptdaten: Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse – Datenintegrität für andere Community-Mitglieder).
             </p>
             <p>
               <strong>Zugriffslogs:</strong> Maximal 90 Tage für Sicherheitszwecke.

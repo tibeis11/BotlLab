@@ -27,33 +27,19 @@ export async function POST(req: Request) {
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   try {
-    // Load profile for asset URLs
+    // Load profile for asset URLs (personal data to be deleted)
     const { data: profile } = await admin.from('profiles').select('logo_url,banner_url').eq('id', userId).single();
 
-    // Delete bottles owned by user
-    await admin.from('bottles').delete().eq('user_id', userId);
+    // Anonymize brews: set user_id to NULL so recipes remain accessible for
+    // other users who based sessions/bottles on them (DSGVO Art. 6 I lit. f).
+    // Label images are part of the brew content, not personal data → keep them.
+    await admin.from('brews').update({ user_id: null }).eq('user_id', userId);
 
-    // Collect brews to clean labels
-    const { data: brews } = await admin.from('brews').select('id,image_url').eq('user_id', userId);
+    // Anonymize bottles: set user_id to NULL to preserve bottle history
+    // linked to shared brews and brewing sessions.
+    await admin.from('bottles').update({ user_id: null }).eq('user_id', userId);
 
-    // Delete label images from storage bucket
-    if (brews && brews.length > 0) {
-      const toRemove: string[] = [];
-      for (const b of brews) {
-        if (b.image_url) {
-          const name = (b.image_url as string).split('/').pop();
-          if (name) toRemove.push(name);
-        }
-      }
-      if (toRemove.length > 0) {
-        await admin.storage.from('labels').remove(toRemove.map((n) => n));
-      }
-    }
-
-    // Delete brews
-    await admin.from('brews').delete().eq('user_id', userId);
-
-    // Delete brewery-assets (logo/banner)
+    // Delete personal profile assets (logo/banner) – these are personal data
     if (profile) {
       const assetNames: string[] = [];
       for (const url of [profile.logo_url, profile.banner_url]) {
@@ -67,10 +53,10 @@ export async function POST(req: Request) {
       }
     }
 
-    // Delete profile row
+    // Delete profile row (display_name, bio, location, etc.)
     await admin.from('profiles').delete().eq('id', userId);
 
-    // Finally, delete auth user
+    // Finally, delete auth user (email + credentials)
     await admin.auth.admin.deleteUser(userId);
 
     return NextResponse.json({ ok: true });
