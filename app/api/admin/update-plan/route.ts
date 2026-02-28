@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { updateUserSubscriptionPlan } from '@/lib/actions/analytics-admin-actions'
 import { createClient } from '@/lib/supabase-server'
+import { checkAdminAccess } from '@/lib/admin-auth'
 
 export async function POST(req: Request) {
   try {
@@ -13,8 +14,8 @@ export async function POST(req: Request) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const allowedEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
-    if (!allowedEmails.includes(user.email?.toLowerCase() || '')) {
+    const { isAdmin } = await checkAdminAccess({ id: user.id, email: user.email! })
+    if (!isAdmin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 

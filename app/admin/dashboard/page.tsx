@@ -1,11 +1,17 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
+import { checkAdminAccess } from '@/lib/admin-auth'
 import DashboardClient from './components/DashboardClient'
+import type { Section } from './components/SidebarNav'
 import SkipLink from './components/SkipLink'
 
 export const dynamic = 'force-dynamic'
 
-export default async function AdminDashboardPage() {
+export default async function AdminDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ section?: string; view?: string }>
+}) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -13,10 +19,10 @@ export default async function AdminDashboardPage() {
     redirect('/login')
   }
 
-  // Check if user is admin
-  const allowedEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
-  
-  if (!allowedEmails.includes(user.email?.toLowerCase() || '')) {
+  // Check if user is admin (table-based, with ADMIN_EMAILS bootstrap fallback)
+  const { isAdmin, bootstrapped } = await checkAdminAccess({ id: user.id, email: user.email! })
+
+  if (!isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black text-white p-4">
         <div className="max-w-md w-full bg-zinc-900 p-8 rounded-3xl border border-zinc-800 text-center shadow-2xl">
@@ -39,6 +45,11 @@ export default async function AdminDashboardPage() {
     )
   }
 
+  // Resolve searchParams (Next.js 15: searchParams is a Promise)
+  const { section, view } = await searchParams
+  const validSections = ['overview', 'analytics', 'operations', 'product', 'system', 'settings']
+  const initialSection = (section && validSections.includes(section) ? section : 'overview') as Section
+
   return (
     <>
       <SkipLink />
@@ -48,7 +59,7 @@ export default async function AdminDashboardPage() {
             <div>
               <div className="flex items-center gap-3 mb-1">
                 <h1 className="text-2xl font-bold text-white tracking-tight">
-                  Overview
+                  Admin Dashboard
                 </h1>
                 <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-zinc-800 text-zinc-400 border border-zinc-700 uppercase tracking-wide">
                   Admin
@@ -76,7 +87,11 @@ export default async function AdminDashboardPage() {
           </header>
           
           <main id="main-content">
-            <DashboardClient userId={user.id} />
+            <DashboardClient
+              userId={user.id}
+              initialSection={initialSection}
+              initialView={view}
+            />
           </main>
         </div>
       </div>

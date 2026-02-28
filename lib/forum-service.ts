@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase-server';
+import { getAlgorithmSettings, ALGORITHM_DEFAULTS } from '@/lib/algorithm-settings';
 
 export async function getForumCategories() {
     const supabase = await createClient();
@@ -71,9 +72,16 @@ export async function getCategoryWithStats(slug: string) {
 export async function getTrendingThreads(limit = 5) {
     const supabase = await createClient();
 
-    // Pull candidates from the last 14 days
+    // Load algorithm parameters (falls back to defaults if DB unavailable)
+    const algoSettings = await getAlgorithmSettings().catch(() => ({ ...ALGORITHM_DEFAULTS }));
+    const repliesWeight = algoSettings.forum_hot_replies_weight;
+    const viewsDivisor  = algoSettings.forum_hot_views_divisor;
+    const ageExponent   = algoSettings.forum_hot_age_exponent;
+    const windowDays    = algoSettings.forum_hot_window_days;
+
+    // Pull candidates from the configured look-back window
     const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - 14);
+    cutoff.setDate(cutoff.getDate() - windowDays);
 
     const { data } = await supabase
         .from('forum_threads')
@@ -90,12 +98,12 @@ export async function getTrendingThreads(limit = 5) {
 
     const now = Date.now();
 
-    // Hot score: (replies * 3 + views / 20) / (ageHours + 2)^1.5
+    // Hot score: (replies × W_r + views ÷ D_v) / (ageHours + 2)^E
     const scored = data.map(t => {
         const ageHours = (now - new Date(t.created_at).getTime()) / (1000 * 60 * 60);
         const replies = t.reply_count ?? 0;
         const views   = t.view_count  ?? 0;
-        const score   = (replies * 3 + views / 20) / Math.pow(ageHours + 2, 1.5);
+        const score   = (replies * repliesWeight + views / viewsDivisor) / Math.pow(ageHours + 2, ageExponent);
         return { ...t, _hotScore: score };
     });
 

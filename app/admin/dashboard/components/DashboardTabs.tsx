@@ -1,8 +1,8 @@
 'use client'
 
-import { BarChart2, Shield, AlertTriangle, Users, Briefcase, FileText, Settings, Wrench, Scale } from 'lucide-react'
+import { BarChart2, Shield, AlertTriangle, Users, Briefcase, FileText, Settings, Wrench, Scale, Cpu, BookOpen } from 'lucide-react'
 
-export type Tab = 'overview' | 'users' | 'business' | 'content' | 'moderation' | 'reports' | 'appeals' | 'system' | 'settings'
+export type Tab = 'overview' | 'users' | 'business' | 'content' | 'moderation' | 'reports' | 'appeals' | 'system' | 'settings' | 'algorithms' | 'alerts' | 'botlguide' | 'auditlog'
 
 interface DashboardTabsProps {
   activeTab: Tab
@@ -20,6 +20,10 @@ export default function DashboardTabs({ activeTab, onTabChange }: DashboardTabsP
     { id: 'content', label: 'Content', Icon: FileText },
     { id: 'system', label: 'System', Icon: Settings },
     { id: 'settings', label: 'Einstellungen', Icon: Wrench },
+    { id: 'algorithms', label: 'Algorithmen', Icon: Cpu },
+    { id: 'alerts', label: 'Alerts', Icon: AlertTriangle },
+    { id: 'botlguide', label: 'BotlGuide', Icon: BookOpen },
+    { id: 'auditlog', label: 'Audit-Log', Icon: Shield },
   ]
 
   return (

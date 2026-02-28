@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import 'leaflet/dist/leaflet.css';
+import { getCountryNameWithFlag } from '@/lib/utils/country-names';
 
 // Dynamically import to avoid SSR issues with Leaflet
 const MapContainer = dynamic(
@@ -93,7 +94,7 @@ export default function BreweryHeatmap({ data, geoPoints }: HeatmapProps) {
         opacity: 0.6 + intensity * 0.4,
         popup: (
             <div className="text-sm">
-            <div className="font-bold">{getCountryName(country)}</div>
+            <div className="font-bold">{getCountryNameWithFlag(country)}</div>
             <div className="text-zinc-600">{scans} Scans</div>
             </div>
         )
@@ -160,26 +161,4 @@ export default function BreweryHeatmap({ data, geoPoints }: HeatmapProps) {
       </div>
     </div>
   );
-}
-
-function getCountryName(code: string): string {
-  const names: Record<string, string> = {
-    'DE': '🇩🇪 Deutschland',
-    'AT': '🇦🇹 Österreich',
-    'CH': '🇨🇭 Schweiz',
-    'US': '🇺🇸 USA',
-    'GB': '🇬🇧 Vereinigtes Königreich',
-    'FR': '🇫🇷 Frankreich',
-    'IT': '🇮🇹 Italien',
-    'ES': '🇪🇸 Spanien',
-    'NL': '🇳🇱 Niederlande',
-    'BE': '🇧🇪 Belgien',
-    'PL': '🇵🇱 Polen',
-    'CZ': '🇨🇿 Tschechien',
-    'SE': '🇸🇪 Schweden',
-    'NO': '🇳🇴 Norwegen',
-    'DK': '🇩🇰 Dänemark',
-    'FI': '🇫🇮 Finnland',
-  };
-  return names[code] || code;
 }

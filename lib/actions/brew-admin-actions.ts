@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { getAlgorithmSettings as _getAlgorithmSettings, AlgorithmSettings } from '@/lib/algorithm-settings'
 
 // ============================================================================
 // Service Role Client (bypasses RLS)
@@ -201,4 +202,76 @@ export async function saveDiscoverSettings(settings: Partial<PlatformSettings>):
     .from('platform_settings')
     .upsert(upserts, { onConflict: 'key' })
   if (error) throw new Error(`saveDiscoverSettings: ${error.message}`)
+}
+
+// ============================================================================
+// D) Algorithm Settings (Forum Hot Score + Discover Trending Score)
+// ============================================================================
+
+/** Read algorithm settings — delegates to shared utility (bypasses RLS) */
+export async function getAlgorithmSettings(): Promise<AlgorithmSettings> {
+  return _getAlgorithmSettings()
+}
+
+/** Persist algorithm parameter changes to platform_settings */
+export async function saveAlgorithmSettings(settings: Partial<AlgorithmSettings>): Promise<void> {
+  const db = getServiceRoleClient()
+  const upserts = Object.entries(settings).map(([key, value]) => ({
+    key,
+    value: String(value),
+    updated_at: new Date().toISOString(),
+  }))
+  const { error } = await db
+    .from('platform_settings')
+    .upsert(upserts, { onConflict: 'key' })
+  if (error) throw new Error(`saveAlgorithmSettings: ${error.message}`)
+}
+
+/**
+ * Recalculate ALL public brew trending scores using given weights.
+ * Runs a direct UPDATE (service role) — does NOT call the existing PG function
+ * so we can apply custom weights from the admin UI without a DB migration.
+ *
+ * Formula: (likes × likes_weight + times_brewed × brewed_weight) / (ageDays + 2)^age_exponent
+ *
+ * Respects `trending_score_override` — Admin-Pins werden nicht überschrieben.
+ */
+export async function recalcTrendingWithCustomWeights(
+  likes_weight: number,
+  brewed_weight: number,
+  age_exponent: number,
+): Promise<{ updated: number }> {
+  const db = getServiceRoleClient()
+
+  // Use a raw SQL-compatible approach via RPC or a parameterized update.
+  // Since we can't safely call parameterized SQL via JS without an RPC, we call
+  // the existing stored proc and pass weights via a wrapper we know works.
+  // Fallback: run update using JS math, fetching all relevant rows first.
+
+  const { data: brews, error: fetchErr } = await db
+    .from('brews')
+    .select('id,likes_count,times_brewed,created_at,trending_score_override')
+    .eq('is_public', true)
+
+  if (fetchErr) throw new Error(`recalcTrending fetch: ${fetchErr.message}`)
+
+  const now = Date.now()
+  const updates = (brews ?? [])
+    .filter(b => b.trending_score_override == null) // respect admin pins
+    .map(b => {
+      const ageDays = (now - new Date(b.created_at).getTime()) / (1000 * 60 * 60 * 24)
+      const score = (
+        (Number(b.likes_count ?? 0) * likes_weight + Number(b.times_brewed ?? 0) * brewed_weight)
+        / Math.pow(ageDays + 2, age_exponent)
+      )
+      return { id: b.id, trending_score: Math.max(0, score) }
+    })
+
+  if (updates.length === 0) return { updated: 0 }
+
+  // Batch upsert
+  const { error: updErr } = await db.from('brews').upsert(updates, { onConflict: 'id' })
+  if (updErr) throw new Error(`recalcTrending update: ${updErr.message}`)
+
+  return { updated: updates.length }
 }

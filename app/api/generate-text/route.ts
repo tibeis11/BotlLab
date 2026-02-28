@@ -7,6 +7,7 @@ import { trackEvent } from "@/lib/actions/analytics-actions";
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY || "");
 
 export async function POST(req: NextRequest) {
+  const routeStartTime = Date.now()
   try {
     const supabase = await createClient();
     const {
@@ -198,7 +199,8 @@ WICHTIG: Antworte NUR mit dem JSON-Array, keine zusätzlichen Erklärungen!`;
         await trackEvent({
             event_type: 'generate_text_success',
             category: 'ai',
-            payload: { type: 'optimization', model: "gemini-2.0-flash-exp", user_id: user.id }
+            payload: { type: 'optimization', model: "gemini-2.0-flash-exp", user_id: user.id },
+            response_time_ms: Date.now() - routeStartTime,
         });
 
         // Track usage for billing
@@ -239,7 +241,8 @@ WICHTIG: Antworte NUR mit dem JSON-Array, keine zusätzlichen Erklärungen!`;
     await trackEvent({
         event_type: 'generate_text_success',
         category: 'ai',
-        payload: { type: type, model: "gemini-2.0-flash-exp", user_id: user.id }
+        payload: { type: type, model: "gemini-2.0-flash-exp", user_id: user.id },
+        response_time_ms: Date.now() - routeStartTime,
     });
 
     // Track usage for billing

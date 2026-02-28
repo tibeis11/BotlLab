@@ -11,6 +11,7 @@ type AnalyticsEvent = {
   category: AnalyticsCategory
   payload?: Record<string, any>
   path?: string // Optional override, otherwise inferred from referer? (Hard to get in Server Action, better passed or ignored)
+  response_time_ms?: number // Optional: server-side route latency in ms
 }
 
 /**
@@ -52,7 +53,8 @@ export async function trackEvent(event: AnalyticsEvent) {
       category: event.category,
       payload: event.payload || {},
       path: event.path || 'server-action',
-      user_agent: userAgent
+      user_agent: userAgent,
+      ...(event.response_time_ms != null ? { response_time_ms: event.response_time_ms } : {}),
     });
 
     if (error) {

@@ -1,3 +1,7 @@
+// @ts-nocheck
+// Deno Edge Function — URL imports are intentional and valid in Deno runtime.
+// This file is excluded from the Next.js tsconfig but VS Code may still flag
+// URL imports when the file is open. @ts-nocheck suppresses those false positives.
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -127,16 +131,56 @@ async function aggregateDailyMetrics(supabase: any, specificDate?: string) {
       uPage++
   }
 
+  // D.1: Pre-compute session durations per brewery for this date
+  // Fetch brewery memberships here (used by D.1; also fetched again in section 2 for allMembers ref)
+  const { data: membersForD1 } = await supabase
+    .from('brewery_members')
+    .select('brewery_id, user_id')
+
+  const userBreweriesMap = new Map<string, string[]>() // user_id → brewery_id[]
+  membersForD1?.forEach((m: any) => {
+    if (!userBreweriesMap.has(m.user_id)) userBreweriesMap.set(m.user_id, [])
+    userBreweriesMap.get(m.user_id)!.push(m.brewery_id)
+  })
+
+  const { data: completedSessions } = await supabase
+    .from('brewing_sessions')
+    .select('brewery_id, started_at, completed_at')
+    .gte('started_at', `${dateStr}T00:00:00.000`)
+    .lt('started_at', `${dateStr}T23:59:59.999`)
+    .not('started_at', 'is', null)
+    .not('completed_at', 'is', null)
+
+  const sessionDurationByBrewery = new Map<string, number>() // brewery_id → total seconds
+  completedSessions?.forEach((s: any) => {
+    const duration = Math.round(
+      (new Date(s.completed_at).getTime() - new Date(s.started_at).getTime()) / 1000
+    )
+    if (duration > 0 && s.brewery_id) {
+      sessionDurationByBrewery.set(
+        s.brewery_id,
+        (sessionDurationByBrewery.get(s.brewery_id) || 0) + duration
+      )
+    }
+  })
+
   // Insert/Update user daily data
   let userInsertCount = 0
   for (const [userId, data] of userActivityMap.entries()) {
+    // D.1: Sum session durations from all breweries where user is a member
+    const userBreweries = userBreweriesMap.get(userId) || []
+    const sessionDuration = userBreweries.reduce(
+      (sum, bId) => sum + (sessionDurationByBrewery.get(bId) || 0),
+      0
+    )
+
     const { error } = await supabase.from('analytics_user_daily').upsert({
       user_id: userId,
       date: dateStr,
       events_count: data.events_count,
       features_used: Array.from(data.features_used),
       last_event_at: data.last_event_at,
-      session_duration_seconds: 0 // TODO: Calculate from session data
+      session_duration_seconds: sessionDuration,
     })
     if (!error) userInsertCount++
   }
@@ -417,6 +461,36 @@ async function aggregateHourlyMetrics(supabase: any) {
     .gte('created_at', startOfHour.toISOString())
     .lt('created_at', endOfHour.toISOString())
 
+  // D.2: Count unique sessions active during this hour
+  // A session is "active" if it started before endOfHour and (is still open OR completed after startOfHour)
+  const { count: uniqueSessionsCount } = await supabase
+    .from('brewing_sessions')
+    .select('id', { count: 'exact', head: true })
+    .lt('started_at', endOfHour.toISOString())
+    .or(`completed_at.is.null,completed_at.gt.${startOfHour.toISOString()}`)
+    .not('started_at', 'is', null)
+
+  // Compute avg_response_time_ms from instrumented events in this hour
+  // Wrapped in try/catch — gracefully skips if column doesn't exist yet (pre-migration)
+  let avgResponseTimeMs = 0
+  try {
+    const { data: responseTimeData } = await supabase
+      .from('analytics_events')
+      .select('response_time_ms')
+      .gte('created_at', startOfHour.toISOString())
+      .lt('created_at', endOfHour.toISOString())
+      .not('response_time_ms', 'is', null)
+
+    const responseTimes = (responseTimeData ?? [])
+      .map((e: { response_time_ms: number }) => e.response_time_ms)
+      .filter((v: number) => v > 0)
+    avgResponseTimeMs = responseTimes.length > 0
+      ? Math.round(responseTimes.reduce((a: number, b: number) => a + b, 0) / responseTimes.length)
+      : 0
+  } catch (_) {
+    // Column may not exist yet — default to 0
+  }
+
   await supabase.from('analytics_system_hourly').upsert({
     timestamp: startOfHour.toISOString(),
     hour,
@@ -424,8 +498,8 @@ async function aggregateHourlyMetrics(supabase: any) {
     error_count: errorCount || 0,
     active_users_count: uniqueUsers,
     api_calls_count: apiCalls || 0,
-    avg_response_time_ms: 0, // TODO: Implement if we track response times
-    unique_sessions: 0, // TODO: Implement
+    avg_response_time_ms: avgResponseTimeMs,
+    unique_sessions: uniqueSessionsCount || 0,
   })
 
   console.log(
@@ -545,6 +619,52 @@ async function calculateCohorts(supabase: any) {
 
     const paidConversionRate = ((paidCount || 0) / userIds.length) * 100
 
+    // D.3: Estimate avg_ltv from subscription_history
+    // LTV estimate: months spent on each paid tier × monthly price
+    const TIER_PRICES: Record<string, number> = {
+      brewer: 4.99,
+      brewery: 14.99,
+      enterprise: 49.99,
+    }
+    const { data: subHistory } = await supabase
+      .from('subscription_history')
+      .select('profile_id, subscription_tier, changed_at, subscription_status')
+      .in('profile_id', userIds)
+      .order('changed_at', { ascending: true })
+
+    // Group events by user and calculate months at each paid tier
+    const ltvByUser: Record<string, number> = {}
+    const lastEventByUser: Record<string, { tier: string; at: string }> = {}
+
+    ;(subHistory || []).forEach((e: any) => {
+      if (!lastEventByUser[e.profile_id]) {
+        // First event: nothing to calculate yet
+        lastEventByUser[e.profile_id] = { tier: e.subscription_tier, at: e.changed_at }
+        return
+      }
+      const prev = lastEventByUser[e.profile_id]
+      const monthsSpent =
+        (new Date(e.changed_at).getTime() - new Date(prev.at).getTime()) /
+        (1000 * 60 * 60 * 24 * 30)
+      const price = TIER_PRICES[prev.tier] ?? 0
+      ltvByUser[e.profile_id] = (ltvByUser[e.profile_id] || 0) + monthsSpent * price
+      lastEventByUser[e.profile_id] = { tier: e.subscription_tier, at: e.changed_at }
+    })
+
+    // Add ongoing revenue for still-active users (from last event to now)
+    const now = new Date()
+    Object.entries(lastEventByUser).forEach(([uid, last]) => {
+      const price = TIER_PRICES[last.tier] ?? 0
+      if (price > 0) {
+        const monthsSinceLast =
+          (now.getTime() - new Date(last.at).getTime()) / (1000 * 60 * 60 * 24 * 30)
+        ltvByUser[uid] = (ltvByUser[uid] || 0) + monthsSinceLast * price
+      }
+    })
+
+    const totalLtv = Object.values(ltvByUser).reduce((s, v) => s + v, 0)
+    const avgLtv = userIds.length > 0 ? totalLtv / userIds.length : 0
+
     await supabase.from('analytics_cohorts').upsert({
       cohort_id: cohortId,
       user_count: userIds.length,
@@ -555,7 +675,7 @@ async function calculateCohorts(supabase: any) {
       avg_events_per_user: Math.round(avgEventsPerUser * 100) / 100,
       avg_brews_per_user: Math.round(avgBrewsPerUser * 100) / 100,
       paid_conversion_rate: Math.round(paidConversionRate * 100) / 100,
-      avg_ltv: 0, 
+      avg_ltv: Math.round(avgLtv * 100) / 100,
       updated_at: new Date().toISOString()
     })
 

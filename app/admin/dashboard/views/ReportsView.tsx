@@ -2,58 +2,25 @@
 
 import { useState, useEffect } from 'react';
 import { getOpenReports, updateReportStatus, deleteReportedContent, type ReportItem } from '@/lib/actions/content-reporting-actions';
-import { supabase } from '@/lib/supabase';
+import { getContentPreviewForAdmin } from '@/lib/actions/analytics-admin-actions';
 import Link from 'next/link';
 
-// Component to fetch and display small preview of the reported content
+// Component to fetch content preview via Server Action (Service Role) — no direct client SDK
 function ContentPreview({ type, id }: { type: string, id: string }) {
-    const [data, setData] = useState<any>(null);
+    const [data, setData] = useState<{ name: string | null; img: string | null; link: string } | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        async function load() {
-            let table = '';
-            let select = 'id';
-
-            if (type === 'brew') {
-                table = 'brews';
-                select = 'id, name, image_url';
-            } else if (type === 'user') {
-                table = 'profiles';
-                select = 'id, display_name, logo_url';
-            } else if (type === 'brewery') {
-                table = 'breweries';
-                select = 'id, name, logo_url';
-            } else if (type === 'forum_thread') {
-                table = 'forum_threads';
-                select = 'id, title';
-            } else if (type === 'forum_post') {
-                table = 'forum_posts';
-                select = 'id, content, thread_id';
-            } else {
-                setLoading(false);
-                return;
-            }
-
-            const { data } = await supabase.from(table).select(select).eq('id', id).maybeSingle();
-            setData(data);
-            setLoading(false);
-        }
-        load();
+        getContentPreviewForAdmin(type as any, id)
+            .then(setData)
+            .catch(console.error)
+            .finally(() => setLoading(false));
     }, [type, id]);
 
     if (loading) return <span className="text-zinc-500 text-xs animate-pulse">Lade Inhalt...</span>;
     if (!data) return <span className="text-red-500 text-xs">Inhalt nicht gefunden (Evtl. gelöscht)</span>;
 
-    const name = data.name || data.display_name || data.title || (data.content ? (data.content.substring(0, 30) + (data.content.length > 30 ? '...' : '')) : 'Unbekannt');
-    const img = data.image_url || data.logo_url;
-    
-    let link = '#';
-    if (type === 'brew') link = `/brew/${id}`;
-    if (type === 'user') link = `/brewer/${id}`;
-    if (type === 'brewery') link = `/brewery/${id}`;
-    if (type === 'forum_thread') link = `/forum/thread/${id}`;
-    if (type === 'forum_post') link = `/forum/thread/${data.thread_id}#post-${id}`;
+    const { name, img, link } = data;
 
     return (
         <a href={link} target="_blank" className="flex items-center gap-3 bg-zinc-900/50 hover:bg-zinc-800 p-2 rounded-lg border border-zinc-700/50 transition group">

@@ -4,6 +4,7 @@ import { canUseAI, trackAIUsage } from "@/lib/premium-checks";
 import { trackEvent } from "@/lib/actions/analytics-actions";
 
 export async function POST(req: Request) {
+  const routeStartTime = Date.now()
   try {
     const supabase = await createClient();
     const {
@@ -189,7 +190,8 @@ export async function POST(req: Request) {
         type: type, // 'label' or 'cap'
         model: modelName,
         user_id: user.id
-      }
+      },
+      response_time_ms: Date.now() - routeStartTime,
     });
 
     // Decrement credits

@@ -399,6 +399,7 @@ export default function BrewRecipeTab({
         <div>
           <SectionLabel label="Technische Details" />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            <StatItem label="Alkohol" value={brew.data.abv || brew.data.est_abv || '–'} unit="%" accent />
             <StatItem
               label="Farbe"
               value={
@@ -415,6 +416,7 @@ export default function BrewRecipeTab({
               unit="EBC"
               colorHex={brew.data.color ? ebcToHex(parseFloat(brew.data.color)) : undefined}
             />
+            <StatItem label="Bittere" value={brew.data.ibu || '–'} unit="IBU" />
             <StatItem
               label="Stammwürze"
               value={(() => {
@@ -427,8 +429,6 @@ export default function BrewRecipeTab({
               })()}
               unit="°P"
             />
-            <StatItem label="Bittere" value={brew.data.ibu || '–'} unit="IBU" />
-            <StatItem label="Alkohol" value={brew.data.abv || brew.data.est_abv || '–'} unit="%" accent />
           </div>
         </div>
       )}

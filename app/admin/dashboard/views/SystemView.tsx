@@ -5,13 +5,14 @@ import MetricCard from '../components/MetricCard'
 import DateRangePicker from '../components/DateRangePicker'
 import LineChart from '../components/charts/LineChart'
 import BarChart from '../components/charts/BarChart'
-import { getSystemHourlyStats, getFeatureUsageStats } from '@/lib/actions/analytics-admin-actions'
+import { getSystemHourlyStats, getFeatureUsageStats, getAiUsageStats, type AiUsageStats } from '@/lib/actions/analytics-admin-actions'
 import { DateRange } from '@/lib/types/admin-analytics'
 
 export default function SystemView() {
   const [dateRange, setDateRange] = useState<DateRange>('24h')
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState<any>(null)
+  const [aiStats, setAiStats] = useState<AiUsageStats | null>(null)
 
   useEffect(() => {
     loadData()
@@ -20,9 +21,10 @@ export default function SystemView() {
   async function loadData() {
     setLoading(true)
     try {
-      const [systemStats, featureUsage] = await Promise.all([
+      const [systemStats, featureUsage, aiUsage] = await Promise.all([
         getSystemHourlyStats(dateRange),
-        getFeatureUsageStats('7d')
+        getFeatureUsageStats('7d'),
+        getAiUsageStats(dateRange),
       ])
 
       const totalErrors = systemStats.reduce((sum, stat) => sum + (stat.error_count || 0), 0)
@@ -38,6 +40,7 @@ export default function SystemView() {
         totalApiCalls,
         avgActiveUsers
       })
+      setAiStats(aiUsage)
     } catch (error) {
       console.error('Failed to load system data:', error)
     } finally {
@@ -183,27 +186,83 @@ export default function SystemView() {
           </table>
         </div>
       </div>
-      {/* Database Health */}
-      <div className="bg-gradient-to-br from-green-900/20 to-emerald-900/20 border border-green-800/50 rounded-xl p-6">
+      {/* Database Health — TODO Phase 5.4: Replace with real Supabase metrics */}
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
         <div className="flex items-center gap-3 mb-4">
           <span className="text-2xl">💚</span>
-          <h3 className="text-xl font-bold text-white">Database Health</h3>
+          <h3 className="text-lg font-bold text-white">Database Health</h3>
+          <span className="text-[10px] bg-yellow-900/20 text-yellow-500 border border-yellow-800/30 px-2 py-0.5 rounded uppercase font-bold">Placeholder</span>
         </div>
+        <p className="text-xs text-zinc-500 mb-4">Echte Metriken via Supabase Management API werden in Phase 5.4 implementiert.</p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-black/30 rounded-lg p-4">
             <p className="text-xs text-zinc-400 uppercase mb-1">Connection Pool</p>
-            <p className="text-2xl font-bold text-green-400">Healthy</p>
+            <p className="text-2xl font-bold text-zinc-500">–</p>
           </div>
           <div className="bg-black/30 rounded-lg p-4">
             <p className="text-xs text-zinc-400 uppercase mb-1">Query Performance</p>
-            <p className="text-2xl font-bold text-green-400">&lt;50ms</p>
+            <p className="text-2xl font-bold text-zinc-500">–</p>
           </div>
           <div className="bg-black/30 rounded-lg p-4">
             <p className="text-xs text-zinc-400 uppercase mb-1">Storage Usage</p>
-            <p className="text-2xl font-bold text-green-400">23%</p>
+            <p className="text-2xl font-bold text-zinc-500">–</p>
           </div>
         </div>
       </div>
+
+      {/* AI Usage */}
+      {aiStats && (
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+          <h3 className="text-sm font-semibold text-white mb-4">KI-Nutzung ({dateRange})</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+            <div className="bg-black/30 rounded-lg p-3">
+              <p className="text-[10px] text-zinc-500 uppercase mb-1">Gesamt-Calls</p>
+              <p className="text-xl font-bold text-white">{aiStats.totalCalls.toLocaleString()}</p>
+            </div>
+            <div className="bg-black/30 rounded-lg p-3">
+              <p className="text-[10px] text-zinc-500 uppercase mb-1">Fehler</p>
+              <p className="text-xl font-bold text-red-400">{aiStats.errorCalls.toLocaleString()}</p>
+            </div>
+            <div className="bg-black/30 rounded-lg p-3">
+              <p className="text-[10px] text-zinc-500 uppercase mb-1">Geschätzte Kosten</p>
+              <p className="text-xl font-bold text-amber-400">{aiStats.totalCostEur.toFixed(3)} €</p>
+            </div>
+            <div className="bg-black/30 rounded-lg p-3">
+              <p className="text-[10px] text-zinc-500 uppercase mb-1">Tokens gesamt</p>
+              <p className="text-xl font-bold text-purple-400">{aiStats.totalTokens.toLocaleString()}</p>
+            </div>
+          </div>
+          {aiStats.byType.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <p className="text-xs text-zinc-500 uppercase mb-2">Nach Typ</p>
+                <div className="space-y-2">
+                  {aiStats.byType.map(t => (
+                    <div key={t.type} className="flex justify-between items-center bg-zinc-800/50 rounded px-3 py-2">
+                      <span className="text-xs font-mono text-zinc-300">{t.type}</span>
+                      <div className="flex items-center gap-4">
+                        <span className="text-xs text-zinc-400">{t.calls} Calls</span>
+                        <span className="text-xs text-amber-400">{t.cost.toFixed(4)} €</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-xs text-zinc-500 uppercase mb-2">Nach Modell</p>
+                <div className="space-y-2">
+                  {aiStats.byModel.map(m => (
+                    <div key={m.model} className="flex justify-between items-center bg-zinc-800/50 rounded px-3 py-2">
+                      <span className="text-xs font-mono text-zinc-300 truncate">{m.model}</span>
+                      <span className="text-xs text-amber-400">{m.cost.toFixed(4)} €</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

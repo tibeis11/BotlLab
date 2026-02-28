@@ -1,5 +1,6 @@
 'use server'
 
+import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase-server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import {
@@ -17,6 +18,14 @@ import {
   AdminDashboardSummary,
   UserGrowthData,
   FeatureAdoptionData,
+  RevenueStats,
+  SubscriptionEvent,
+  EmailReportStats,
+  EmailReportLog,
+  ScanOverview,
+  ScanGeography,
+  ScanDevice,
+  TopScanBrew,
 } from '@/lib/types/admin-analytics'
 
 // ============================================================================
@@ -41,26 +50,50 @@ function getServiceRoleClient() {
 
 // ============================================================================
 // Audit Logging Helper
+// Only logs DESTRUCTIVE / SENSITIVE operations (not read-only views)
 // ============================================================================
+
+// Actions that should be audited (writes, destructive ops, sensitive reads)
+const AUDITED_ACTIONS = new Set([
+  'approve_item', 'reject_item', 'delete_content', 'update_report_status',
+  'resolve_appeal', 'update_user_subscription', 'trigger_aggregation',
+  'set_trending_override', 'clear_trending_override', 'set_brew_featured',
+  'save_algorithm_settings', 'save_discover_settings',
+  'acknowledge_alert', 'create_alert_rule', 'toggle_alert_rule',
+  'admin_login', 'admin_action_rate_limited',
+])
 
 async function logAdminAction(
   action: string,
   resourceId?: string | null,
   details?: Record<string, any>
 ) {
+  // Skip logging for read-only operations to reduce DB write load
+  if (!AUDITED_ACTIONS.has(action)) return
+
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    // User identity must come from the session client (not service role)
+    const sessionClient = await createClient()
+    const { data: { user } } = await sessionClient.auth.getUser()
     
     if (!user) return
 
-    await supabase.from('analytics_admin_audit_logs').insert({
+    // Read real IP and User-Agent from request headers
+    const requestHeaders = await headers()
+    const ip = requestHeaders.get('x-forwarded-for')
+      ?? requestHeaders.get('x-real-ip')
+      ?? null
+    const ua = requestHeaders.get('user-agent') ?? null
+
+    // INSERT must use service role — RLS INSERT policy only allows service_role
+    const serviceClient = getServiceRoleClient()
+    await serviceClient.from('analytics_admin_audit_logs').insert({
       admin_id: user.id,
       action,
       resource_id: resourceId,
       details,
-      ip_address: null, // TODO: Get from request headers if needed
-      user_agent: null, // TODO: Get from request headers if needed
+      ip_address: ip,
+      user_agent: ua,
     })
   } catch (error) {
     console.error('Failed to log admin action:', error)
@@ -74,8 +107,6 @@ async function logAdminAction(
 export async function getAdminDashboardSummary(): Promise<AdminDashboardSummary | null> {
   try {
     const supabase = getServiceRoleClient()
-    
-    await logAdminAction('view_dashboard_summary')
 
     // Total users
     const { count: totalUsers } = await supabase
@@ -156,8 +187,6 @@ export async function getUserDailyActivity(dateRange: DateRange = '30d') {
   const supabase = getServiceRoleClient()
   const cutoffDate = getCutoffDate(dateRange)
 
-  await logAdminAction('view_user_daily_activity', null, { dateRange })
-
   const { data, error } = await supabase
     .from('analytics_user_daily')
     .select('*')
@@ -172,7 +201,6 @@ export async function getUserGrowthChart(dateRange: DateRange = '30d'): Promise<
   const supabase = getServiceRoleClient()
   const cutoffDate = getCutoffDate(dateRange)
 
-  await logAdminAction('view_user_growth', null, { dateRange })
   // Try to build growth chart from profile join date (some schemas use `joined_at`)
   const { data: profiles } = await supabase
     .from('profiles')
@@ -235,8 +263,6 @@ export async function getActiveUsersCount(dateRange: DateRange = '30d'): Promise
 export async function getCohortAnalysis() {
   const supabase = getServiceRoleClient()
 
-  await logAdminAction('view_cohort_analysis')
-
   const { data, error } = await supabase
     .from('analytics_cohorts')
     .select('*')
@@ -248,10 +274,7 @@ export async function getCohortAnalysis() {
 }
 
 export async function getUserTierDistribution() {
-  // Use Service Role to see all users regardless of RLS
   const supabase = getServiceRoleClient()
-
-  await logAdminAction('view_tier_distribution')
 
   const { data, error } = await supabase
     .from('profiles')
@@ -262,12 +285,6 @@ export async function getUserTierDistribution() {
     throw error
   }
 
-  // Debug logging
-  console.log('Tier Distribution Analysis:', {
-    totalProfiles: data.length,
-    rawTiers: data.map(p => p.subscription_tier)
-  })
-
   const distribution = {
     free: 0,
     brewer: 0,
@@ -276,14 +293,10 @@ export async function getUserTierDistribution() {
   }
 
   data.forEach((profile) => {
-    // Normalize: trim whitespace and convert to lowercase
     const tier = profile.subscription_tier ? profile.subscription_tier.toString().trim().toLowerCase() : 'free'
-    
     if (tier in distribution) {
       distribution[tier as keyof typeof distribution]++
     } else {
-      // @ts-ignore
-      console.warn(`Unknown tier found: "${tier}" (Raw: "${profile.tier}") - counting as free`)
       distribution.free++
     }
   })
@@ -299,8 +312,6 @@ export async function getBreweryDailyStats(dateRange: DateRange = '30d') {
   const supabase = getServiceRoleClient()
   const cutoffDate = getCutoffDate(dateRange)
 
-  await logAdminAction('view_brewery_stats', null, { dateRange })
-
   const { data, error } = await supabase
     .from('analytics_brewery_daily')
     .select('*')
@@ -314,8 +325,6 @@ export async function getBreweryDailyStats(dateRange: DateRange = '30d') {
 export async function getBreweryGrowthChart(dateRange: DateRange = '30d') {
   const supabase = getServiceRoleClient()
   const cutoffDate = getCutoffDate(dateRange)
-
-  await logAdminAction('view_brewery_growth')
 
   // Get daily new brewery signups
   const { data } = await supabase
@@ -355,8 +364,6 @@ export async function getContentDailyStats(dateRange: DateRange = '30d') {
   const supabase = getServiceRoleClient()
   const cutoffDate = getCutoffDate(dateRange)
 
-  await logAdminAction('view_content_stats', null, { dateRange })
-
   const { data, error } = await supabase
     .from('analytics_content_daily')
     .select('*')
@@ -369,8 +376,6 @@ export async function getContentDailyStats(dateRange: DateRange = '30d') {
 
 export async function getTopBrews(limit: number = 10) {
   const supabase = getServiceRoleClient()
-
-  await logAdminAction('view_top_brews', null, { limit })
 
   // Get brews with most bottles created
   const { data: brewsWithBottles } = await supabase
@@ -410,9 +415,8 @@ export async function getTopBrews(limit: number = 10) {
 }
 
 export async function getRatingDistribution() {
-  const supabase = await createClient()
-
-  await logAdminAction('view_rating_distribution')
+  // Use Service Role for consistent access regardless of RLS
+  const supabase = getServiceRoleClient()
 
   const { data: ratings } = await supabase
     .from('ratings')
@@ -440,7 +444,8 @@ export async function getRatingDistribution() {
 // ============================================================================
 
 export async function getSystemHourlyStats(dateRange: DateRange = '7d') {
-  const supabase = await createClient()
+  // Must use Service Role to bypass RLS on analytics tables
+  const supabase = getServiceRoleClient()
   
   // Convert dateRange to hours
   let hours = 24
@@ -451,8 +456,6 @@ export async function getSystemHourlyStats(dateRange: DateRange = '7d') {
   
   const cutoffTime = new Date()
   cutoffTime.setHours(cutoffTime.getHours() - hours)
-
-  await logAdminAction('view_system_health', null, { dateRange })
 
   const { data, error } = await supabase
     .from('analytics_system_hourly')
@@ -465,9 +468,8 @@ export async function getSystemHourlyStats(dateRange: DateRange = '7d') {
 }
 
 export async function getRecentErrors(limit: number = 50) {
-  const supabase = await createClient()
-
-  await logAdminAction('view_errors', null, { limit })
+  // Must use Service Role to bypass RLS on analytics_events
+  const supabase = getServiceRoleClient()
 
   const { data, error } = await supabase
     .from('analytics_events')
@@ -488,8 +490,6 @@ export async function getFeatureUsage(dateRange: DateRange = '30d') {
   const supabase = getServiceRoleClient()
   const cutoffDate = getCutoffDate(dateRange)
 
-  await logAdminAction('view_feature_usage', null, { dateRange })
-
   const { data, error } = await supabase
     .from('analytics_feature_usage')
     .select('*')
@@ -503,8 +503,6 @@ export async function getFeatureUsage(dateRange: DateRange = '30d') {
 export async function getFeatureUsageStats(dateRange: DateRange = '7d') {
   const supabase = getServiceRoleClient()
   const cutoffDate = getCutoffDate(dateRange)
-
-  await logAdminAction('view_feature_usage_stats', null, { dateRange })
 
   const { data, error } = await supabase
     .from('analytics_feature_usage')
@@ -594,33 +592,28 @@ export async function triggerAggregation(
 ) {
   await logAdminAction('trigger_aggregation', null, { mode, date })
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const supabase = getServiceRoleClient()
 
-  if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error('Missing Supabase configuration')
+  const { data, error } = await supabase.functions.invoke('aggregate-analytics', {
+    body: { mode, date },
+  })
+
+  if (error) {
+    // Try to extract the actual response body for a more helpful error message
+    let detail = error.message
+    try {
+      const ctx = (error as any).context
+      if (ctx instanceof Response) {
+        const text = await ctx.text()
+        detail = text || detail
+      } else if (typeof ctx === 'string') {
+        detail = ctx
+      }
+    } catch {}
+    throw new Error(`Aggregation failed: ${detail}`)
   }
 
-  const response = await fetch(
-    `${supabaseUrl}/functions/v1/aggregate-analytics`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${serviceRoleKey}`,
-      },
-      body: JSON.stringify({ mode, date }),
-    }
-  )
-
-  if (!response.ok) {
-    const bodyText = await response.text().catch(() => '')
-    throw new Error(
-      `Aggregation failed: ${response.status} ${response.statusText} - ${bodyText}`
-    )
-  }
-
-  return await response.json()
+  return data
 }
 
 // ============================================================================
@@ -670,7 +663,7 @@ export async function updateUserSubscriptionPlan(email: string, plan: string) {
 // ============================================================================
 
 export async function getAdminAuditLogs(limit: number = 100): Promise<AdminAuditLog[]> {
-  const supabase = await createClient()
+  const supabase = getServiceRoleClient()
 
   const { data, error } = await supabase
     .from('analytics_admin_audit_logs')
@@ -680,4 +673,648 @@ export async function getAdminAuditLogs(limit: number = 100): Promise<AdminAudit
 
   if (error) throw error
   return data as AdminAuditLog[]
+}
+
+// ============================================================================
+// Security: Content Preview via Service Role (replaces direct client SDK usage)
+// ============================================================================
+
+export async function getContentPreviewForAdmin(
+  type: 'brew' | 'user' | 'brewery' | 'forum_thread' | 'forum_post',
+  id: string
+): Promise<{ name: string | null; img: string | null; link: string } | null> {
+  const supabase = getServiceRoleClient()
+
+  let table = ''
+  let select = 'id'
+
+  if (type === 'brew') { table = 'brews'; select = 'id, name, image_url' }
+  else if (type === 'user') { table = 'profiles'; select = 'id, display_name, logo_url' }
+  else if (type === 'brewery') { table = 'breweries'; select = 'id, name, logo_url' }
+  else if (type === 'forum_thread') { table = 'forum_threads'; select = 'id, title' }
+  else if (type === 'forum_post') { table = 'forum_posts'; select = 'id, content, thread_id' }
+  else return null
+
+  const { data } = await supabase.from(table).select(select).eq('id', id).maybeSingle()
+  if (!data) return null
+
+  const name = (data as any).name
+    || (data as any).display_name
+    || (data as any).title
+    || ((data as any).content ? (data as any).content.substring(0, 40) : 'Unbekannt')
+  const img = (data as any).image_url || (data as any).logo_url || null
+
+  let link = '#'
+  if (type === 'brew') link = `/brew/${id}`
+  if (type === 'user') link = `/brewer/${id}`
+  if (type === 'brewery') link = `/brewery/${id}`
+  if (type === 'forum_thread') link = `/forum/thread/${id}`
+  if (type === 'forum_post') link = `/forum/thread/${(data as any).thread_id}#post-${id}`
+
+  return { name, img, link }
+}
+
+// ============================================================================
+// Alert Rules & History
+// ============================================================================
+
+export async function getAlertRules(): Promise<AlertRule[]> {
+  const supabase = getServiceRoleClient()
+  const { data, error } = await supabase
+    .from('analytics_alert_rules')
+    .select('*')
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data as AlertRule[]
+}
+
+export async function getAlertHistory(limit: number = 50): Promise<AlertHistory[]> {
+  const supabase = getServiceRoleClient()
+  const { data, error } = await supabase
+    .from('analytics_alert_history')
+    .select('*, analytics_alert_rules(name, metric)')
+    .order('triggered_at', { ascending: false })
+    .limit(limit)
+  if (error) throw error
+  return data as AlertHistory[]
+}
+
+export async function getUnacknowledgedAlertCount(): Promise<number> {
+  const supabase = getServiceRoleClient()
+  const { count } = await supabase
+    .from('analytics_alert_history')
+    .select('id', { count: 'exact', head: true })
+    .is('acknowledged_at', null)
+  return count || 0
+}
+
+export async function toggleAlertRule(ruleId: number, enabled: boolean) {
+  await logAdminAction('toggle_alert_rule', String(ruleId), { enabled })
+  const supabase = getServiceRoleClient()
+  const { error } = await supabase
+    .from('analytics_alert_rules')
+    .update({ enabled, updated_at: new Date().toISOString() })
+    .eq('id', ruleId)
+  if (error) throw error
+  return { success: true }
+}
+
+export async function acknowledgeAlert(historyId: number, adminNote?: string) {
+  await logAdminAction('acknowledge_alert', String(historyId), { adminNote })
+  const supabase = getServiceRoleClient()
+  const { data: { user } } = await (await createClient()).auth.getUser()
+  const { error } = await supabase
+    .from('analytics_alert_history')
+    .update({
+      acknowledged_at: new Date().toISOString(),
+      acknowledged_by: user?.id ?? null,
+    })
+    .eq('id', historyId)
+  if (error) throw error
+  return { success: true }
+}
+
+// ============================================================================
+// BotlGuide Feedback
+// ============================================================================
+
+export type BotlguideFeedbackItem = {
+  id: string
+  user_id: string | null
+  context_key: string
+  feedback: 'up' | 'down'
+  generated_text: string | null
+  created_at: string
+}
+
+export type BotlguideFeedbackStats = {
+  total: number
+  thumbsUp: number
+  thumbsDown: number
+  positiveRate: number
+  byContext: { context_key: string; up: number; down: number; total: number }[]
+}
+
+export async function getBotlguideFeedback(
+  dateRange: DateRange = '30d',
+  limit = 100
+): Promise<BotlguideFeedbackItem[]> {
+  const supabase = getServiceRoleClient()
+  const cutoffDate = getCutoffDate(dateRange)
+  const { data, error } = await supabase
+    .from('botlguide_feedback')
+    .select('*')
+    .gte('created_at', cutoffDate.toISOString())
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  if (error) throw error
+  return data as BotlguideFeedbackItem[]
+}
+
+export async function getBotlguideFeedbackStats(
+  dateRange: DateRange = '30d'
+): Promise<BotlguideFeedbackStats> {
+  const items = await getBotlguideFeedback(dateRange, 5000)
+  const total = items.length
+  const thumbsUp = items.filter(i => i.feedback === 'up').length
+  const thumbsDown = items.filter(i => i.feedback === 'down').length
+
+  const byContextMap: Record<string, { up: number; down: number }> = {}
+  items.forEach(i => {
+    if (!byContextMap[i.context_key]) byContextMap[i.context_key] = { up: 0, down: 0 }
+    byContextMap[i.context_key][i.feedback]++
+  })
+
+  const byContext = Object.entries(byContextMap)
+    .map(([context_key, counts]) => ({
+      context_key,
+      up: counts.up,
+      down: counts.down,
+      total: counts.up + counts.down,
+    }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 20)
+
+  return {
+    total,
+    thumbsUp,
+    thumbsDown,
+    positiveRate: total > 0 ? Math.round((thumbsUp / total) * 100) : 0,
+    byContext,
+  }
+}
+
+// ============================================================================
+// AI Usage Logs
+// ============================================================================
+
+export type AiUsageStats = {
+  totalCalls: number
+  successCalls: number
+  errorCalls: number
+  totalCostEur: number
+  totalTokens: number
+  byType: { type: string; calls: number; cost: number; tokens: number }[]
+  byModel: { model: string; calls: number; cost: number }[]
+  dailyTrend: { date: string; calls: number; cost: number; errors: number }[]
+}
+
+export async function getAiUsageStats(dateRange: DateRange = '30d'): Promise<AiUsageStats> {
+  const supabase = getServiceRoleClient()
+  const cutoffDate = getCutoffDate(dateRange)
+
+  const { data, error } = await supabase
+    .from('ai_usage_logs')
+    .select('generation_type, model_used, tokens_used, cost_estimate, success, created_at')
+    .gte('created_at', cutoffDate.toISOString())
+    .is('deleted_at', null)
+    .order('created_at', { ascending: true })
+
+  if (error) throw error
+  if (!data) return {
+    totalCalls: 0, successCalls: 0, errorCalls: 0,
+    totalCostEur: 0, totalTokens: 0, byType: [], byModel: [], dailyTrend: []
+  }
+
+  const totalCalls = data.length
+  const successCalls = data.filter(r => r.success).length
+  const errorCalls = totalCalls - successCalls
+  const totalCostEur = data.reduce((s, r) => s + (r.cost_estimate || 0), 0)
+  const totalTokens = data.reduce((s, r) => s + (r.tokens_used || 0), 0)
+
+  // By type
+  const byTypeMap: Record<string, { calls: number; cost: number; tokens: number }> = {}
+  data.forEach(r => {
+    if (!byTypeMap[r.generation_type]) byTypeMap[r.generation_type] = { calls: 0, cost: 0, tokens: 0 }
+    byTypeMap[r.generation_type].calls++
+    byTypeMap[r.generation_type].cost += r.cost_estimate || 0
+    byTypeMap[r.generation_type].tokens += r.tokens_used || 0
+  })
+
+  // By model
+  const byModelMap: Record<string, { calls: number; cost: number }> = {}
+  data.forEach(r => {
+    if (!byModelMap[r.model_used]) byModelMap[r.model_used] = { calls: 0, cost: 0 }
+    byModelMap[r.model_used].calls++
+    byModelMap[r.model_used].cost += r.cost_estimate || 0
+  })
+
+  // Daily trend
+  const dailyMap: Record<string, { calls: number; cost: number; errors: number }> = {}
+  data.forEach(r => {
+    const date = r.created_at.split('T')[0]
+    if (!dailyMap[date]) dailyMap[date] = { calls: 0, cost: 0, errors: 0 }
+    dailyMap[date].calls++
+    dailyMap[date].cost += r.cost_estimate || 0
+    if (!r.success) dailyMap[date].errors++
+  })
+
+  return {
+    totalCalls,
+    successCalls,
+    errorCalls,
+    totalCostEur: Math.round(totalCostEur * 1000) / 1000,
+    totalTokens,
+    byType: Object.entries(byTypeMap).map(([type, v]) => ({ type, ...v })),
+    byModel: Object.entries(byModelMap).map(([model, v]) => ({ model, ...v })),
+    dailyTrend: Object.entries(dailyMap)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, v]) => ({ date, ...v })),
+  }
+}
+
+// ============================================================================
+// PHASE C.1 – Revenue & Subscriptions
+// ============================================================================
+
+const TIER_PRICES: Record<string, number> = {
+  free: 0,
+  brewer: 4.99,
+  brewery: 14.99,
+  enterprise: 49.99,
+}
+
+const TIER_RANK: Record<string, number> = {
+  free: 0,
+  brewer: 1,
+  brewery: 2,
+  enterprise: 3,
+}
+
+export async function getRevenueStats(dateRange: DateRange = '30d'): Promise<RevenueStats> {
+  const service = getServiceRoleClient()
+  const cutoff = getCutoffDate(dateRange)
+
+  // Current subscriptions from profiles
+  const { data: profiles } = await service
+    .from('profiles')
+    .select('subscription_tier, subscription_status')
+
+  const activePaid = (profiles || []).filter(
+    p => p.subscription_tier !== 'free' && p.subscription_status === 'active'
+  )
+  const activePaidUsers = activePaid.length
+  const mrrEur = activePaid.reduce((sum, p) => sum + (TIER_PRICES[p.subscription_tier] ?? 0), 0)
+
+  // Subscription events in date range
+  const { data: events } = await service
+    .from('subscription_history')
+    .select('*')
+    .gte('changed_at', cutoff)
+    .order('changed_at', { ascending: false })
+
+  const upgradeLast30d = (events || []).filter(e =>
+    e.previous_tier &&
+    (TIER_RANK[e.subscription_tier] ?? 0) > (TIER_RANK[e.previous_tier] ?? 0)
+  ).length
+
+  const downgradeLast30d = (events || []).filter(e =>
+    e.previous_tier &&
+    (TIER_RANK[e.subscription_tier] ?? 0) < (TIER_RANK[e.previous_tier] ?? 0)
+  ).length
+
+  const churnLast30d = (events || []).filter(
+    e => e.subscription_status === 'cancelled'
+  ).length
+
+  // Tier distribution
+  const distMap: Record<string, number> = { free: 0, brewer: 0, brewery: 0, enterprise: 0 }
+  ;(profiles || []).forEach(p => {
+    const t = p.subscription_tier || 'free'
+    distMap[t] = (distMap[t] || 0) + 1
+  })
+  const totalUsers = Math.max((profiles || []).length, 1)
+  const tierDistribution = Object.entries(distMap).map(([tier, count]) => ({
+    tier,
+    count,
+    pct: Math.round((count / totalUsers) * 100),
+  }))
+
+  // Monthly MRR trend (from subscription events)
+  const monthlyMap: Record<string, { activeSet: Set<string>; mrr: number }> = {}
+  ;(events || []).forEach(e => {
+    const month = (e.changed_at as string).slice(0, 7)
+    if (!monthlyMap[month]) monthlyMap[month] = { activeSet: new Set(), mrr: 0 }
+    if (e.subscription_tier !== 'free' && e.subscription_status === 'active') {
+      monthlyMap[month].activeSet.add(e.profile_id)
+      monthlyMap[month].mrr += TIER_PRICES[e.subscription_tier] ?? 0
+    }
+  })
+  const monthlyTrend = Object.entries(monthlyMap)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([month, v]) => ({
+      month,
+      mrr: Math.round(v.mrr * 100) / 100,
+      activePaid: v.activeSet.size,
+    }))
+
+  return {
+    activePaidUsers,
+    mrrEur: Math.round(mrrEur * 100) / 100,
+    churnLast30d,
+    upgradeLast30d,
+    downgradeLast30d,
+    tierDistribution,
+    monthlyTrend,
+  }
+}
+
+export async function getSubscriptionEvents(limit: number = 50): Promise<SubscriptionEvent[]> {
+  const service = getServiceRoleClient()
+  const { data } = await service
+    .from('subscription_history')
+    .select('*')
+    .order('changed_at', { ascending: false })
+    .limit(limit)
+
+  return (data || []).map(e => {
+    const curRank = TIER_RANK[e.subscription_tier] ?? 0
+    const prRank = e.previous_tier != null ? (TIER_RANK[e.previous_tier] ?? 0) : -1
+
+    let eventType: SubscriptionEvent['eventType'] = 'other'
+    if (e.subscription_status === 'cancelled') eventType = 'cancel'
+    else if (e.changed_reason === 'reactivated') eventType = 'reactivate'
+    else if (!e.previous_tier || e.previous_tier === 'free') eventType = 'new'
+    else if (curRank > prRank) eventType = 'upgrade'
+    else if (curRank < prRank) eventType = 'downgrade'
+
+    return {
+      id: e.id as string,
+      profileIdMasked: `${(e.profile_id as string).slice(0, 8)}…`,
+      tier: e.subscription_tier as string,
+      previousTier: (e.previous_tier as string) ?? null,
+      status: e.subscription_status as string,
+      reason: (e.changed_reason as string) ?? null,
+      changedAt: e.changed_at as string,
+      eventType,
+    }
+  })
+}
+
+// ============================================================================
+// PHASE C.2 – Email Reports
+// ============================================================================
+
+export async function getEmailReportStats(): Promise<EmailReportStats> {
+  const service = getServiceRoleClient()
+  const cutoff30d = getCutoffDate('30d')
+
+  const [{ data: settings }, { data: logs }] = await Promise.all([
+    service
+      .from('analytics_report_settings')
+      .select('frequency, enabled')
+      .eq('enabled', true),
+    service
+      .from('analytics_report_logs')
+      .select('status')
+      .gte('created_at', cutoff30d),
+  ])
+
+  const activeSubscriptions = (settings || []).length
+  const weeklySubscriptions = (settings || []).filter(s => s.frequency === 'weekly').length
+  const monthlySubscriptions = (settings || []).filter(s => s.frequency === 'monthly').length
+  const sentLast30d = (logs || []).filter(l => l.status === 'sent').length
+  const failedLast30d = (logs || []).filter(l => l.status === 'failed').length
+  const total = sentLast30d + failedLast30d
+  const successRate = total > 0 ? Math.round((sentLast30d / total) * 100) : 100
+
+  return {
+    activeSubscriptions,
+    weeklySubscriptions,
+    monthlySubscriptions,
+    sentLast30d,
+    failedLast30d,
+    successRate,
+  }
+}
+
+export async function getRecentEmailReportLogs(limit: number = 50): Promise<EmailReportLog[]> {
+  const service = getServiceRoleClient()
+  const { data } = await service
+    .from('analytics_report_logs')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit)
+
+  return (data || []).map(l => ({
+    id: l.id as string,
+    breweryId: l.brewery_id as string,
+    periodStart: l.period_start as string,
+    periodEnd: l.period_end as string,
+    status: l.status as EmailReportLog['status'],
+    errorMessage: (l.error_message as string) ?? null,
+    emailMasked: l.email_sent_to
+      ? (l.email_sent_to as string).replace(/^(.{2}).+?(@.+)$/, '$1***$2')
+      : null,
+    createdAt: l.created_at as string,
+  }))
+}
+
+// ============================================================================
+// PHASE C.3 – Scan Analytics
+// ============================================================================
+
+export async function getScanOverview(dateRange: DateRange = '30d'): Promise<ScanOverview> {
+  const service = getServiceRoleClient()
+  const cutoff = getCutoffDate(dateRange)
+
+  const { data } = await service
+    .from('bottle_scans')
+    .select('id, session_hash, viewer_user_id, is_owner_scan, created_at')
+    .gte('created_at', cutoff)
+
+  const rows = data ?? []
+  const totalScans = rows.length
+  const visitors = new Set(
+    rows.map(r => r.session_hash ?? r.viewer_user_id ?? r.id)
+  )
+  const uniqueVisitors = visitors.size
+
+  const now = new Date()
+  const from = new Date(cutoff)
+  const days = Math.max(
+    1,
+    Math.round((now.getTime() - from.getTime()) / (1000 * 60 * 60 * 24))
+  )
+  const avgPerDay = Math.round((totalScans / days) * 10) / 10
+  const nonOwner = rows.filter(r => !r.is_owner_scan).length
+  const conversionRate =
+    totalScans > 0 ? Math.round((nonOwner / totalScans) * 100) : 0
+
+  return { totalScans, uniqueVisitors, avgPerDay, conversionRate }
+}
+
+export async function getScanGeography(
+  dateRange: DateRange = '30d',
+  limit = 10
+): Promise<ScanGeography[]> {
+  const service = getServiceRoleClient()
+  const cutoff = getCutoffDate(dateRange)
+
+  const { data } = await service
+    .from('bottle_scans')
+    .select('country_code')
+    .gte('created_at', cutoff)
+    .not('country_code', 'is', null)
+
+  const rows = data ?? []
+  const total = Math.max(rows.length, 1)
+  const map: Record<string, number> = {}
+  rows.forEach(r => {
+    map[r.country_code] = (map[r.country_code] || 0) + 1
+  })
+
+  return Object.entries(map)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, limit)
+    .map(([countryCode, scans]) => ({
+      countryCode,
+      scans,
+      pct: Math.round((scans / total) * 100),
+    }))
+}
+
+export async function getScanDeviceSplit(dateRange: DateRange = '30d'): Promise<ScanDevice[]> {
+  const service = getServiceRoleClient()
+  const cutoff = getCutoffDate(dateRange)
+
+  const { data } = await service
+    .from('bottle_scans')
+    .select('device_type')
+    .gte('created_at', cutoff)
+
+  const rows = data ?? []
+  const total = Math.max(rows.length, 1)
+  const map: Record<string, number> = {}
+  rows.forEach(r => {
+    const d = (r.device_type as string) || 'unknown'
+    map[d] = (map[d] || 0) + 1
+  })
+
+  return Object.entries(map)
+    .sort(([, a], [, b]) => b - a)
+    .map(([deviceType, count]) => ({
+      deviceType,
+      count,
+      pct: Math.round((count / total) * 100),
+    }))
+}
+
+export async function getTopScanBrews(
+  dateRange: DateRange = '30d',
+  limit = 10
+): Promise<TopScanBrew[]> {
+  const service = getServiceRoleClient()
+  const cutoff = getCutoffDate(dateRange)
+
+  const { data } = await service
+    .from('bottle_scans')
+    .select('brew_id, brews(name, breweries(name))')
+    .gte('created_at', cutoff)
+    .not('brew_id', 'is', null)
+
+  const rows = data ?? []
+  const map: Record<
+    string,
+    { brewName: string; breweryName: string; scans: number }
+  > = {}
+  rows.forEach((r: any) => {
+    if (!r.brew_id) return
+    if (!map[r.brew_id]) {
+      map[r.brew_id] = {
+        brewName: r.brews?.name ?? 'Unbekannter Brew',
+        breweryName: r.brews?.breweries?.name ?? 'Unbekannte Brauerei',
+        scans: 0,
+      }
+    }
+    map[r.brew_id].scans++
+  })
+
+  return Object.entries(map)
+    .sort(([, a], [, b]) => b.scans - a.scans)
+    .slice(0, limit)
+    .map(([brewId, v]) => ({ brewId, ...v }))
+}
+
+// ============================================================================
+// PHASE E – Operations Overview helpers
+// ============================================================================
+
+/** Count brews + breweries awaiting moderation */
+export async function getPendingModerationCount(): Promise<number> {
+  const service = getServiceRoleClient()
+  // Only count items that have actual images needing review
+  // (brews without images are auto-approved; default label paths are not real submitted images)
+  const [{ count: brewCount }, { count: breweryCount }] = await Promise.all([
+    service
+      .from('brews')
+      .select('id', { count: 'exact', head: true })
+      .eq('moderation_status', 'pending')
+      .not('image_url', 'is', null)
+      .not('image_url', 'like', '/default%'),
+    service
+      .from('breweries')
+      .select('id', { count: 'exact', head: true })
+      .eq('moderation_status', 'pending')
+      .not('logo_url', 'is', null),
+  ])
+  return (brewCount ?? 0) + (breweryCount ?? 0)
+}
+
+/** Last N days of distinct active users (from analytics_events — same source as the KPI) */
+export async function getDauTrend(days = 7): Promise<{ date: string; dau: number }[]> {
+  const service = getServiceRoleClient()
+  const cutoff = new Date()
+  cutoff.setDate(cutoff.getDate() - days)
+
+  const { data } = await service
+    .from('analytics_events')
+    .select('user_id, created_at')
+    .gte('created_at', cutoff.toISOString())
+    .not('user_id', 'is', null)
+
+  // Count distinct users per calendar day
+  const map: Record<string, Set<string>> = {}
+  ;(data ?? []).forEach((r: any) => {
+    const date: string = (r.created_at as string).split('T')[0]
+    if (!map[date]) map[date] = new Set()
+    if (r.user_id) map[date].add(r.user_id)
+  })
+
+  // Fill in all days (0 for missing)
+  const result: { date: string; dau: number }[] = []
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date()
+    d.setDate(d.getDate() - i)
+    const dateStr = d.toISOString().split('T')[0]
+    result.push({ date: dateStr, dau: map[dateStr]?.size ?? 0 })
+  }
+  return result
+}
+
+/** Last N days of scan counts (from bottle_scans) */
+export async function getScanTrend(days = 7): Promise<{ date: string; scans: number }[]> {
+  const service = getServiceRoleClient()
+  const cutoff = new Date()
+  cutoff.setDate(cutoff.getDate() - days)
+
+  const { data } = await service
+    .from('bottle_scans')
+    .select('created_at')
+    .gte('created_at', cutoff.toISOString())
+
+  const map: Record<string, number> = {}
+  ;(data ?? []).forEach((r: any) => {
+    const date = (r.created_at as string).split('T')[0]
+    map[date] = (map[date] || 0) + 1
+  })
+
+  const result: { date: string; scans: number }[] = []
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date()
+    d.setDate(d.getDate() - i)
+    const dateStr = d.toISOString().split('T')[0]
+    result.push({ date: dateStr, scans: map[dateStr] ?? 0 })
+  }
+  return result
 }

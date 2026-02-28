@@ -179,3 +179,79 @@ export type FeatureAdoptionData = {
   uniqueUsers: number
   successRate: number
 }
+
+// ============================================================================
+// Phase C.1 – Revenue & Subscriptions
+// ============================================================================
+export type RevenueStats = {
+  activePaidUsers: number
+  mrrEur: number
+  churnLast30d: number
+  upgradeLast30d: number
+  downgradeLast30d: number
+  tierDistribution: { tier: string; count: number; pct: number }[]
+  monthlyTrend: { month: string; mrr: number; activePaid: number }[]
+}
+
+export type SubscriptionEvent = {
+  id: string
+  profileIdMasked: string
+  tier: string
+  previousTier: string | null
+  status: string
+  reason: string | null
+  changedAt: string
+  eventType: 'upgrade' | 'downgrade' | 'new' | 'cancel' | 'reactivate' | 'other'
+}
+
+// ============================================================================
+// Phase C.2 – Email Reports
+// ============================================================================
+export type EmailReportStats = {
+  activeSubscriptions: number
+  weeklySubscriptions: number
+  monthlySubscriptions: number
+  sentLast30d: number
+  failedLast30d: number
+  successRate: number
+}
+
+export type EmailReportLog = {
+  id: string
+  breweryId: string
+  periodStart: string
+  periodEnd: string
+  status: 'sent' | 'failed' | 'pending'
+  errorMessage: string | null
+  emailMasked: string | null
+  createdAt: string
+}
+
+// ============================================================================
+// Phase C.3 – Scan Analytics
+// ============================================================================
+export type ScanOverview = {
+  totalScans: number
+  uniqueVisitors: number
+  avgPerDay: number
+  conversionRate: number
+}
+
+export type ScanGeography = {
+  countryCode: string
+  scans: number
+  pct: number
+}
+
+export type ScanDevice = {
+  deviceType: string
+  count: number
+  pct: number
+}
+
+export type TopScanBrew = {
+  brewId: string
+  brewName: string
+  breweryName: string
+  scans: number
+}

@@ -7,6 +7,7 @@ import { notifyNewRating } from '@/lib/actions/notification-actions';
 import { checkAndGrantAchievements } from '@/lib/achievements';
 
 export async function POST(req: NextRequest) {
+    const routeStartTime = Date.now()
     try {
         const body = await req.json();
         let {
@@ -196,7 +197,8 @@ export async function POST(req: NextRequest) {
                     rating_id: ratingData?.id || null,
                     rating: rating,
                     author_name: author_name
-                }
+                },
+                response_time_ms: Date.now() - routeStartTime,
             });
         } catch (e) {
             console.error('Failed to track rating_submitted event:', e);
