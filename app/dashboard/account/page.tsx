@@ -74,11 +74,13 @@ export default function AccountPage() {
 	const [confirmPassword, setConfirmPassword] = useState('');
 	const [passwordLoading, setPasswordLoading] = useState(false);
 	const [showPassword, setShowPassword] = useState(false);
+	const [passwordMessage, setPasswordMessage] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
 
 	// Email State
 	const [email, setEmail] = useState('');
 	const [newEmail, setNewEmail] = useState('');
 	const [emailLoading, setEmailLoading] = useState(false);
+	const [emailMessage, setEmailMessage] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
 
     // --- TEAMS STATE ---
     const [myTeams, setMyTeams] = useState<any[]>([]);
@@ -369,27 +371,24 @@ export default function AccountPage() {
 
 	async function handleUpdatePassword(e: React.FormEvent) {
 		e.preventDefault();
+		setPasswordMessage(null);
 		if (newPassword !== confirmPassword) {
-			alert('Die Passwörter stimmen nicht überein!');
+			setPasswordMessage({ type: 'error', msg: 'Die Passwörter stimmen nicht überein.' });
 			return;
 		}
-
-		if (newPassword.length < 6) {
-			alert('Das Passwort muss mindestens 6 Zeichen lang sein.');
+		if (newPassword.length < 8) {
+			setPasswordMessage({ type: 'error', msg: 'Das Passwort muss mindestens 8 Zeichen lang sein.' });
 			return;
 		}
-
 		try {
 			setPasswordLoading(true);
 			const { error } = await supabase.auth.updateUser({ password: newPassword });
-
 			if (error) throw error;
-
-			alert('Passwort erfolgreich geändert! 🔒');
+			setPasswordMessage({ type: 'success', msg: 'Passwort erfolgreich geändert! 🔒' });
 			setNewPassword('');
 			setConfirmPassword('');
 		} catch (error: any) {
-			alert('Fehler beim Ändern des Passworts: ' + error.message);
+			setPasswordMessage({ type: 'error', msg: error.message });
 		} finally {
 			setPasswordLoading(false);
 		}
@@ -397,21 +396,19 @@ export default function AccountPage() {
 
 	async function handleUpdateEmail(e: React.FormEvent) {
 		e.preventDefault();
+		setEmailMessage(null);
 		if (!newEmail || newEmail === email) return;
-
 		try {
 			setEmailLoading(true);
 			const { error } = await supabase.auth.updateUser(
                 { email: newEmail },
                 { emailRedirectTo: `${window.location.origin}/dashboard/account` }
             );
-
 			if (error) throw error;
-
-			alert('Bestätigungs-Link wurde an die neue E-Mail-Adresse gesendet! 📧 Bitte überprüfe dein Postfach.');
+			setEmailMessage({ type: 'success', msg: 'Fast geschafft! Wir haben zwei Bestätigungs-Links verschickt: einen an deine alte Adresse und einen an die neue. Bitte bestätige beide.' });
 			setNewEmail('');
 		} catch (error: any) {
-			alert('Fehler beim Ändern der E-Mail: ' + error.message);
+			setEmailMessage({ type: 'error', msg: error.message });
 		} finally {
 			setEmailLoading(false);
 		}
@@ -1041,6 +1038,15 @@ export default function AccountPage() {
                                             {emailLoading ? 'Sende...' : 'E-Mail ändern'}
                                         </button>
                                     </div>
+                                    {emailMessage && (
+                                        <div className={`p-3 rounded-lg text-sm border ${
+                                            emailMessage.type === 'success'
+                                                ? 'bg-green-950/40 border-green-800/40 text-green-400'
+                                                : 'bg-red-950/40 border-red-800/40 text-red-400'
+                                        }`}>
+                                            {emailMessage.msg}
+                                        </div>
+                                    )}
                                 </div>
                             </form>
                         )}
@@ -1049,7 +1055,7 @@ export default function AccountPage() {
                             <form onSubmit={handleUpdatePassword} className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                 <div>
                                     <h2 className="text-xl font-bold text-white mb-1">Passwort ändern</h2>
-                                    <p className="text-sm text-zinc-400">Wähle ein sicheres Passwort mit mind. 6 Zeichen.</p>
+                                    <p className="text-sm text-zinc-400">Wähle ein sicheres Passwort mit mind. 8 Zeichen.</p>
                                 </div>
 
                                 <div className="md:bg-black md:border md:border-zinc-800 rounded-lg p-6 md:p-8 space-y-6">
@@ -1106,6 +1112,15 @@ export default function AccountPage() {
                                             {passwordLoading ? 'Speichere...' : 'Passwort aktualisieren'}
                                         </button>
                                     </div>
+                                    {passwordMessage && (
+                                        <div className={`p-3 rounded-lg text-sm border ${
+                                            passwordMessage.type === 'success'
+                                                ? 'bg-green-950/40 border-green-800/40 text-green-400'
+                                                : 'bg-red-950/40 border-red-800/40 text-red-400'
+                                        }`}>
+                                            {passwordMessage.msg}
+                                        </div>
+                                    )}
                                 </div>
                             </form>
                         )}
