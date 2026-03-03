@@ -6,11 +6,11 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import Logo from '../../components/Logo';
+import Footer from '../../components/Footer';
 import BottleLabelSkeleton from './components/BottleLabelSkeleton';
 import { toast } from 'sonner';
-import { checkAndGrantAchievements } from '@/lib/achievements';
 import RatingCTABlock from './components/RatingCTABlock';
-import { trackBottleScan, trackConversion, incrementProfileViews } from '@/lib/actions/analytics-actions';
+import { trackBottleScan, incrementProfileViews } from '@/lib/actions/analytics-actions';
 import { useAuth } from '@/app/context/AuthContext';
 import RateBrewModal from './components/RateBrewModal';
 import DrinkingConfirmationPrompt from './components/DrinkingConfirmationPrompt';
@@ -61,6 +61,8 @@ export default function PublicScanPage() {
   const [userAppMode, setUserAppMode] = useState<string | null>(null);
   // Phase 11: Beat the Brewer nach Rating prominenter zeigen
   const [showBeatTheBrewer, setShowBeatTheBrewer] = useState(false);
+  // Phase 11.2: VibeCheck abgeschlossen → RatingCTABlock kurz hervorheben
+  const [ratingCTAHighlight, setRatingCTAHighlight] = useState(false);
   // Hero-Bild Fehlerbehandlung: Fallback wenn Image-URL nicht erreichbar
   const [heroImageError, setHeroImageError] = useState(false);
 
@@ -379,15 +381,8 @@ export default function PublicScanPage() {
         localStorage.setItem('botllab_rated_' + brewId, '1');
         await loadRatings(brewId);
 
-        // Track conversion for analytics (if user is logged in)
-        if (user) {
-          trackConversion(id, user.id).catch(console.error);
-        }
-
-        // Achievements im Hintergrund prüfen (für den Brew-Besitzer)
-        if (data?.brews?.user_id) {
-          checkAndGrantAchievements(data.brews.user_id).catch(console.error);
-        }
+        // Track conversion + Achievements werden jetzt server-seitig in der API Route geprüft
+        // (mit Admin-Client → kein RLS-Problem)
 
         return result.rating.id;
       }
@@ -670,6 +665,7 @@ export default function PublicScanPage() {
               alt={brew.name}
               onError={() => setHeroImageError(true)}
               sizes="(max-width: 768px) 100vw, 672px"
+              unoptimized={brew.image_url.startsWith('http://127.') || brew.image_url.startsWith('http://localhost')}
               className={`object-cover ${(brew.moderation_status === 'pending') ? 'filter blur-md brightness-50' : ''}`}
             />
           ) : (
@@ -713,8 +709,8 @@ export default function PublicScanPage() {
       <div className="max-w-2xl mx-auto px-6 py-12 space-y-8">
         {/* Header — Name + Style, description moves below CTA (Phase 2.1) */}
         <header className="text-center space-y-2">
-          <span className="inline-block text-cyan-400 text-xs font-black uppercase tracking-[0.3em] px-4 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20">
-            {brew.style || 'Handcrafted'}
+          <span className="inline-block text-cyan-400 text-xs font-black tracking-normal px-4 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20">
+            {(brew.style || 'Handcrafted').toUpperCase()}
           </span>
           <h1 className="text-5xl md:text-6xl font-black tracking-tighter leading-none">
             {brew.name}
@@ -726,6 +722,13 @@ export default function PublicScanPage() {
             </p>
           )}
         </header>
+
+        {/* Beschreibung — direkt unter dem Namen, wichtigste Info zuerst */}
+        {brew.description && (
+          <p className="text-zinc-400 text-base leading-relaxed italic text-center">
+            {brew.description}
+          </p>
+        )}
 
         <div className="h-px bg-gradient-to-r from-transparent via-zinc-700 to-transparent" />
 
@@ -776,97 +779,7 @@ export default function PublicScanPage() {
           </div>
         </div>
 
-        {/* Phase 2.1 Tier 1: VibeCheck — above fold on mobile */}
-        <VibeCheck
-          brewId={brew.id}
-          isLoggedIn={!!user}
-        />
-
-        {/* Phase 2.2 Tier 2: Kompakter Rating + Cap CTA */}
-        <RatingCTABlock
-          avgRating={avgRating}
-          ratingCount={ratings.length}
-          hasAlreadyRated={hasAlreadyRated}
-          capCollected={capCollected}
-          collectingCap={collectingCap}
-          capUrl={brew.cap_url}
-          onRate={() => setShowRatingForm(true)}
-          onClaim={() => claimCap()}
-        />
-
-        {/* Rating Modal — inline, direkt nach CTA */}
-        {showRatingForm && (
-          <RateBrewModal
-            brewId={data?.brews?.id || ''}
-            onSubmit={async (submissionData) => {
-              const payload = { ...submissionData, user_id: user?.id };
-              return await submitRating(payload);
-            }}
-            onCancel={() => setShowRatingForm(false)}
-            isSubmitting={submitting}
-            onClaimCap={claimCap}
-            existingRatingId={existingRatingId}
-            currentUser={user}
-          />
-        )}
-
-        {/* Phase 2.1 #7: Kurzbeschreibung — nach CTA, unter dem Fold */}
-        {brew.description && (
-          <p className="text-zinc-400 text-base leading-relaxed italic text-center">
-            {brew.description}
-          </p>
-        )}
-
-        {/* Phase 2.3: Bewertungen inline — max. 3, mit Mehr-anzeigen-Toggle */}
-        {ratingsLoading ? (
-          <div className="space-y-3 animate-pulse" aria-label="Bewertungen werden geladen">
-            {[1, 2].map(i => (
-              <div key={i} className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 space-y-2">
-                <div className="h-3 bg-zinc-800 rounded w-1/3" />
-                <div className="h-2 bg-zinc-800 rounded w-1/4 mt-1" />
-                <div className="h-3 bg-zinc-800 rounded w-3/4 mt-2" />
-              </div>
-            ))}
-          </div>
-        ) : ratings.length > 0 ? (
-          <div className="space-y-3">
-            <p className="text-[10px] uppercase font-black tracking-[0.25em] text-zinc-500">Bewertungen</p>
-            {ratings.slice(0, showAllRatings ? undefined : 3).map(rating => (
-              <div key={rating.id} className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
-                <div className="flex items-start justify-between mb-2">
-                  <div>
-                    <p className="font-bold text-white">{rating.author_name}</p>
-                    <div className="flex gap-0.5 mt-1">
-                      {[1, 2, 3, 4, 5].map(star => (
-                        <span key={star} className={`text-sm ${star <= rating.rating ? 'text-yellow-500' : 'text-zinc-700'}`}>★</span>
-                      ))}
-                    </div>
-                  </div>
-                  <span className="text-xs text-zinc-600">
-                    {new Date(rating.created_at).toLocaleDateString('de-DE')}
-                  </span>
-                </div>
-                {rating.comment && (
-                  <p className="text-sm text-zinc-400 leading-relaxed">{rating.comment}</p>
-                )}
-              </div>
-            ))}
-            {ratings.length > 3 && (
-              <button
-                onClick={() => setShowAllRatings(prev => !prev)}
-                className="w-full text-xs text-zinc-500 hover:text-zinc-300 py-2 transition"
-              >
-                {showAllRatings ? '▲ Weniger anzeigen' : `▼ Alle ${ratings.length} Bewertungen anzeigen`}
-              </button>
-            )}
-          </div>
-        ) : (
-          <p className="text-center text-zinc-600 text-sm py-2 italic">
-            Noch keine Bewertungen — sei der Erste! ⭐
-          </p>
-        )}
-
-        {/* Details Section - TYPE SPECIFIC */}
+        {/* Details Section — Inhaltsstoffe & Zutaten direkt nach Werten */}
         {brew.data && (
           <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6 space-y-4">
             <h2 className="text-xs uppercase font-black tracking-[0.3em] text-cyan-400 mb-4">Details</h2>
@@ -1101,6 +1014,112 @@ export default function PublicScanPage() {
           </div>
         )}
 
+        {/* Vollständiges Rezept Link */}
+        <Link
+          href={`/brew/${brew.id}`}
+          className="w-full bg-zinc-800 hover:bg-zinc-700 text-center py-4 rounded-xl font-bold transition border border-zinc-700 shadow-lg block"
+        >
+          📖 Vollständiges Rezept
+        </Link>
+
+        {/* Phase 2.3: Bewertungen inline — max. 3, mit Mehr-anzeigen-Toggle */}
+        {ratingsLoading ? (
+          <div className="space-y-3 animate-pulse" aria-label="Bewertungen werden geladen">
+            {[1, 2].map(i => (
+              <div key={i} className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 space-y-2">
+                <div className="h-3 bg-zinc-800 rounded w-1/3" />
+                <div className="h-2 bg-zinc-800 rounded w-1/4 mt-1" />
+                <div className="h-3 bg-zinc-800 rounded w-3/4 mt-2" />
+              </div>
+            ))}
+          </div>
+        ) : ratings.length > 0 ? (
+          <div className="space-y-3">
+            <p className="text-[10px] uppercase font-black tracking-[0.25em] text-zinc-500">Bewertungen</p>
+            {ratings.slice(0, showAllRatings ? undefined : 3).map(rating => (
+              <div key={rating.id} className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
+                <div className="flex items-start justify-between mb-2">
+                  <div>
+                    <p className="font-bold text-white">{rating.author_name}</p>
+                    <div className="flex gap-0.5 mt-1">
+                      {[1, 2, 3, 4, 5].map(star => (
+                        <span key={star} className={`text-sm ${star <= rating.rating ? 'text-yellow-500' : 'text-zinc-700'}`}>★</span>
+                      ))}
+                    </div>
+                  </div>
+                  <span className="text-xs text-zinc-600">
+                    {new Date(rating.created_at).toLocaleDateString('de-DE')}
+                  </span>
+                </div>
+                {rating.comment && (
+                  <p className="text-sm text-zinc-400 leading-relaxed">{rating.comment}</p>
+                )}
+              </div>
+            ))}
+            {ratings.length > 3 && (
+              <button
+                onClick={() => setShowAllRatings(prev => !prev)}
+                className="w-full text-xs text-zinc-500 hover:text-zinc-300 py-2 transition"
+              >
+                {showAllRatings ? '▲ Weniger anzeigen' : `▼ Alle ${ratings.length} Bewertungen anzeigen`}
+              </button>
+            )}
+          </div>
+        ) : (
+          <p className="text-center text-zinc-600 text-sm py-2 italic">
+            Noch keine Bewertungen — sei der Erste! ⭐
+          </p>
+        )}
+
+        {/* ── Trenner: Inhalt → Interaktion ── */}
+        <div className="relative flex items-center gap-3 my-2">
+          <div className="flex-1 h-px bg-zinc-800" />
+          <span className="text-[10px] uppercase tracking-[0.18em] font-bold text-zinc-700 select-none">Mitmachen</span>
+          <div className="flex-1 h-px bg-zinc-800" />
+        </div>
+
+        {/* ── Gamification & Community Section ── */}
+
+        {/* VibeCheck */}
+        <VibeCheck
+          brewId={brew.id}
+          isLoggedIn={!!user}
+          onComplete={() => {
+            setRatingCTAHighlight(true);
+            setTimeout(() => setRatingCTAHighlight(false), 2000);
+          }}
+        />
+
+        {/* Rating + Cap CTA */}
+        <div className={ratingCTAHighlight ? 'ring-2 ring-cyan-500/40 rounded-2xl animate-pulse' : ''}>
+        <RatingCTABlock
+          avgRating={avgRating}
+          ratingCount={ratings.length}
+          hasAlreadyRated={hasAlreadyRated}
+          capCollected={capCollected}
+          collectingCap={collectingCap}
+          capUrl={brew.cap_url}
+          onRate={() => setShowRatingForm(true)}
+          onClaim={() => claimCap()}
+        />
+        </div>
+
+        {/* Rating Modal */}
+        {showRatingForm && (
+          <RateBrewModal
+            brewId={data?.brews?.id || ''}
+            onSubmit={async (submissionData) => {
+              const payload = { ...submissionData, user_id: user?.id };
+              return await submitRating(payload);
+            }}
+            onCancel={() => setShowRatingForm(false)}
+            isSubmitting={submitting}
+            onClaimCap={claimCap}
+            existingRatingId={existingRatingId}
+            currentUser={user}
+          />
+        )}
+
         {/* Phase 2.1 / Phase 11.1 Tier 3: Beat the Brewer — nach Rating prominent, sonst nur bei Flavor Profile */}
         {brew.flavor_profile && (hasAlreadyRated || showBeatTheBrewer) && (
           <div className={showBeatTheBrewer ? 'animate-in fade-in slide-in-from-bottom-4 duration-300' : ''}>
@@ -1115,6 +1134,7 @@ export default function PublicScanPage() {
               isLoggedIn={!!user}
               challengeToken={challengeToken}
               challengerName={challengerName}
+              ratingId={existingRatingId}
             />
           </div>
         )}
@@ -1126,20 +1146,14 @@ export default function PublicScanPage() {
           <div className="flex-1 h-px bg-zinc-800" />
         </div>
 
-        {/* Phase 2.1 Tier 4: Stash & Bounties */}
-        <StashButton
-          brewId={brew.id}
-          brewName={brew.name || 'Dieses Bier'}
-        />
-        <BrewBounties brewId={brew.id} />
-
-        {/* Tier 4: Vollständiges Rezept — ans Ende verschoben */}
-        <Link
-          href={`/brew/${brew.id}`}
-          className="w-full bg-zinc-800 hover:bg-zinc-700 text-center py-4 rounded-xl font-bold transition border border-zinc-700 shadow-lg block"
-        >
-          📖 Vollständiges Rezept
-        </Link>
+        {/* Phase 11.5: Stash & Bounties — direkt sichtbar, kein Accordion */}
+        <div className="space-y-3">
+          <StashButton
+            brewId={brew.id}
+            brewName={brew.name || 'Dieses Bier'}
+          />
+          <BrewBounties brewId={brew.id} />
+        </div>
 
         {/* --- Link zur Brauerei & Team --- */}
         {brewery && (
@@ -1190,18 +1204,7 @@ export default function PublicScanPage() {
           </div>
         )}
 
-        <footer className="pt-12 pb-6 text-center opacity-40 hover:opacity-100 transition-opacity duration-500 flex flex-col items-center">
-          <div className="mb-2">
-            <Logo className="w-5 h-5" textSize="text-xs" />
-          </div>
-          <p className="text-[9px] text-zinc-700 font-medium">Digital Label System</p>
-          <div className="mt-4">
-            <Link href="/impressum" className="text-[10px] text-zinc-600 hover:text-zinc-400 hover:underline transition">
-              Impressum
-            </Link>
-          </div>
-          <p className="text-[8px] text-zinc-800 mt-2 font-mono">{data.id}</p>
-        </footer>
+        <Footer variant="minimal" />
       </div>
 
       {/* Phase 9.4: Drinker-Bestätigungs-Prompt (Smart Sampling) */}

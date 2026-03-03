@@ -175,155 +175,6 @@ export default function AdminHeader() {
           <Link href="/dashboard">
             <Logo />
           </Link>
-
-          {/* Left Desktop Navigation (External Context) */}
-          <div className="hidden lg:flex gap-6 text-sm font-medium items-center border-l border-zinc-800 pl-6 h-8">
-            {/* Entdecken Dropdown */}
-            <div 
-              className="relative group"
-              onMouseEnter={() => setShowDiscoverMenu(true)}
-              onMouseLeave={() => setShowDiscoverMenu(false)}
-            >
-              <button 
-                  title="Entdecken"
-                  className={`rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${pathname.startsWith('/discover') ? 'text-cyan-400' : 'text-zinc-500 hover:text-white'}`}
-              >
-                  <Globe className="w-4 h-4" />
-                  <span className="hidden xl:inline">Entdecken</span>
-                  <span className="text-[10px] ml-1">▼</span>
-              </button>
-              
-              {showDiscoverMenu && (
-                  <div className="absolute left-0 top-full pt-4 w-48 z-50">
-                          <div className="bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-1 px-1 py-1">
-                              <Link 
-                                  href="/discover" 
-                                  className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
-                              >
-                                  <Beer className="w-4 h-4" />
-                                  <span>Rezepte</span>
-                              </Link>
-                              <Link 
-                                  href="/forum" 
-                                  className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
-                              >
-                                  <MessageSquare className="w-4 h-4" />
-                                  <span>Forum</span>
-                              </Link>
-                          </div>
-                  </div>
-              )}
-            </div>
-
-            {/* Label Studio Link */}
-
-            {/* Team Dropdown */}
-            {breweryId && (
-                <div 
-                  className="relative group"
-                  onMouseEnter={() => setShowBreweryMenu(true)}
-                  onMouseLeave={() => setShowBreweryMenu(false)}
-                >
-                  <button 
-                    title="Team"
-                    className={`rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${pathname.startsWith('/team') ? 'text-cyan-400' : 'text-zinc-500 hover:text-white'}`}
-                  >
-                      <Factory className="w-4 h-4" />
-                      <span className="hidden xl:inline">Team</span>
-                      <span className="text-[10px] ml-1">▼</span>
-                  </button>
-                  
-                  {showBreweryMenu && (
-                      <div className="absolute left-0 top-full pt-4 w-56 z-50">
-                           <div className="bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-1 p-1">
-                               
-                               {/* Team Dashboard Link */}
-                               <Link 
-                                   href={`/team/${breweryId}`}
-                                   className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-300 hover:text-white hover:bg-zinc-900 rounded-lg"
-                               >
-                                   <LayoutDashboard className="w-4 h-4" /> <span>Team-Dashboard</span>
-                               </Link>
-                               
-                               <div className="h-px bg-zinc-800 my-1 mx-2"></div>
-                               
-                               {/* Team Quick Links */}
-                               <Link 
-                                   href={`/team/${breweryId}/feed`}
-                                   className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
-                               >
-                                   <MessageSquare className="w-4 h-4" /> <span>Feed</span>
-                               </Link>
-                               <Link 
-                                   href={`/team/${breweryId}/brews`}
-                                   className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
-                               >
-                                   <Beer className="w-4 h-4" /> <span>Rezepte</span>
-                               </Link>
-                               <Link 
-                                   href={`/team/${breweryId}/sessions`}
-                                   className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
-                               >
-                                   <Thermometer className="w-4 h-4" /> <span>Sessions</span>
-                               </Link>
-                               <Link 
-                                     href={`/team/${breweryId}/inventory`}
-                                     className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
-                                   >
-                                     <Package className="w-4 h-4" /> <span>Inventar</span>
-                               </Link>
-                               <Link
-                                   href={`/team/${breweryId}/labels`}
-                                   className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
-                                   title="Etiketten"
-                               >
-                                   <Tag className="w-4 h-4" /> <span>Etiketten</span>
-                               </Link>
-                               <Link 
-                                   href={`/team/${breweryId}/analytics`}
-                                   className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
-                               >
-                                   <TrendingUp className="w-4 h-4" /> <span>Analytics</span>
-                               </Link>
-                               
-                               <div className="h-px bg-zinc-800 my-1 mx-2"></div>
-                               
-                               {/* Team Settings */}
-                               <Link 
-                                   href={`/team/${breweryId}/members`}
-                                   className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
-                               >
-                                   <Users className="w-4 h-4" /> <span>Mitglieder</span>
-                               </Link>
-                               <Link 
-                                   href={`/team/${breweryId}/settings`}
-                                   className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
-                               >
-                                   <Settings className="w-4 h-4" /> <span>Einstellungen</span>
-                               </Link>
-
-                               {userBreweries.length > 1 && (
-                                  <>
-                                   <div className="h-px bg-zinc-800 my-1 mx-2"></div>
-                                   <p className="px-3 py-2 text-[10px] text-zinc-600 uppercase font-black tracking-wider">Team wechseln</p>
-                                   {userBreweries.filter(b => b.id !== breweryId).map(b => (
-                                       <button
-                                          key={b.id}
-                                          onClick={() => handleSwitchBrewery(b.id)}
-                                          className="w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-zinc-900 hover:text-white text-zinc-400 transition flex items-center gap-2 group font-bold"
-                                       >
-                                          <span className="opacity-50 group-hover:opacity-100 transition">↳</span>
-                                          <span className="truncate">{b.name}</span>
-                                       </button>
-                                   ))}
-                                  </>
-                               )}
-                          </div>
-                      </div>
-                  )}
-                </div>
-            )}
-          </div>
         </div>
         
         {/* Desktop Navigation (Dashboard Context) */}
@@ -361,6 +212,112 @@ export default function AdminHeader() {
           })}
           
           <div className="h-4 w-px bg-zinc-800 mx-2"></div>
+            
+            {/* Team Dropdown/Switcher Right Aligned */}
+            {breweryId && (
+                <div 
+                  className="relative group"
+                  onMouseEnter={() => setShowBreweryMenu(true)}
+                  onMouseLeave={() => setShowBreweryMenu(false)}
+                >
+                  <button 
+                    title="Team / Brauerei"
+                    className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800/50 rounded-lg transition-all"
+                  >
+                      <Factory className="w-5 h-5" />
+                  </button>
+                  
+                  {showBreweryMenu && (
+                      <div className="absolute right-0 top-full pt-2 w-56 z-50">
+                           <div className="bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-1 p-1">
+                               
+                               {/* Team Dashboard Link */}
+                               <Link 
+                                   href={`/team/${breweryId}`}
+                                   className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-300 hover:text-white hover:bg-zinc-900 rounded-lg"
+                               >
+                                   <LayoutDashboard className="w-4 h-4" /> <span>Team-Dashboard</span>
+                               </Link>
+                               
+                               <div className="h-px bg-zinc-800 my-1 mx-2"></div>
+                               
+                               {/* Team Quick Links */}
+                               <Link 
+                                   href={`/team/${breweryId}/brews`}
+                                   className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
+                               >
+                                   <Beer className="w-4 h-4" /> <span>Rezepte</span>
+                               </Link>
+                               <Link 
+                                   href={`/team/${breweryId}/sessions`}
+                                   className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
+                               >
+                                   <Thermometer className="w-4 h-4" /> <span>Sessions</span>
+                               </Link>
+
+                               <div className="h-px bg-zinc-800 my-1 mx-2"></div>
+                               
+                               {/* Team Settings */}
+                               <Link 
+                                   href={`/team/${breweryId}/settings`}
+                                   className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
+                               >
+                                   <Settings className="w-4 h-4" /> <span>Einstellungen</span>
+                               </Link>
+
+                               {userBreweries.length > 1 && (
+                                  <>
+                                   <div className="h-px bg-zinc-800 my-1 mx-2"></div>
+                                   <p className="px-3 py-2 text-[10px] text-zinc-600 uppercase font-black tracking-wider">Team wechseln</p>
+                                   {userBreweries.filter(b => b.id !== breweryId).map(b => (
+                                       <button
+                                          key={b.id}
+                                          onClick={() => handleSwitchBrewery(b.id)}
+                                          className="w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-zinc-900 hover:text-white text-zinc-400 transition flex items-center gap-2 group font-bold"
+                                       >
+                                          <span className="opacity-50 group-hover:opacity-100 transition">↳</span>
+                                          <span className="truncate">{b.name}</span>
+                                       </button>
+                                   ))}
+                                  </>
+                               )}
+                          </div>
+                      </div>
+                  )}
+                </div>
+            )}
+
+            {/* Discover Icon */}
+            <div 
+              className="relative group h-9 w-9 flex items-center justify-center ml-1"
+              onMouseEnter={() => setShowDiscoverMenu(true)}
+              onMouseLeave={() => setShowDiscoverMenu(false)}
+            >
+              <Link href="/discover" className="text-zinc-400 hover:text-white transition-colors">
+                  <Globe className="w-5 h-5" />
+              </Link>
+              
+              {showDiscoverMenu && (
+                  <div className="absolute right-0 top-full pt-2 w-48 z-50">
+                          <div className="bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-1 px-1 py-1">
+                              <Link 
+                                  href="/discover" 
+                                  className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
+                              >
+                                  <Beer className="w-4 h-4" />
+                                  <span>Rezepte</span>
+                              </Link>
+                              <Link 
+                                  href="/forum" 
+                                  className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
+                              >
+                                  <MessageSquare className="w-4 h-4" />
+                                  <span>Forum</span>
+                              </Link>
+                          </div>
+                  </div>
+              )}
+            </div>
 
           <NotificationBell />
           

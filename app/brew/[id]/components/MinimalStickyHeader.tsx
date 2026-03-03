@@ -55,9 +55,9 @@ export default function MinimalStickyHeader({
             {brewName}
           </span>
 
-          {/* Quick tab switcher (if tabs provided) */}
+          {/* Quick tab switcher — mobile only (desktop uses sidebar nav) */}
           {tabs.length > 0 && onTabClick && (
-            <div className="flex items-center gap-1 shrink-0">
+            <div className="flex items-center gap-1 shrink-0 lg:hidden">
               {tabs.map(tab => (
                 <button
                   key={tab.id}

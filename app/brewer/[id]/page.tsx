@@ -7,7 +7,7 @@ import Link from 'next/link';
 import BrewCard from '@/app/components/BrewCard';
 
 import Header from '@/app/components/Header';
-import Logo from '@/app/components/Logo';
+import Footer from '@/app/components/Footer';
 import ReportButton from '@/app/components/reporting/ReportButton';
 import DrinkTimeline from '@/app/my-cellar/components/DrinkTimeline';
 import { buildTimelineFromData } from '@/lib/timeline-types';
@@ -573,18 +573,7 @@ export default function PublicBrewerPage() {
         </div>
       </div>
 
-      <footer className="pt-12 pb-6 text-center opacity-40 hover:opacity-100 transition-opacity duration-500 flex flex-col items-center">
-        <div className="mb-2">
-            <Logo className="w-5 h-5" textSize="text-xs" />
-        </div>
-        <p className="text-[9px] text-zinc-700 font-medium">Digital Brew Lab</p>
-        <div className="mt-4">
-            <Link href="/impressum" className="text-[10px] text-zinc-600 hover:text-zinc-400 hover:underline transition">
-              Impressum
-            </Link>
-        </div>
-        <p className="text-[8px] text-zinc-800 mt-2 font-mono">{id}</p>
-      </footer>
+      <Footer variant="minimal" />
 
     </div>
   );

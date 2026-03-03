@@ -44,13 +44,11 @@ export default async function BountiesPage({ params }: Props) {
   const bounties = await getBreweryBounties(breweryId);
 
   return (
-    <main className="max-w-3xl mx-auto px-4 py-8">
-      <BountiesClient
-        breweryId={breweryId}
-        bounties={bounties}
-        brews={(brews ?? []).map(b => ({ id: b.id, name: b.name ?? '' }))}
-        canManage={['owner', 'admin'].includes(member.role ?? '')}
-      />
-    </main>
+    <BountiesClient
+      breweryId={breweryId}
+      bounties={bounties}
+      brews={(brews ?? []).map(b => ({ id: b.id, name: b.name ?? '' }))}
+      canManage={['owner', 'admin'].includes(member.role ?? '')}
+    />
   );
 }

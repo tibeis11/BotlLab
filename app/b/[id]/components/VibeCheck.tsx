@@ -34,6 +34,8 @@ interface VibeCheckProps {
   alreadySubmitted?: boolean;
   isLoggedIn?: boolean;
   communityVibes?: { vibe: string; percentage: number }[];
+  /** Called after successful VibeCheck submit — triggers Tier-2 highlight */
+  onComplete?: () => void;
 }
 
 export default function VibeCheck({
@@ -41,6 +43,7 @@ export default function VibeCheck({
   alreadySubmitted = false,
   isLoggedIn = false,
   communityVibes: initialVibes,
+  onComplete,
 }: VibeCheckProps) {
   const [phase, setPhase] = useState<'pick' | 'submitting' | 'result'>(
     alreadySubmitted ? 'result' : 'pick',
@@ -82,6 +85,7 @@ export default function VibeCheck({
       });
       setResult(res);
       setPhase('result');
+      onComplete?.();
     } catch (err: any) {
       setError(err.message || 'Fehler beim Senden.');
       setPhase('pick');

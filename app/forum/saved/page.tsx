@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Metadata } from 'next';
+import Footer from '@/app/components/Footer';
 import { Bookmark, MessageSquare, MessagesSquare, Layers } from 'lucide-react';
 import { createClient } from '@/lib/supabase-server';
 import { getUserSavedContent } from '@/lib/forum-service';
@@ -218,6 +219,7 @@ export default async function SavedPage({ searchParams }: PageProps) {
                     )}
                 </main>
             </div>
+            <Footer />
         </>
     );
 }

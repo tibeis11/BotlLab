@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useMemo, type ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ChartBar, Thermometer, Leaf, FlaskConical, FileText, Grape, Wine, Apple, Settings, Hexagon, Citrus, Activity, Gauge, Droplets, Sprout, ScrollText, Tag, Crown, Microscope, Star, RefreshCw, AlertTriangle, Globe, Loader2, Sparkles, Upload, Trash2, Lightbulb, Search } from 'lucide-react';
+import { ChartBar, Thermometer, Leaf, FlaskConical, FileText, Grape, Wine, Apple, Settings, Hexagon, Citrus, Activity, Gauge, Droplets, Sprout, ScrollText, Tag, Crown, Microscope, Star, RefreshCw, AlertTriangle, Globe, Loader2, Sparkles, Upload, Trash2, Lightbulb, Search, Check, X, Eye, Pencil } from 'lucide-react';
 import ResponsiveTabs from '@/app/components/ResponsiveTabs';
 import { useSupabase } from '@/lib/hooks/useSupabase';
 import { getBreweryTierConfig } from '@/lib/tier-system';
@@ -244,8 +244,7 @@ function Toggle({
     );
 }
 
-// Restore original emoji icons for compatibility (not used for selection anymore).
-const CAP_ICONS = ['🍺', '🍷', '🍎', '🍯', '🥤', '🔥', '🌊', '🧬', '🚀', '🧪', '💎', '🎨', '🦴', '🌿', '🍄', '🍋'];
+
 
 // Palette of pleasant default center colors (hex). A random one is assigned by default.
 const CAP_COLOR_PALETTE = ['#F97316', '#FB7185', '#EF4444', '#F59E0B', '#FDE047', '#34D399', '#10B981', '#06B6D4', '#3B82F6', '#60A5FA', '#7C3AED', '#A78BFA', '#F472B6', '#FCA5A5', '#FCD34D', '#FDBA74'];
@@ -992,16 +991,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
         setBrew(prev => {
             const next = { ...prev, [key]: value };
 
-            if (key === 'brew_type' && (!prev.cap_url || CAP_ICONS.includes(prev.cap_url))) {
-                const iconMap: Record<string, string> = {
-                    beer: '🍺',
-                    wine: '🍷',
-                    cider: '🍎',
-                    mead: '🍯',
-                    softdrink: '🥤'
-                };
-                next.cap_url = iconMap[value as string] || '🍺';
-            }
+
 
             return next;
         });
@@ -1056,7 +1046,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
             const data = await response.json();
             if (data.text) {
                 setBrew(prev => ({ ...prev, name: data.text }));
-                setMessage('Name generiert! 🎉');
+                setMessage('Name generiert!');
             } else {
                 setMessage(data.error || 'Name-Generierung fehlgeschlagen.');
             }
@@ -1134,7 +1124,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
             const data = await response.json();
             if (data.suggestions && Array.isArray(data.suggestions)) {
                 setOptimizationSuggestions(data.suggestions);
-                setMessage('Rezept analysiert! ✨');
+                setMessage('Rezept analysiert!');
             } else {
                 setMessage(data.error || 'Analyse fehlgeschlagen.');
             }
@@ -1204,7 +1194,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
             const data = await response.json();
             if (data.text) {
                 setBrew(prev => ({ ...prev, description: data.text }));
-                setMessage('Beschreibung generiert! ✨');
+                setMessage('Beschreibung generiert!');
             } else {
                 setMessage(data.error || 'Beschreibungs-Generierung fehlgeschlagen.');
             }
@@ -1246,7 +1236,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
             const data = await response.json();
             if (data.text) {
                 setExtraPrompt(data.text);
-                setMessage('Label-Prompt generiert! ✨');
+                setMessage('Label-Prompt generiert!');
             } else {
                 setMessage(data.error || 'Prompt-Generierung fehlgeschlagen.');
             }
@@ -1423,7 +1413,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
             const data = await response.json();
             if (data.imageUrl) {
                 setBrew(prev => ({ ...prev, cap_url: data.imageUrl }));
-                setMessage('KI-Kronkorken generiert! ✨');
+                setMessage('KI-Kronkorken generiert!');
             } else {
                 throw new Error(data.error || 'Fehler');
             }
@@ -1477,7 +1467,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
         return (
             <div className="bg-black text-white flex items-center justify-center p-20">
                 <div className="text-center">
-                    <div className="text-5xl mb-4 animate-pulse">🧪</div>
+                    <FlaskConical className="w-12 h-12 text-zinc-600 animate-pulse mx-auto mb-4" />
                     <p className="text-zinc-400">Lade Rezeptdaten...</p>
                 </div>
             </div>
@@ -1530,24 +1520,27 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                 )}
 
                 {/* Tabs */}
-                <div className="mb-8">
-                    <ResponsiveTabs
-                        variant="top"
-                        activeTab={activeTab}
-                        onTabChange={(id) => setActiveTab(id as any)}
-                        items={[
-                            { id: 'input', label: 'Eingabe', icon: ScrollText },
-                            { id: 'label', label: 'Label', icon: Tag, hidden: id === 'new' },
-                            { id: 'caps', label: 'Kronkorken', icon: Crown, hidden: id === 'new' },
-                            { id: 'optimization', label: 'Optimierung', icon: Microscope, hidden: id === 'new' },
-                            { id: 'ratings', label: 'Bewertung', icon: Star, hidden: id === 'new' },
-                            { id: 'flavor', label: 'Beat the Brewer', icon: Sparkles, hidden: id === 'new' },
-                            { id: 'settings', label: 'Einstellungen', icon: Settings, hidden: false }
-                        ].filter(t => !t.hidden)}
-                    />
-                </div>
+                <div className="flex flex-col lg:flex-row gap-8 items-start">
+                    {/* Sidebar nav */}
+                    <div className="lg:w-52 lg:flex-shrink-0 lg:sticky lg:top-20 lg:self-start w-full">
+                        <ResponsiveTabs
+                            variant="sidebar"
+                            activeTab={activeTab}
+                            onTabChange={(id) => setActiveTab(id as any)}
+                            items={[
+                                { id: 'input', label: 'Eingabe', icon: ScrollText },
+                                { id: 'label', label: 'Label', icon: Tag, hidden: id === 'new' },
+                                { id: 'caps', label: 'Kronkorken', icon: Crown, hidden: id === 'new' },
+                                { id: 'optimization', label: 'Optimierung', icon: Microscope, hidden: id === 'new' },
+                                { id: 'ratings', label: 'Bewertung', icon: Star, hidden: id === 'new' },
+                                { id: 'flavor', label: 'Beat the Brewer', icon: Sparkles, hidden: id === 'new' },
+                                { id: 'settings', label: 'Einstellungen', icon: Settings, hidden: false }
+                            ].filter(t => !t.hidden)}
+                        />
+                    </div>
 
-                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    {/* Content */}
+                    <div className="flex-1 min-w-0 w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
                     {/* Content Area */}
                     <main className="w-full space-y-8">
 
@@ -1567,7 +1560,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                     disabled={generatingName || premiumStatus?.features.aiGenerationsRemaining === 0}
                                                     className="text-[10px] uppercase font-bold text-cyan-600 hover:text-cyan-400 disabled:opacity-50 flex items-center gap-1 transition mb-2"
                                                 >
-                                                    {generatingName ? <span className="animate-spin">⏳</span> : <span>✨</span>}
+                                                    {generatingName ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
                                                     KI-Vorschlag
                                                     <AICreditBadge />
                                                 </button>
@@ -1600,7 +1593,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                 disabled={generatingDescription || premiumStatus?.features.aiGenerationsRemaining === 0}
                                                 className="text-[10px] uppercase font-bold text-purple-600 hover:text-purple-400 disabled:opacity-50 flex items-center gap-1 transition mb-2"
                                             >
-                                                {generatingDescription ? <span className="animate-spin">⏳</span> : <span>✨</span>}
+                                                {generatingDescription ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
                                                 KI-Vorschlag
                                                 <AICreditBadge />
                                             </button>
@@ -1619,13 +1612,15 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                 <div className="sm:bg-black sm:border sm:border-zinc-800 sm:rounded-lg sm:p-6 space-y-4 mb-8 sm:mb-0 border-b border-zinc-900 pb-8 sm:pb-0 sm:border-0">
                                     <label className="text-xs uppercase font-medium tracking-wider text-zinc-500 mb-3 block">Getränke-Typ</label>
                                     <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                                        {[
-                                            { key: 'beer', label: 'Bier', icon: '🍺' },
-                                            { key: 'wine', label: 'Wein', icon: '🍷' },
-                                            { key: 'cider', label: 'Cider', icon: '🍎' },
-                                            { key: 'mead', label: 'Met', icon: '🍯' },
-                                            { key: 'softdrink', label: 'Limo', icon: '🥤' },
-                                        ].map((opt) => (
+                                        {(
+                                            [
+                                                { key: 'beer', label: 'Bier', Icon: Droplets },
+                                                { key: 'wine', label: 'Wein', Icon: Wine },
+                                                { key: 'cider', label: 'Cider', Icon: Apple },
+                                                { key: 'mead', label: 'Met', Icon: Hexagon },
+                                                { key: 'softdrink', label: 'Limo', Icon: Citrus },
+                                            ] as { key: string; label: string; Icon: React.ElementType }[]
+                                        ).map((opt) => (
                                             <button
                                                 key={opt.key}
                                                 onClick={() => handleField('brew_type', opt.key)}
@@ -1634,7 +1629,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                         : 'bg-black border-zinc-800 text-zinc-500 hover:bg-zinc-900 hover:text-zinc-300'
                                                     }`}
                                             >
-                                                <span className="text-3xl mb-2 filter drop-shadow-md">{opt.icon}</span>
+                                                <opt.Icon className="w-7 h-7 mb-2" />
                                                 <span className="text-xs font-bold uppercase tracking-wider">{opt.label}</span>
                                             </button>
                                         ))}
@@ -1683,7 +1678,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                         onClick={() => setResultsEditable(!resultsEditable)}
                                                         className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded transition-colors ${resultsEditable ? 'bg-cyan-900/40 text-cyan-400 border border-cyan-800' : 'text-zinc-600 hover:text-zinc-400 border border-transparent hover:border-zinc-800'}`}
                                                     >
-                                                        {resultsEditable ? '✓ Fertig' : '✎ Bearbeiten'}
+                                                        {resultsEditable ? <><Check className="w-3 h-3 inline mr-1" />Fertig</> : <><Pencil className="w-3 h-3 inline mr-1" />Bearbeiten</>}
                                                     </button>
                                                 </div>
                                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -1852,7 +1847,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                                         <option value="">— Profil wählen —</option>
                                                                         {equipmentProfiles.map(p => (
                                                                             <option key={p.id} value={p.id}>
-                                                                                {p.is_default ? '★ ' : ''}{p.name} ({BREW_METHOD_LABELS[p.brew_method]}, {p.batch_volume_l} L)
+                                                                                {p.is_default ? '[Standard] ' : ''}{p.name} ({BREW_METHOD_LABELS[p.brew_method]}, {p.batch_volume_l} L)
                                                                             </option>
                                                                         ))}
                                                                     </select>
@@ -2569,7 +2564,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                     <div className="flex items-center gap-2">
                                                         <div className="flex text-yellow-600">
                                                             {[1, 2, 3, 4, 5].map(s => (
-                                                                <span key={s} className={r.rating >= s ? 'opacity-100' : 'opacity-30'}>★</span>
+                                                                <Star key={s} className={`w-3.5 h-3.5 ${r.rating >= s ? 'opacity-100' : 'opacity-30'}`} fill="currentColor" />
                                                             ))}
                                                         </div>
                                                         <span className="text-sm font-bold text-white">{r.rating}</span>
@@ -2600,7 +2595,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                                     : 'bg-zinc-900 text-zinc-500 border-zinc-800 hover:border-emerald-500/50 hover:text-emerald-400'
                                                                 }`}
                                                         >
-                                                            <span className="text-sm">✓</span>
+                                                            <Check className="w-3.5 h-3.5" />
                                                             <span>Freigeben</span>
                                                         </button>
                                                         <button
@@ -2610,7 +2605,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                                     : 'bg-zinc-900 text-zinc-500 border-zinc-800 hover:border-red-500/50 hover:text-red-400'
                                                                 }`}
                                                         >
-                                                            <span className="text-sm">✕</span>
+                                                            <X className="w-3.5 h-3.5" />
                                                             <span>Ablehnen</span>
                                                         </button>
                                                         <button
@@ -2619,7 +2614,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                             }}
                                                             className="flex-1 flex flex-col sm:flex-row items-center justify-center gap-2 px-3 py-2 bg-zinc-900 text-zinc-600 border border-zinc-800 rounded-md text-[10px] font-bold uppercase tracking-wider hover:bg-red-950/20 hover:text-red-500 hover:border-red-900/50 transition-all duration-300"
                                                         >
-                                                            <span className="text-sm">🗑️</span>
+                                                            <Trash2 className="w-3.5 h-3.5" />
                                                             <span>Löschen</span>
                                                         </button>
                                                     </div>
@@ -2642,6 +2637,21 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                     value={brew.flavor_profile ?? null}
                                     onChange={(fp) => setBrew(prev => ({ ...prev, flavor_profile: fp }))}
                                     brewStyle={brew.style || null}
+                                    brewId={brewId}
+                                    brewData={{
+                                        brewType: brew.brew_type,
+                                        style: brew.style,
+                                        name: brew.name,
+                                        abv: brew.data?.abv ? parseFloat(String(brew.data.abv)) : undefined,
+                                        ibu: brew.data?.ibu ? parseFloat(String(brew.data.ibu)) : undefined,
+                                        og: brew.data?.og ? parseFloat(String(brew.data.og)) : undefined,
+                                        fg: brew.data?.fg ? parseFloat(String(brew.data.fg)) : undefined,
+                                        colorEBC: brew.data?.color ? parseFloat(String(brew.data.color)) : undefined,
+                                        malts: formatIngredientsForPrompt(brew.data?.malts),
+                                        hops: formatIngredientsForPrompt(brew.data?.hops),
+                                        yeast: formatIngredientsForPrompt(brew.data?.yeast),
+                                        boilMinutes: brew.data?.boil_time ? parseFloat(String(brew.data.boil_time)) : undefined,
+                                    }}
                                 />
                             </div>
                         )}
@@ -2655,7 +2665,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 
                                 <div className="bg-black border border-zinc-800 rounded-lg p-6">
                                     <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
-                                        <div className="h-8 w-8 rounded-full bg-zinc-900 flex items-center justify-center text-sm border border-zinc-700">👁️</div>
+                                        <div className="h-8 w-8 rounded-full bg-zinc-900 flex items-center justify-center border border-zinc-700"><Eye className="w-4 h-4 text-zinc-400" /></div>
                                         Sichtbarkeit
                                     </h3>
                                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-zinc-900/20 border border-zinc-800 rounded-lg p-4">
@@ -2674,7 +2684,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                                             <div>
                                                 <h3 className="text-lg font-bold text-red-500 flex items-center gap-2">
-                                                    <span>🗑️</span> Rezept löschen
+                                                    <Trash2 className="w-5 h-5" /> Rezept löschen
                                                 </h3>
                                                 <p className="text-sm text-zinc-400 mt-1">
                                                     Diese Aktion kann nicht rückgängig gemacht werden. Alle verknüpften Flaschen werden zurückgesetzt.
@@ -2686,7 +2696,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                 disabled={saving}
                                                 className="px-6 py-3 bg-red-950/30 border border-red-900/50 hover:bg-red-900/30 text-red-500 rounded-xl text-sm font-bold transition flex items-center gap-2 whitespace-nowrap w-full md:w-auto justify-center"
                                             >
-                                                <span>🗑️</span>
+                                                <Trash2 className="w-4 h-4" />
                                                 <span>Rezept unwiderruflich löschen</span>
                                             </button>
                                         </div>
@@ -2695,6 +2705,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                             </div>
                         )}
                     </main>
+                    </div>
                 </div>
 
                 <FormulaInspector
@@ -2739,7 +2750,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                         onClick={() => router.push(`/team/${breweryId}/brews`)}
                         className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white"
                     >
-                        ❌
+                        <X className="w-5 h-5" />
                     </button>
                     <button
                         onClick={handleSave}

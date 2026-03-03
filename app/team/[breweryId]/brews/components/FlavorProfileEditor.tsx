@@ -1,13 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
   FLAVOR_DIMENSIONS,
   EMPTY_FLAVOR_PROFILE,
   type FlavorProfile,
   type FlavorDimensionId,
 } from '@/lib/flavor-profile-config';
-import { Sparkles, Trash2 } from 'lucide-react';
+import { Sparkles, Trash2, Loader2, Database, Bot, Pencil, RefreshCw } from 'lucide-react';
+import {
+  getStyleBasedSuggestion,
+  type RecipeDataForAnalysis,
+} from '@/lib/actions/flavor-profile-actions';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -19,6 +23,10 @@ interface FlavorProfileEditorProps {
   brewStyle?: string | null;
   /** Show a compact inline version (for summary display) */
   compact?: boolean;
+  /** Recipe data for BotlGuide analysis (Stufe B) */
+  brewData?: RecipeDataForAnalysis | null;
+  /** Brew ID to exclude from Stufe A aggregation */
+  brewId?: string;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -40,7 +48,7 @@ function FlavorSlider({
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-lg">{dimension.icon}</span>
+          <span className={`inline-block w-2.5 h-2.5 rounded-full ${dimension.color.replace('text-', 'bg-')}`} />
           <span className="text-sm font-bold text-white">{dimension.label}</span>
         </div>
         <span className={`text-sm font-mono font-bold ${dimension.color}`}>
@@ -183,24 +191,116 @@ export default function FlavorProfileEditor({
   onChange,
   brewStyle,
   compact,
+  brewData,
+  brewId,
 }: FlavorProfileEditorProps) {
   const [isEditing, setIsEditing] = useState(!!value);
+  const [isSuggesting, setIsSuggesting] = useState(false);
+  const [suggestionError, setSuggestionError] = useState<string | null>(null);
+  const [suggestionExplanation, setSuggestionExplanation] = useState<string | null>(null);
 
   const handleEnable = () => {
     const initial = { ...EMPTY_FLAVOR_PROFILE };
     onChange(initial);
     setIsEditing(true);
+    setSuggestionExplanation(null);
   };
 
   const handleClear = () => {
     onChange(null);
     setIsEditing(false);
+    setSuggestionExplanation(null);
+    setSuggestionError(null);
   };
 
   const handleSliderChange = (dimId: FlavorDimensionId, val: number) => {
     if (!value) return;
-    onChange({ ...value, [dimId]: val });
+    // When user manually adjusts a suggested profile, change source to manual
+    const newSource = value.source === 'manual' ? 'manual' : 'manual';
+    onChange({ ...value, [dimId]: val, source: newSource });
   };
+
+  // ── Smart Suggestion: Stufe A → Stufe B Fallback ──────────────────────
+  const handleSuggest = useCallback(async () => {
+    setIsSuggesting(true);
+    setSuggestionError(null);
+    setSuggestionExplanation(null);
+
+    try {
+      // Stufe A: Data suggestion from similar brews
+      if (brewStyle) {
+        const dataResult = await getStyleBasedSuggestion(brewStyle, brewId);
+        if (dataResult.success) {
+          onChange(dataResult.profile);
+          setIsEditing(true);
+          setSuggestionExplanation(dataResult.explanation);
+          setIsSuggesting(false);
+          return;
+        }
+      }
+
+      // Stufe B: BotlGuide LLM analysis
+      const recipePayload: RecipeDataForAnalysis = {
+        ...brewData,
+        style: brewStyle || brewData?.style,
+      };
+
+      const hasRecipeData = recipePayload.style || recipePayload.malts || recipePayload.hops ||
+        recipePayload.abv || recipePayload.ibu || recipePayload.yeast;
+
+      if (!hasRecipeData) {
+        setSuggestionError('Zu wenig Daten: Hinterlege mindestens Bierstil, Zutaten oder Kennwerte für einen Vorschlag.');
+        setIsSuggesting(false);
+        return;
+      }
+
+      const response = await fetch('/api/generate-text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'flavor_profile', recipeData: recipePayload }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        if (response.status === 402) {
+          setSuggestionError('AI-Credit-Limit erreicht. Upgrade für mehr BotlGuide-Analysen.');
+        } else {
+          setSuggestionError(err.error || 'BotlGuide-Analyse fehlgeschlagen.');
+        }
+        setIsSuggesting(false);
+        return;
+      }
+
+      const result = await response.json();
+
+      if (result.profile) {
+        const clamp = (v: unknown) => {
+          const n = typeof v === 'number' ? v : parseFloat(String(v));
+          return isNaN(n) ? 0.5 : Math.max(0, Math.min(1, n));
+        };
+
+        const profile: FlavorProfile = {
+          sweetness: clamp(result.profile.sweetness),
+          bitterness: clamp(result.profile.bitterness),
+          body: clamp(result.profile.body),
+          roast: clamp(result.profile.roast),
+          fruitiness: clamp(result.profile.fruitiness),
+          source: 'botlguide',
+        };
+
+        onChange(profile);
+        setIsEditing(true);
+        setSuggestionExplanation(result.explanation || 'BotlGuide hat dein Rezept analysiert.');
+      } else {
+        setSuggestionError('BotlGuide konnte kein Profil generieren.');
+      }
+    } catch (err: any) {
+      console.error('[FlavorProfileEditor] suggest error:', err);
+      setSuggestionError('Fehler beim Generieren des Vorschlags.');
+    } finally {
+      setIsSuggesting(false);
+    }
+  }, [brewStyle, brewId, brewData, onChange]);
 
   // ── Compact display (summary in tab header, etc.) ─────────────────────
   if (compact && value) {
@@ -237,19 +337,60 @@ export default function FlavorProfileEditor({
             Bierstil: <span className="text-white font-bold">{brewStyle}</span>
           </p>
         )}
-        <button
-          type="button"
-          onClick={handleEnable}
-          className="px-6 py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl transition"
-        >
-          <Sparkles className="w-4 h-4 inline mr-2" />
-          Geschmacksprofil anlegen
-        </button>
+
+        {/* Smart Suggestion + Manual buttons */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={handleSuggest}
+            disabled={isSuggesting}
+            className="px-6 py-3 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 disabled:from-zinc-700 disabled:to-zinc-700 text-white font-bold rounded-xl transition-all duration-200 flex items-center gap-2 disabled:opacity-60"
+          >
+            {isSuggesting ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Analysiere...
+              </>
+            ) : (
+              <>
+                <Bot className="w-4 h-4" />
+                Profil vorschlagen
+              </>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={handleEnable}
+            disabled={isSuggesting}
+            className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold rounded-xl transition border border-zinc-700 flex items-center gap-2"
+          >
+            <Pencil className="w-4 h-4" />
+            Manuell anlegen
+          </button>
+        </div>
+
+        <p className="text-[10px] text-zinc-600 mt-4 max-w-sm mx-auto">
+          &quot;Profil vorschlagen&quot; analysiert vorhandene Daten ähnlicher Biere oder nutzt BotlGuide
+          um ein Geschmacksprofil aus deinem Rezept abzuleiten. Du kannst es danach frei anpassen.
+        </p>
+
+        {/* Error message */}
+        {suggestionError && (
+          <div className="mt-4 bg-red-950/30 border border-red-800/30 rounded-xl px-4 py-3 text-sm text-red-400 max-w-md mx-auto">
+            {suggestionError}
+          </div>
+        )}
       </div>
     );
   }
 
   // ── Active editor ─────────────────────────────────────────────────────
+  const sourceLabel = value?.source === 'data_suggestion'
+    ? { icon: <Database className="w-3 h-3" />, text: 'Daten-Vorschlag', cls: 'bg-emerald-950/40 text-emerald-400 border-emerald-800/30' }
+    : value?.source === 'botlguide'
+    ? { icon: <Bot className="w-3 h-3" />, text: 'BotlGuide', cls: 'bg-purple-950/40 text-purple-400 border-purple-800/30' }
+    : { icon: <Pencil className="w-3 h-3" />, text: 'Manuell', cls: 'bg-zinc-800 text-zinc-400 border-zinc-700' };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -258,48 +399,82 @@ export default function FlavorProfileEditor({
           <h3 className="text-sm font-black text-white uppercase tracking-wide flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-cyan-400" />
             Geschmacksprofil
+            <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-full border ${sourceLabel.cls}`}>
+              {sourceLabel.icon} {sourceLabel.text}
+            </span>
           </h3>
           <p className="text-xs text-zinc-500 mt-1">
             Definiere, wie dein Bier schmecken <em>soll</em>. Trinker treten mit ihrem Gaumen dagegen an.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={handleClear}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-400 hover:text-red-300 bg-red-950/30 hover:bg-red-950/50 border border-red-800/30 rounded-lg transition"
-        >
-          <Trash2 className="w-3 h-3" />
-          Entfernen
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleSuggest}
+            disabled={isSuggesting}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-cyan-400 hover:text-cyan-300 bg-cyan-950/30 hover:bg-cyan-950/50 border border-cyan-800/30 rounded-lg transition disabled:opacity-50"
+          >
+            {isSuggesting ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+            Neu vorschlagen
+          </button>
+          <button
+            type="button"
+            onClick={handleClear}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-400 hover:text-red-300 bg-red-950/30 hover:bg-red-950/50 border border-red-800/30 rounded-lg transition"
+          >
+            <Trash2 className="w-3 h-3" />
+            Entfernen
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_200px] gap-8">
-        {/* Sliders */}
-        <div className="space-y-6">
-          {FLAVOR_DIMENSIONS.map((dim) => (
-            <FlavorSlider
-              key={dim.id}
-              dimension={dim}
-              value={value[dim.id] ?? 0.5}
-              onChange={(val) => handleSliderChange(dim.id, val)}
-            />
-          ))}
+      {/* Suggestion explanation banner */}
+      {suggestionExplanation && (
+        <div className="bg-purple-950/20 border border-purple-800/20 rounded-xl px-4 py-3 text-xs text-purple-300">
+          <Bot className="w-3.5 h-3.5 inline mr-1.5 -mt-0.5" />
+          {suggestionExplanation}
         </div>
+      )}
 
-        {/* Radar Preview */}
-        <div className="flex flex-col items-center gap-2">
-          <p className="text-[10px] text-zinc-600 uppercase tracking-widest font-bold">
-            Vorschau
-          </p>
-          <div className="w-full max-w-[200px] aspect-square">
-            <MiniRadarPreview profile={value} />
-          </div>
-          <div className="text-center">
-            <span className="text-[10px] text-zinc-600 bg-zinc-800 px-2 py-0.5 rounded">
-              {value.source === 'manual' ? '✏️ Manuell' : value.source === 'data_suggestion' ? '📊 Vorschlag' : '🤖 BotlGuide'}
-            </span>
+      {/* Suggestion error */}
+      {suggestionError && (
+        <div className="bg-red-950/30 border border-red-800/30 rounded-xl px-4 py-3 text-sm text-red-400">
+          {suggestionError}
+        </div>
+      )}
+
+      {/* Live preview card */}
+      <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-5 flex flex-col sm:flex-row items-center gap-6">
+        <div className="w-44 h-44 flex-shrink-0">
+          <MiniRadarPreview profile={value} />
+        </div>
+        <div className="flex-1 w-full">
+          <div className="grid grid-cols-5 gap-2 mb-3">
+            {FLAVOR_DIMENSIONS.map((dim) => (
+              <div key={dim.id} className="flex flex-col items-center gap-1.5 text-center">
+                <span className={`inline-block w-2.5 h-2.5 rounded-full ${dim.color.replace('text-', 'bg-')}`} />
+                <span className={`text-sm font-black font-mono ${dim.color}`}>
+                  {Math.round((value[dim.id] ?? 0.5) * 100)}%
+                </span>
+                <span className="text-[9px] text-zinc-500 uppercase tracking-wide leading-tight">
+                  {dim.labelShort}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
+      </div>
+
+      {/* Sliders — 2-column grid so bars stay short and practical */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
+        {FLAVOR_DIMENSIONS.map((dim) => (
+          <FlavorSlider
+            key={dim.id}
+            dimension={dim}
+            value={value[dim.id] ?? 0.5}
+            onChange={(val) => handleSliderChange(dim.id, val)}
+          />
+        ))}
       </div>
     </div>
   );

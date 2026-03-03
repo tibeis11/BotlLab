@@ -31,10 +31,69 @@ export async function getBrewTasteProfile(
     return null;
   }
   
-  // Wenn kein Rating existiert, geben alle AVGs null zurück, oder count ist 0
   if (!data || data.count === 0) return null;
 
   return data as TasteProfile;
+}
+
+// Minimum number of community flavor profiles required before showing the
+// community overlay on the public recipe page (avoids misleading single-sample data)
+const MIN_COMMUNITY_PROFILES = 3;
+
+export async function getBrewFlavorProfile(brewId: string) {
+  let sweetness = 0, bitterness = 0, body = 0, roast = 0, fruitiness = 0;
+  let count = 0;
+
+  // 1. Fetch from flavor_profiles table (Beat the Brewer + future sources)
+  //    No rating_id filter — BtB plays without a linked rating still count!
+  const { data: fpData, error: fpError } = await supabase
+    .from("flavor_profiles")
+    .select("sweetness, bitterness, body, roast, fruitiness")
+    .eq("brew_id", brewId);
+
+  if (!fpError && fpData && fpData.length > 0) {
+    for (const fp of fpData) {
+      sweetness += fp.sweetness;
+      bitterness += fp.bitterness;
+      body += fp.body;
+      roast += fp.roast;
+      fruitiness += fp.fruitiness;
+      count++;
+    }
+  }
+
+  // 2. Fallback: merge older standard ratings (1–10 scale → 0–1 scale)
+  const { data: ratingData, error: ratingError } = await supabase
+    .from("ratings")
+    .select("taste_sweetness, taste_bitterness, taste_body, taste_acidity")
+    .eq("brew_id", brewId)
+    .eq("moderation_status", "auto_approved");
+
+  if (!ratingError && ratingData && ratingData.length > 0) {
+    for (const r of ratingData) {
+      if (r.taste_sweetness != null && r.taste_bitterness != null && r.taste_body != null) {
+        sweetness  += (r.taste_sweetness - 1) / 9;
+        bitterness += (r.taste_bitterness - 1) / 9;
+        body       += (r.taste_body - 1) / 9;
+        fruitiness += r.taste_acidity != null ? (r.taste_acidity - 1) / 9 : 0.5;
+        roast      += 0.4; // no direct mapping → neutral default
+        count++;
+      }
+    }
+  }
+
+  // Require a minimum number of data points to avoid misleading single-sample charts
+  if (count < MIN_COMMUNITY_PROFILES) return null;
+
+  return {
+    sweetness:  sweetness  / count,
+    bitterness: bitterness / count,
+    body:       body       / count,
+    roast:      roast      / count,
+    fruitiness: fruitiness / count,
+    source: "data_suggestion" as const,
+    _count: count, // useful for debugging
+  };
 }
 
 export async function getBrewFlavorDistribution(

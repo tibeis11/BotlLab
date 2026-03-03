@@ -603,7 +603,7 @@ export default function LabelsPage({ params }: { params: Promise<{ breweryId: st
                     )}
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in duration-500">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6 animate-in fade-in duration-500">
                     {filteredTemplates.map(template => {
                         const config = template.config as LabelDesign;
                         // Determine scale to fit in a box (e.g. 200px width/height max)

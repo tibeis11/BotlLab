@@ -165,8 +165,8 @@ function HeroBadges({ brew, brewTypeLabel }: { brew: any; brewTypeLabel: string 
         </span>
       )}
       {brew.style && (
-        <span className="text-[10px] font-black uppercase tracking-widest text-cyan-400 px-2.5 py-1 rounded-lg bg-cyan-950/20">
-          {brew.style}
+        <span className="text-[10px] font-black tracking-normal text-cyan-400 px-2.5 py-1 rounded-lg bg-cyan-950/20">
+          {brew.style.toUpperCase()}
         </span>
       )}
       <span className="ml-auto text-[10px] text-zinc-600 shrink-0">

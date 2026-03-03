@@ -104,10 +104,10 @@ export async function POST(req: NextRequest) {
         }
         // ------------------------
 
-        // 1. Get Brew Info (to find brewery_id)
+        // 1. Get Brew Info (to find brewery_id and owner)
         const { data: brew, error: brewError } = await supabaseAdmin
             .from('brews')
-            .select('id, brewery_id, name')
+            .select('id, brewery_id, name, user_id')
             .eq('id', brew_id)
             .single();
 
@@ -187,9 +187,36 @@ export async function POST(req: NextRequest) {
                 console.warn('Auto-Claim duplicate ignored:', capError.code);
             }
 
-            // 5. Trigger Achievements
-            // Fire and forget (don't await to keep response fast)
-            checkAndGrantAchievements(user_id).catch(err => console.error('Achievement check failed:', err));
+            // 5. Trigger Achievements for the rater (using admin client to bypass RLS)
+            checkAndGrantAchievements(user_id, supabaseAdmin).catch(err => console.error('Achievement check failed:', err));
+
+            // 5b. Track conversion: mark the most recent scan by this user as converted
+            // Uses admin client to bypass RLS (rater can't SELECT bottle_scans via brewery-owner policy)
+            try {
+                const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+                const { data: recentScan } = await supabaseAdmin
+                    .from('bottle_scans')
+                    .select('id')
+                    .eq('brew_id', brew_id)
+                    .eq('viewer_user_id', user_id)
+                    .gte('created_at', oneDayAgo)
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+                if (recentScan) {
+                    await supabaseAdmin
+                        .from('bottle_scans')
+                        .update({ converted_to_rating: true })
+                        .eq('id', recentScan.id);
+                }
+            } catch (convErr) {
+                console.error('[Ratings] Conversion tracking failed:', convErr);
+            }
+        }
+
+        // 6. Trigger Achievements for the brew owner (e.g. popular_50, top_rated)
+        if (brew.user_id && brew.user_id !== user_id) {
+            checkAndGrantAchievements(brew.user_id, supabaseAdmin).catch(err => console.error('Brew owner achievement check failed:', err));
         }
 
         // Track analytics event (non-blocking)

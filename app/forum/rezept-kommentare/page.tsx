@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Metadata } from 'next';
 import { FlaskConical, MessageSquare, ArrowLeft } from 'lucide-react';
+import Footer from '@/app/components/Footer';
 import { getRecentBrewCommentThreads } from '@/lib/forum-service';
 import ForumSidebar from '../_components/ForumSidebar';
 import ForumRightRail from '../_components/ForumRightRail';
@@ -138,6 +139,7 @@ export default async function RezeptKommentarePage() {
                 {/* ── Right rail ────────────────────────────────────────── */}
                 <ForumRightRail />
             </div>
+            <Footer />
         </>
     );
 }

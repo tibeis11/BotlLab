@@ -1,8 +1,8 @@
 'use client';
 
 import Link from "next/link";
-import Logo from "./components/Logo";
 import Header from "./components/Header";
+import Footer from "./components/Footer";
 
 export default function Home() {
   return (
@@ -95,7 +95,7 @@ export default function Home() {
                </div>
                
                <div className="order-1 lg:order-2">
-                   <span className="text-cyan-400 font-bold tracking-widest uppercase text-xs mb-2 block">Neu: Squads & Teams</span>
+                   <span className="text-cyan-400 font-bold tracking-widest uppercase text-xs mb-2 block">Squads & Teams</span>
                    <h2 className="text-4xl md:text-5xl font-black mb-6 leading-tight text-white">
                       Brauen ist <span className="text-cyan-400">Teamsport</span>.
                    </h2>
@@ -163,69 +163,69 @@ export default function Home() {
               </div>
 
               <div className="grid md:grid-cols-3 gap-8">
-                 {/* Feature 1 */}
+                 {/* Feature 1: Design & Print */}
                  <div className="bg-zinc-900/30 border border-zinc-800 p-8 rounded-3xl hover:bg-zinc-900 hover:border-cyan-900/50 transition group">
                     <div className="w-12 h-12 bg-zinc-800 rounded-xl flex items-center justify-center text-2xl mb-6 group-hover:bg-cyan-500 group-hover:text-black transition">
-                      🎨
+                      🖨️
                     </div>
-                    <h3 className="font-bold text-2xl mb-4">KI Design Studio</h3>
+                    <h3 className="font-bold text-2xl mb-4">Design & PDF-Druck</h3>
                     <p className="text-zinc-400 leading-relaxed">
-                       Kein Designer? Kein Problem. Unsere KI generiert einzigartige Etiketten-Kunstwerke basierend auf deinen Zutaten. Egal ob Hopfen-Bombe oder edler Rotwein.
+                       Lass die KI ein Etiketten-Kunstwerk generieren oder lade dein eigenes hoch. Nutze unseren Smart-Label Export, um Flaschenetiketten mit einem Klick performant als PDF zu drucken.
                     </p>
                  </div>
 
-                 {/* Feature 2 */}
+                 {/* Feature 2: Digitales Inventar */}
                  <div className="bg-zinc-900/30 border border-zinc-800 p-8 rounded-3xl hover:bg-zinc-900 hover:border-cyan-900/50 transition group">
                     <div className="w-12 h-12 bg-zinc-800 rounded-xl flex items-center justify-center text-2xl mb-6 group-hover:bg-cyan-500 group-hover:text-black transition">
                       📦
                     </div>
                     <h3 className="font-bold text-2xl mb-4">Digitales Inventar</h3>
                     <p className="text-zinc-400 leading-relaxed">
-                       Behalte den Überblick über deinen Keller. Scanne eine Kiste und weise ihr in Sekunden ein neues Rezept zu. Du weißt immer, was trinkreif ist.
+                       Behalte den Überblick über deinen Keller. Weist du Flaschen einem neuen Rezept zu, sind sie scannbar. Du weißt immer, was trinkreif ist und was wo lagert.
                     </p>
                  </div>
 
-                 {/* Feature 3 */}
+                 {/* Feature 3: Analytics & Insights */}
                  <div className="bg-zinc-900/30 border border-zinc-800 p-8 rounded-3xl hover:bg-zinc-900 hover:border-cyan-900/50 transition group">
                     <div className="w-12 h-12 bg-zinc-800 rounded-xl flex items-center justify-center text-2xl mb-6 group-hover:bg-cyan-500 group-hover:text-black transition">
-                      🔗
+                      📊
                     </div>
-                    <h3 className="font-bold text-2xl mb-4">Public Profile</h3>
+                    <h3 className="font-bold text-2xl mb-4">Analytics & Insights</h3>
                     <p className="text-zinc-400 leading-relaxed">
-                       Zeige deinen Freunden was du braust. Jeder Scan führt auf eine wunderschöne Info-Seite mit Rezept-Details, Bitterwerten und deiner Brau-Story.
+                       Tiefgreifende Metriken zu deinen Suden. Verfolge Bewertungs-Trends, Bitterwerte-Verteilungen und verstehe exakt, welche deiner Biere am besten bei Tastern ankommen.
                     </p>
                  </div>
                  
-                 {/* Feature 4: Feedback & Ratings */}
+                 {/* Feature 4: Session Logs */}
                  <div className="bg-zinc-900/30 border border-zinc-800 p-8 rounded-3xl hover:bg-zinc-900 hover:border-cyan-900/50 transition group">
                     <div className="w-12 h-12 bg-zinc-800 rounded-xl flex items-center justify-center text-2xl mb-6 group-hover:bg-cyan-500 group-hover:text-black transition">
+                      ⏱️
+                    </div>
+                    <h3 className="font-bold text-2xl mb-4">Fokus Brau-Logs</h3>
+                    <p className="text-zinc-400 leading-relaxed">
+                       Protokolliere deinen kompletten Brauprozess mit detaillierten Session-Logs. Notiere pH-Wert, Stammwürze, Gärverlauf und optimiere deinen Workflow datengesteuert.
+                    </p>
+                 </div>
+
+                 {/* Feature 5: Feedback & Ratings */}
+                 <div className="bg-zinc-900/30 border border-zinc-800 p-8 rounded-3xl hover:bg-zinc-900 hover:border-blue-900/50 transition group">
+                    <div className="w-12 h-12 bg-zinc-800 rounded-xl flex items-center justify-center text-2xl mb-6 group-hover:bg-blue-500 group-hover:text-black transition">
                       ⭐
                     </div>
                     <h3 className="font-bold text-2xl mb-4">Feedback Loop</h3>
                     <p className="text-zinc-400 leading-relaxed">
-                       Sammle ehrliches Feedback. Deine Taster können Bier direkt am Glas bewerten (1-5 Sterne). Sehe sofort, welches Rezept der Renner ist.
+                       Deine Taster können dein Bier per QR-Scan bewerten und Geschmacks-Profile erfassen. Wertvolles, unverfälschtes Feedback fließt direkt in deine Batch-Analytics.
                     </p>
                  </div>
 
-                 {/* Feature 5: Squads (NEU) */}
-                 <div className="bg-zinc-900/30 border border-zinc-800 p-8 rounded-3xl hover:bg-zinc-900 hover:border-purple-900/50 transition group">
-                    <div className="w-12 h-12 bg-zinc-800 rounded-xl flex items-center justify-center text-2xl mb-6 group-hover:bg-purple-500 group-hover:text-black transition">
-                      👯‍♀️
+                 {/* Feature 6: Public Profile */}
+                 <div className="bg-zinc-900/30 border border-zinc-800 p-8 rounded-3xl hover:bg-zinc-900 hover:border-blue-900/50 transition group">
+                    <div className="w-12 h-12 bg-zinc-800 rounded-xl flex items-center justify-center text-2xl mb-6 group-hover:bg-blue-500 group-hover:text-black transition">
+                      🔗
                     </div>
-                    <h3 className="font-bold text-2xl mb-4">Squad Management</h3>
+                    <h3 className="font-bold text-2xl mb-4">Brauerei-Profil</h3>
                     <p className="text-zinc-400 leading-relaxed">
-                       Braue nicht allein. Lade Freunde in dein Team ein, teilt euch Rezepte und verwaltet gemeinsam das Inventar. Perfekt für WGs und Vereine.
-                    </p>
-                 </div>
-
-                 {/* Feature 6: Gamification (NEU) */}
-                 <div className="bg-zinc-900/30 border border-zinc-800 p-8 rounded-3xl hover:bg-zinc-900 hover:border-amber-900/50 transition group">
-                    <div className="w-12 h-12 bg-zinc-800 rounded-xl flex items-center justify-center text-2xl mb-6 group-hover:bg-amber-500 group-hover:text-black transition">
-                      🏆
-                    </div>
-                    <h3 className="font-bold text-2xl mb-4">Achievements</h3>
-                    <p className="text-zinc-400 leading-relaxed">
-                       Werde zur Legende. Sammle Badges für jeden Sud, jeden Meilenstein und jedes neue Mitglied. Steige im Level auf und schalte Features frei.
+                       Baue dir deine eigene digitale Identität auf. Deine öffentlich geteilten Sude und Rezepte erscheinen auf deinem Profil als Visitenkarte für jeden Craft-Bier Fan.
                     </p>
                  </div>
               </div>
@@ -313,6 +313,52 @@ export default function Home() {
             </div>
         </section>
 
+        {/* --- PREMIUM TEASER --- */}
+        <section className="py-24 bg-zinc-950 border-t border-zinc-800">
+           <div className="max-w-7xl mx-auto px-4 text-center">
+              <h2 className="text-3xl md:text-5xl font-black mb-4 text-white">
+                 Kostenlos starten. <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500">Für Power-User gemacht.</span>
+              </h2>
+              <p className="text-xl text-zinc-400 max-w-2xl mx-auto mb-12">
+                 BotlLab ist für Hobbybrauer kostenlos. Wer mehr will, nutzt unsere Premium-Features für tiefe Einblicke und den besten Brau-Workflow.
+              </p>
+              
+              <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto text-left">
+                  {/* Free Tier */}
+                  <div className="p-8 rounded-3xl bg-zinc-900 border border-zinc-800">
+                      <h3 className="text-2xl font-bold text-white mb-2">BotlLab Free</h3>
+                      <p className="text-zinc-400 mb-6">Alles, was du für den Einstieg brauchst.</p>
+                      <ul className="space-y-4">
+                          <li className="flex gap-3 text-zinc-300"><span className="text-cyan-500">✓</span> Unbegrenzte Rezepte & Sude</li>
+                          <li className="flex gap-3 text-zinc-300"><span className="text-cyan-500">✓</span> Digitale Speisekammer & Inventar</li>
+                          <li className="flex gap-3 text-zinc-300"><span className="text-cyan-500">✓</span> Basis QR-Code Etikettendruck</li>
+                          <li className="flex gap-3 text-zinc-300"><span className="text-cyan-500">✓</span> Community Forum Zugang</li>
+                      </ul>
+                  </div>
+                  
+                  {/* Premium Tier */}
+                  <div className="p-8 rounded-3xl bg-gradient-to-b from-zinc-900 to-black border border-amber-500/30 relative overflow-hidden">
+                      <div className="absolute top-0 right-0 p-4">
+                         <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-500 px-3 py-1 rounded-full border border-amber-500/30">
+                            Empfohlen
+                         </span>
+                      </div>
+                      <h3 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500 mb-2">BotlLab Premium</h3>
+                      <p className="text-zinc-400 mb-6">Für detaillierte Analytics und perfekten Etikettendruck.</p>
+                      <ul className="space-y-4 mb-8">
+                          <li className="flex gap-3 text-zinc-300"><span className="text-amber-500">✓</span> Erweiterte Rating & Batch Analytics</li>
+                          <li className="flex gap-3 text-zinc-300"><span className="text-amber-500">✓</span> Wasserzeichenfreier PDF-Export</li>
+                          <li className="flex gap-3 text-zinc-300"><span className="text-amber-500">✓</span> KI-Design-Generierungen inklusive</li>
+                          <li className="flex gap-3 text-zinc-300"><span className="text-amber-500">✓</span> Unbegrenzte Brau-Squads</li>
+                      </ul>
+                      <Link href="/pricing" className="text-sm font-bold text-amber-500 hover:text-amber-400 transition flex items-center gap-1">
+                          Preise & Features ansehen &rarr;
+                      </Link>
+                  </div>
+              </div>
+           </div>
+        </section>
+
         {/* --- CATCHY CTA --- */}
         <section className="py-32 px-4 relative overflow-hidden">
            <div className="absolute inset-0 bg-gradient-to-b from-cyan-900/20 to-black pointer-events-none" />
@@ -337,18 +383,7 @@ export default function Home() {
       </main>
 
       {/* --- FOOTER --- */}
-      <footer className="border-t border-zinc-900 bg-black py-12 px-4 text-center md:text-left">
-         <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
-            <div className="flex flex-col items-center md:items-start">
-               <div className="mb-4 scale-125 origin-left"><Logo /></div>
-               <p className="text-zinc-500 text-sm">© {new Date().getFullYear()} BotlLab. Made with 🍺 in Germany.</p>
-            </div>
-            <div className="flex gap-8 text-sm font-bold text-zinc-400">
-               <Link href="/login" className="hover:text-white transition">Login</Link>
-               <Link href="/impressum" className="hover:text-white transition">Impressum</Link>
-            </div>
-         </div>
-      </footer>
+      <Footer />
 
     </div>
   );

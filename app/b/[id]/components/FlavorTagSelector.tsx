@@ -7,12 +7,15 @@ interface FlavorTagSelectorProps {
   selectedTags: string[];
   onChange: (tags: string[]) => void;
   maxSelection?: number;
+  /** Compact mode: single scrollable row, no category headers, smaller chips */
+  compact?: boolean;
 }
 
 export default function FlavorTagSelector({
   selectedTags,
   onChange,
   maxSelection = 8,
+  compact = false,
 }: FlavorTagSelectorProps) {
   const toggleTag = (tagId: string) => {
     if (selectedTags.includes(tagId)) {
@@ -30,6 +33,47 @@ export default function FlavorTagSelector({
     },
     {} as Record<string, typeof FLAVOR_TAGS>,
   ), []);
+
+  // ─── Compact mode: single scrollable row ───
+  if (compact) {
+    const allTags = FLAVOR_TAGS;
+    return (
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[10px] uppercase font-bold tracking-widest text-zinc-500">Quick Impressions</span>
+          {selectedTags.length > 0 && (
+            <span className="text-[10px] text-zinc-600">{selectedTags.length}/{maxSelection}</span>
+          )}
+        </div>
+        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+          {allTags.map((tag) => {
+            const isSelected = selectedTags.includes(tag.id);
+            const isDisabled = !isSelected && selectedTags.length >= maxSelection;
+            return (
+              <button
+                key={tag.id}
+                type="button"
+                onClick={() => toggleTag(tag.id)}
+                disabled={isDisabled}
+                aria-pressed={isSelected}
+                className={`
+                  flex-shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-lg border text-xs transition-all
+                  ${isSelected
+                    ? 'bg-cyan-500/20 border-cyan-500/60 text-cyan-400'
+                    : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-zinc-600 hover:text-zinc-400'
+                  }
+                  ${isDisabled ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}
+                `}
+              >
+                <span>{tag.icon}</span>
+                <span>{tag.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">

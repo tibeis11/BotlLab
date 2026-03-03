@@ -37,6 +37,8 @@ interface BeatTheBrewerGameProps {
   challengeToken?: string;
   /** Info about the challenger (shown as context above the game) */
   challengerName?: string | null;
+  /** Optional: Rating-ID um flavor_profile mit Bewertung zu verknüpfen (Phase 11.6) */
+  ratingId?: string | null;
 }
 
 // ──── Score tier labels ────
@@ -55,6 +57,7 @@ export default function BeatTheBrewerGame({
   isLoggedIn = false,
   challengeToken,
   challengerName,
+  ratingId,
 }: BeatTheBrewerGameProps) {
   // ─── State ───
   const [phase, setPhase] = useState<'cta' | 'playing' | 'submitting' | 'reveal'>(
@@ -98,6 +101,7 @@ export default function BeatTheBrewerGame({
     try {
       const res = await submitBeatTheBrewer({
         brewId,
+        ratingId: ratingId ?? null,
         playerProfile: sliders,
       });
       setResult(res);

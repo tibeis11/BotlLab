@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { Metadata } from 'next';
 import { createClient } from '@/lib/supabase-server';
+import Footer from '@/app/components/Footer';
 import { getAlgorithmSettings } from '@/lib/algorithm-settings';
 import { getDiscoverSettings } from '@/lib/actions/brew-admin-actions';
 import DiscoverClient from './DiscoverClient';
@@ -125,15 +126,18 @@ export default async function DiscoverPage() {
   const randomFact = FACTS[Math.floor(Math.random() * FACTS.length)];
 
   return (
-    <Suspense fallback={<DiscoverSkeleton />}>
-      <DiscoverClient 
-        initialBrews={initialBrews} 
-        initialTrending={initialTrending} 
-        initialFeatured={initialFeatured} 
-        initialRandomFact={randomFact}
-        collabDiversityCap={settings.collab_diversity_cap ?? 3}
-        algoSettings={algoSettings}
-      />
-    </Suspense>
+    <>
+      <Suspense fallback={<DiscoverSkeleton />}>
+        <DiscoverClient 
+          initialBrews={initialBrews} 
+          initialTrending={initialTrending} 
+          initialFeatured={initialFeatured} 
+          initialRandomFact={randomFact}
+          collabDiversityCap={settings.collab_diversity_cap ?? 3}
+          algoSettings={algoSettings}
+        />
+      </Suspense>
+      <Footer />
+    </>
   );
 }

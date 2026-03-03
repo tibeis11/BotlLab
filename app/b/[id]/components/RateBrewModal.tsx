@@ -226,30 +226,29 @@ export default function RateBrewModal({
         />
       </div>
 
-      {/* Divider for Expanded Section */}
+      {/* Phase 11.4: FlavorTagSelector — immer sichtbar, kompakt (1 Zeile) */}
+      <FlavorTagSelector
+        selectedTags={profile.flavor_tags || []}
+        onChange={(tags) => updateProfile('flavor_tags', tags)}
+        compact
+        maxSelection={3}
+      />
+
+      {/* Divider for Expanded Section (nur noch Aussehen) */}
       <div className="pt-2">
           <button 
             type="button"
             onClick={() => setShowDetails(!showDetails)}
-            className="flex items-center gap-2 text-sm font-bold text-cyan-500 hover:text-cyan-400 transition"
+            className="flex items-center gap-2 text-sm font-bold text-zinc-600 hover:text-zinc-400 transition"
           >
              <span>{showDetails ? '▼' : '▶'}</span>
-             <span>Geschmacksnoten {showDetails ? 'einklappen' : '(Optional)'}</span>
+             <span>Aussehen (Optional)</span>
           </button>
       </div>
 
       {showDetails && (
-          <div className="space-y-6 pt-4 border-t border-zinc-800 animate-in fade-in slide-in-from-top-2">
+          <div className="space-y-4 pt-3 border-t border-zinc-800 animate-in fade-in slide-in-from-top-2">
               
-               {/* Flavor Tags */}
-               <div>
-                   <h4 className="text-xs font-bold uppercase text-zinc-500 tracking-wider mb-4">🌈 Geschmacksnoten</h4>
-                   <FlavorTagSelector 
-                        selectedTags={profile.flavor_tags || []}
-                        onChange={(tags) => updateProfile('flavor_tags', tags)}
-                   />
-               </div>
-
                {/* Appearance */}
                <div>
                    <h4 className="text-xs font-bold uppercase text-zinc-500 tracking-wider mb-4">🎨 Aussehen</h4>

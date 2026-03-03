@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
+import Footer from '@/app/components/Footer';
 import { getThread, getPosts, getVotesForThread, getUserBookmarkedIds, getThreadSubscription, getThreadPoll } from '@/lib/forum-service';
 import ViewCountTracker from './ViewCountTracker';
 import { MessageSquare, Calendar, User, Eye, Lock, ChevronDown, CheckCircle2, Beaker } from 'lucide-react';
@@ -383,6 +384,7 @@ export default async function ThreadPage({ params }: PageProps) {
             </div>
             </>
             <ViewCountTracker threadId={id} />
+            <Footer />
         </ThreadInteractionWrapper>
     );
 }

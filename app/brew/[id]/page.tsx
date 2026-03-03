@@ -6,14 +6,15 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { getTierConfig, getBreweryTierConfig } from '@/lib/tier-system';
 import Header from '@/app/components/Header';
-import Logo from '@/app/components/Logo';
+import Footer from '@/app/components/Footer';
 import { calculateWaterProfile } from '@/lib/brewing-calculations';
 import { type EquipmentProfile, profileToConfig, DEFAULT_EQUIPMENT_CONFIG } from '@/lib/types/equipment';
 import { CheckCircle2 } from 'lucide-react';
 import { saveBrewToLibrary } from '@/lib/actions/library-actions';
 import { useGlobalToast } from '@/app/context/AchievementNotificationContext';
 import { getPremiumStatus } from '@/lib/actions/premium-actions';
-import { getBrewTasteProfile, getBrewFlavorDistribution, TasteProfile, FlavorDistribution } from '@/lib/rating-analytics';
+import { getBrewTasteProfile, getBrewFlavorDistribution, TasteProfile, FlavorDistribution, getBrewFlavorProfile } from '@/lib/rating-analytics';
+import { type FlavorProfile } from '@/lib/flavor-profile-config';
 import BrewHero from './components/BrewHero';
 import BrewTabNav from './components/BrewTabNav';
 import BrewRecipeTab from './components/BrewRecipeTab';
@@ -45,8 +46,9 @@ export default function BrewDetailPage() {
   const [profile, setProfile] = useState<any>(null);
   const [ratings, setRatings] = useState<any[]>([]);
   const [bottles, setBottles] = useState<any[]>([]);
-  const [tasteProfile, setTasteProfile] = useState<TasteProfile | null>(null);
   const [flavorTags, setFlavorTags] = useState<FlavorDistribution[]>([]);
+  const [brewerProfile, setBrewerProfile] = useState<Omit<FlavorProfile, 'source'> | null>(null);
+  const [communityProfile, setCommunityProfile] = useState<Omit<FlavorProfile, 'source'> | null>(null);
   const [parent, setParent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
@@ -467,13 +469,32 @@ export default function BrewDetailPage() {
           .eq('brew_id', brewData.id)
           .order('bottle_number');
         setBottles(bottleData || []);
+        
+        // Extract brewer profile if available
+        if (brewData.flavor_profile) {
+          try {
+            const fp = typeof brewData.flavor_profile === 'string' 
+              ? JSON.parse(brewData.flavor_profile) 
+              : brewData.flavor_profile;
+              
+            setBrewerProfile({
+              sweetness: fp.sweetness || 0,
+              bitterness: fp.bitterness || 0,
+              body: fp.body || 0,
+              roast: fp.roast || 0,
+              fruitiness: fp.fruitiness || 0
+            });
+          } catch (e) {
+            console.error("Could not parse brewer flavor profile", e);
+          }
+        }
 
         // Analytics (Geschmacksprofil & Tags)
-        const [taste, tags] = await Promise.all([
-          getBrewTasteProfile(brewData.id),
+        const [communityFlavor, tags] = await Promise.all([
+          getBrewFlavorProfile(brewData.id),
           getBrewFlavorDistribution(brewData.id),
         ]);
-        setTasteProfile(taste);
+        setCommunityProfile(communityFlavor);
         setFlavorTags(tags);
 
         setLoading(false);
@@ -583,56 +604,51 @@ export default function BrewDetailPage() {
         tabs={TAB_LABELS}
       />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 border-b border-zinc-800">
-        <BrewTabNav
-          activeTab={activeTab}
-          onChange={handleTabChange}
-          ratingsCount={ratings.length}
-        />
-      </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 pb-16">
+        <div className="flex flex-col lg:flex-row gap-8 items-start">
 
-      {activeTab === 'rezept' && (
-        <BrewRecipeTab
-          brew={brew}
-          scaleVolume={scaleVolume}
-          scaleEfficiency={scaleEfficiency}
-          originalVolume={originalVolume}
-          originalEfficiency={originalEfficiency}
-          setScaleVolume={setScaleVolume}
-          setScaleEfficiency={setScaleEfficiency}
-          userEquipmentName={userEquipmentName}
-          userHasNoProfile={userHasNoProfile}
-          userBreweryId={userBreweryId}
-          waterProfile={waterProfile}
-          maltFactor={maltFactor}
-          volFactor={volFactor}
-        />
-      )}
+          {/* Tab navigation — mobile: horizontal bar (inside), desktop: sticky sidebar */}
+          <BrewTabNav
+            activeTab={activeTab}
+            onChange={handleTabChange}
+            ratingsCount={ratings.length}
+          />
 
-      {activeTab === 'bewertungen' && (
-        <BrewRatingsTab
-          ratings={ratings}
-          tasteProfile={tasteProfile}
-          flavorTags={flavorTags}
-          avgRating={avgRating ? parseFloat(String(avgRating)) : 0}
-        />
-      )}
+          {/* Main tab content */}
+          <div className="flex-1 min-w-0 w-full">
+            {activeTab === 'rezept' && (
+              <BrewRecipeTab
+                brew={brew}
+                scaleVolume={scaleVolume}
+                scaleEfficiency={scaleEfficiency}
+                originalVolume={originalVolume}
+                originalEfficiency={originalEfficiency}
+                setScaleVolume={setScaleVolume}
+                setScaleEfficiency={setScaleEfficiency}
+                userEquipmentName={userEquipmentName}
+                userHasNoProfile={userHasNoProfile}
+                userBreweryId={userBreweryId}
+                waterProfile={waterProfile}
+                maltFactor={maltFactor}
+                volFactor={volFactor}
+              />
+            )}
+            {activeTab === 'bewertungen' && (
+              <BrewRatingsTab
+                ratings={ratings}
+                brewerProfile={brewerProfile}
+                communityProfile={communityProfile}
+                flavorTags={flavorTags}
+                avgRating={avgRating ? parseFloat(String(avgRating)) : 0}
+              />
+            )}
+            {activeTab === 'kommentare' && <BrewCommentsTab brew={brew} />}
+            {activeTab === 'ähnliche' && <BrewSimilarTab brew={brew} />}
+          </div> {/* End main content */}
+        </div> {/* End sidebar+content grid */}
+      </div> {/* End max-w-7xl */}
 
-      {activeTab === 'kommentare' && <BrewCommentsTab brew={brew} />}
-      {activeTab === 'ähnliche' && <BrewSimilarTab brew={brew} />}
-
-      <footer className="pt-12 pb-6 text-center opacity-40 hover:opacity-100 transition-opacity duration-500 flex flex-col items-center border-t border-zinc-900">
-        <div className="mb-2">
-          <Logo className="w-5 h-5" textSize="text-xs" />
-        </div>
-        <p className="text-[9px] text-zinc-700 font-medium">Digital Brew Lab</p>
-        <div className="mt-4">
-          <Link href="/impressum" className="text-[10px] text-zinc-600 hover:text-zinc-400 hover:underline transition">
-            Impressum
-          </Link>
-        </div>
-        <p className="text-[8px] text-zinc-800 mt-2 font-mono">{id}</p>
-      </footer>
+      <Footer variant="minimal" />
 
       {/* Save to Team Modal */}
       {saveModalOpen && (

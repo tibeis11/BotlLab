@@ -20,7 +20,8 @@ import {
     Factory,
     Globe,
     LogOut,
-    Gift
+    Gift,
+    LayoutGrid
 } from 'lucide-react';
 import { useSupabase } from '@/lib/hooks/useSupabase';
 import { useAuth } from '@/app/context/AuthContext';
@@ -42,7 +43,6 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
     // UI State
     const [showProfileMenu, setShowProfileMenu] = useState(false);
     const [showAdminMenu, setShowAdminMenu] = useState(false);
-    const [showPersonalMenu, setShowPersonalMenu] = useState(false);
     const [showDiscoverMenu, setShowDiscoverMenu] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [scrollbarCompensation, setScrollbarCompensation] = useState(0);
@@ -110,6 +110,10 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
         adminTabs.push({ name: 'Mitglieder', path: `/team/${breweryId}/members`, icon: Users });
         adminTabs.push({ name: 'Einstellungen', path: `/team/${breweryId}/settings`, icon: Settings });
     }
+    
+    // Split for Desktop Cleanup (4+1 Concept)
+    const primaryTabs = tabs.slice(0, 4);
+    const secondaryTabs = tabs.slice(4);
 
     const personalTabs = [
         { name: 'Sammlung', path: '/dashboard/collection', icon: Medal },
@@ -130,25 +134,101 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                             imageSrc={branding.logoUrl || "/brand/logo.svg"}
                         />
                     </Link>
+                </div>
+
+                {/* Right: Team Navigation & Profile */}
+                <div className="flex items-center gap-2">
                     
-                    <div className="hidden lg:flex gap-6 text-sm font-medium items-center border-l border-zinc-800 pl-6 h-8">
-                        {/* Entdecken Dropdown */}
+                    {/* Desktop Tabs (4+1 Concept) */}
+                    <div className="hidden lg:flex items-center gap-1">
+                        {primaryTabs.map(tab => {
+                            const isActive = pathname === tab.path || pathname?.startsWith(tab.path + '/');
+                            return (
+                                <Link 
+                                    key={tab.path} 
+                                    href={tab.path}
+                                    title={tab.name}
+                                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${isActive ? 'bg-cyan-950/50 text-cyan-400' : 'text-zinc-500 hover:text-white hover:bg-zinc-800/50'}`}
+                                >
+                                    <tab.icon className="w-4 h-4" />
+                                    <span className="hidden xl:inline">{tab.name}</span>
+                                </Link>
+                            );
+                        })}
+
+                        {/* Tools / Management Concept */}
                         <div 
-                            className="relative group"
+                            className="relative ml-2"
+                            onMouseEnter={() => setShowAdminMenu(true)}
+                            onMouseLeave={() => setShowAdminMenu(false)}
+                        >
+                            <button
+                                title="Tools & Management" 
+                                className={`px-3 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${showAdminMenu ? 'text-white bg-zinc-800' : 'text-zinc-500 hover:text-white hover:bg-zinc-800/50'}`}
+                            >
+                                <LayoutGrid className="w-4 h-4" />
+                                <span className="hidden xl:inline">Tools</span>
+                                <span className="text-[10px] ml-1">▼</span>
+                            </button>
+                            
+                            {showAdminMenu && (
+                                <div className="absolute right-0 top-full pt-2 w-56 z-40">
+                                    <div className="bg-zinc-950 border border-zinc-800 rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200 p-1">
+                                        <div className="px-3 py-2 text-xs font-bold text-zinc-500 uppercase tracking-widest">Tools</div>
+                                        {secondaryTabs.map(tab => {
+                                             const isActive = pathname === tab.path || pathname?.startsWith(tab.path + '/');
+                                             return (
+                                                <Link 
+                                                    key={tab.path} 
+                                                    href={tab.path}
+                                                    className={`px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 rounded-lg ${isActive ? 'bg-cyan-950/30 text-cyan-400' : 'text-zinc-400 hover:text-white hover:bg-zinc-900'}`}
+                                                >
+                                                    <tab.icon className="w-4 h-4" />
+                                                    <span>{tab.name}</span>
+                                                </Link>
+                                             )
+                                        })}
+                                        
+                                        {adminTabs.length > 0 && (
+                                            <>
+                                                <div className="h-px bg-zinc-800 my-1 mx-2"></div>
+                                                <div className="px-3 py-2 text-xs font-bold text-zinc-500 uppercase tracking-widest">Admin</div>
+                                                {adminTabs.map(tab => {
+                                                    const isActive = pathname === tab.path || pathname?.startsWith(tab.path + '/');
+                                                    return (
+                                                        <Link 
+                                                            key={tab.path} 
+                                                            href={tab.path}
+                                                            className={`px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 rounded-lg ${isActive ? 'bg-cyan-950/30 text-cyan-400' : 'text-zinc-400 hover:text-white hover:bg-zinc-900'}`}
+                                                        >
+                                                            <tab.icon className="w-4 h-4" />
+                                                            <span>{tab.name}</span>
+                                                        </Link>
+                                                    );
+                                                })}
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="h-4 w-px bg-zinc-800 mx-2 hidden lg:block"></div>
+
+                    <div className="hidden lg:flex items-center gap-2">
+                         {/* Discover Icon Button */}
+                         <div 
+                            className="relative group h-9 w-9 flex items-center justify-center"
                             onMouseEnter={() => setShowDiscoverMenu(true)}
                             onMouseLeave={() => setShowDiscoverMenu(false)}
                         >
-                            <button 
-                                title="Entdecken"
-                                className={`rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${pathname.startsWith('/discover') ? 'text-cyan-400' : 'text-zinc-500 hover:text-white'}`}
-                            >
-                                <Globe className="w-4 h-4" />
-                                <span className="hidden xl:inline">Entdecken</span>
-                                <span className="text-[10px] ml-1 hidden xl:inline">▼</span>
-                            </button>
-                            
-                            {showDiscoverMenu && (
-                                <div className="absolute left-0 top-full pt-4 w-48 z-50">
+                            <Link href="/discover" className="text-zinc-400 hover:text-white transition-colors">
+                                <Globe className="w-5 h-5" />
+                            </Link>
+
+                             {showDiscoverMenu && (
+                                <div className="absolute right-0 top-full pt-4 w-48 z-50">
                                         <div className="bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-1 px-1 py-1">
                                             <Link 
                                                 href="/discover" 
@@ -169,123 +249,6 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                             )}
                         </div>
 
-                        {/* Mein Profil Dropdown */}
-                        <div 
-                            className="relative group"
-                            onMouseEnter={() => setShowPersonalMenu(true)}
-                            onMouseLeave={() => setShowPersonalMenu(false)}
-                        >
-                            <button 
-                                title="Mein Profil"
-                                className={`rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${pathname === '/dashboard' || pathname.startsWith('/dashboard/') ? 'text-cyan-400' : 'text-zinc-500 hover:text-white'}`}
-                            >
-                                <Users className="w-4 h-4" />
-                                <span className="hidden xl:inline">Mein Profil</span>
-                                <span className="text-[10px] ml-1 hidden xl:inline">▼</span>
-                            </button>
-                            
-                            {showPersonalMenu && (
-                                <div className="absolute left-0 top-full pt-4 w-56 z-50">
-                                    <div className="bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-1 p-1">
-                                         <Link 
-                                            href="/dashboard"
-                                            className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-300 hover:text-white hover:bg-zinc-900 rounded-lg"
-                                        >
-                                            <LayoutDashboard className="w-4 h-4" /> <span>Dashboard</span>
-                                        </Link>
-                                        <div className="h-px bg-zinc-800 my-1 mx-2"></div>
-                                        <Link 
-                                            href="/dashboard/collection" 
-                                            className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
-                                        >
-                                            <Medal className="w-4 h-4" /> <span>Sammlung</span>
-                                        </Link>
-                                        <Link 
-                                            href="/dashboard/favorites" 
-                                            className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
-                                        >
-                                            <Heart className="w-4 h-4" /> <span>Favoriten</span>
-                                        </Link>
-                                         <Link 
-                                            href="/dashboard/achievements" 
-                                            className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
-                                        >
-                                            <Trophy className="w-4 h-4" /> <span>Achievements</span>
-                                        </Link>
-                                        <div className="h-px bg-zinc-800 my-1 mx-2"></div>
-                                        <Link 
-                                            href="/account" 
-                                            className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
-                                        >
-                                            <Settings className="w-4 h-4" /> <span>Einstellungen</span>
-                                        </Link>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Right: Team Navigation & Profile */}
-                <div className="flex items-center gap-2">
-                    
-                    {/* Desktop Tabs */}
-                    <div className="hidden lg:flex items-center gap-1">
-                        {tabs.map(tab => {
-                            const isActive = pathname === tab.path || pathname?.startsWith(tab.path + '/');
-                            return (
-                                <Link 
-                                    key={tab.path} 
-                                    href={tab.path}
-                                    title={tab.name}
-                                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${isActive ? 'bg-cyan-950/50 text-cyan-400' : 'text-zinc-500 hover:text-white hover:bg-zinc-800/50'}`}
-                                >
-                                    <tab.icon className="w-4 h-4" />
-                                    <span className="hidden xl:inline">{tab.name}</span>
-                                </Link>
-                            );
-                        })}
-
-                        {/* Admin Dropdown */}
-                        {adminTabs.length > 0 && (
-                            <div 
-                                className="relative ml-2"
-                                onMouseEnter={() => setShowAdminMenu(true)}
-                                onMouseLeave={() => setShowAdminMenu(false)}
-                            >
-                                <button
-                                    title="Mehr" 
-                                    className={`px-3 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${showAdminMenu ? 'text-white bg-zinc-800' : 'text-zinc-500 hover:text-white hover:bg-zinc-800/50'}`}
-                                >
-                                    <span>☰</span>
-                                </button>
-                                
-                                {showAdminMenu && (
-                                    <div className="absolute right-0 top-full pt-2 w-48 z-40">
-                                        <div className="bg-zinc-950 border border-zinc-800 rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200">
-                                            {adminTabs.map(tab => {
-                                                const isActive = pathname === tab.path || pathname?.startsWith(tab.path + '/');
-                                                return (
-                                                    <Link 
-                                                        key={tab.path} 
-                                                        href={tab.path}
-                                                        className={`px-4 py-3 text-sm font-bold transition-all flex items-center gap-3 ${isActive ? 'bg-cyan-950/30 text-cyan-400' : 'text-zinc-400 hover:text-white hover:bg-zinc-900'}`}
-                                                    >
-                                                        <tab.icon className="w-4 h-4" />
-                                                        <span>{tab.name}</span>
-                                                    </Link>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="h-4 w-px bg-zinc-800 mx-2 hidden lg:block"></div>
-
-                    <div className="hidden lg:block">
                         <NotificationBell />
                     </div>
 
@@ -316,20 +279,39 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                                         <p className="text-xs text-zinc-500 uppercase tracking-widest font-bold mb-1">Angemeldet als</p>
                                         <p className="font-bold text-white truncate">{userProfile?.display_name || user?.email}</p>
                                     </div>
+                                    
+                                    <div className="p-1">
+                                        <Link
+                                            href="/dashboard"
+                                            className="block w-full px-3 py-2 text-zinc-300 hover:text-white hover:bg-zinc-900 rounded-lg transition text-sm font-medium flex items-center gap-3 text-left"
+                                        >
+                                            <LayoutDashboard className="w-4 h-4" /> Mein Dashboard
+                                        </Link>
+                                        {personalTabs.map(tab => (
+                                            <Link 
+                                                key={tab.path}
+                                                href={tab.path} 
+                                                className="block w-full px-3 py-2 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg transition text-sm font-medium flex items-center gap-3 text-left"
+                                            >
+                                                <tab.icon className="w-4 h-4" /> {tab.name}
+                                            </Link>
+                                        ))}
+                                    </div>
 
-                                    <Link
-                                        href="/dashboard"
-                                        className="block w-full px-4 py-3 text-zinc-300 hover:text-white hover:bg-zinc-900 transition text-sm font-medium flex items-center gap-2 text-left"
-                                    >
-                                        <Users className="w-4 h-4" /> Mein Profil
-                                    </Link>
-
-                                    <button
-                                        onClick={() => signOut()}
-                                        className="block w-full px-4 py-3 text-red-400 hover:bg-red-500/10 transition text-sm font-medium flex items-center gap-2 text-left border-t border-zinc-800"
-                                    >
-                                        <LogOut className="w-4 h-4" /> Abmelden
-                                    </button>
+                                    <div className="p-1 border-t border-zinc-800">
+                                        <Link
+                                            href="/account"
+                                            className="block w-full px-3 py-2 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg transition text-sm font-medium flex items-center gap-3 text-left"
+                                        >
+                                            <Settings className="w-4 h-4" /> Einstellungen
+                                        </Link>
+                                        <button
+                                            onClick={() => signOut()}
+                                            className="block w-full px-3 py-2 text-red-400 hover:bg-red-500/10 rounded-lg transition text-sm font-medium flex items-center gap-3 text-left"
+                                        >
+                                            <LogOut className="w-4 h-4" /> Abmelden
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         )}

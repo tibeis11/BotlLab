@@ -1,9 +1,10 @@
 'use client';
 
 import { QrCode } from 'lucide-react';
-import TasteRadarChart from './TasteRadarChart';
+import FlavorRadarChart from '@/app/components/FlavorRadarChart';
 import FlavorTagCloud from './FlavorTagCloud';
-import type { TasteProfile, FlavorDistribution } from '@/lib/rating-analytics';
+import type { FlavorDistribution } from '@/lib/rating-analytics';
+import type { FlavorProfile } from '@/lib/flavor-profile-config';
 
 interface Rating {
   id: string;
@@ -16,7 +17,8 @@ interface Rating {
 
 interface BrewRatingsTabProps {
   ratings: Rating[];
-  tasteProfile: TasteProfile | null;
+  brewerProfile?: Omit<FlavorProfile, 'source'> | null;
+  communityProfile?: Omit<FlavorProfile, 'source'> | null;
   flavorTags: FlavorDistribution[];
   avgRating: number;
 }
@@ -110,7 +112,7 @@ function RatingCard({ rating }: { rating: Rating }) {
   );
 }
 
-export default function BrewRatingsTab({ ratings, tasteProfile, flavorTags, avgRating }: BrewRatingsTabProps) {
+export default function BrewRatingsTab({ ratings, brewerProfile, communityProfile, flavorTags, avgRating }: BrewRatingsTabProps) {
 
   const hasRatings = ratings.length > 0;
 
@@ -146,20 +148,56 @@ export default function BrewRatingsTab({ ratings, tasteProfile, flavorTags, avgR
       )}
 
       {/* Taste profile analytics */}
-      {tasteProfile && tasteProfile.count > 0 && (
+      {(brewerProfile || communityProfile) && (
         <div className="mb-12">
           <div className="flex items-center gap-4 mb-6">
             <h3 className="text-xs font-black uppercase tracking-[0.25em] text-zinc-500">Geschmacksprofil</h3>
             <div className="h-px bg-zinc-800 flex-1" />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="flex flex-col items-center py-4">
-              <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-4">Radar</p>
-              <TasteRadarChart profile={tasteProfile} />
+            <div className="flex flex-col items-center py-8 bg-zinc-950/50 rounded-2xl border border-zinc-800/50">
+              <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Profil-Radar</p>
+
+              <div className="my-2">
+                <FlavorRadarChart
+                  primaryProfile={communityProfile}
+                  secondaryProfile={brewerProfile}
+                  showSecondary={true}
+                  size={260}
+                />
+              </div>
+
+              {/* Legend */}
+              <div className="flex flex-wrap justify-center gap-5 mt-4 text-[10px] font-bold uppercase tracking-wider bg-black/40 px-5 py-2.5 rounded-full border border-zinc-800/50">
+                {communityProfile ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.5)]" />
+                    <span className="text-zinc-300">Community</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 opacity-40">
+                    <div className="w-2.5 h-2.5 rounded-full bg-zinc-600 border border-dashed border-zinc-500" />
+                    <span className="text-zinc-500">Community (ab 3 Profilen)</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
+                  <span className="text-zinc-300">Brauer-Ziel</span>
+                </div>
+              </div>
+
+              {/* Not enough data nudge */}
+              {!communityProfile && (
+                <p className="text-[10px] text-zinc-600 mt-3 text-center max-w-[200px]">
+                  Spiel <span className="text-amber-600/80 font-bold">Beat the Brewer</span> um das Community-Profil zu befüllen.
+                </p>
+              )}
             </div>
-            <div className="flex flex-col justify-center py-4">
-              <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-5">Häufigste Attribute</p>
-              <FlavorTagCloud tags={flavorTags} />
+            <div className="flex flex-col items-center justify-center p-8 bg-zinc-950/50 rounded-2xl border border-zinc-800/50">
+              <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-8">Häufigste Attribute</p>
+              <div className="flex-1 w-full flex items-center justify-center">
+                <FlavorTagCloud tags={flavorTags} />
+              </div>
             </div>
           </div>
         </div>

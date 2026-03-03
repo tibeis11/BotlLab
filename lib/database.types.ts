@@ -34,6 +34,66 @@ export type Database = {
   }
   public: {
     Tables: {
+      flavor_profiles: {
+        Row: {
+          id: string
+          brew_id: string
+          user_id: string | null
+          rating_id: string | null
+          sweetness: number
+          bitterness: number
+          body: number
+          roast: number
+          fruitiness: number
+          source: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          brew_id: string
+          user_id?: string | null
+          rating_id?: string | null
+          sweetness: number
+          bitterness: number
+          body: number
+          roast: number
+          fruitiness: number
+          source?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          brew_id?: string
+          user_id?: string | null
+          rating_id?: string | null
+          sweetness?: number
+          bitterness?: number
+          body?: number
+          roast?: number
+          fruitiness?: number
+          source?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flavor_profiles_brew_id_fkey"
+            columns: ["brew_id"]
+            isOneToOne: false
+            referencedRelation: "brews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flavor_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       achievements: {
         Row: {
           category: string
@@ -3054,6 +3114,7 @@ export type Database = {
       generate_short_code: { Args: never; Returns: string }
       get_auth_user_brewery_ids: { Args: never; Returns: string[] }
       get_brew_taste_profile: { Args: { p_brew_id: string }; Returns: Json }
+      get_brew_flavor_profile: { Args: { p_brew_id: string }; Returns: Json }
       get_collaborative_recommendations:
         | {
             Args: { p_limit?: number; p_user_id: string }

@@ -113,7 +113,8 @@ export default function BreweryAnalyticsPage() {
 
       const result = await getBreweryAnalyticsSummary(breweryId, {
         startDate,
-        endDate
+        endDate,
+        brewId: selectedBrewId || undefined
       });
 
       if ('error' in result) {
@@ -174,7 +175,7 @@ export default function BreweryAnalyticsPage() {
         }
         
         // Load conversion rate data
-        const conversionResult = await getConversionRate(breweryId, { startDate, endDate });
+        const conversionResult = await getConversionRate(breweryId, { startDate, endDate, brewId: selectedBrewId || undefined });
         if (conversionResult.data) {
           setConversionData(conversionResult.data);
         }

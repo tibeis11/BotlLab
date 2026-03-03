@@ -2,21 +2,22 @@ import { createClient } from "@/lib/supabase-server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { 
-    getBrewTasteProfile, 
     getBrewFlavorDistribution, 
     getAttributeDistribution, 
     getRatingsWithProfiles,
-    getTasteTimeline
+    getTasteTimeline,
+    getBrewFlavorProfile,
 } from "@/lib/rating-analytics";
 import { ANALYTICS_TIER_FEATURES, type UserTier } from "@/lib/analytics-tier-features";
 import { getConversionRate, getBrewCapClaimRate, getRaterDemographics, getStyleBenchmark } from "@/lib/actions/analytics-actions";
+import { isValidFlavorProfile } from "@/lib/flavor-profile-config";
 
 // Components
 import AnalyticsMetricCard from "../../components/AnalyticsMetricCard";
 import DrinkerFunnelCard from "../../components/DrinkerFunnelCard";
 import RaterDemographicsPanel from "../../components/RaterDemographicsPanel";
 import StyleBenchmarkCard from "../../components/StyleBenchmarkCard";
-import TasteProfileRadar from "./components/TasteProfileRadar";
+import FlavorRadarChart from "@/app/components/FlavorRadarChart";
 import TasteEvolutionChart from "./components/TasteEvolutionChart";
 import AttributeStats from "./components/AttributeStats";
 
@@ -65,10 +66,18 @@ export default async function BrewAnalyticsPage({ params }: { params: { breweryI
     .single();
 
   const ratings = await getRatingsWithProfiles(brewId);
-  const profile = await getBrewTasteProfile(brewId);
-  const flavorDist = await getBrewFlavorDistribution(brewId);
-  const distribution = await getAttributeDistribution(brewId);
-  const timeline = await getTasteTimeline(brewId);
+  const [flavorDist, distribution, timeline, communityProfile] = await Promise.all([
+    getBrewFlavorDistribution(brewId),
+    getAttributeDistribution(brewId),
+    getTasteTimeline(brewId),
+    getBrewFlavorProfile(brewId),
+  ]);
+
+  // Brewer's intended target from brew.flavor_profile (JSON column)
+  const rawBrewerProfile = brew?.flavor_profile;
+  const brewerProfile = rawBrewerProfile && isValidFlavorProfile(rawBrewerProfile)
+    ? { sweetness: rawBrewerProfile.sweetness, bitterness: rawBrewerProfile.bitterness, body: rawBrewerProfile.body, roast: rawBrewerProfile.roast, fruitiness: rawBrewerProfile.fruitiness }
+    : null;
 
   // Phase 2: funnel data for this brew
   const [conversionResult, capResult, demographicsResult, benchmarkResult] = await Promise.all([
@@ -155,14 +164,34 @@ export default async function BrewAnalyticsPage({ params }: { params: { breweryI
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
          {/* Left Column: Flavor Profile (Radar) */}
          <div className="bg-black border border-zinc-800 rounded-lg p-6">
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between items-center mb-4">
                 <h3 className="text-zinc-500 text-xs font-medium uppercase tracking-wider">Geschmacksprofil</h3>
-                <span className="text-[10px] text-zinc-600 bg-zinc-900 px-2 py-1 rounded border border-zinc-800">
-                    Basierend auf {detailedRatingsCount} Profilen
-                </span>
+                <div className="flex gap-3 text-[10px] font-bold uppercase tracking-wider">
+                  {communityProfile ? (
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-full bg-cyan-500" />
+                      <span className="text-zinc-400">Community</span>
+                    </div>
+                  ) : (
+                    <span className="text-zinc-700">Community (ab 3 Profilen)</span>
+                  )}
+                  {brewerProfile && (
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-full bg-amber-500" />
+                      <span className="text-zinc-400">Brauer-Ziel</span>
+                    </div>
+                  )}
+                </div>
             </div>
-            {profile && profile.count > 0 ? (
-                <TasteProfileRadar profile={profile} />
+            {(brewerProfile || communityProfile) ? (
+              <div className="flex justify-center">
+                <FlavorRadarChart
+                  primaryProfile={communityProfile}
+                  secondaryProfile={brewerProfile}
+                  showSecondary={true}
+                  size={280}
+                />
+              </div>
             ) : (
                 <div className="h-[300px] flex items-center justify-center text-zinc-600 italic text-sm">
                     Noch keine Profildaten verfügbar

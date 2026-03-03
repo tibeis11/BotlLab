@@ -624,6 +624,7 @@ export async function getBreweryAnalytics(breweryId: string, options?: {
 export async function getBreweryAnalyticsSummary(breweryId: string, options?: {
   startDate?: string;
   endDate?: string;
+  brewId?: string;
 }) {
   'use server';
   
@@ -1193,8 +1194,8 @@ export type StyleBenchmarkValues = {
   bitterness: number | null;
   sweetness: number | null;
   body: number | null;
-  carbonation: number | null;
-  acidity: number | null;
+  roast: number | null;
+  fruitiness: number | null;
 };
 
 export type StyleBenchmarkResult = {
@@ -1250,9 +1251,9 @@ export async function getStyleBenchmark(
       data: {
         brewStyle: brewStyle || '',
         brewStyleNormalized: '',
-        brewValues: { bitterness: null, sweetness: null, body: null, carbonation: null, acidity: null },
-        benchmarkValues: { bitterness: null, sweetness: null, body: null, carbonation: null, acidity: null },
-        deltas: { bitterness: null, sweetness: null, body: null, carbonation: null, acidity: null },
+        brewValues: { bitterness: null, sweetness: null, body: null, roast: null, fruitiness: null },
+        benchmarkValues: { bitterness: null, sweetness: null, body: null, roast: null, fruitiness: null },
+        deltas: { bitterness: null, sweetness: null, body: null, roast: null, fruitiness: null },
         benchmarkBrewCount: 0,
         benchmarkRatingCount: 0,
         hasEnoughData: false,
@@ -1262,15 +1263,15 @@ export async function getStyleBenchmark(
 
   const styleNormalized = brewStyle.toLowerCase();
 
-  // 2. Load own taste profile (via RPC)
-  const { data: ownProfile } = await supabase.rpc('get_brew_taste_profile', {
+  // 2. Load own taste profile (via RPC — now from flavor_profiles table)
+  const { data: ownProfile } = await supabase.rpc('get_brew_flavor_profile', {
     p_brew_id: brewId,
   });
 
-  // 3. Query the materialized view
+  // 3. Query the materialized view (flavor_profiles-based)
   const { data: benchmark } = await (supabase as any)
-    .from('brew_style_averages')
-    .select('avg_bitterness, avg_sweetness, avg_body, avg_carbonation, avg_acidity, brew_count, rating_count')
+    .from('brew_style_flavor_averages')
+    .select('avg_bitterness, avg_sweetness, avg_body, avg_roast, avg_fruitiness, brew_count, profile_count')
     .eq('style_normalized', styleNormalized)
     .single();
 
@@ -1285,13 +1286,13 @@ export async function getStyleBenchmark(
           bitterness: op.bitterness ?? null,
           sweetness: op.sweetness ?? null,
           body: op.body ?? null,
-          carbonation: op.carbonation ?? null,
-          acidity: op.acidity ?? null,
-        } : { bitterness: null, sweetness: null, body: null, carbonation: null, acidity: null },
-        benchmarkValues: { bitterness: null, sweetness: null, body: null, carbonation: null, acidity: null },
-        deltas: { bitterness: null, sweetness: null, body: null, carbonation: null, acidity: null },
+          roast: op.roast ?? null,
+          fruitiness: op.fruitiness ?? null,
+        } : { bitterness: null, sweetness: null, body: null, roast: null, fruitiness: null },
+        benchmarkValues: { bitterness: null, sweetness: null, body: null, roast: null, fruitiness: null },
+        deltas: { bitterness: null, sweetness: null, body: null, roast: null, fruitiness: null },
         benchmarkBrewCount: benchmark?.brew_count ?? 0,
-        benchmarkRatingCount: benchmark?.rating_count ?? 0,
+        benchmarkRatingCount: benchmark?.profile_count ?? 0,
         hasEnoughData: false,
       },
     };
@@ -1304,15 +1305,15 @@ export async function getStyleBenchmark(
     bitterness: op2?.bitterness ?? null,
     sweetness: op2?.sweetness ?? null,
     body: op2?.body ?? null,
-    carbonation: op2?.carbonation ?? null,
-    acidity: op2?.acidity ?? null,
+    roast: op2?.roast ?? null,
+    fruitiness: op2?.fruitiness ?? null,
   };
   const bm: StyleBenchmarkValues = {
     bitterness: benchmark.avg_bitterness !== null ? Number(benchmark.avg_bitterness) : null,
     sweetness: benchmark.avg_sweetness !== null ? Number(benchmark.avg_sweetness) : null,
     body: benchmark.avg_body !== null ? Number(benchmark.avg_body) : null,
-    carbonation: benchmark.avg_carbonation !== null ? Number(benchmark.avg_carbonation) : null,
-    acidity: benchmark.avg_acidity !== null ? Number(benchmark.avg_acidity) : null,
+    roast: benchmark.avg_roast !== null ? Number(benchmark.avg_roast) : null,
+    fruitiness: benchmark.avg_fruitiness !== null ? Number(benchmark.avg_fruitiness) : null,
   };
 
   const delta = (own: number | null, bench: number | null) =>
@@ -1328,11 +1329,11 @@ export async function getStyleBenchmark(
         bitterness: delta(bv.bitterness, bm.bitterness),
         sweetness: delta(bv.sweetness, bm.sweetness),
         body: delta(bv.body, bm.body),
-        carbonation: delta(bv.carbonation, bm.carbonation),
-        acidity: delta(bv.acidity, bm.acidity),
+        roast: delta(bv.roast, bm.roast),
+        fruitiness: delta(bv.fruitiness, bm.fruitiness),
       },
       benchmarkBrewCount: Number(benchmark.brew_count),
-      benchmarkRatingCount: Number(benchmark.rating_count),
+      benchmarkRatingCount: Number(benchmark.profile_count),
       hasEnoughData: true,
     },
   };
@@ -1346,8 +1347,8 @@ export type BatchTasteProfile = {
   bitterness: number | null;
   sweetness: number | null;
   body: number | null;
-  carbonation: number | null;
-  acidity: number | null;
+  roast: number | null;
+  fruitiness: number | null;
 };
 
 export type BatchComparisonResult = {
@@ -1416,8 +1417,8 @@ export async function getBatchComparison(
 
   // Fetch taste profiles + rating counts in parallel
   const [profileA, profileB, ratingsA, ratingsB] = await Promise.all([
-    supabase.rpc('get_brew_taste_profile', { p_brew_id: brewIdA }),
-    supabase.rpc('get_brew_taste_profile', { p_brew_id: brewIdB }),
+    supabase.rpc('get_brew_flavor_profile', { p_brew_id: brewIdA }),
+    supabase.rpc('get_brew_flavor_profile', { p_brew_id: brewIdB }),
     supabase.from('ratings').select('rating').eq('brew_id', brewIdA).eq('moderation_status', 'auto_approved'),
     supabase.from('ratings').select('rating').eq('brew_id', brewIdB).eq('moderation_status', 'auto_approved'),
   ]);
@@ -1427,8 +1428,8 @@ export async function getBatchComparison(
     bitterness: (rpc.data as any)?.bitterness ?? null,
     sweetness: (rpc.data as any)?.sweetness ?? null,
     body: (rpc.data as any)?.body ?? null,
-    carbonation: (rpc.data as any)?.carbonation ?? null,
-    acidity: (rpc.data as any)?.acidity ?? null,
+    roast: (rpc.data as any)?.roast ?? null,
+    fruitiness: (rpc.data as any)?.fruitiness ?? null,
   });
 
   const avgScore = (rows: { rating: number }[] | null) => {
@@ -1439,14 +1440,14 @@ export async function getBatchComparison(
 
   const pA = toProfile(profileA);
   const pB = toProfile(profileB);
-  const DIMENSIONS = ['bitterness', 'sweetness', 'body', 'carbonation', 'acidity'] as const;
+  const DIMENSIONS = ['bitterness', 'sweetness', 'body', 'roast', 'fruitiness'] as const;
 
   const deltas: BatchTasteProfile = {
     bitterness: pA.bitterness !== null && pB.bitterness !== null ? Math.round((pB.bitterness - pA.bitterness) * 10) / 10 : null,
     sweetness: pA.sweetness !== null && pB.sweetness !== null ? Math.round((pB.sweetness - pA.sweetness) * 10) / 10 : null,
     body: pA.body !== null && pB.body !== null ? Math.round((pB.body - pA.body) * 10) / 10 : null,
-    carbonation: pA.carbonation !== null && pB.carbonation !== null ? Math.round((pB.carbonation - pA.carbonation) * 10) / 10 : null,
-    acidity: pA.acidity !== null && pB.acidity !== null ? Math.round((pB.acidity - pA.acidity) * 10) / 10 : null,
+    roast: pA.roast !== null && pB.roast !== null ? Math.round((pB.roast - pA.roast) * 10) / 10 : null,
+    fruitiness: pA.fruitiness !== null && pB.fruitiness !== null ? Math.round((pB.fruitiness - pA.fruitiness) * 10) / 10 : null,
   };
 
   const significantDifferences = DIMENSIONS.filter(dim => {

@@ -21,14 +21,14 @@ interface StyleBenchmarkCardProps {
 type ViewMode = 'bars' | 'radar';
 
 const DIMENSION_LABELS: Record<string, string> = {
-  bitterness: 'Bitterness',
-  sweetness: 'Sweetness',
-  body: 'Body',
-  carbonation: 'Carbonation',
-  acidity: 'Acidity',
+  bitterness: 'Bitterkeit',
+  sweetness: 'Süße',
+  body: 'Körper',
+  roast: 'Röstung',
+  fruitiness: 'Fruchtigkeit',
 };
 
-const DIMENSIONS = ['bitterness', 'sweetness', 'body', 'carbonation', 'acidity'] as const;
+const DIMENSIONS = ['bitterness', 'sweetness', 'body', 'roast', 'fruitiness'] as const;
 type Dim = typeof DIMENSIONS[number];
 
 // ============================================================================

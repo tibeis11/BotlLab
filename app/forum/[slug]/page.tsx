@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
+import Footer from '@/app/components/Footer';
 import {
     Megaphone, Scroll, Wrench, ShoppingBag, Coffee,
     MessageSquare, Plus, Clock, TrendingUp, Tag,
@@ -196,6 +197,7 @@ export default async function ForumCategoryPage({ params, searchParams }: PagePr
                     </Link>
                 </main>
             </div>
+            <Footer />
         </>
     );
 }

@@ -176,6 +176,56 @@ Formatiere die Ausgabe als JSON-Array von Strings:
 ["Vorschlag 1", "Vorschlag 2", "Vorschlag 3"]
 
 WICHTIG: Antworte NUR mit dem JSON-Array, keine zusätzlichen Erklärungen!`;
+    } else if (type === "flavor_profile") {
+      // ── Phase 11.0 Stufe B: BotlGuide Flavor Profile Analysis ──
+      const data = recipeData || {};
+      const brewTypeGerman =
+        data.brewType === "beer" ? "Bier"
+          : data.brewType === "wine" ? "Wein"
+          : data.brewType === "cider" ? "Cider"
+          : data.brewType === "mead" ? "Met"
+          : "Getränk";
+
+      prompt = `Du bist ein erfahrener Braumeister und Sensorik-Experte. Analysiere dieses ${brewTypeGerman}-Rezept und erstelle ein realistisches Geschmacksprofil.
+
+Rezept-Details:
+- Name: ${data.name || "Nicht angegeben"}
+- Stil: ${data.style || "Nicht angegeben"}
+- Typ: ${brewTypeGerman}
+${data.abv ? `- ABV: ${data.abv}%` : ""}
+${data.ibu ? `- IBU: ${data.ibu}` : ""}
+${data.colorEBC ? `- Farbe: ${data.colorEBC} EBC` : ""}
+${data.og ? `- Stammwürze (OG): ${data.og}` : ""}
+${data.fg ? `- Restextrakt (FG): ${data.fg}` : ""}
+${data.malts ? `- Malze: ${data.malts}` : ""}
+${data.hops ? `- Hopfen: ${data.hops}` : ""}
+${data.yeast ? `- Hefe: ${data.yeast}` : ""}
+${data.adjuncts ? `- Zusätze: ${data.adjuncts}` : ""}
+${data.dryHop ? `- Dry Hop: ${data.dryHop}` : ""}
+${data.mashTemp ? `- Maischetemperatur: ${data.mashTemp}°C` : ""}
+${data.boilMinutes ? `- Kochzeit: ${data.boilMinutes} min` : ""}
+${data.grapes ? `- Rebsorten: ${data.grapes}` : ""}
+${data.apples ? `- Apfelsorten: ${data.apples}` : ""}
+${data.honey ? `- Honigsorten: ${data.honey}` : ""}
+
+Erstelle ein Geschmacksprofil mit 5 Dimensionen (Werte zwischen 0.0 und 1.0):
+- **sweetness** (Süße): 0.0 = knochentrocken, 1.0 = sehr süß. Berücksichtige Restextrakt (FG), Malzwahl (Caramalze = süßer), Hefeattenuierung.
+- **bitterness** (Bitterkeit): 0.0 = keine Bitterkeit, 1.0 = extrem bitter. Hauptfaktor: IBU, aber auch Hopfensorte und Kochzeit.
+- **body** (Körper/Mundgefühl): 0.0 = wässrig/leicht, 1.0 = sirupartig/schwer. Beeinflusst durch OG, Maischetemperatur (höher = mehr Körper), Malzmenge.
+- **roast** (Röstaromen): 0.0 = keine Röstung, 1.0 = stark geröstet. Abhängig von dunklen Malzen (Chocolate Malt, Röstgerste, Black Malt, Carafa).
+- **fruitiness** (Fruchtigkeit): 0.0 = keine Fruchtaromen, 1.0 = sehr fruchtig. Beeinflusst durch Hopfensorten (Citra, Mosaic, Galaxy = fruchtig), Hefe (belgische/Weizen = fruchtig), Dry Hopping, Obst-Zusätze.
+
+Antworte NUR mit einem JSON-Objekt in diesem Format:
+{
+  "profile": { "sweetness": 0.4, "bitterness": 0.7, "body": 0.5, "roast": 0.1, "fruitiness": 0.6 },
+  "explanation": "Kurze Begründung auf Deutsch (1-2 Sätze)"
+}
+
+Wichtig:
+- Werte MÜSSEN zwischen 0.0 und 1.0 liegen
+- Sei realistisch — die meisten Biere haben moderate Werte (0.3–0.7), Extremwerte (>0.85 oder <0.15) nur bei sehr typischen Vertretern
+- Wenn wenig Daten vorhanden sind, orientiere dich am Bierstil
+- Antworte NUR mit dem JSON-Objekt, kein Markdown, keine Code-Blöcke`;
     } else {
       return NextResponse.json({ error: "Invalid type" }, { status: 400 });
     }
@@ -223,6 +273,39 @@ WICHTIG: Antworte NUR mit dem JSON-Array, keine zusätzlichen Erklärungen!`;
           { error: "Failed to parse suggestions" },
           { status: 500 }
         );
+      }
+    }
+
+    // ── Flavor Profile response parsing ──
+    if (type === "flavor_profile") {
+      try {
+        let jsonText = text;
+        // Extract JSON object if wrapped in markdown code blocks
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) jsonText = jsonMatch[0];
+
+        const parsed = JSON.parse(jsonText);
+
+        await trackEvent({
+          event_type: 'generate_text_success',
+          category: 'ai',
+          payload: { type: 'flavor_profile', model: 'gemini-2.5-flash', user_id: user.id },
+          response_time_ms: Date.now() - routeStartTime,
+        });
+
+        await trackAIUsage(user.id, 'text');
+
+        if (parsed.profile && typeof parsed.profile === 'object') {
+          return NextResponse.json({
+            profile: parsed.profile,
+            explanation: parsed.explanation || 'BotlGuide hat dein Rezept analysiert.',
+          });
+        }
+
+        return NextResponse.json({ error: 'Ungültiges Profilformat' }, { status: 500 });
+      } catch (parseError) {
+        console.error('[flavor_profile] JSON parse error:', parseError, 'Response:', text);
+        return NextResponse.json({ error: 'Profil konnte nicht geparst werden' }, { status: 500 });
       }
     }
 

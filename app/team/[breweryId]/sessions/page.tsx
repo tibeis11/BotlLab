@@ -362,7 +362,7 @@ export default function TeamSessionsPage({ params }: { params: Promise<{ brewery
                         )}
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
                         {filteredSessions.map(session => (
                             <SessionCard key={session.id} session={session} breweryId={breweryId} />
                         ))}

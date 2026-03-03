@@ -243,8 +243,8 @@ export default function CollectionPage() {
                             </h3>
                             
                             <div className="flex items-center justify-center gap-1.5 opacity-60">
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
-                                    {brew.style || 'Standard'}
+                                <span className="text-[10px] font-bold tracking-normal text-zinc-400">
+                                    {(brew.style || 'Standard').toUpperCase()}
                                 </span>
                             </div>
 

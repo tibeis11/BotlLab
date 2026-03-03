@@ -274,7 +274,7 @@ export default function TeamMembersPage({ params }: { params: Promise<{ breweryI
         </div>
 
         {/* Member Grid */}
-        <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                 {members.filter(m => (m.profiles?.display_name || '').toLowerCase().includes(searchQuery.toLowerCase())).map((m, idx) => {
                     const memberAvatar = m.profiles?.logo_url || '/tiers/lehrling.png';
                     const isOwner = m.role === 'owner';

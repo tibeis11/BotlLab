@@ -1,6 +1,7 @@
 import { getForumCategories } from '@/lib/forum-service';
 import NewThreadForm from './NewThreadForm';
 import { redirect } from 'next/navigation';
+import Footer from '@/app/components/Footer';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { supabase } from '@/lib/supabase'; // Use correct client for data fetch if needed, similar to forum-service
@@ -55,14 +56,17 @@ export default async function CreateThreadPage({ searchParams }: CreateThreadPag
     }
 
     return (
-        <div className="max-w-screen-2xl mx-auto px-6 md:px-12 lg:px-16 py-8">
-            <NewThreadForm 
-                categories={categories} 
-                preselectedBrewId={brewId}
-                initialTitle={title}
-                initialCategoryId={categoryId}
-                linkedBrew={linkedBrew}
-            />
-        </div>
+        <>
+            <div className="max-w-screen-2xl mx-auto px-6 md:px-12 lg:px-16 py-8">
+                <NewThreadForm 
+                    categories={categories} 
+                    preselectedBrewId={brewId}
+                    initialTitle={title}
+                    initialCategoryId={categoryId}
+                    linkedBrew={linkedBrew}
+                />
+            </div>
+            <Footer />
+        </>
     );
 }

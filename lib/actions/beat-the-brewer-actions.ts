@@ -24,6 +24,8 @@ import {
 
 export interface BeatTheBrewerSubmission {
   brewId: string;
+  /** Optional: Rating-ID um flavor_profile mit Bewertung zu verknüpfen */
+  ratingId?: string | null;
   playerProfile: {
     sweetness: number;
     bitterness: number;
@@ -148,6 +150,28 @@ export async function submitBeatTheBrewer(
   if (eventError) {
     console.error('Error inserting tasting_score_event:', eventError);
     throw new Error('Fehler beim Speichern des Ergebnisses.');
+  }
+
+  // 5b. Upsert flavor_profile für Analytics (Phase 11.6)
+  const { error: flavorError } = await supabase
+    .from('flavor_profiles')
+    .upsert(
+      {
+        brew_id: submission.brewId,
+        user_id: user.id,
+        rating_id: submission.ratingId ?? null,
+        sweetness:  submission.playerProfile.sweetness,
+        bitterness: submission.playerProfile.bitterness,
+        body:       submission.playerProfile.body,
+        roast:      submission.playerProfile.roast,
+        fruitiness: submission.playerProfile.fruitiness,
+      },
+      { onConflict: 'user_id,brew_id', ignoreDuplicates: false },
+    );
+
+  if (flavorError) {
+    // Non-fatal: Analytics-Fehler soll Gameplay nicht blockieren
+    console.error('[beat-the-brewer] flavor_profiles upsert error:', flavorError);
   }
 
   // 6. Update profiles.tasting_iq

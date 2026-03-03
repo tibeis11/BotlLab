@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import Header from '@/app/components/Header';
+import Footer from '@/app/components/Footer';
 import { SUBSCRIPTION_TIERS } from '@/lib/premium-config'; // Optionale Nutzung für Preise
 
 export default function PricingPage() {
@@ -216,19 +217,7 @@ export default function PricingPage() {
 
       </main>
 
-      {/* Simple Footer */}
-      <footer className="border-t border-zinc-900 bg-black py-12 px-6">
-          <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-              <div className="text-zinc-500 text-sm">
-                  © {new Date().getFullYear()} BotlLab. All rights reserved.
-              </div>
-              <div className="flex gap-6 text-zinc-500 text-sm font-bold uppercase tracking-wider">
-                  <Link href="/privacy" className="hover:text-white transition">Privacy</Link>
-                  <Link href="/terms" className="hover:text-white transition">Terms</Link>
-                  <Link href="/impressum" className="hover:text-white transition">Impressum</Link>
-              </div>
-          </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

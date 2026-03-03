@@ -1,4 +1,5 @@
-import { supabase } from '@/lib/supabase';
+import { supabase as defaultSupabase } from '@/lib/supabase';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export type AchievementCategory = 'brewing' | 'social' | 'quality' | 'milestone';
 export type AchievementTier = 'bronze' | 'silver' | 'gold' | 'platinum';
@@ -23,9 +24,13 @@ export interface UserAchievement {
 }
 
 /**
- * Prüft und vergibt Achievements für einen User basierend auf seinen Stats
+ * Prüft und vergibt Achievements für einen User basierend auf seinen Stats.
+ * @param userId - Die User-ID für die Achievements geprüft werden
+ * @param client - Optionaler Supabase-Client (z.B. Admin-Client für server-seitige Aufrufe)
  */
-export async function checkAndGrantAchievements(userId: string) {
+export async function checkAndGrantAchievements(userId: string, client?: SupabaseClient) {
+  const supabase = client || defaultSupabase;
+
   // Stats des Users laden
   const { data: brews } = await supabase
     .from('brews')
@@ -129,10 +134,14 @@ export async function checkAndGrantAchievements(userId: string) {
   const newAchievements = toGrant.filter(id => !existingIds.has(id));
 
   if (newAchievements.length > 0) {
-    const { data: session } = await supabase.auth.getSession();
-    if (!session?.session) {
-      console.warn('Cannot grant achievements: No active session');
-      return [];
+    // Session-Check nur für den Default-Client (client-seitig).
+    // Bei übergebenem Admin-Client (server-seitig) wird kein Session-Check benötigt.
+    if (!client) {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session) {
+        console.warn('Cannot grant achievements: No active session');
+        return [];
+      }
     }
 
     const { error } = await supabase
@@ -148,7 +157,7 @@ export async function checkAndGrantAchievements(userId: string) {
     if (error) {
       // Ignore unique constraint violation (code 23505) just in case upsert didn't catch it for some reason
       if (error.code !== '23505') {
-          console.error('Error granting achievements:', error);
+          console.error('Error granting achievements:', JSON.stringify(error, null, 2));
       }
       return [];
     }
@@ -169,7 +178,7 @@ export async function checkAndGrantAchievements(userId: string) {
  * Lädt alle Achievements eines Users
  */
 export async function getUserAchievements(userId: string) {
-  const { data, error } = await supabase
+  const { data, error } = await defaultSupabase
     .from('user_achievements')
     .select('*, achievements(*)')
     .eq('user_id', userId)
@@ -187,7 +196,7 @@ export async function getUserAchievements(userId: string) {
  * Lädt alle verfügbaren Achievements
  */
 export async function getAllAchievements() {
-  const { data, error } = await supabase
+  const { data, error } = await defaultSupabase
     .from('achievements')
     .select('*')
     .order('points', { ascending: true });

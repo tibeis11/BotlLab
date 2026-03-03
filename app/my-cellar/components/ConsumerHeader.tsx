@@ -43,9 +43,14 @@ export default function ConsumerHeader() {
   const [borderColor, setBorderColor] = useState('border-zinc-700');
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showDiscoverMenu, setShowDiscoverMenu] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+
+  // Split tabs for Desktop (4+2 Concept)
+  const primaryTabs = desktopTabs.slice(0, 4);
+  const secondaryTabs = desktopTabs.slice(4);
 
   // Lock body scroll when mobile menu open
   useEffect(() => {
@@ -88,208 +93,237 @@ export default function ConsumerHeader() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-zinc-950 border-b border-zinc-900 h-14 flex items-center px-4">
-        <div className="w-full max-w-6xl mx-auto flex items-center gap-4">
+      <header className="border-b border-zinc-900 bg-zinc-950/80 backdrop-blur-md sticky top-0 z-[3000]">
+        <div className="max-w-[1920px] w-full mx-auto px-6 py-3 flex items-center justify-between">
 
-          {/* Logo */}
-          <Link href="/my-cellar" className="flex-shrink-0 mr-2">
-            <Logo className="h-7 w-auto" />
-          </Link>
+          {/* Left: Logo */}
+          <div className="flex items-center gap-6">
+            <Link href="/my-cellar">
+              <Logo />
+            </Link>
+          </div>
 
-          {/* Desktop Tabs */}
-          <nav className="hidden md:flex items-center gap-1 flex-1">
-            {desktopTabs.map((tab) => (
-              <Link
-                key={tab.path}
-                href={tab.path}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors ${
-                  isActive(tab.path, tab.exact)
-                    ? 'bg-zinc-800 text-white'
-                    : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
-                }`}
-              >
-                <tab.icon className="w-4 h-4" />
-                {tab.name}
-              </Link>
-            ))}
+          {/* Right: Navigation + Actions */}
+          <div className="flex items-center gap-2">
 
-            {/* Entdecken Dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setShowDiscoverMenu((v) => !v)}
-                onBlur={() => setTimeout(() => setShowDiscoverMenu(false), 150)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors ${
-                  showDiscoverMenu
-                    ? 'bg-zinc-800 text-white'
-                    : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
-                }`}
-              >
-                <Globe className="w-4 h-4" /> Entdecken
-              </button>
-              {showDiscoverMenu && (
-                <div className="absolute left-0 top-full mt-1.5 w-48 bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl overflow-hidden z-50">
+            {/* Desktop Tabs */}
+            <div className="hidden lg:flex items-center gap-1 mr-2">
+              {primaryTabs.map(tab => {
+                const active = isActive(tab.path, tab.exact);
+                return (
                   <Link
-                    href="/discover"
-                    className="block px-4 py-3 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition flex items-center gap-2"
+                    key={tab.path}
+                    href={tab.path}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${active ? 'bg-cyan-950/50 text-cyan-400' : 'text-zinc-500 hover:text-white hover:bg-zinc-800/50'}`}
                   >
-                    <FlaskConical className="w-4 h-4" /> Rezepte
+                    <tab.icon className="w-4 h-4" />
+                    <span>{tab.name}</span>
                   </Link>
-                  <Link
-                    href="/forum"
-                    className="block px-4 py-3 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition flex items-center gap-2"
+                );
+              })}
+
+              {secondaryTabs.length > 0 && (
+                <div
+                  className="relative ml-2"
+                  onMouseEnter={() => setShowMoreMenu(true)}
+                  onMouseLeave={() => setShowMoreMenu(false)}
+                >
+                  <button
+                    className={`px-3 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${showMoreMenu ? 'text-white bg-zinc-800' : 'text-zinc-500 hover:text-white hover:bg-zinc-800/50'}`}
                   >
-                    <MessageSquare className="w-4 h-4" /> Forum
-                  </Link>
+                    <Menu className="w-4 h-4" />
+                    <span>Mehr</span>
+                  </button>
+                  {showMoreMenu && (
+                    <div className="absolute right-0 top-full pt-2 w-48 z-40">
+                      <div className="bg-zinc-950 border border-zinc-800 rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200 p-1">
+                        {secondaryTabs.map(tab => {
+                          const active = isActive(tab.path, tab.exact);
+                          return (
+                            <Link
+                              key={tab.path}
+                              href={tab.path}
+                              className={`px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 rounded-lg ${active ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:text-white hover:bg-zinc-900'}`}
+                            >
+                              <tab.icon className="w-4 h-4" />
+                              <span>{tab.name}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          </nav>
 
-          {/* Right: Notifications + Profile */}
-          <div className="flex items-center gap-2 ml-auto">
-            {user && <NotificationBell />}
+            <div className="h-4 w-px bg-zinc-800 mx-2 hidden lg:block"></div>
 
-            {/* Profile button */}
-            <div className="relative">
-              <button
-                onClick={() => setShowProfileMenu((v) => !v)}
-                onBlur={() => setTimeout(() => setShowProfileMenu(false), 150)}
-                className={`w-8 h-8 rounded-full border-2 overflow-hidden flex items-center justify-center ${borderColor} bg-zinc-800 hover:brightness-110 transition`}
-              >
-                {avatarUrl ? (
-                  <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-                ) : (
-                  <User className="w-4 h-4 text-zinc-400" />
-                )}
+            {/* Discover Icon */}
+            <div
+              className="relative hidden lg:flex h-9 w-9 items-center justify-center"
+              onMouseEnter={() => setShowDiscoverMenu(true)}
+              onMouseLeave={() => setShowDiscoverMenu(false)}
+            >
+              <Link href="/discover" className="text-zinc-400 hover:text-white transition-colors">
+                <Globe className="w-5 h-5" />
+              </Link>
+              {showDiscoverMenu && (
+                <div className="absolute right-0 top-full pt-4 w-48 z-50">
+                  <div className="bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-1 px-1 py-1">
+                    <Link href="/discover" className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg">
+                      <FlaskConical className="w-4 h-4" /><span>Rezepte</span>
+                    </Link>
+                    <Link href="/forum" className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg">
+                      <MessageSquare className="w-4 h-4" /><span>Forum</span>
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="hidden lg:block">
+              <NotificationBell />
+            </div>
+
+            {/* Profile Menu */}
+            <div
+              className="relative hidden lg:block"
+              onMouseEnter={() => setShowProfileMenu(true)}
+              onMouseLeave={() => setShowProfileMenu(false)}
+            >
+              <button className="flex items-center gap-0 xl:gap-3 pl-1 pr-1 xl:pr-4 py-1 rounded-full bg-zinc-900 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800 transition group">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs overflow-hidden relative shadow-lg bg-zinc-900 border-2 ${borderColor}`}>
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="bg-zinc-800 w-full h-full flex items-center justify-center">
+                      <User className="w-4 h-4 text-zinc-400" />
+                    </div>
+                  )}
+                </div>
+                <div className="hidden xl:flex flex-col items-start leading-none">
+                  <span className="truncate max-w-[120px] font-bold text-white text-sm">
+                    {userName || 'Profil'}
+                  </span>
+                </div>
               </button>
 
               {showProfileMenu && (
-                <div className="absolute right-0 top-full mt-1.5 w-56 bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl overflow-hidden z-50">
-                  <div className="px-4 py-3 border-b border-zinc-800">
-                    <p className="text-xs text-zinc-500 uppercase tracking-wide font-bold mb-0.5">Angemeldet als</p>
-                    <p className="font-bold text-white truncate">{userName}</p>
+                <div className="absolute right-0 top-full pt-2 w-56 z-50">
+                  <div className="bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="px-4 py-3 border-b border-zinc-800 bg-zinc-900/50">
+                      <p className="text-xs text-zinc-500 uppercase tracking-widest font-bold mb-1">Angemeldet als</p>
+                      <p className="font-bold text-white truncate">{userName}</p>
+                    </div>
+                    <div className="p-1">
+                      <Link href="/account" className="block w-full px-3 py-2 text-zinc-300 hover:text-white hover:bg-zinc-900 rounded-lg transition text-sm font-medium flex items-center gap-3 text-left">
+                        <Settings className="w-4 h-4" /> Einstellungen
+                      </Link>
+                      {user && (
+                        <Link href={`/brewer/${user.id}`} className="block w-full px-3 py-2 text-zinc-300 hover:text-white hover:bg-zinc-900 rounded-lg transition text-sm font-medium flex items-center gap-3 text-left">
+                          <User className="w-4 h-4" /> Öffentliches Profil
+                        </Link>
+                      )}
+                    </div>
+                    <div className="p-1 border-t border-zinc-800">
+                      <Link href="/team/create" className="block w-full px-3 py-2 text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300 rounded-lg transition text-sm font-bold flex items-center gap-3 text-left">
+                        <Beaker className="w-4 h-4" /> Brauer werden
+                      </Link>
+                      <button onClick={handleSignOut} className="block w-full px-3 py-2 text-red-400 hover:bg-red-500/10 rounded-lg transition text-sm font-medium flex items-center gap-3 text-left">
+                        <LogOut className="w-4 h-4" /> Abmelden
+                      </button>
+                    </div>
                   </div>
-                  <Link
-                    href="/account"
-                    className="block px-4 py-3 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition flex items-center gap-2"
-                  >
-                    <Settings className="w-4 h-4" /> Einstellungen
-                  </Link>
-                  {user && (
-                    <Link
-                      href={`/brewer/${user.id}`}
-                      className="block px-4 py-3 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition flex items-center gap-2"
-                    >
-                      <User className="w-4 h-4" /> Mein Profil
-                    </Link>
-                  )}
-                  <div className="border-t border-zinc-800 mx-2 my-1" />
-                  {/* Brauer werden CTA */}
-                  <Link
-                    href="/team/create"
-                    className="block px-4 py-3 text-sm text-cyan-400 hover:bg-zinc-800 hover:text-cyan-300 transition flex items-center gap-2 font-medium"
-                  >
-                    <Beaker className="w-4 h-4" /> Brauer werden →
-                  </Link>
-                  <div className="border-t border-zinc-800 mx-2 my-1" />
-                  <button
-                    onClick={handleSignOut}
-                    className="w-full px-4 py-3 text-sm text-zinc-400 hover:bg-zinc-800 hover:text-white transition flex items-center gap-2"
-                  >
-                    <LogOut className="w-4 h-4" /> Abmelden
-                  </button>
                 </div>
               )}
             </div>
 
             {/* Mobile menu toggle */}
-            <button
-              onClick={() => setIsMobileMenuOpen((v) => !v)}
-              className="md:hidden p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition"
-            >
-              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
+            <div className="flex items-center gap-2 lg:hidden">
+              <NotificationBell />
+              <button
+                onClick={() => setIsMobileMenuOpen((v) => !v)}
+                className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition"
+              >
+                {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-40 bg-zinc-950/95 backdrop-blur flex flex-col pt-16 pb-8 px-4 md:hidden overflow-y-auto">
-          {/* User Info */}
-          <div className="flex items-center gap-3 mb-6 pb-6 border-b border-zinc-800">
-            <div className={`w-10 h-10 rounded-full border-2 overflow-hidden ${borderColor} bg-zinc-800`}>
-              {avatarUrl ? (
-                <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <User className="w-5 h-5 text-zinc-400" />
-                </div>
-              )}
+        <div className="fixed inset-0 z-[100] bg-zinc-950/95 backdrop-blur-3xl flex flex-col animate-in slide-in-from-right duration-200 lg:hidden">
+          <div className="border-b border-zinc-900 bg-zinc-950 p-3">
+            <div className="max-w-[1920px] w-full mx-auto flex justify-between items-center px-4">
+              <Link href="/my-cellar" onClick={() => setIsMobileMenuOpen(false)}>
+                <Logo />
+              </Link>
+              <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 text-zinc-400 hover:text-white">
+                <X className="w-6 h-6" />
+              </button>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-bold text-white truncate">{userName}</p>
-              <p className="text-xs text-zinc-500">Mein Keller</p>
-            </div>
-            <Link
-              href="/account"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-white transition"
-            >
-              <Settings className="w-4 h-4" />
-            </Link>
           </div>
 
-          {/* Nav Items */}
-          <nav className="flex flex-col gap-1 mb-6">
-            {desktopTabs.map((tab) => (
+          <div className="flex-1 overflow-y-auto p-4 space-y-1">
+            {desktopTabs.map(tab => (
               <Link
                 key={tab.path}
                 href={tab.path}
                 onClick={() => setIsMobileMenuOpen(false)}
-                className={`px-4 py-3 rounded-xl text-sm font-bold flex items-center gap-3 transition ${
-                  isActive(tab.path, tab.exact)
-                    ? 'bg-zinc-800 text-white'
-                    : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
-                }`}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${isActive(tab.path, tab.exact) ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-900'}`}
               >
-                <tab.icon className="w-5 h-5" /> {tab.name}
+                <tab.icon className="w-5 h-5" />
+                {tab.name}
               </Link>
             ))}
-          </nav>
 
-          <div className="border-t border-zinc-800 mb-4" />
-
-          <p className="text-xs text-zinc-600 uppercase font-bold tracking-widest mb-2 px-2">Entdecken</p>
-          <nav className="flex flex-col gap-1 mb-8">
-            <Link href="/discover" onClick={() => setIsMobileMenuOpen(false)} className="px-4 py-3 rounded-xl text-sm font-bold text-zinc-400 hover:text-white hover:bg-zinc-900 flex items-center gap-3 transition">
+            <div className="h-px bg-zinc-900 mx-2 my-4"></div>
+            <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">Entdecken</p>
+            <Link href="/discover" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-zinc-400 hover:bg-zinc-900 hover:text-white transition-all">
               <FlaskConical className="w-5 h-5" /> Rezepte
             </Link>
-            <Link href="/forum" onClick={() => setIsMobileMenuOpen(false)} className="px-4 py-3 rounded-xl text-sm font-bold text-zinc-400 hover:text-white hover:bg-zinc-900 flex items-center gap-3 transition">
+            <Link href="/forum" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-zinc-400 hover:bg-zinc-900 hover:text-white transition-all">
               <MessageSquare className="w-5 h-5" /> Forum
             </Link>
-          </nav>
+          </div>
 
-          {/* Become Brewer CTA */}
-          <Link
-            href="/team/create"
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="flex items-center gap-3 p-4 rounded-2xl bg-gradient-to-r from-cyan-950/60 to-zinc-900 border border-cyan-800/40 text-cyan-300 hover:border-cyan-600/60 transition mb-6"
-          >
-            <Beaker className="w-6 h-6 flex-shrink-0" />
-            <div className="flex-1">
-              <p className="font-bold text-sm">Brauer werden</p>
-              <p className="text-xs text-zinc-400">Gründe deine eigene Brauerei</p>
+          <div className="p-4 border-t border-zinc-900 bg-zinc-950">
+            <div className="flex items-center gap-3 mb-4 px-2">
+              <div className={`w-10 h-10 rounded-full border-2 overflow-hidden ${borderColor}`}>
+                {avatarUrl ? (
+                  <img src={avatarUrl} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
+                    <User className="w-5 h-5 text-zinc-500" />
+                  </div>
+                )}
+              </div>
+              <p className="font-bold text-white">{userName}</p>
             </div>
-            <ArrowRight className="w-4 h-4 flex-shrink-0" />
-          </Link>
-
-          <button
-            onClick={handleSignOut}
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-zinc-500 hover:text-white hover:bg-zinc-900 transition mt-auto"
-          >
-            <LogOut className="w-5 h-5" /> Abmelden
-          </button>
+            <Link
+              href="/team/create"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center gap-3 p-4 rounded-2xl bg-gradient-to-r from-cyan-950/60 to-zinc-900 border border-cyan-800/40 text-cyan-300 hover:border-cyan-600/60 transition mb-3"
+            >
+              <Beaker className="w-6 h-6 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="font-bold text-sm">Brauer werden</p>
+                <p className="text-xs text-zinc-400">Gründe deine eigene Brauerei</p>
+              </div>
+              <ArrowRight className="w-4 h-4 flex-shrink-0" />
+            </Link>
+            <div className="grid grid-cols-2 gap-2">
+              <Link href="/account" onClick={() => setIsMobileMenuOpen(false)} className="bg-zinc-900 hover:bg-zinc-800 text-zinc-300 p-3 rounded-xl text-center text-sm font-bold flex items-center justify-center gap-2">
+                <Settings className="w-4 h-4" /> Einstellungen
+              </Link>
+              <button onClick={() => { handleSignOut(); setIsMobileMenuOpen(false); }} className="bg-zinc-900 hover:bg-red-900/20 text-red-400 p-3 rounded-xl text-center text-sm font-bold flex items-center justify-center gap-2">
+                <LogOut className="w-4 h-4" /> Abmelden
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </>

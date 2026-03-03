@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Metadata } from 'next';
+import Footer from '@/app/components/Footer';
 import {
     Megaphone, Scroll, Wrench, ShoppingBag, Coffee,
     MessageSquare, Flame, Plus, Users, FlaskConical,
@@ -187,6 +188,7 @@ export default async function ForumIndexPage({ searchParams }: PageProps) {
                 <Plus className="w-6 h-6" />
                 <span className="sr-only">Neues Thema erstellen</span>
             </Link>
+            <Footer />
         </>
     );
 }

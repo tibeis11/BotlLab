@@ -89,18 +89,19 @@ export default function StashButton({ brewId, brewName }: StashButtonProps) {
 
   return (
     <>
-      {/* Trigger button */}
+      {/* Trigger button — Tier 4: Card-Style */}
       {inStash ? (
         <button
           onClick={handleRemove}
           disabled={loading}
-          className="flex items-center gap-2 rounded-xl bg-zinc-800 border border-zinc-700 text-zinc-300 text-sm font-medium py-2.5 px-4 hover:bg-zinc-700 transition-all active:scale-95 disabled:opacity-50"
+          className="w-full flex items-center gap-4 bg-emerald-900/20 border border-emerald-700/40 rounded-2xl px-5 py-4 text-left hover:bg-emerald-900/30 transition-colors disabled:opacity-50 group"
         >
-          <span className="text-base">🥶</span>
-          Im Stash
-          <svg className="h-3.5 w-3.5 text-zinc-600 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          <span className="text-2xl shrink-0">🥶</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-emerald-400 leading-snug">Im Keller gespeichert</p>
+            <p className="text-[11px] text-zinc-500 mt-0.5">Tippen zum Entfernen</p>
+          </div>
+          <svg className="w-4 h-4 text-zinc-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
       ) : (
         <button
@@ -110,10 +111,14 @@ export default function StashButton({ brewId, brewName }: StashButtonProps) {
             setShowModal(true);
           }}
           disabled={loading}
-          className="flex items-center gap-2 rounded-xl border border-dashed border-zinc-600 text-zinc-400 text-sm font-medium py-2.5 px-4 hover:border-cyan-600 hover:text-cyan-400 transition-all active:scale-95 disabled:opacity-50"
+          className="w-full flex items-center gap-4 bg-zinc-900/60 border border-zinc-800 rounded-2xl px-5 py-4 text-left hover:bg-zinc-800/60 transition-colors disabled:opacity-50 group"
         >
-          <span className="text-base">🥶</span>
-          Zum Stash
+          <span className="text-2xl shrink-0">🗂️</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-zinc-200 leading-snug group-hover:text-white transition-colors">In meinen Keller legen</p>
+            <p className="text-[11px] text-zinc-500 mt-0.5">Speichere Biere, die du kennst &amp; liebst · <span className="text-cyan-500">+5 IQ</span></p>
+          </div>
+          <svg className="w-4 h-4 text-zinc-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
         </button>
       )}
 

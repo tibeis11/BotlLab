@@ -440,7 +440,7 @@ export default function TeamBrewsPage({ params }: { params: Promise<{ breweryId:
             </div>
 
             {/* SECTION 1: EIGENE REZEPTE */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6 animate-in fade-in duration-500">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 animate-in fade-in duration-500">
                 {filteredBrews.length === 0 ? (
                     <div className="col-span-full text-center p-8 text-zinc-500">
                         Keine Rezepte gefunden.
@@ -579,7 +579,7 @@ export default function TeamBrewsPage({ params }: { params: Promise<{ breweryId:
                           <Library className="w-5 h-5 text-zinc-400" /> Bibliothek <span className="text-zinc-500 text-sm font-normal">({savedBrews.length})</span>
                       </h3>
                      
-                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
                         {savedBrews.map((brew) => (
                           <div
                               key={brew.id}
