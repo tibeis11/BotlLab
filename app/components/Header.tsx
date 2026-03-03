@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { 
+  Beaker,
   Beer,
   Building2,
   Factory,
@@ -31,7 +32,6 @@ import { usePathname } from "next/navigation";
 import { getUserBreweries, getActiveBrewery } from "@/lib/supabase";
 import { useSupabase } from "@/lib/hooks/useSupabase";
 import { useAuth } from "../context/AuthContext";
-import { getTierConfig } from "@/lib/tier-system";
 import { getBreweryBranding } from "@/lib/actions/premium-actions";
 import { getTierBorderColor } from "@/lib/premium-config";
 
@@ -75,7 +75,7 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
         // 1. Profile
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
-          .select('logo_url, tier, display_name, subscription_tier')
+          .select('logo_url, display_name, subscription_tier, app_mode')
           .eq('id', user.id)
           .single();
         
@@ -161,8 +161,9 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
     // Refresh wird im Context behandelt
   }
 
-  const tierConfig = profile ? getTierConfig(profile.tier || 'lehrling') : getTierConfig('lehrling');
-  const avatarUrl = profile?.logo_url || tierConfig.avatarPath;
+  const isDrinker = profile?.app_mode === 'drinker';
+  const homeUrl = isDrinker ? '/my-cellar' : '/dashboard';
+  const avatarUrl = profile?.logo_url || profile?.avatar_url || '/tiers/lehrling.png';
   const tierBorderClass = getTierBorderColor(profile?.subscription_tier);
 
   return (
@@ -224,7 +225,7 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
               onMouseLeave={() => setShowMenu(false)}
             >
               <Link 
-                href="/dashboard" 
+                href={homeUrl} 
                 className="group flex items-center gap-3 pl-1 pr-4 py-1 rounded-full bg-zinc-900 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800 transition"
               >
                 <div 
@@ -236,9 +237,6 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
                     <span className="truncate max-w-[120px] font-bold text-white text-sm">
                         {profile?.display_name || 'Profil'}
                     </span>
-                    <span className="text-[9px] font-black uppercase tracking-wider mt-0.5" style={{ color: tierConfig.color }}>
-                        {tierConfig.displayName}
-                    </span>
                 </div>
               </Link>
 
@@ -246,13 +244,21 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
                 <div className="absolute top-full right-0 pt-2 w-48 z-50">
                   <div className="bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden">
                     <Link
-                      href="/dashboard"
+                      href={homeUrl}
                       className="block px-4 py-3 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition flex items-center gap-2"
                     >
-                      <LayoutDashboard className="w-4 h-4" /> Dashboard
+                      <LayoutDashboard className="w-4 h-4" /> {isDrinker ? 'Mein Keller' : 'Dashboard'}
                     </Link>
+                    {isDrinker && (
+                      <Link
+                        href="/team/create"
+                        className="block px-4 py-3 text-sm text-cyan-400 hover:bg-zinc-800 hover:text-cyan-300 transition flex items-center gap-2 font-medium"
+                      >
+                        <Beaker className="w-4 h-4" /> Brauer werden →
+                      </Link>
+                    )}
                     <Link
-                      href="/dashboard/account"
+                      href="/account"
                       className="block px-4 py-3 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition flex items-center gap-2"
                     >
                       <Settings className="w-4 h-4" /> Einstellungen
@@ -344,15 +350,17 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
                       className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${mobileTab === 'personal' ? 'bg-zinc-800 text-white shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
                     >
                       <FlaskConical className={`w-4 h-4 ${mobileTab === 'personal' ? 'grayscale-0' : 'grayscale'}`} />
-                      Labor
+                      {isDrinker ? 'Mein Keller' : 'Labor'}
                     </button>
-                    <button 
-                      onClick={() => setMobileTab('team')}
-                      className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${mobileTab === 'team' ? 'bg-cyan-950 text-cyan-400 shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
-                    >
-                      <Factory className="w-4 h-4" />
-                      Brauerei
-                    </button>
+                    {!isDrinker && (
+                      <button 
+                        onClick={() => setMobileTab('team')}
+                        className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${mobileTab === 'team' ? 'bg-cyan-950 text-cyan-400 shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
+                      >
+                        <Factory className="w-4 h-4" />
+                        Brauerei
+                      </button>
+                    )}
                     <button 
                       onClick={() => setMobileTab('discover')}
                       className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${mobileTab === 'discover' ? 'bg-purple-900/50 text-purple-300 shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
@@ -415,7 +423,7 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
                        
                        {/* Dashboard Hero */}
                        <Link 
-                          href="/dashboard"
+                          href={homeUrl}
                           onClick={() => setIsMobileMenuOpen(false)}
                           className="block bg-gradient-to-br from-zinc-800 to-zinc-900 border border-zinc-700 p-5 rounded-2xl relative overflow-hidden group"
                        >
@@ -423,7 +431,7 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
                              <LayoutDashboard className="w-16 h-16" />
                           </div>
                           <p className="text-xs text-zinc-400 uppercase font-black tracking-widest mb-1">Übersicht</p>
-                          <h3 className="text-2xl font-black text-white mb-2">Dashboard</h3>
+                          <h3 className="text-2xl font-black text-white mb-2">{isDrinker ? 'Mein Keller' : 'Dashboard'}</h3>
                           <div className="flex items-center gap-2 text-sm text-zinc-300">
                              <span>Alles im Blick</span>
                              <span>→</span>
@@ -434,15 +442,22 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
                        <div>
                           <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest px-1 mb-1">Aktionen</p>
                           <div className="divide-y divide-zinc-900/50">
-                             <Link href="/dashboard/collection" onClick={() => setIsMobileMenuOpen(false)} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition">
+                             <Link href={isDrinker ? '/my-cellar/collection' : '/dashboard/collection'} onClick={() => setIsMobileMenuOpen(false)} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition">
                                 <FlaskConical className="w-5 h-5" /> <span className="font-bold text-sm text-zinc-200">Sammlung</span> <span className="ml-auto text-zinc-600">→</span>
                              </Link>
-                             <Link href="/dashboard/favorites" onClick={() => setIsMobileMenuOpen(false)} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition">
+                             <Link href={isDrinker ? '/my-cellar/favorites' : '/dashboard/favorites'} onClick={() => setIsMobileMenuOpen(false)} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition">
                                 <Heart className="w-5 h-5" /> <span className="font-bold text-sm text-zinc-200">Favoriten</span> <span className="ml-auto text-zinc-600">→</span>
                              </Link>
-                             <Link href="/dashboard/achievements" onClick={() => setIsMobileMenuOpen(false)} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition">
-                                <Trophy className="w-5 h-5" /> <span className="font-bold text-sm text-zinc-200">Achievements</span> <span className="ml-auto text-zinc-600">→</span>
-                             </Link>
+                             {!isDrinker && (
+                               <Link href="/dashboard/achievements" onClick={() => setIsMobileMenuOpen(false)} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition">
+                                  <Trophy className="w-5 h-5" /> <span className="font-bold text-sm text-zinc-200">Achievements</span> <span className="ml-auto text-zinc-600">→</span>
+                               </Link>
+                             )}
+                             {isDrinker && (
+                               <Link href="/team/create" onClick={() => setIsMobileMenuOpen(false)} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition text-cyan-400 hover:text-cyan-300">
+                                  <Beaker className="w-5 h-5" /> <span className="font-bold text-sm">Brauer werden</span> <span className="ml-auto">→</span>
+                               </Link>
+                             )}
                           </div>
                        </div>
                    </div>
@@ -646,11 +661,10 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
                         </div>
                         <div>
                             <p className="text-sm font-bold text-white leading-tight">{profile.display_name}</p>
-                            <p className="text-[10px] uppercase font-black tracking-wide" style={{ color: tierConfig.color }}>{tierConfig.displayName}</p>
                         </div>
                     </div>
                     <Link
-                       href="/dashboard/account"
+                       href="/account"
                        onClick={() => setIsMobileMenuOpen(false)}
                        className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-white transition"
                     >

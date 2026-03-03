@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { Pin, MessageSquare, Eye, CheckCircle2, Beaker } from 'lucide-react';
-import { getTierConfig } from '@/lib/tier-system';
 import { getTierBorderColor } from '@/lib/premium-config';
 import { formatRelativeTime } from './forum-utils';
 
@@ -38,7 +37,6 @@ interface Props {
 
 export default function ForumThreadCard({ thread, showCategory = true }: Props) {
     const tierBorderClass = getTierBorderColor(thread.author?.subscription_tier);
-    const tierConfig = thread.author?.tier ? getTierConfig(thread.author.tier) : null;
 
     return (
         <div
@@ -55,7 +53,7 @@ export default function ForumThreadCard({ thread, showCategory = true }: Props) 
             {/* ── Avatar ──────────────────────────────────────────────────── */}
             <div className="shrink-0 pt-0.5">
                 <img
-                    src={thread.author?.avatar_url || getTierConfig(thread.author?.tier || 'lehrling').avatarPath}
+                    src={thread.author?.avatar_url || '/tiers/lehrling.png'}
                     alt=""
                     className={`w-7 h-7 rounded-full object-cover bg-zinc-800 border-[1.5px] ${tierBorderClass}`}
                 />
@@ -69,15 +67,6 @@ export default function ForumThreadCard({ thread, showCategory = true }: Props) 
                     <span className="text-[13px] font-semibold text-zinc-400 leading-none">
                         {thread.author?.display_name ?? 'Gelöschter Nutzer'}
                     </span>
-
-                    {tierConfig && tierConfig.name !== 'lehrling' && (
-                        <span
-                            className="text-[9px] uppercase font-bold tracking-wider px-1 py-px rounded bg-black/50 border border-white/5 leading-none"
-                            style={{ color: tierConfig.color }}
-                        >
-                            {tierConfig.displayName}
-                        </span>
-                    )}
 
                     {showCategory && thread.category && (
                         <span className="text-[9px] uppercase font-medium tracking-wide text-zinc-600 leading-none">

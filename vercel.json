@@ -3,6 +3,18 @@
     {
       "path": "/api/admin/daily-report",
       "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/analytics/classify-scan-intent",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/analytics/detect-events",
+      "schedule": "30 * * * *"
+    },
+    {
+      "path": "/api/analytics/anomaly-detector",
+      "schedule": "0 4 * * *"
     }
   ]
 }

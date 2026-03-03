@@ -4,157 +4,27 @@ import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import confetti from 'canvas-confetti';
+import Image from 'next/image';
 import Logo from '../../components/Logo';
+import BottleLabelSkeleton from './components/BottleLabelSkeleton';
+import { toast } from 'sonner';
 import { checkAndGrantAchievements } from '@/lib/achievements';
-import CrownCap from '../../components/CrownCap';
-import { trackBottleScan, trackConversion } from '@/lib/actions/analytics-actions';
+import RatingCTABlock from './components/RatingCTABlock';
+import { trackBottleScan, trackConversion, incrementProfileViews } from '@/lib/actions/analytics-actions';
 import { useAuth } from '@/app/context/AuthContext';
 import RateBrewModal from './components/RateBrewModal';
+import DrinkingConfirmationPrompt from './components/DrinkingConfirmationPrompt';
+import BeatTheBrewerGame from './components/BeatTheBrewerGame';
+import VibeCheck from './components/VibeCheck';
+import StashButton from './components/StashButton';
+import BrewBounties from './components/BrewBounties';
 import { RatingSubmission } from '@/lib/types/rating';
+import IngredientList from './components/IngredientList';
+import type { BottleWithBrew, BreweryData, RatingData, TeamMember, BrewerProfile } from './types';
 
-const renderIngredientList = (items: any, mode: 'absolute' | 'percentage' | 'name_only' | { type: 'grams_per_liter', volume: number } = 'absolute') => {
-  if (!items) return null;
-
-  // Handle string (legacy/simple)
-  if (typeof items === 'string') return items;
-
-  // Handle array
-  if (Array.isArray(items)) {
-    // Check if it's an array of objects or strings
-    if (items.length === 0) return null;
-
-    // If elements are strings, join them
-    if (typeof items[0] === 'string') return items.join(', ');
-
-    let total = 0;
-    // Calculation Logic for Percentage Type
-    if (mode === 'percentage') {
-      const parseAmount = (val: any) => {
-        if (typeof val === 'number') return val;
-        if (typeof val === 'string') return parseFloat(val.replace(',', '.'));
-        return 0;
-      };
-
-      const units = new Set(items.filter((i: any) => i?.amount && i?.unit).map((i: any) => i.unit.toLowerCase()));
-
-      items.forEach((item: any) => {
-        let val = parseAmount(item.amount);
-        const u = item.unit ? item.unit.toLowerCase() : '';
-        if (u === 'kg' && (units.has('g') || units.has('gramm') || units.has('gram'))) val *= 1000;
-        else if ((u === 'g' || u === 'gramm' || u === 'gram') && units.has('kg')) val /= 1000; // Unlikely but possible
-        total += val;
-      });
-      // If calc failed, fallback to absolute
-      if (total <= 0) mode = 'absolute';
-    }
-
-    // If elements are objects with name (and potentially amount/unit)
-    return (
-      <div className="flex flex-col gap-1.5">
-        {items.map((item: any, idx: number) => {
-          if (typeof item === 'string') return <span key={idx}>{item}</span>;
-          if (item?.name) {
-            let details = "";
-            let highlight = false;
-
-            if (mode === 'name_only') {
-              // No details, just name
-              details = "";
-            } else {
-              const parseAmount = (val: any) => {
-                if (typeof val === 'number') return val;
-                if (typeof val === 'string') return parseFloat(val.replace(',', '.'));
-                return 0;
-              };
-
-              if (mode === 'percentage') {
-                let val = parseAmount(item.amount);
-                const units = new Set(items.filter((i: any) => i?.amount && i?.unit).map((i: any) => i.unit.toLowerCase()));
-                const u = item.unit ? item.unit.toLowerCase() : '';
-
-                if (u === 'kg' && (units.has('g') || units.has('gramm') || units.has('gram'))) val *= 1000;
-                else if ((u === 'g' || u === 'gramm' || u === 'gram') && units.has('kg')) val /= 1000;
-
-                const pct = (val / total) * 100;
-                if (pct > 0) {
-                  details = `${Math.round(pct)}%`;
-                  highlight = true;
-                }
-              } else if (typeof mode === 'object' && mode.type === 'grams_per_liter' && mode.volume > 0) {
-                // Calculate g/L
-                let valInGrams = parseAmount(item.amount);
-                // Normalize to grams
-                const u = item.unit ? item.unit.toLowerCase().trim() : '';
-
-                // Strict check: Only show amount if it is a weight unit
-                const weightUnits = ['g', 'gram', 'gramm', 'grams', 'kg', 'kilogram', 'kilogramm'];
-                const isWeight = weightUnits.includes(u);
-
-                if (isWeight) {
-                  if (u.startsWith('k') && item.amount) valInGrams *= 1000; // Correct kg to g
-
-                  const gPerL = valInGrams / mode.volume;
-
-                  if (gPerL > 0) {
-                    // Determine precision
-                    if (gPerL < 0.1) details = `< 0.1 g/L`;
-                    else if (gPerL < 10) details = `${gPerL.toFixed(1)} g/L`;
-                    else details = `${Math.round(gPerL)} g/L`;
-                    highlight = true;
-                  }
-                }
-                // If not weight or calc failed, details remains empty (Only Name)
-
-              } else {
-                if (item.amount) details += item.amount;
-                if (item.unit) details += " " + item.unit;
-              }
-            }
-
-            return (
-              <div key={idx} className="flex justify-between items-start text-sm group">
-                <span className="text-zinc-300 font-medium leading-tight">{item.name}</span>
-                {details && (
-                  <span className={`text-zinc-500 text-xs font-mono ml-3 shrink-0 whitespace-nowrap ${highlight ? 'text-cyan-500 font-bold' : ''}`}>
-                    {details}
-                  </span>
-                )}
-              </div>
-            );
-          }
-          return null;
-        })}
-      </div>
-    );
-  }
-
-  // Handle single object
-  if (typeof items === 'object') {
-    if (items.name) {
-      if (mode === 'name_only') {
-        return (
-          <div className="flex justify-between items-center text-sm">
-            <span className="text-zinc-300 font-medium">{items.name}</span>
-          </div>
-        );
-      }
-      return (
-        <div className="flex justify-between items-center text-sm">
-          <span className="text-zinc-300 font-medium">{items.name}</span>
-          {(items.amount || items.unit) && mode === 'absolute' && (
-            <span className="text-zinc-500 text-xs font-mono ml-3 shrink-0">
-              {items.amount && `${items.amount}`}
-              {items.unit && ` ${items.unit}`}
-            </span>
-          )}
-        </div>
-      );
-    }
-  }
-
-  return null;
-};
+// Phase 9.3: static dark blur placeholder for hero Image (zinc-900 = #18181b)
+const DARK_BLUR_PLACEHOLDER =
+  'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiMxODE4MWIiLz48L3N2Zz4=';
 
 export default function PublicScanPage() {
   const params = useParams();
@@ -163,28 +33,63 @@ export default function PublicScanPage() {
   const id = params?.id as string;
   const { user } = useAuth();
 
-  const [data, setData] = useState<any>(null);
-  const [profile, setProfile] = useState<any>(null);
-  const [brewery, setBrewery] = useState<any>(null);
-  const [team, setTeam] = useState<any[]>([]);
+  const [data, setData] = useState<BottleWithBrew | null>(null);
+  const [profile, setProfile] = useState<BrewerProfile | null>(null);
+  const [brewery, setBrewery] = useState<BreweryData | null>(null);
+  const [team, setTeam] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Rating States
-  const [ratings, setRatings] = useState<any[]>([]);
+  const [ratings, setRatings] = useState<RatingData[]>([]);
   const [avgRating, setAvgRating] = useState(0);
   const [showRatingForm, setShowRatingForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [userIp, setUserIp] = useState<string | null>(null);
   const [hasAlreadyRated, setHasAlreadyRated] = useState(false);
   const [existingRatingId, setExistingRatingId] = useState<string | null>(null);
 
   // Cap Collection
   const [collectingCap, setCollectingCap] = useState(false);
   const [capCollected, setCapCollected] = useState(false);
+  // Phase 2.3: toggle to show more than 3 ratings
+  const [showAllRatings, setShowAllRatings] = useState(false);
+  // Phase 1.3: separate loading state for ratings section
+  const [ratingsLoading, setRatingsLoading] = useState(true);
+  // Phase 4.3: Scan-Zähler für sozialen Beweis
+  const [scanCount, setScanCount] = useState<number | null>(null);
+  // Phase 8.1: App-Mode des eingeloggten Users für drinker-aware Links
+  const [userAppMode, setUserAppMode] = useState<string | null>(null);
+  // Phase 11: Beat the Brewer nach Rating prominenter zeigen
+  const [showBeatTheBrewer, setShowBeatTheBrewer] = useState(false);
+  // Hero-Bild Fehlerbehandlung: Fallback wenn Image-URL nicht erreichbar
+  const [heroImageError, setHeroImageError] = useState(false);
 
   // Tracking: Use ref to prevent multiple tracking calls
   const hasTrackedScan = useRef(false);
+  // Phase 3.4: prevent double-fire of auto-claim on StrictMode / re-render
+  const hasAutoClaimedRef = useRef(false);
+
+  // Beat a Friend challenge (Phase 12.4)
+  const challengeToken = searchParams.get('challenge') ?? undefined;
+  const [challengerName, setChallengerName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!challengeToken) return;
+    import('@/lib/actions/beat-friend-actions').then(({ getFriendChallenge }) => {
+      getFriendChallenge(challengeToken).then((challenge) => {
+        if (challenge) setChallengerName(challenge.challengerDisplayName);
+      });
+    });
+  }, [challengeToken]);
+
+  // Phase 8.1: App-Mode des eingeloggten Users laden (für drinker-aware Collection-Link)
+  useEffect(() => {
+    if (!user?.id) { setUserAppMode(null); return; }
+    // Supabase returns PromiseLike (not full Promise) — use .then() without .catch()
+    supabase.from('profiles').select('app_mode').eq('id', user.id).maybeSingle().then(
+      ({ data: profileResp }) => setUserAppMode(profileResp?.app_mode ?? null),
+    );
+  }, [user?.id]);
 
   // Supabase singleton imported
 
@@ -193,19 +98,6 @@ export default function PublicScanPage() {
     async function fetchBottleInfo() {
       if (!id) return;
 
-      console.log("Fetching bottle:", id);
-
-      // IP-Adresse abrufen
-      try {
-        const ipResponse = await fetch('https://api.ipify.org?format=json');
-        const ipData = await ipResponse.json();
-        setUserIp(ipData.ip);
-        console.log('User IP:', ipData.ip);
-      } catch (err) {
-        console.warn('Could not fetch IP:', err);
-      }
-
-      
       // Check if ID is UUID or ShortCode
       const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id as string);
       
@@ -223,13 +115,11 @@ export default function PublicScanPage() {
       const { data: bottle, error: bottleError } = await bottleQuery.maybeSingle();
 
       if (bottleError) {
-        console.error("Supabase Error (bottle):", bottleError);
+        console.error('[b/[id]] Supabase Error (bottle):', bottleError);
         setErrorMsg(bottleError.message);
         setLoading(false);
         return;
       }
-
-      console.log("Bottle loaded:", bottle);
 
       if (!bottle) {
         setErrorMsg("Flasche nicht gefunden");
@@ -239,56 +129,93 @@ export default function PublicScanPage() {
 
       if (!bottle.brew_id) {
         console.warn("⚠️ Flasche hat keine brew_id!");
-        setData(bottle);
+        setData({ ...bottle, brews: null, session: null } as BottleWithBrew);
         setLoading(false);
         return;
       }
 
-      // Session laden falls vorhanden
-      let sessionData = null;
-      if (bottle.session_id) {
-        const { data: s } = await supabase.from('brewing_sessions').select('*').eq('id', bottle.session_id).single();
-        sessionData = s;
-      }
+      // Session und Brew parallel laden (beide brauchen nur bottle.brew_id / session_id)
+      const [sessionResult, brewResult] = await Promise.all([
+        bottle.session_id
+          ? supabase.from('brewing_sessions').select('*').eq('id', bottle.session_id).single()
+          : Promise.resolve({ data: null, error: null }),
+        supabase
+          .from('brews')
+          .select(`
+            id,
+            name,
+            style,
+            image_url,
+            created_at,
+            user_id,
+            brewery_id,
+            description,
+            brew_type,
+            data,
+            remix_parent_id,
+            cap_url,
+            flavor_profile,
+            moderation_status,
+            moderation_rejection_reason
+          `)
+          .eq('id', bottle.brew_id)
+          .maybeSingle(),
+      ]);
 
-      // Jetzt das Rezept laden
-      const { data: brew, error: brewError } = await supabase
-        .from('brews')
-        .select(`
-          id,
-          name,
-          style,
-          image_url,
-          created_at,
-          user_id,
-          brewery_id,
-          description,
-          brew_type,
-          data,
-          remix_parent_id,
-          cap_url,
-          moderation_status,
-          moderation_rejection_reason
-        `)
-        .eq('id', bottle.brew_id)
-        .maybeSingle();
+      const sessionData = sessionResult.data;
+      const brew = brewResult.data;
+      const brewError = brewResult.error;
 
       if (brewError) {
-        console.error("Supabase Error (brew):", brewError);
+        console.error('[b/[id]] Supabase Error (brew):', brewError);
       }
 
-      console.log("Brew loaded:", brew, "Session:", sessionData);
-      setData(bottle ? { ...bottle, brews: brew, session: sessionData } : null);
+      setData(bottle ? { ...bottle, brews: brew, session: sessionData } as BottleWithBrew : null);
 
       // ===== TRACKING: Track bottle scan (only once!) =====
       if (bottle && brew && !hasTrackedScan.current) {
         hasTrackedScan.current = true; // Set immediately to prevent race conditions
         try {
-          await trackBottleScan(bottle.id, {
-            brewId: brew.id,
-            breweryId: brew.brewery_id || undefined,
-            viewerUserId: user?.id || undefined,
-            scanSource: 'qr_code'
+          // Phase 7.2 — UTM params
+          const utmSource   = searchParams.get('utm_source')   ?? undefined;
+          const utmMedium   = searchParams.get('utm_medium')   ?? undefined;
+          const utmCampaign = searchParams.get('utm_campaign') ?? undefined;
+
+          // Phase 7.2 — Referrer domain (client-side, normalised)
+          let referrerDomain: string | undefined;
+          try {
+            const rawRef = typeof document !== 'undefined' ? document.referrer : '';
+            referrerDomain = rawRef
+              ? new URL(rawRef).hostname.replace(/^www\./, '')
+              : undefined;
+          } catch { /* ignore malformed referrer */ }
+
+          // Phase 7.3 — Derive scan source from UTM + referrer
+          const SOCIAL_DOMAINS = [
+            'instagram.com', 'facebook.com', 'twitter.com', 'x.com',
+            'tiktok.com', 'youtube.com', 'whatsapp.com', 'linkedin.com', 'untappd.com',
+          ];
+          let derivedScanSource: 'qr_code' | 'direct_link' | 'social' | 'share';
+          if (utmMedium === 'qr') {
+            derivedScanSource = 'qr_code';
+          } else if (!referrerDomain) {
+            // No referrer = likely a real QR-code scan (mobile browsers open QR links without referrer)
+            derivedScanSource = 'qr_code';
+          } else if (SOCIAL_DOMAINS.includes(referrerDomain)) {
+            derivedScanSource = 'social';
+          } else {
+            derivedScanSource = 'direct_link';
+          }
+
+          trackBottleScan(bottle.id, {
+            brewId:         brew.id,
+            breweryId:      brew.brewery_id || undefined,
+            viewerUserId:   user?.id || undefined,
+            scanSource:     derivedScanSource,
+            utmSource,
+            utmMedium,
+            utmCampaign,
+            referrerDomain,
           });
         } catch (trackError) {
           console.error('[Analytics] Failed to track scan:', trackError);
@@ -296,52 +223,55 @@ export default function PublicScanPage() {
         }
       }
 
-      // Brauerei und Team laden
+      // Alle abhängigen Daten parallel laden (kein sequenzieller Wasserfall)
+      const secondaryPromises: Promise<void>[] = [];
+
       if (brew?.brewery_id) {
-        const { data: breweryData } = await supabase
-          .from('breweries')
-          .select('*')
-          .eq('id', brew.brewery_id)
-          .single();
-        setBrewery(breweryData);
-
-        const { data: memberData } = await supabase
-          .from('brewery_members')
-          .select('role, profiles:user_id(display_name, logo_url)')
-          .eq('brewery_id', brew.brewery_id);
-        setTeam(memberData || []);
+        secondaryPromises.push(
+          (async () => { const { data: breweryData } = await supabase.from('breweries').select('*').eq('id', brew.brewery_id).single(); setBrewery(breweryData); })(),
+          (async () => { const { data: memberData } = await supabase.from('brewery_members').select('role, profiles:user_id(display_name, logo_url)').eq('brewery_id', brew.brewery_id); setTeam((memberData || []) as unknown as TeamMember[]); })(),
+        );
       }
 
-      // Falls wir einen User (Brauer) haben, laden wir dessen Profil
       if (brew?.user_id) {
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', brew.user_id)
-          .maybeSingle();
-        setProfile(profileData);
-
-        // Profile View zählen
-        await supabase
-          .from('profiles')
-          .update({ total_profile_views: (profileData?.total_profile_views || 0) + 1 })
-          .eq('id', brew.user_id);
+        secondaryPromises.push(
+          (async () => {
+            const { data: profileData } = await supabase.from('profiles').select('*').eq('id', brew.user_id).maybeSingle();
+            setProfile(profileData);
+            // Phase 6.1: atomic server-action increment (no client-side race condition)
+            incrementProfileViews(brew.user_id).catch(console.error);
+          })(),
+        );
       }
 
-      // Ratings laden (wenn brew vorhanden)
       if (brew?.id) {
-        console.log("Loading ratings for brew:", brew.id);
-        loadRatings(brew.id);
-        checkCapCollected(brew.id);
+        secondaryPromises.push(
+          loadRatings(brew.id),
+          checkCapCollected(brew.id),
+          // Phase 4.3: Scan-Count parallel laden (bottle.id als Fremdschlüssel)
+          (async () => {
+            const { count } = await supabase.from('bottle_scans').select('*', { count: 'exact', head: true }).eq('bottle_id', bottle.id);
+            setScanCount(count ?? 0);
+          })(),
+        );
       }
 
-      setLoading(false);
+      // Phase 1.3: try/catch/finally — sekundäre Daten laden, Loading immer beenden
+      try {
+        await Promise.all(secondaryPromises);
+      } catch (err) {
+        console.error('[b/[id]] Error loading secondary data:', err);
+      } finally {
+        setLoading(false);
+      }
     }
 
     fetchBottleInfo();
   }, [id]); // Only re-run when bottle ID changes
 
   async function loadRatings(brewId: string) {
+    setRatingsLoading(true);
+    try {
     const { data: ratingsData } = await supabase
       .from('ratings')
       .select('*')
@@ -357,42 +287,44 @@ export default function PublicScanPage() {
       }
     }
 
-    // Checken ob dieser Nutzer (IP) bereits eine Bewertung hat
-    if (userIp) {
+    // Duplicate-Check: eingeloggter User → Server, Anonym → localStorage
+    if (user) {
       try {
         const checkRes = await fetch('/api/ratings/check', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ brew_id: brewId, ip_address: userIp })
+          body: JSON.stringify({ brew_id: brewId, user_id: user.id }),
         });
-
         if (checkRes.ok) {
           const checkData = await checkRes.json();
           if (checkData.hasRated) {
             setHasAlreadyRated(true);
-            console.log('User hat bereits bewertet (Server Check)');
+            if (checkData.ratingId) setExistingRatingId(checkData.ratingId);
           }
         }
       } catch (e) {
-        console.error("Failed to check rating status:", e);
+        console.error('[b/[id]] Failed to check rating status:', e);
       }
+    } else {
+      // Anonymer Nutzer: localStorage-Flag prüfen
+      if (localStorage.getItem('botllab_rated_' + brewId) === '1') {
+        setHasAlreadyRated(true);
+      }
+    }
+    } finally {
+      setRatingsLoading(false);
     }
   }
 
   async function submitRating(submissionData: RatingSubmission): Promise<string | null> {
     if (hasAlreadyRated) {
-      alert('Du hast bereits eine Bewertung für dieses Rezept eingegeben! 🚫');
+      toast.info('Du hast dieses Rezept bereits bewertet.');
       return null;
     }
 
     const brewId = data?.brews?.id;
     if (!brewId) {
-      alert('Fehler: Rezept nicht geladen. Bitte Seite neu laden.');
-      return null;
-    }
-
-    if (!userIp) {
-      alert('Fehler: IP-Adresse konnte nicht ermittelt werden');
+      toast.error('Rezept nicht geladen — bitte Seite neu laden.');
       return null;
     }
 
@@ -401,10 +333,8 @@ export default function PublicScanPage() {
       const payload = {
         ...submissionData,
         brew_id: brewId,
-        ip_address: userIp,
         qr_verified: true, // Route /b/[id] is only reachable via QR-code scan
       };
-      console.log('Sende Rating:', payload);
 
       const response = await fetch('/api/ratings/submit', {
         method: 'POST',
@@ -419,34 +349,34 @@ export default function PublicScanPage() {
       if (!response.ok) {
         // Special Handling for Duplicate Rating (409)
         if (response.status === 409) {
-          console.log("Benutzer hat bereits bewertet. Checke via API...");
           setHasAlreadyRated(true);
 
           // Try to recover ID via safe API check
           try {
             const checkRes = await fetch('/api/ratings/check', {
               method: 'POST',
-              body: JSON.stringify({ brew_id: brewId, ip_address: userIp })
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ brew_id: brewId, ...(user ? { user_id: user.id } : {}) }),
             });
             const checkData = await checkRes.json();
             if (checkData.hasRated && checkData.ratingId) {
               return checkData.ratingId;
             }
-          } catch (e) { console.error(e); }
+          } catch (e) { console.error('[b/[id]] 409 recovery:', e); }
 
           // Fallback
-          alert('Du hast bereits eine Bewertung für dieses Rezept eingegeben! 🚫');
+          toast.info('Du hast dieses Rezept bereits bewertet.');
           setShowRatingForm(false);
           return null;
         }
 
-        console.error('API Error:', result.error);
-        alert('Fehler: ' + result.error);
+        console.error('[b/[id]] API Error:', result.error);
+        toast.error(result.error ?? 'Unbekannter Fehler beim Senden.');
         return null;
       } else {
-        console.log('Rating erfolgreich eingefügt:', result.rating);
-        // Removed setShowRatingForm(false) to allow success screen
         setHasAlreadyRated(true);
+        setShowBeatTheBrewer(true);
+        localStorage.setItem('botllab_rated_' + brewId, '1');
         await loadRatings(brewId);
 
         // Track conversion for analytics (if user is logged in)
@@ -462,158 +392,141 @@ export default function PublicScanPage() {
         return result.rating.id;
       }
     } catch (err: any) {
-      console.error('Exception:', err);
-      alert('Ein Fehler ist aufgetreten: ' + err.message);
+      console.error('[b/[id]] Exception in submitRating:', err);
+      toast.error('Fehler: ' + (err.message ?? 'Unbekannter Fehler'));
       return null;
     } finally {
       setSubmitting(false);
     }
   }
 
-  async function handleClaimCap(ratingId: string) {
+  async function claimCap(ratingId?: string) {
     if (!user) {
-      // Redirect to Login with Context - Preserve Params in Callback URL
+      // Redirect to Login with Context — Preserve Params in Callback URL
       const currentUrl = new URL(window.location.href);
       currentUrl.searchParams.set('action', 'claim_cap');
-      currentUrl.searchParams.set('rating_id', ratingId);
-
-      const callbackUrl = encodeURIComponent(currentUrl.toString());
-      router.push(`/login?callbackUrl=${callbackUrl}`);
+      if (ratingId) currentUrl.searchParams.set('rating_id', ratingId);
+      router.push(`/login?callbackUrl=${encodeURIComponent(currentUrl.toString())}&intent=drink`);
       return;
     }
 
+    // Resolve rating ID: prefer explicit arg, fall back to existingRatingId from state
+    const resolvedRatingId = ratingId ?? existingRatingId;
+
+    if (!data?.brews) return; // guard: can't claim without a brew
+
+    setCollectingCap(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        alert("Sitzung abgelaufen. Bitte neu einloggen.");
-        window.location.reload();
-        return;
+      if (resolvedRatingId) {
+        // ── API path (verifies rating, adopts orphan, tracks analytics) ──
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          toast.error('Sitzung abgelaufen — bitte neu einloggen.');
+          window.location.reload();
+          return;
+        }
+
+        const response = await fetch('/api/bottle-caps/claim', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+          body: JSON.stringify({ brew_id: data.brews.id, rating_id: resolvedRatingId }),
+        });
+        const res = await response.json();
+
+        if (!response.ok) {
+          toast.error('Fehler beim Sammeln: ' + (res.error ?? 'Unbekannter Fehler'));
+          return;
+        }
+      } else {
+        // ── Fallback: direct insert (no rating link available) ──
+        const { error } = await supabase
+          .from('collected_caps')
+          .insert([{ user_id: user.id, brew_id: data.brews.id }]);
+        if (error) throw error;
       }
 
-      console.log("Claiming Cap - Sending:", { brew_id: data.brews.id, rating_id: ratingId });
-
-      const response = await fetch('/api/bottle-caps/claim', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ brew_id: data.brews.id, rating_id: ratingId })
+      setShowRatingForm(false);
+      setCapCollected(true);
+      // Phase 10.2: persist cap status in localStorage for fast-path on return visits
+      if (data?.brews?.id) localStorage.setItem('botllab_cap_' + data.brews.id, '1');
+      // Phase 8.1: drinker-aware Sammlung-Link im Erfolgs-Toast
+      const collectionUrl = userAppMode === 'drinker' ? '/my-cellar/collection' : '/dashboard/collection';
+      toast.success('Kronkorken gesammelt! 🍺', {
+        action: { label: 'Sammlung ↗', onClick: () => router.push(collectionUrl) },
       });
 
-      const res = await response.json();
+      // Confetti (lazy load — nur wenn wirklich benötigt)
+      const confetti = (await import('canvas-confetti')).default;
+      const duration = 3 * 1000;
+      const animationEnd = Date.now() + duration;
+      const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+      const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+      const interval: any = setInterval(function () {
+        const timeLeft = animationEnd - Date.now();
+        if (timeLeft <= 0) return clearInterval(interval);
+        const particleCount = 50 * (timeLeft / duration);
+        confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+        confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+      }, 250);
 
-      if (response.ok) {
-        // Trigger Confetti
-        setShowRatingForm(false); // Close modal
-        setCapCollected(true);
-
-        const duration = 3 * 1000;
-        const animationEnd = Date.now() + duration;
-        const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
-        const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
-
-        const interval: any = setInterval(function () {
-          const timeLeft = animationEnd - Date.now();
-          if (timeLeft <= 0) return clearInterval(interval);
-          const particleCount = 50 * (timeLeft / duration);
-          confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
-          confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
-        }, 250);
-
-        alert("Kronkorken erfolgreich gesammelt!");
-      } else {
-        alert("Fehler beim Sammeln: " + res.error);
-      }
-
-    } catch (e: any) {
-      alert("Fehler: " + e.message);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Unbekannter Fehler';
+      console.error('[b/[id]] claimCap error:', e);
+      toast.error('Fehler beim Sammeln: ' + msg);
+    } finally {
+      setCollectingCap(false);
     }
   }
 
   // --- Auto-Claim Logic after Login ---
   useEffect(() => {
     if (!user || !data?.brews?.id) return;
+    // Phase 3.4: prevent double-fire on StrictMode remount or re-render
+    if (hasAutoClaimedRef.current) return;
 
     const action = searchParams.get('action');
     const claimRatingId = searchParams.get('rating_id');
 
     if (action === 'claim_cap' && claimRatingId) {
-      console.log("Auto-claiming cap for rating:", claimRatingId);
+      hasAutoClaimedRef.current = true;
 
-      // Clean URL first
+      // Clean URL first, then trigger claim
       const newParams = new URLSearchParams(searchParams.toString());
       newParams.delete('action');
       newParams.delete('rating_id');
-      router.replace(`/b/${id}?${newParams.toString()}`, { scroll: false });
+      const cleanUrl = newParams.toString() ? `/b/${id}?${newParams.toString()}` : `/b/${id}`;
+      router.replace(cleanUrl, { scroll: false });
 
       // Trigger Claim
-      handleClaimCap(claimRatingId);
+      claimCap(claimRatingId);
     }
   }, [user, data, searchParams, id]);
 
   async function checkCapCollected(brewId: string) {
+    // Phase 10.2: fast-path from localStorage (avoids DB round-trip on return visits)
+    if (typeof window !== 'undefined' && localStorage.getItem('botllab_cap_' + brewId) === '1') {
+      setCapCollected(true);
+      return;
+    }
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-
     const { data } = await supabase
       .from('collected_caps')
       .select('id')
       .eq('user_id', user.id)
       .eq('brew_id', brewId)
       .maybeSingle();
-
     setCapCollected(!!data);
-  }
-
-  async function collectCap() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      alert("Bitte logge dich ein, um diesen Kronkorken zu sammeln!");
-      return;
-    }
-
-    setCollectingCap(true);
-    try {
-      const { error } = await supabase
-        .from('collected_caps')
-        .insert([{ user_id: user.id, brew_id: data.brews.id }]);
-
-      if (error) throw error;
-      setCapCollected(true);
-
-      // Effect
-      const duration = 3 * 1000;
-      const animationEnd = Date.now() + duration;
-      const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
-
-      const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
-
-      const interval: any = setInterval(function () {
-        const timeLeft = animationEnd - Date.now();
-
-        if (timeLeft <= 0) {
-          return clearInterval(interval);
-        }
-
-        const particleCount = 50 * (timeLeft / duration);
-        confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
-        confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
-      }, 250);
-
-    } catch (err: any) {
-      alert("Fehler beim Sammeln: " + err.message);
-    } finally {
-      setCollectingCap(false);
-    }
+    // Sync to localStorage so future visits use fast-path
+    if (data) localStorage.setItem('botllab_cap_' + brewId, '1');
   }
 
   function handleStartRating() {
-    if (!userIp || !data?.brews?.id) return;
+    if (!data?.brews?.id) return;
     fetch('/api/ratings/check', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ brew_id: data.brews.id, ip_address: userIp })
+      body: JSON.stringify({ brew_id: data.brews.id, ...(user ? { user_id: user.id } : {}) }),
     })
       .then(res => res.json())
       .then(res => {
@@ -635,11 +548,7 @@ export default function PublicScanPage() {
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-cyan-500"></div>
-      </div>
-    );
+    return <BottleLabelSkeleton />;
   }
 
   if (!data) {
@@ -667,7 +576,8 @@ export default function PublicScanPage() {
 
   const brew = data.brews;
   const session = data.session;
-  const m = session?.measurements || {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const m = (session?.measurements as any) || {};
 
   // Merge Session Data over Recipe Data for Display
   const displayData = {
@@ -676,11 +586,16 @@ export default function PublicScanPage() {
     ibu: m.ibu || brew.data?.ibu, // Session might not have IBU usually
     og: m.og || brew.data?.og,
     fg: m.fg || brew.data?.fg,
-    vintage: session?.brewed_at ? new Date(session.brewed_at).getFullYear() : (brew.data?.vintage || new Date(brew.created_at).getFullYear()),
-    year: session?.brewed_at ? new Date(session.brewed_at).getFullYear() : new Date(brew.created_at).getFullYear(),
-    bottling_date: (data.filled_at || m.bottling_date || session?.bottling_date)
-      ? new Date(data.filled_at || m.bottling_date || session.bottling_date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    vintage: session?.brewed_at ? new Date(session.brewed_at).getFullYear() : (brew.data?.vintage || new Date(brew.created_at || '').getFullYear()),
+    year: session?.brewed_at ? new Date(session.brewed_at).getFullYear() : new Date(brew.created_at || '').getFullYear(),
+    // Phase 4.2: session.bottling_date bevorzugen (Session-Datum akkurater als data.filled_at)
+    bottling_date: (session?.bottling_date || m.bottling_date || data.filled_at)
+      ? new Date(session?.bottling_date || m.bottling_date || data.filled_at || '').toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
       : null,
+    brewed_at_display: session?.brewed_at
+      ? new Date(session.brewed_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+      : null,
+    batch_number: session?.batch_number ?? null,
     // Wine/Cider specifics if session supports them
     ph: m.ph || brew.data?.pH,
   };
@@ -729,6 +644,9 @@ export default function PublicScanPage() {
     }
   }
 
+  // Phase 5.6: Exact session volume preferred; grain-mass formula is fallback only
+  const batchVolume = session?.volume_liters ?? estimatedBatchVolume;
+
   return (
     <div className="min-h-screen bg-black text-white flex flex-col items-center">
       {/* Moderation Alerts */}
@@ -742,11 +660,17 @@ export default function PublicScanPage() {
       {/* 1. Das KI-Label als Hero-Bild - GRÖSSER */}
       <div className="relative w-full max-w-2xl mx-auto overflow-hidden">
         <div className="aspect-square w-full shadow-2xl relative">
-          {brew.image_url ? (
-            <img
+          {brew.image_url && !heroImageError ? (
+            <Image
+              fill
+              priority
+              placeholder="blur"
+              blurDataURL={DARK_BLUR_PLACEHOLDER}
               src={brew.image_url}
               alt={brew.name}
-              className={`w-full h-full object-cover ${(brew.moderation_status === 'pending') ? 'filter blur-md brightness-50' : ''}`}
+              onError={() => setHeroImageError(true)}
+              sizes="(max-width: 768px) 100vw, 672px"
+              className={`object-cover ${(brew.moderation_status === 'pending') ? 'filter blur-md brightness-50' : ''}`}
             />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-zinc-900 to-zinc-950 flex items-center justify-center border-b border-zinc-800">
@@ -776,22 +700,29 @@ export default function PublicScanPage() {
               Remix
             </span>
           )}
+          {/* Phase 4.1: Flaschennummer als dezentes Badge */}
+          {data.bottle_number !== null && data.bottle_number !== undefined && (
+            <span className="bg-black/60 backdrop-blur-md border border-zinc-700 px-3 py-1 rounded-full text-zinc-400 text-xs font-bold tracking-widest shadow-xl inline-flex items-center gap-1">
+              <span className="text-zinc-600">#</span>{data.bottle_number}
+            </span>
+          )}
         </div>
       </div>
 
       {/* 2. Content Container */}
       <div className="max-w-2xl mx-auto px-6 py-12 space-y-8">
-        {/* Header */}
-        <header className="text-center space-y-3">
+        {/* Header — Name + Style, description moves below CTA (Phase 2.1) */}
+        <header className="text-center space-y-2">
           <span className="inline-block text-cyan-400 text-xs font-black uppercase tracking-[0.3em] px-4 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20">
             {brew.style || 'Handcrafted'}
           </span>
           <h1 className="text-5xl md:text-6xl font-black tracking-tighter leading-none">
             {brew.name}
           </h1>
-          {brew.description && (
-            <p className="text-zinc-400 text-lg leading-relaxed max-w-xl mx-auto italic">
-              {brew.description}
+          {/* Phase 4.3: Dezentes Scan-Badge — ab 2 Scans als sozialer Beweis */}
+          {scanCount !== null && scanCount >= 2 && (
+            <p className="text-xs text-zinc-500 flex items-center justify-center gap-1">
+              🔍 {scanCount}× gescannt
             </p>
           )}
         </header>
@@ -845,6 +776,96 @@ export default function PublicScanPage() {
           </div>
         </div>
 
+        {/* Phase 2.1 Tier 1: VibeCheck — above fold on mobile */}
+        <VibeCheck
+          brewId={brew.id}
+          isLoggedIn={!!user}
+        />
+
+        {/* Phase 2.2 Tier 2: Kompakter Rating + Cap CTA */}
+        <RatingCTABlock
+          avgRating={avgRating}
+          ratingCount={ratings.length}
+          hasAlreadyRated={hasAlreadyRated}
+          capCollected={capCollected}
+          collectingCap={collectingCap}
+          capUrl={brew.cap_url}
+          onRate={() => setShowRatingForm(true)}
+          onClaim={() => claimCap()}
+        />
+
+        {/* Rating Modal — inline, direkt nach CTA */}
+        {showRatingForm && (
+          <RateBrewModal
+            brewId={data?.brews?.id || ''}
+            onSubmit={async (submissionData) => {
+              const payload = { ...submissionData, user_id: user?.id };
+              return await submitRating(payload);
+            }}
+            onCancel={() => setShowRatingForm(false)}
+            isSubmitting={submitting}
+            onClaimCap={claimCap}
+            existingRatingId={existingRatingId}
+            currentUser={user}
+          />
+        )}
+
+        {/* Phase 2.1 #7: Kurzbeschreibung — nach CTA, unter dem Fold */}
+        {brew.description && (
+          <p className="text-zinc-400 text-base leading-relaxed italic text-center">
+            {brew.description}
+          </p>
+        )}
+
+        {/* Phase 2.3: Bewertungen inline — max. 3, mit Mehr-anzeigen-Toggle */}
+        {ratingsLoading ? (
+          <div className="space-y-3 animate-pulse" aria-label="Bewertungen werden geladen">
+            {[1, 2].map(i => (
+              <div key={i} className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 space-y-2">
+                <div className="h-3 bg-zinc-800 rounded w-1/3" />
+                <div className="h-2 bg-zinc-800 rounded w-1/4 mt-1" />
+                <div className="h-3 bg-zinc-800 rounded w-3/4 mt-2" />
+              </div>
+            ))}
+          </div>
+        ) : ratings.length > 0 ? (
+          <div className="space-y-3">
+            <p className="text-[10px] uppercase font-black tracking-[0.25em] text-zinc-500">Bewertungen</p>
+            {ratings.slice(0, showAllRatings ? undefined : 3).map(rating => (
+              <div key={rating.id} className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
+                <div className="flex items-start justify-between mb-2">
+                  <div>
+                    <p className="font-bold text-white">{rating.author_name}</p>
+                    <div className="flex gap-0.5 mt-1">
+                      {[1, 2, 3, 4, 5].map(star => (
+                        <span key={star} className={`text-sm ${star <= rating.rating ? 'text-yellow-500' : 'text-zinc-700'}`}>★</span>
+                      ))}
+                    </div>
+                  </div>
+                  <span className="text-xs text-zinc-600">
+                    {new Date(rating.created_at).toLocaleDateString('de-DE')}
+                  </span>
+                </div>
+                {rating.comment && (
+                  <p className="text-sm text-zinc-400 leading-relaxed">{rating.comment}</p>
+                )}
+              </div>
+            ))}
+            {ratings.length > 3 && (
+              <button
+                onClick={() => setShowAllRatings(prev => !prev)}
+                className="w-full text-xs text-zinc-500 hover:text-zinc-300 py-2 transition"
+              >
+                {showAllRatings ? '▲ Weniger anzeigen' : `▼ Alle ${ratings.length} Bewertungen anzeigen`}
+              </button>
+            )}
+          </div>
+        ) : (
+          <p className="text-center text-zinc-600 text-sm py-2 italic">
+            Noch keine Bewertungen — sei der Erste! ⭐
+          </p>
+        )}
+
         {/* Details Section - TYPE SPECIFIC */}
         {brew.data && (
           <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6 space-y-4">
@@ -876,19 +897,19 @@ export default function PublicScanPage() {
                 {brew.data.malts && (
                   <div className="space-y-1 col-span-2 pt-2 border-t border-zinc-800/50">
                     <p className="text-zinc-500 text-xs uppercase font-bold">Malzarten</p>
-                    <div className="text-white">{renderIngredientList(brew.data.malts, { type: 'grams_per_liter', volume: estimatedBatchVolume })}</div>
+                    <div className="text-white"><IngredientList items={brew.data.malts} mode={{ type: 'grams_per_liter', volume: batchVolume }} /></div>
                   </div>
                 )}
                 {brew.data.hops && (
                   <div className="space-y-1 col-span-2">
                     <p className="text-zinc-500 text-xs uppercase font-bold">Hopfen</p>
-                    <div className="text-white">{renderIngredientList(brew.data.hops, { type: 'grams_per_liter', volume: estimatedBatchVolume })}</div>
+                    <div className="text-white"><IngredientList items={brew.data.hops} mode={{ type: 'grams_per_liter', volume: batchVolume }} /></div>
                   </div>
                 )}
                 {brew.data.yeast && (
                   <div className="space-y-1 col-span-2">
                     <p className="text-zinc-500 text-xs uppercase font-bold">Hefe</p>
-                    <div className="text-white">{renderIngredientList(brew.data.yeast, { type: 'grams_per_liter', volume: estimatedBatchVolume })}</div>
+                    <div className="text-white"><IngredientList items={brew.data.yeast} mode={{ type: 'grams_per_liter', volume: batchVolume }} /></div>
                   </div>
                 )}
                 {brew.data.dry_hop_g && (
@@ -906,7 +927,7 @@ export default function PublicScanPage() {
                 {brew.data.grapes && (
                   <div className="space-y-1 col-span-2">
                     <p className="text-zinc-500 text-xs uppercase font-bold">Rebsorten</p>
-                    <div className="text-white">{renderIngredientList(brew.data.grapes, 'percentage')}</div>
+                    <div className="text-white"><IngredientList items={brew.data.grapes} mode="percentage" /></div>
                   </div>
                 )}
                 {brew.data.region && (
@@ -950,13 +971,13 @@ export default function PublicScanPage() {
                 {brew.data.apples && (
                   <div className="space-y-1 col-span-2">
                     <p className="text-zinc-500 text-xs uppercase font-bold">Apfelsorten</p>
-                    <div className="text-white">{renderIngredientList(brew.data.apples, 'percentage')}</div>
+                    <div className="text-white"><IngredientList items={brew.data.apples} mode="percentage" /></div>
                   </div>
                 )}
                 {brew.data.yeast && (
                   <div className="space-y-1">
                     <p className="text-zinc-500 text-xs uppercase font-bold">Hefe</p>
-                    <div className="text-white">{renderIngredientList(brew.data.yeast, 'name_only')}</div>
+                    <div className="text-white"><IngredientList items={brew.data.yeast} mode="name_only" /></div>
                   </div>
                 )}
                 {brew.data.fermentation && (
@@ -994,19 +1015,19 @@ export default function PublicScanPage() {
                 {brew.data.honey && (
                   <div className="space-y-1 col-span-2">
                     <p className="text-zinc-500 text-xs uppercase font-bold">Honigsorten</p>
-                    <div className="text-white">{renderIngredientList(brew.data.honey, 'percentage')}</div>
+                    <div className="text-white"><IngredientList items={brew.data.honey} mode="percentage" /></div>
                   </div>
                 )}
                 {brew.data.yeast && (
                   <div className="space-y-1">
                     <p className="text-zinc-500 text-xs uppercase font-bold">Hefe</p>
-                    <div className="text-white">{renderIngredientList(brew.data.yeast, 'name_only')}</div>
+                    <div className="text-white"><IngredientList items={brew.data.yeast} mode="name_only" /></div>
                   </div>
                 )}
                 {brew.data.adjuncts && (
                   <div className="space-y-1 col-span-2">
                     <p className="text-zinc-500 text-xs uppercase font-bold">Zutaten</p>
-                    <div className="text-white">{renderIngredientList(brew.data.adjuncts)}</div>
+                    <div className="text-white"><IngredientList items={brew.data.adjuncts} /></div>
                   </div>
                 )}
                 {brew.data.aging_months && (
@@ -1059,158 +1080,67 @@ export default function PublicScanPage() {
                 )}
               </div>
             )}
+
+            {/* Phase 4.2: Session-Informationen — Braudatum & Batch-Nummer */}
+            {(displayData.brewed_at_display || displayData.batch_number) && (
+              <div className="grid grid-cols-2 gap-4 text-sm pt-4 border-t border-zinc-800/50">
+                {displayData.brewed_at_display && (
+                  <div className="space-y-1">
+                    <p className="text-zinc-500 text-xs uppercase font-bold">Gebraut am</p>
+                    <p className="text-white font-mono">{displayData.brewed_at_display}</p>
+                  </div>
+                )}
+                {displayData.batch_number && (
+                  <div className="space-y-1">
+                    <p className="text-zinc-500 text-xs uppercase font-bold">Batch</p>
+                    <p className="text-white font-mono">#{displayData.batch_number}</p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
-        <div className="flex flex-col gap-3">
-          <Link
-            href={`/brew/${brew.id}`}
-            className="w-full bg-zinc-800 hover:bg-zinc-700 text-center py-4 rounded-xl font-bold transition border border-zinc-700 shadow-lg"
-          >
-            📖 Vollständiges Rezept
-          </Link>
-
-          {/* Cap Collection Section - Integrated */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 pt-24 text-center space-y-6 relative overflow-visible group mt-32">
-            {/* Background Light */}
-            <div className={`absolute -top-12 -left-12 w-32 h-32 blur-3xl transition-opacity duration-1000 ${capCollected ? 'bg-cyan-500/20 opacity-100' : 'bg-zinc-500/10 opacity-50'}`} />
-
-            <div className="absolute left-1/2 -ml-20 -top-20 z-10 w-40 h-40 flex items-center justify-center">
-              <CrownCap
-                content={brew.cap_url}
-                tier={capCollected ? "gold" : "zinc"}
-                size="lg"
-                className={`transition-all duration-700 ${capCollected ? 'scale-110 drop-shadow-[0_0_25px_rgba(6,182,212,0.5)]' : 'grayscale contrast-75 drop-shadow-2xl'}`}
-              />
-            </div>
-
-            <div className="space-y-1 relative z-10 pt-4">
-              <p className="text-[10px] uppercase font-black tracking-[0.3em] text-cyan-500 mb-1">
-                {capCollected ? 'Digitale Sammlung' : 'Bewerten & Sammeln'}
+        {/* Phase 2.1 / Phase 11.1 Tier 3: Beat the Brewer — nach Rating prominent, sonst nur bei Flavor Profile */}
+        {brew.flavor_profile && (hasAlreadyRated || showBeatTheBrewer) && (
+          <div className={showBeatTheBrewer ? 'animate-in fade-in slide-in-from-bottom-4 duration-300' : ''}>
+            {showBeatTheBrewer && (
+              <p className="text-[10px] uppercase font-black tracking-[0.25em] text-cyan-500 text-center mb-2">
+                Zeig, ob du den Geschmack genauso wahrnimmst wie der Brauer →
               </p>
-              <h3 className="text-xl font-black">
-                {capCollected ? 'Abzeichen gesammelt!' : 'Sichere dir den Kronkorken'}
-              </h3>
-              <p className="text-zinc-500 text-xs max-w-[200px] mx-auto leading-relaxed">
-                {capCollected
-                  ? 'Dieser Kronkorken ist sicher in deiner Sammlung verwahrt.'
-                  : 'Teile kurz deine Meinung zum Geschmack und erhalte als Belohnung diesen digitalen Kronkorken.'}
-              </p>
-            </div>
-
-            <div className="relative z-10 pt-2">
-              {!capCollected ? (
-                <button
-                  onClick={() => {
-                    if (hasAlreadyRated && !capCollected) {
-                      collectCap();
-                    } else {
-                      setShowRatingForm(true);
-                    }
-                  }}
-                  disabled={collectingCap}
-                  className="w-full bg-white text-black hover:bg-cyan-400 font-black py-4 rounded-xl hover:scale-[1.02] active:scale-95 transition shadow-xl disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {collectingCap ? (
-                    <span className="animate-spin text-xl">🧪</span>
-                  ) : (
-                    <>
-                      <span className="text-xl">
-                        {hasAlreadyRated ? '🥇' : '💬'}
-                      </span>
-                      <span>
-                        {hasAlreadyRated ? 'Jetzt Sammeln' : 'Bewerten & Sammeln'}
-                      </span>
-                    </>
-                  )}
-                </button>
-              ) : (
-                <Link
-                  href="/dashboard/collection"
-                  className="flex items-center justify-center gap-2 bg-zinc-950 border border-zinc-800 text-cyan-400 text-xs font-black uppercase tracking-widest py-3 rounded-xl hover:bg-zinc-900 transition"
-                >
-                  ✨ In der Sammlung ansehen
-                </Link>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* === BEWERTUNGEN SECTION === */}
-        <div className="pt-8 space-y-6">
-          <div className="h-px bg-gradient-to-r from-transparent via-zinc-800 to-transparent" />
-
-          {/* Durchschnitt & Button */}
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                {avgRating > 0 && (
-                  <>
-                    <span className="text-4xl font-black text-cyan-500">{avgRating}</span>
-                    <div>
-                      <div className="flex gap-0.5">
-                        {[1, 2, 3, 4, 5].map(star => (
-                          <span key={star} className={star <= Math.round(avgRating) ? 'text-yellow-500' : 'text-zinc-700'}>★</span>
-                        ))}
-                      </div>
-                      <p className="text-xs text-zinc-500">{ratings.length} {ratings.length === 1 ? 'Bewertung' : 'Bewertungen'}</p>
-                    </div>
-                  </>
-                )}
-                {avgRating === 0 && <p className="text-zinc-500 text-sm">Noch keine Bewertungen</p>}
-              </div>
-            </div>
-          </div>
-
-          {/* Rating Form */}
-          {showRatingForm && (
-            <RateBrewModal
-              brewId={data?.brews?.id || ''}
-              onSubmit={async (submissionData) => {
-                if (!userIp) return null;
-
-                // Add Logged-in User ID if available
-                const payload = {
-                  ...submissionData,
-                  user_id: user?.id
-                };
-
-                return await submitRating(payload);
-              }}
-              onCancel={() => setShowRatingForm(false)}
-              isSubmitting={submitting}
-              onClaimCap={handleClaimCap}
-              existingRatingId={existingRatingId}
-              currentUser={user}
+            )}
+            <BeatTheBrewerGame
+              brewId={brew.id}
+              brewName={brew.name || 'Dieses Bier'}
+              isLoggedIn={!!user}
+              challengeToken={challengeToken}
+              challengerName={challengerName}
             />
-          )}
+          </div>
+        )}
 
-          {/* Ratings List */}
-          {ratings.length > 0 && (
-            <div className="space-y-3">
-              {ratings.map(rating => (
-                <div key={rating.id} className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
-                  <div className="flex items-start justify-between mb-2">
-                    <div>
-                      <p className="font-bold text-white">{rating.author_name}</p>
-                      <div className="flex gap-0.5 mt-1">
-                        {[1, 2, 3, 4, 5].map(star => (
-                          <span key={star} className={`text-sm ${star <= rating.rating ? 'text-yellow-500' : 'text-zinc-700'}`}>★</span>
-                        ))}
-                      </div>
-                    </div>
-                    <span className="text-xs text-zinc-600">
-                      {new Date(rating.created_at).toLocaleDateString('de-DE')}
-                    </span>
-                  </div>
-                  {rating.comment && (
-                    <p className="text-sm text-zinc-400 leading-relaxed">{rating.comment}</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+        {/* ── Tier 3 / Tier 4 Trenner ── */}
+        <div className="relative flex items-center gap-3 my-2">
+          <div className="flex-1 h-px bg-zinc-800" />
+          <span className="text-[10px] uppercase tracking-[0.18em] font-bold text-zinc-700 select-none">Community</span>
+          <div className="flex-1 h-px bg-zinc-800" />
         </div>
+
+        {/* Phase 2.1 Tier 4: Stash & Bounties */}
+        <StashButton
+          brewId={brew.id}
+          brewName={brew.name || 'Dieses Bier'}
+        />
+        <BrewBounties brewId={brew.id} />
+
+        {/* Tier 4: Vollständiges Rezept — ans Ende verschoben */}
+        <Link
+          href={`/brew/${brew.id}`}
+          className="w-full bg-zinc-800 hover:bg-zinc-700 text-center py-4 rounded-xl font-bold transition border border-zinc-700 shadow-lg block"
+        >
+          📖 Vollständiges Rezept
+        </Link>
+
         {/* --- Link zur Brauerei & Team --- */}
         {brewery && (
           <div className="space-y-4 mt-8">
@@ -1219,9 +1149,9 @@ export default function PublicScanPage() {
               className="block group bg-zinc-900 border border-zinc-800 rounded-2xl p-6 hover:bg-zinc-800 transition shadow-lg"
             >
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-zinc-800 border-2 border-zinc-700 overflow-hidden shrink-0">
+                <div className="relative w-16 h-16 rounded-full bg-zinc-800 border-2 border-zinc-700 overflow-hidden shrink-0">
                   {brewery.logo_url && brewery.moderation_status !== 'pending' ? (
-                    <img src={brewery.logo_url} className="w-full h-full object-cover" />
+                    <Image fill src={brewery.logo_url} alt={brewery.name ?? 'Brauerei-Logo'} className="object-cover" sizes="64px" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-2xl">🏰</div>
                   )}
@@ -1244,11 +1174,11 @@ export default function PublicScanPage() {
                   {team.map((m, i) => (
                     <div
                       key={i}
-                      className="w-8 h-8 rounded-full border-2 border-black bg-zinc-800 flex items-center justify-center overflow-hidden"
-                      title={m.profiles?.display_name}
+                      className="relative w-8 h-8 rounded-full border-2 border-black bg-zinc-800 flex items-center justify-center overflow-hidden"
+                      title={m.profiles?.display_name ?? undefined}
                     >
                       {m.profiles?.logo_url ? (
-                        <img src={m.profiles.logo_url} className="w-full h-full object-cover" />
+                        <Image fill src={m.profiles.logo_url ?? ''} alt={m.profiles?.display_name ?? ''} className="object-cover" sizes="32px" />
                       ) : (
                         <span className="text-[10px]">👤</span>
                       )}
@@ -1274,6 +1204,11 @@ export default function PublicScanPage() {
         </footer>
       </div>
 
+      {/* Phase 9.4: Drinker-Bestätigungs-Prompt (Smart Sampling) */}
+      <DrinkingConfirmationPrompt
+        bottleId={data.id}
+        isOwner={user?.id === data?.brews?.user_id}
+      />
     </div>
   );
 }

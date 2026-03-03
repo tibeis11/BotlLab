@@ -1,7 +1,8 @@
+'use client';
+
 import { useState, useEffect, useRef } from 'react';
-import TasteSlider from './TasteSlider';
+import type { User } from '@supabase/supabase-js';
 import FlavorTagSelector from './FlavorTagSelector';
-import { TASTE_SLIDERS } from '@/lib/rating-config';
 import { RatingSubmission } from '@/lib/types/rating';
 import Link from 'next/link';
 
@@ -13,7 +14,7 @@ interface RateBrewModalProps {
   initialAuthorName?: string;
   onClaimCap?: (ratingId: string) => Promise<void>; 
   existingRatingId?: string | null;
-  currentUser?: any; // User object from Supabase
+  currentUser?: User | null;
 }
 
 export default function RateBrewModal({ 
@@ -72,6 +73,13 @@ export default function RateBrewModal({
         setAuthorName(currentUser.user_metadata.full_name);
     }
   }, [currentUser]);
+
+  // Phase 7.1: Escape-Key schließt Modal
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, []);
 
   const handleSubmit = async () => {
     if (honeypot) return; // Silent reject
@@ -159,10 +167,15 @@ export default function RateBrewModal({
   }
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4 animate-in fade-in slide-in-from-top-3 duration-300">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="ratemodal-title"
+      className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4 animate-in fade-in slide-in-from-top-3 duration-300"
+    >
       <div className="flex justify-between items-center mb-2">
-         <h3 className="font-bold text-lg text-white">Deine Bewertung</h3>
-         <button onClick={onCancel} className="text-zinc-500 hover:text-white">✕</button>
+         <h3 id="ratemodal-title" className="font-bold text-lg text-white">Deine Bewertung</h3>
+         <button onClick={onCancel} aria-label="Schließen" className="text-zinc-500 hover:text-white">✕</button>
       </div>
       
       {/* Honeypot Field */}
@@ -184,6 +197,8 @@ export default function RateBrewModal({
             <button
               key={star}
               type="button"
+              aria-label={`Mit ${star} von 5 Sternen bewerten`}
+              aria-pressed={star <= rating}
               onClick={() => setRating(star)}
               onMouseEnter={() => setHoverRating(star)}
               onMouseLeave={() => setHoverRating(0)}
@@ -219,26 +234,13 @@ export default function RateBrewModal({
             className="flex items-center gap-2 text-sm font-bold text-cyan-500 hover:text-cyan-400 transition"
           >
              <span>{showDetails ? '▼' : '▶'}</span>
-             <span>Geschmacksprofil {showDetails ? 'einklappen' : '(Optional)'}</span>
+             <span>Geschmacksnoten {showDetails ? 'einklappen' : '(Optional)'}</span>
           </button>
       </div>
 
       {showDetails && (
           <div className="space-y-6 pt-4 border-t border-zinc-800 animate-in fade-in slide-in-from-top-2">
               
-              {/* Sliders */}
-              <div className="space-y-4">
-                  <h4 className="text-xs font-bold uppercase text-zinc-500 tracking-wider">👅 Geschmack</h4>
-                  {TASTE_SLIDERS.map(slider => (
-                      <TasteSlider
-                          key={slider.id}
-                          {...slider}
-                          value={profile[slider.id as keyof RatingSubmission] as number}
-                          onChange={(val) => updateProfile(slider.id as keyof RatingSubmission, val)}
-                      />
-                  ))}
-              </div>
-
                {/* Flavor Tags */}
                <div>
                    <h4 className="text-xs font-bold uppercase text-zinc-500 tracking-wider mb-4">🌈 Geschmacksnoten</h4>

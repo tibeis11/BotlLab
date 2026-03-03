@@ -6,7 +6,7 @@ import { useSupabase } from '@/lib/hooks/useSupabase';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
 import { addToFeed } from '@/lib/feed-service';
-import { getTierConfig, getBreweryTierConfig, BreweryTierName } from '@/lib/tier-system';
+import { getBreweryTierConfig, BreweryTierName } from '@/lib/tier-system';
 import { getBreweryPremiumStatus } from '@/lib/actions/premium-actions';
 import { trackEvent } from '@/lib/actions/analytics-actions';
 import { Users, Shield, Copy, RefreshCcw, Trash2, Crown, Sparkles, Check, Search, Infinity as InfinityIcon } from 'lucide-react';
@@ -276,7 +276,7 @@ export default function TeamMembersPage({ params }: { params: Promise<{ breweryI
         {/* Member Grid */}
         <div className="grid grid-cols-1 gap-4">
                 {members.filter(m => (m.profiles?.display_name || '').toLowerCase().includes(searchQuery.toLowerCase())).map((m, idx) => {
-                    const tier = getTierConfig(m.profiles?.tier || 'lehrling');
+                    const memberAvatar = m.profiles?.logo_url || '/tiers/lehrling.png';
                     const isOwner = m.role === 'owner';
                     const isAdmin = m.role === 'admin';
                     
@@ -286,10 +286,9 @@ export default function TeamMembersPage({ params }: { params: Promise<{ breweryI
                             {/* Avatar */}
                             <div className="relative">
                                 <div 
-                                    className="w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden shadow-inner border"
-                                    style={{ backgroundColor: `${tier.color}10`, borderColor: `${tier.color}30` }}
+                                    className="w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden shadow-inner border border-zinc-700 bg-zinc-800"
                                 >
-                                    <img src={tier.avatarPath} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" alt="" />
+                                    <img src={memberAvatar} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" alt="" />
                                 </div>
                                 {isOwner && (
                                     <div className="absolute -top-2 -right-2 bg-zinc-950 rounded-full p-1 border border-amber-500/30">
@@ -310,9 +309,9 @@ export default function TeamMembersPage({ params }: { params: Promise<{ breweryI
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800/80">
-                                        <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: tier.color }}></div>
+                                        <div className="w-1.5 h-1.5 rounded-full bg-zinc-600"></div>
                                         <span className="text-[10px] font-bold uppercase text-zinc-400">
-                                            {tier.displayName}
+                                            Mitglied
                                         </span>
                                     </div>
                                     {!isOwner && (

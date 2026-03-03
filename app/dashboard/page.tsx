@@ -3,7 +3,6 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import TierProgressWidget from './components/TierProgressWidget';
 import DiscoverWidget from './components/DiscoverWidget';
 import TrendingForumWidget from './components/TrendingForumWidget';
 import { Megaphone, Award, Bell, Flame, Plus, Users, ArrowRight, User } from 'lucide-react';
@@ -11,7 +10,6 @@ import { getActiveBrewery } from '@/lib/supabase';
 import { useSupabase } from '@/lib/hooks/useSupabase';
 import { useAuth } from '@/app/context/AuthContext';
 import { getBreweryFeed, addToFeed, type FeedItem } from '@/lib/feed-service';
-import { getTierConfig } from '@/lib/tier-system';
 import { createDefaultBreweryTemplate } from '@/lib/actions/label-actions';
 import { getTierBorderColor } from '@/lib/premium-config';
 
@@ -62,7 +60,7 @@ function DashboardContent() {
             // 1. Fetch User Profile
             const { data: userProfile } = await supabase
                 .from('profiles')
-                .select('display_name, tier')
+                .select('display_name')
                 .eq('id', user.id)
                 .single();
             
@@ -301,7 +299,6 @@ function DashboardContent() {
                              <div className="space-y-4">
                                 {dashboardFeed.length > 0 ? dashboardFeed.slice(0, 3).map((item, i) => {
                                      // Helper for feed item rendering
-                                     const tierConfig = getTierConfig(item.profiles?.tier || 'lehrling');
                                      const borderColor = getTierBorderColor(item.profiles?.subscription_tier);
                                      
                                      // Standardized logic for Name and Image
@@ -319,7 +316,7 @@ function DashboardContent() {
                                                         <User className="w-5 h-5 text-zinc-400" />
                                                     ) : (
                                                         <img 
-                                                            src={item.profiles?.logo_url || tierConfig.avatarPath} 
+                                                            src={item.profiles?.logo_url || '/tiers/lehrling.png'} 
                                                             alt="" 
                                                             className="w-full h-full object-cover" 
                                                         />
@@ -385,9 +382,20 @@ function DashboardContent() {
                     {/* Mobile Divider (before sidebar on small screens if stacked) */}
                     <div className="h-px bg-zinc-900 lg:hidden" />
                     
-                    {/* REPUTATION WIDGET */}
+                    {/* TASTING IQ TEASER (replaces old Reputation Widget) */}
                     <div className="relative group">
-                         <TierProgressWidget />
+                        <div className="bg-gradient-to-br from-cyan-900/20 to-blue-900/10 border border-cyan-500/20 rounded-lg p-6">
+                            <div className="flex items-center gap-3 mb-3">
+                                <span className="text-2xl">🧬</span>
+                                <div>
+                                    <h3 className="text-sm font-bold text-white">Tasting IQ</h3>
+                                    <p className="text-[10px] text-cyan-400 uppercase font-bold tracking-wider">Bald verfügbar</p>
+                                </div>
+                            </div>
+                            <p className="text-xs text-zinc-500 leading-relaxed">
+                                Dein persönlicher Bier-Kompetenz-Score wächst mit jedem Rating und Beat-the-Brewer-Match.
+                            </p>
+                        </div>
                     </div>
 
                     {/* COLLECTION TEASER */}

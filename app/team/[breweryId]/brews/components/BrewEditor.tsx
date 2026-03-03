@@ -29,6 +29,8 @@ import { createBrew, updateBrew } from '@/lib/actions/brew-actions';
 import { notifyNewBrew } from '@/lib/actions/notification-actions';
 import LegalConsentModal from '@/app/components/LegalConsentModal';
 import { trackEvent } from '@/lib/actions/analytics-actions'; // This will need to be safe for client side usage or moved to API call wrapper
+import FlavorProfileEditor from './FlavorProfileEditor';
+import type { FlavorProfile } from '@/lib/flavor-profile-config';
 
 function formatIngredientsForPrompt(value: any): string {
     if (!value) return '';
@@ -69,6 +71,7 @@ interface BrewForm {
     cap_url?: string | null;
     is_public: boolean;
     data?: any;
+    flavor_profile?: FlavorProfile | null;
     remix_parent_id?: string | null;
     moderation_status?: 'pending' | 'approved' | 'rejected';
     moderation_rejection_reason?: string | null;
@@ -280,7 +283,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
     const [analyzingRecipe, setAnalyzingRecipe] = useState(false);
     const [optimizationSuggestions, setOptimizationSuggestions] = useState<string[]>([]);
     const [message, setMessage] = useState<string | null>(null);
-    const [activeTab, setActiveTab] = useState<'input' | 'label' | 'caps' | 'optimization' | 'ratings' | 'settings'>('input');
+    const [activeTab, setActiveTab] = useState<'input' | 'label' | 'caps' | 'optimization' | 'ratings' | 'flavor' | 'settings'>('input');
     const [premiumStatus, setPremiumStatus] = useState<PremiumStatus | null>(null);
     const [extraPrompt, setExtraPrompt] = useState('');
     const [legalModalOpen, setLegalModalOpen] = useState(false);
@@ -649,7 +652,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                 return;
             }
 
-            setBrew({ ...data, name: data.name || '', style: data.style || '', brew_type: data.brew_type || '', description: data.description || undefined, is_public: data.is_public || false, moderation_status: (data.moderation_status as any) || undefined, data: data.data || {} });
+            setBrew({ ...data, name: data.name || '', style: data.style || '', brew_type: data.brew_type || '', description: data.description || undefined, is_public: data.is_public || false, moderation_status: (data.moderation_status as any) || undefined, data: data.data || {}, flavor_profile: (data.flavor_profile as any) || null });
             await loadRatings(data.id);
         }
 
@@ -698,6 +701,8 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
             mash_method: sanitizedData.mash_method ?? null,
             mash_process: sanitizedData.mash_process ?? null,
             fermentation_type: sanitizedData.fermentation_type ?? null,
+            // Beat the Brewer: Flavor profile (Phase 11)
+            flavor_profile: brew.flavor_profile ?? null,
         };
 
         if (id === 'new') {
@@ -747,7 +752,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                 console.warn('Analytics tracking failed (non-critical):', e);
             }
 
-            setBrew({ ...data, name: data.name || '', style: data.style || '', brew_type: data.brew_type || '', description: data.description || undefined, is_public: data.is_public || false, moderation_status: (data.moderation_status as any) || undefined, data: data.data || {} });
+            setBrew({ ...data, name: data.name || '', style: data.style || '', brew_type: data.brew_type || '', description: data.description || undefined, is_public: data.is_public || false, moderation_status: (data.moderation_status as any) || undefined, data: data.data || {}, flavor_profile: (data.flavor_profile as any) || null });
             setSaving(false);
             router.replace(`/team/${breweryId}/brews/${data.id}/edit`);
             
@@ -781,7 +786,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                 }
             }
 
-            setBrew({ ...data, name: data.name || '', style: data.style || '', brew_type: data.brew_type || '', description: data.description || undefined, is_public: data.is_public || false, moderation_status: (data.moderation_status as any) || undefined, data: data.data || {} });
+            setBrew({ ...data, name: data.name || '', style: data.style || '', brew_type: data.brew_type || '', description: data.description || undefined, is_public: data.is_public || false, moderation_status: (data.moderation_status as any) || undefined, data: data.data || {}, flavor_profile: (data.flavor_profile as any) || null });
             setMessage('Gespeichert.');
 
             if (data.id) await loadRatings(data.id);
@@ -1536,6 +1541,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                             { id: 'caps', label: 'Kronkorken', icon: Crown, hidden: id === 'new' },
                             { id: 'optimization', label: 'Optimierung', icon: Microscope, hidden: id === 'new' },
                             { id: 'ratings', label: 'Bewertung', icon: Star, hidden: id === 'new' },
+                            { id: 'flavor', label: 'Beat the Brewer', icon: Sparkles, hidden: id === 'new' },
                             { id: 'settings', label: 'Einstellungen', icon: Settings, hidden: false }
                         ].filter(t => !t.hidden)}
                     />
@@ -2622,6 +2628,21 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                         ))}
                                     </div>
                                 )}
+                            </div>
+                        )}
+
+                        {activeTab === 'flavor' && (
+                            <div className="space-y-6">
+                                <div>
+                                    <p className="text-xs uppercase tracking-[0.2em] text-cyan-400 font-medium mb-1">Gamification</p>
+                                    <h2 className="text-lg font-bold text-white">Beat the Brewer — Geschmacksprofil</h2>
+                                    <p className="text-sm text-zinc-400 mt-1 max-w-xl">Definiere, wie dein Bier schmecken soll. Trinker können dann versuchen, dein Profil blind zu treffen — und du erhältst wertvolle Sensorik-Daten.</p>
+                                </div>
+                                <FlavorProfileEditor
+                                    value={brew.flavor_profile ?? null}
+                                    onChange={(fp) => setBrew(prev => ({ ...prev, flavor_profile: fp }))}
+                                    brewStyle={brew.style || null}
+                                />
                             </div>
                         )}
 

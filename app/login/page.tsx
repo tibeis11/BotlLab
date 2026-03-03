@@ -5,10 +5,15 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Logo from "../components/Logo";
 import { useAuth } from "../context/AuthContext";
+import { intentToAppMode } from "@/lib/types/user-mode";
 
-const getRedirectUrl = () => {
+const getRedirectUrl = (callbackUrl?: string) => {
   if (typeof window !== 'undefined') {
-    return `${window.location.origin}/auth/callback`;
+    const base = `${window.location.origin}/auth/callback`;
+    if (callbackUrl) {
+      return `${base}?callbackUrl=${encodeURIComponent(callbackUrl)}`;
+    }
+    return base;
   }
   return undefined;
 };
@@ -93,16 +98,39 @@ export default function LoginPage() {
     }
   }, [timeoutMessage]);
 
+  // ZWEI WELTEN: Mode-basierter Redirect nach Login
+  const redirectAfterAuth = async (userId: string) => {
+    const params = new URLSearchParams(window.location.search);
+    const callbackUrl = params.get('callbackUrl');
+    const intent = params.get('intent');
+
+    // Phase 8.2: intent=drink → app_mode auf 'drinker' setzen (wenn nicht bereits Brauer)
+    let resolvedAppMode: string | null = null;
+    if (intent === 'drink' || !callbackUrl) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('app_mode')
+        .eq('id', userId)
+        .single();
+      resolvedAppMode = profile?.app_mode ?? null;
+      if (intent === 'drink' && resolvedAppMode !== 'brewer') {
+        await supabase.from('profiles').update({ app_mode: 'drinker' }).eq('id', userId);
+        resolvedAppMode = 'drinker';
+      }
+    }
+
+    if (callbackUrl) {
+      router.push(decodeURIComponent(callbackUrl));
+    } else {
+      const target = resolvedAppMode === 'brewer' ? '/dashboard' : '/my-cellar';
+      router.push(target);
+    }
+  };
+
   // Redirect if already logged in
   useEffect(() => {
     if (!authLoading && user) {
-        const params = new URLSearchParams(window.location.search);
-        const callbackUrl = params.get('callbackUrl');
-        if (callbackUrl) {
-            router.push(decodeURIComponent(callbackUrl));
-        } else {
-            router.push('/dashboard');
-        }
+        redirectAfterAuth(user.id);
     }
   }, [user, authLoading, router]);
 
@@ -155,16 +183,22 @@ export default function LoginPage() {
           return;
         }
 
+        // ZWEI WELTEN: intent aus URL lesen und als app_mode durchreichen
+        const params = new URLSearchParams(window.location.search);
+        const intent = params.get('intent');
+        const callbackUrl = params.get('callbackUrl') || undefined;
+        const appMode = intentToAppMode(intent);
+
         const { data, error } = await supabase.auth.signUp({ 
           email, 
           password,
           options: {
-            emailRedirectTo: getRedirectUrl(),
-            // Brauerei-Name wird auch als Display-Name gesetzt (User = Brauerei)
+            emailRedirectTo: getRedirectUrl(callbackUrl),
             data: {
-            display_name: username,
-            birthdate: birthdate
-          }
+              display_name: username,
+              birthdate: birthdate,
+              app_mode: appMode,
+            }
           }
         });
         
@@ -193,17 +227,8 @@ export default function LoginPage() {
             setMessage("⚠️ Bitte bestätige deine E-Mail-Adresse zuerst.");
             setAwaitingConfirmation(true);
           } else {
-             if (typeof window !== 'undefined') {
-                const params = new URLSearchParams(window.location.search);
-                const callbackUrl = params.get('callbackUrl');
-                if (callbackUrl) {
-                    router.push(decodeURIComponent(callbackUrl));
-                } else {
-                    router.push("/dashboard");
-                }
-             } else {
-                router.push("/dashboard");
-             }
+            // ZWEI WELTEN: Mode-basierter Redirect
+            redirectAfterAuth(data.user.id);
           }
         }
     }

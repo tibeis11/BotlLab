@@ -22,7 +22,6 @@ export interface FeedItem {
     display_name: string;
     logo_url: string;
     subscription_tier: string;
-    tier: string;
   }
 }
 
@@ -63,8 +62,7 @@ export async function getBreweryFeed(client: SupabaseClient, breweryId: string) 
       profiles (
         display_name,
         logo_url,
-        subscription_tier,
-        tier
+        subscription_tier
       )
     `)
     .eq('brewery_id', breweryId)

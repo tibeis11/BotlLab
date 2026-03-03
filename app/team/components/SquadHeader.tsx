@@ -19,13 +19,13 @@ import {
     FlaskConical,
     Factory,
     Globe,
-    LogOut
+    LogOut,
+    Gift
 } from 'lucide-react';
 import { useSupabase } from '@/lib/hooks/useSupabase';
 import { useAuth } from '@/app/context/AuthContext';
 import Logo from '@/app/components/Logo';
 import NotificationBell from '@/app/components/NotificationBell';
-import { getTierConfig } from '@/lib/tier-system';
 import { getBreweryBranding } from '@/lib/actions/premium-actions';
 import { getTierBorderColor } from '@/lib/premium-config';
 
@@ -91,7 +91,7 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
         }
     }, [breweryId]);
 
-    const tierConfig = userProfile ? getTierConfig(userProfile.tier || 'lehrling') : getTierConfig('lehrling');
+    const squadAvatarUrl = userProfile?.logo_url || userProfile?.avatar_url || '/tiers/lehrling.png';
     const tierBorderClass = getTierBorderColor(userProfile?.subscription_tier);
 
     const tabs = [
@@ -102,6 +102,7 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
         { name: 'Inventar', path: `/team/${breweryId}/inventory`, icon: Package },
         { name: 'Etiketten', path: `/team/${breweryId}/labels`, icon: Tag },
         { name: 'Analytics', path: `/team/${breweryId}/analytics`, icon: TrendingUp },
+        { name: 'Bounties', path: `/team/${breweryId}/bounties`, icon: Gift },
     ];
 
     const adminTabs: { name: string, path: string, icon: any }[] = [];
@@ -213,7 +214,7 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                                         </Link>
                                         <div className="h-px bg-zinc-800 my-1 mx-2"></div>
                                         <Link 
-                                            href="/dashboard/account" 
+                                            href="/account" 
                                             className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
                                         >
                                             <Settings className="w-4 h-4" /> <span>Einstellungen</span>
@@ -299,14 +300,11 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                                 className="w-8 h-8 rounded-full flex items-center justify-center text-xs overflow-hidden relative shadow-lg bg-zinc-900"
                             >
                                 <div className={`absolute inset-0 border-2 rounded-full opacity-50 ${tierBorderClass}`}></div>
-                                <img src={userProfile?.logo_url || tierConfig.avatarPath} alt="Avatar" className="w-full h-full object-cover" />
+                                <img src={squadAvatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                             </div>
                             <div className="hidden xl:flex flex-col items-start leading-none">
                                 <span className="truncate max-w-[120px] font-bold text-white text-sm">
                                     {userProfile?.display_name || 'Profil'}
-                                </span>
-                                <span className="text-[9px] font-black uppercase tracking-wider mt-0.5" style={{ color: tierConfig.color }}>
-                                    {tierConfig.displayName}
                                 </span>
                             </div>
                         </button>
@@ -558,15 +556,14 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                              <div className="flex items-center gap-3">
                                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-xs overflow-hidden relative border border-zinc-700 bg-zinc-800">
                                      <div className={`absolute inset-0 border-2 rounded-full opacity-50 ${tierBorderClass}`}></div>
-                                     <img src={tierConfig.avatarPath} alt="Avatar" className="w-full h-full object-cover" />
+                                     <img src={squadAvatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                                  </div>
                                  <div>
                                      <p className="text-sm font-bold text-white leading-tight">{userProfile?.display_name || user?.email}</p>
-                                     <p className="text-[10px] uppercase font-black tracking-wide" style={{ color: tierConfig.color }}>{tierConfig.displayName}</p>
                                  </div>
                              </div>
                              <Link
-                                href="/dashboard/account"
+                                href="/account"
                                 onClick={() => setIsMobileMenuOpen(false)}
                                 className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-white transition"
                              >

@@ -674,6 +674,89 @@ const EMAIL_TEMPLATES: Record<string, string> = {
   </div>
 </body>
 </html>`,
+
+  // Phase 10.7: Event detected notification
+  'event-detected': `<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Event erkannt — BotlLab</title>
+  <style>
+    body { margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+    .wrapper { width: 100%; background-color: #f8fafc; padding: 40px 0; }
+    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .header { background-color: #f8fafc; padding: 32px; border-bottom: 1px solid #e2e8f0; }
+    .content { padding: 40px; }
+    .heading { font-size: 24px; font-weight: 700; color: #0f172a; margin: 0 0 16px 0; letter-spacing: -0.025em; }
+    .text { font-size: 15px; line-height: 1.6; color: #475569; margin: 0 0 24px 0; }
+    .button-container { text-align: left; margin-top: 32px; }
+    .button { display: inline-block; background-color: #000000; color: #ffffff; font-weight: 600; font-size: 14px; padding: 14px 32px; border-radius: 6px; text-decoration: none; }
+    .footer { padding: 24px; background-color: #f8fafc; text-align: center; border-top: 1px solid #f1f5f9; }
+    .footer-text { font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0; }
+    .event-badge { display: inline-block; padding: 4px 12px; background-color: #fffbeb; color: #b45309; border: 1px solid #fde68a; border-radius: 100px; font-size: 12px; font-weight: 700; margin-bottom: 16px; }
+    @media only screen and (max-width: 600px) {
+      .content { padding: 24px !important; }
+      .wrapper { padding: 0 !important; }
+      .container { border-radius: 0 !important; box-shadow: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td align="center">
+          <div class="container">
+            <div class="header">
+               <a href="https://botllab.de" target="_blank">
+                  <img src="https://botllab.de/brand/logo_withName.svg" alt="BotlLab" width="140" style="display: block; opacity: 0.9;">
+               </a>
+            </div>
+            <div class="content">
+              <span class="event-badge">Event erkannt</span>
+              <h1 class="heading">&#127867; {{totalScans}} Personen haben dein Bier in {{city}} probiert!</h1>
+              <p class="text">
+                Hallo {{brewerName}},<br><br>
+                Am {{eventDate}} zwischen {{eventStartTime}} und {{eventEndTime}} wurden <strong>{{totalScans}} Scans</strong> deines <strong>{{brewName}}</strong> in {{city}} registriert.
+                Das sieht nach einem <strong>{{eventTypeLabel}}</strong> aus!
+              </p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 24px 0;">
+                <tr>
+                  <td width="50%" style="padding-right: 8px;">
+                    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; text-align: center;">
+                      <p style="font-size: 28px; font-weight: 800; color: #0f172a; margin: 0;">{{totalScans}}</p>
+                      <p style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; margin: 4px 0 0; font-weight: 600;">Scans</p>
+                    </div>
+                  </td>
+                  <td width="50%" style="padding-left: 8px;">
+                    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; text-align: center;">
+                      <p style="font-size: 28px; font-weight: 800; color: #0f172a; margin: 0;">{{uniqueSessions}}</p>
+                      <p style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; margin: 4px 0 0; font-weight: 600;">Personen</p>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+              <p class="text" style="font-size: 13px; color: #64748b;">
+                Du kannst dieses Event in deinem Analytics-Dashboard benennen und mit Notizen versehen.
+              </p>
+              <div class="button-container">
+                <a href="{{eventUrl}}" class="button" target="_blank">Event im Dashboard ansehen &#8594;</a>
+              </div>
+            </div>
+            <div class="footer">
+              <p class="footer-text">
+                Du erh&auml;ltst diese Benachrichtigung, weil dein Bier bei einem Event gescannt wurde.<br>
+                BotlLab &bull; <a href="https://botllab.de" target="_blank" style="color: #94a3b8; text-decoration: none;">botllab.de</a>
+              </p>
+            </div>
+          </div>
+        </td>
+      </tr>
+    </table>
+  </div>
+</body>
+</html>`,
 };
 
 // Lazy initialization to prevent crash if API key is missing during module evaluation
@@ -822,8 +905,32 @@ export async function sendAnalyticsReportEmail(
     totalScans: number, 
     uniqueVisitors: number,
     topBrewsList: string,
-    breweryId: string
+    breweryId: string,
+    extended?: {
+      drinkerRate?: number;
+      newVerifiedDrinkers?: number;
+      topFlavorTag?: string | null;
+      peakHour?: number | null;
+      offFlavorAlerts?: number;
+      qualitySummary?: {
+        avgRating: number | null;
+        totalRatings: number;
+        bestBrew: { name: string; avgRating: number } | null;
+        worstBrew: { name: string; avgRating: number } | null;
+      };
+    }
 ) {
+    const peakHourLabel = extended?.peakHour != null
+      ? `${extended.peakHour}:00–${extended.peakHour + 1}:00 Uhr`
+      : null;
+
+    const offFlavorBanner = (extended?.offFlavorAlerts ?? 0) > 0
+      ? `<div style="background:#450a0a;border:1px solid #7f1d1d;border-radius:6px;padding:16px;margin-bottom:24px;">
+           <p style="margin:0;font-size:13px;color:#fca5a5;font-weight:600;">&#9888; Off-Flavor Warnung aktiv</p>
+           <p style="margin:6px 0 0;font-size:12px;color:#f87171;">${extended!.offFlavorAlerts} Fehlgeschmacks-Anomalie${extended!.offFlavorAlerts !== 1 ? 'n' : ''} in den letzten 30 Tagen entdeckt. <a href="https://botllab.de/team/${breweryId}/analytics?tab=quality" style="color:#f87171;">Jetzt ansehen</a>.</p>
+         </div>`
+      : '';
+
     return sendEmail({
         to,
         subject: `Dein Analytics Report für ${breweryName} — BotlLab`,
@@ -835,7 +942,42 @@ export async function sendAnalyticsReportEmail(
             uniqueVisitors: uniqueVisitors.toString(),
             topBrewsList,
             dashboardUrl: `https://botllab.de/team/${breweryId}/analytics`,
-            settingsUrl: `https://botllab.de/team/${breweryId}/analytics?tab=reports`
+            settingsUrl: `https://botllab.de/team/${breweryId}/analytics?tab=reports`,
+            // Phase 6 extended
+            drinkerRateRow: extended?.drinkerRate != null
+              ? `<tr>
+                   <td class="kpi-cell">
+                     <p class="kpi-value" style="color:#10b981;">${extended.drinkerRate.toFixed(1)}%</p>
+                     <p class="kpi-label">Drinker Rate</p>
+                   </td>
+                   <td class="kpi-spacer"></td>
+                   <td class="kpi-cell">
+                     <p class="kpi-value" style="color:#8b5cf6;">${extended.newVerifiedDrinkers ?? 0}</p>
+                     <p class="kpi-label">Neue Verified Drinkers</p>
+                   </td>
+                 </tr>`
+              : '',
+            topFlavorRow: extended?.topFlavorTag
+              ? `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+                   <span style="font-size:16px;">&#127870;</span>
+                   <span style="font-size:13px;color:#166534;">Top Flavor-Tag diese Woche: <strong>${extended.topFlavorTag}</strong></span>
+                 </div>`
+              : '',
+            peakHourRow: peakHourLabel
+              ? `<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+                   <span style="font-size:16px;">&#128336;</span>
+                   <span style="font-size:13px;color:#1e40af;">Meiste Scans um <strong>${peakHourLabel}</strong></span>
+                 </div>`
+              : '',
+            offFlavorBanner,
+            qualitySummarySection: extended?.qualitySummary?.avgRating != null
+              ? `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:20px;margin-bottom:24px;">
+                   <h3 style="margin:0 0 12px;font-size:13px;font-weight:700;color:#166534;text-transform:uppercase;letter-spacing:0.05em;">&#127866; Qualitäts-Zusammenfassung</h3>
+                   <p style="margin:0 0 8px;font-size:14px;color:#166534;">Durchschnittliche Bewertung: <strong style="font-size:18px;">${extended.qualitySummary!.avgRating}★</strong> <span style="font-size:12px;color:#4ade80;">(${extended.qualitySummary!.totalRatings} Bewertungen)</span></p>
+                   ${extended.qualitySummary!.bestBrew ? `<p style="margin:0 0 4px;font-size:13px;color:#166534;">&#128077; Bestes Bier: <strong>${extended.qualitySummary!.bestBrew.name}</strong> (${extended.qualitySummary!.bestBrew.avgRating}★)</p>` : ''}
+                   ${extended.qualitySummary!.worstBrew ? `<p style="margin:0 0 4px;font-size:13px;color:#166534;">&#128161; Verbesserungspotenzial: <strong>${extended.qualitySummary!.worstBrew.name}</strong> (${extended.qualitySummary!.worstBrew.avgRating}★)</p>` : ''}
+                 </div>`
+              : '',
         }
     });
 }
@@ -977,6 +1119,56 @@ export async function sendAdminDailyReport(to: string, data: AdminDailyReportDat
             errorColor:      data.errorCount24h > 10 ? '#fb923c' : '#4ade80',
             dashboardUrl:    'https://botllab.de/admin/dashboard',
             settingsUrl:     'https://botllab.de/admin/dashboard?section=settings&view=admins',
+        }
+    });
+}
+
+// ============================================================================
+// Phase 10.7: Event Detected Notification
+// ============================================================================
+
+const EVENT_TYPE_LABELS: Record<string, { label: string; emoji: string }> = {
+  tasting:  { label: 'Tasting',  emoji: '🍻' },
+  festival: { label: 'Festival', emoji: '🎉' },
+  party:    { label: 'Party',    emoji: '🎈' },
+  meetup:   { label: 'Meetup',   emoji: '🤝' },
+  unknown:  { label: 'Event',    emoji: '📍' },
+};
+
+/**
+ * Phase 10.7 — Notify brewery owner when an event is detected.
+ */
+export async function sendEventDetectedEmail(
+    to: string,
+    brewerName: string,
+    breweryName: string,
+    brewName: string,
+    city: string,
+    totalScans: number,
+    uniqueSessions: number,
+    eventDate: string,
+    eventEndTime: string,
+    eventType: string,
+    breweryId: string,
+    eventId: string,
+) {
+    const typeConfig = EVENT_TYPE_LABELS[eventType] || EVENT_TYPE_LABELS.unknown;
+    return sendEmail({
+        to,
+        subject: `${typeConfig.emoji} Event erkannt: ${totalScans} Personen haben dein Bier in ${city} probiert!`,
+        template: 'event-detected',
+        placeholders: {
+            brewerName,
+            brewName,
+            city,
+            totalScans: totalScans.toString(),
+            uniqueSessions: uniqueSessions.toString(),
+            eventDate,
+            eventStartTime: eventDate, // Full formatted date+time
+            eventEndTime,
+            eventTypeLabel: typeConfig.label,
+            eventTypeEmoji: typeConfig.emoji,
+            eventUrl: `https://botllab.de/team/${breweryId}/analytics?event=${eventId}`,
         }
     });
 }

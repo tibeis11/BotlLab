@@ -56,7 +56,13 @@
                 Hier ist die Zusammenfassung für <strong>{{breweryName}}</strong> im Zeitraum {{period}}.
               </p>
               
-              <!-- KPI Cards -->
+              <!-- Off-Flavor Alert Banner (only rendered when alerts > 0) -->
+              {{offFlavorBanner}}
+
+              <!-- Phase 4.6: Quality Summary (only rendered when ratings exist) -->
+              {{qualitySummarySection}}
+
+              <!-- KPI Cards Row 1 -->
               <table class="kpi-table" role="presentation">
                 <tr>
                   <td class="kpi-cell">
@@ -69,7 +75,13 @@
                     <p class="kpi-label">Visitors</p>
                   </td>
                 </tr>
+                <!-- Phase 6: Drinker Rate + Verified Drinkers (rendered only when present) -->
+                {{drinkerRateRow}}
               </table>
+
+              <!-- Peak Hour & Top Flavor Tag (inline hints) -->
+              {{peakHourRow}}
+              {{topFlavorRow}}
 
               <!-- Top Brews List -->
               {{if topBrewsList}}
@@ -87,10 +99,17 @@
              <!-- Footer -->
              <div class="footer">
                 <p class="footer-text" style="margin-bottom: 8px;">
-                  Du erhältst diesen Report basierend auf deinen Einstellungen. <a href="{{settingsUrl}}" style="color: #64748b; text-decoration: underline;">Einstellungen ändern</a>
+                  Du erhältst diesen Report, weil du ihn in deinen Analytics-Einstellungen aktiviert hast (Art.&nbsp;6 Abs.&nbsp;1 lit.&nbsp;a DSGVO).
+                </p>
+                <p class="footer-text" style="margin-bottom: 8px;">
+                  <a href="{{settingsUrl}}" style="color: #64748b; text-decoration: underline;">Einstellungen ändern</a> &middot;
+                  <a href="{{settingsUrl}}&action=unsubscribe" style="color: #94a3b8; text-decoration: underline;">Report abbestellen</a>
+                </p>
+                <p class="footer-text" style="margin-bottom: 4px;">
+                  BotlLab &middot; <a href="https://botllab.de/impressum" target="_blank" style="color: #94a3b8; text-decoration: underline;">Impressum</a> &middot; <a href="https://botllab.de/privacy" target="_blank" style="color: #94a3b8; text-decoration: underline;">Datenschutzerklärung</a>
                 </p>
                 <p class="footer-text">
-                  BotlLab • <a href="https://botllab.de" target="_blank" style="color: #94a3b8; text-decoration: none;">botllab.de</a>
+                  <a href="https://botllab.de" target="_blank" style="color: #94a3b8; text-decoration: none;">botllab.de</a>
                 </p>
              </div>
           </div>

@@ -34,6 +34,21 @@ export type ReportData = {
     unique_visitors: number;
     growth_percentage: number; // vs previous period
   };
+  /** Phase 6 extended metrics */
+  extended?: {
+    drinkerRate: number;          // % scans that converted to a rating
+    newVerifiedDrinkers: number;  // raw count of converted scans
+    topFlavorTag: string | null;  // most-mentioned positive tag
+    peakHour: number | null;      // 0-23 hour with peak scans
+    offFlavorAlerts: number;      // active critical+warning alerts
+    /** Phase 4.6: quality summary */
+    qualitySummary?: {
+      avgRating: number | null;
+      totalRatings: number;
+      bestBrew: { name: string; avgRating: number } | null;
+      worstBrew: { name: string; avgRating: number } | null;
+    };
+  };
   top_brews: Array<{
     brew_id: string;
     brew_name: string;
@@ -318,10 +333,152 @@ export async function generateReportData(
     }))
     .sort((a, b) => b.scan_count - a.scan_count);
 
+  // -------------------------------------------------------
+  // Phase 6 extended metrics
+  // -------------------------------------------------------
+
+  // Peak hour: aggregate hour_distribution JSONBs
+  const { data: hourRows } = await supabase
+    .from('analytics_daily_stats')
+    .select('hour_distribution')
+    .eq('brewery_id', breweryId)
+    .gte('date', periodStart.toISOString().split('T')[0])
+    .lte('date', periodEnd.toISOString().split('T')[0])
+    .not('hour_distribution', 'is', null);
+
+  const hourAccum: Record<string, number> = {};
+  for (const row of hourRows ?? []) {
+    const dist = row.hour_distribution as Record<string, number> | null;
+    if (!dist) continue;
+    for (const [h, count] of Object.entries(dist)) {
+      hourAccum[h] = (hourAccum[h] ?? 0) + (count ?? 0);
+    }
+  }
+  let peakHour: number | null = null;
+  let peakHourCount = 0;
+  for (const [h, count] of Object.entries(hourAccum)) {
+    if (count > peakHourCount) { peakHourCount = count; peakHour = parseInt(h, 10); }
+  }
+
+  // New Verified Drinkers: bottle_scans where converted_to_rating = true in period
+  const { data: convertedScans } = await (supabase as any)
+    .from('bottle_scans')
+    .select('id')
+    .eq('brewery_id', breweryId)
+    .eq('converted_to_rating', true)
+    .gte('created_at', periodStart.toISOString())
+    .lte('created_at', periodEnd.toISOString());
+  const newVerifiedDrinkers: number = (convertedScans as any[] | null)?.length ?? 0;
+  const drinkerRate = totalScans > 0 ? Math.round((newVerifiedDrinkers / totalScans) * 1000) / 10 : 0;
+
+  // Top flavor tag: most common tag from ratings in period (non-off-flavor positive tags)
+  const OFF_FLAVOR_SET = new Set([
+    'sauer', 'butter', 'diacetyl', 'pappe', 'lösungsmittel',
+    'grüner apfel', 'acetaldehyd', 'metallisch', 'papier',
+    'nass', 'seifig', 'phenolisch',
+  ]);
+  const { data: ratingRows } = await supabase
+    .from('ratings')
+    .select('flavor_tags')
+    .in('brew_id', brewIds.length > 0 ? brewIds : ['00000000-0000-0000-0000-000000000000'])
+    .gte('created_at', periodStart.toISOString())
+    .lte('created_at', periodEnd.toISOString())
+    .not('flavor_tags', 'is', null);
+  const tagCounts: Record<string, number> = {};
+  for (const row of ratingRows ?? []) {
+    for (const tag of ((row.flavor_tags as string[]) ?? [])) {
+      const t = tag.toLowerCase().trim();
+      if (OFF_FLAVOR_SET.has(t)) continue;
+      tagCounts[t] = (tagCounts[t] ?? 0) + 1;
+    }
+  }
+  const topFlavorTag = Object.keys(tagCounts).length > 0
+    ? Object.entries(tagCounts).sort((a, b) => b[1] - a[1])[0][0]
+    : null;
+
+  // Off-flavor alerts: count active alerts across all brews (last 30 days)
+  const offFlavorTagsSet = ['sauer', 'butter', 'diacetyl', 'pappe', 'lösungsmittel',
+    'grüner apfel', 'acetaldehyd', 'metallisch', 'papier', 'nass', 'seifig', 'phenolisch'];
+  const since30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  // Quality summary (Phase 4.6)
+  let qualitySummary: {
+    avgRating: number | null;
+    totalRatings: number;
+    bestBrew: { name: string; avgRating: number } | null;
+    worstBrew: { name: string; avgRating: number } | null;
+  } = { avgRating: null, totalRatings: 0, bestBrew: null, worstBrew: null };
+
+  if (brewIds.length > 0) {
+    const { data: qualityRatings } = await supabase
+      .from('ratings')
+      .select('brew_id, rating')
+      .in('brew_id', brewIds)
+      .gte('created_at', periodStart.toISOString())
+      .lte('created_at', periodEnd.toISOString())
+      .not('rating', 'is', null);
+
+    if (qualityRatings && qualityRatings.length > 0) {
+      const brewRatings = new Map<string, number[]>();
+      for (const r of qualityRatings) {
+        if (!r.brew_id || r.rating == null) continue;
+        if (!brewRatings.has(r.brew_id)) brewRatings.set(r.brew_id, []);
+        brewRatings.get(r.brew_id)!.push(r.rating as number);
+      }
+      const allRatings = qualityRatings.map(r => r.rating as number);
+      qualitySummary.totalRatings = allRatings.length;
+      qualitySummary.avgRating = parseFloat((allRatings.reduce((a, b) => a + b, 0) / allRatings.length).toFixed(1));
+
+      const brewAvgs: Array<{ brewId: string; avg: number }> = [];
+      for (const [bid, ratings] of brewRatings) {
+        if (ratings.length < 2) continue;
+        brewAvgs.push({ brewId: bid, avg: ratings.reduce((a, b) => a + b, 0) / ratings.length });
+      }
+      if (brewAvgs.length > 0) {
+        brewAvgs.sort((a, b) => b.avg - a.avg);
+        const { data: bNames } = await supabase
+          .from('brews').select('id, name').in('id', brewAvgs.map(b => b.brewId));
+        const nameMap = new Map((bNames ?? []).map(b => [b.id, b.name]));
+        const best = brewAvgs[0];
+        qualitySummary.bestBrew = { name: nameMap.get(best.brewId) ?? 'Unbekannt', avgRating: parseFloat(best.avg.toFixed(1)) };
+        if (brewAvgs.length > 1) {
+          const worst = brewAvgs[brewAvgs.length - 1];
+          qualitySummary.worstBrew = { name: nameMap.get(worst.brewId) ?? 'Unbekannt', avgRating: parseFloat(worst.avg.toFixed(1)) };
+        }
+      }
+    }
+  }
+  let offFlavorAlerts = 0;
+  if (brewIds.length > 0) {
+    const { data: offRatings } = await supabase
+      .from('ratings')
+      .select('brew_id, user_id, flavor_tags')
+      .in('brew_id', brewIds)
+      .gte('created_at', since30)
+      .not('flavor_tags', 'is', null);
+
+    const tagPerBrew = new Map<string, Map<string, Set<string>>>();
+    for (const r of offRatings ?? []) {
+      if (!r.brew_id) continue;
+      if (!tagPerBrew.has(r.brew_id)) tagPerBrew.set(r.brew_id, new Map());
+      const tm = tagPerBrew.get(r.brew_id)!;
+      for (const tag of ((r.flavor_tags as string[]) ?? [])) {
+        const n = tag.toLowerCase().trim();
+        if (!offFlavorTagsSet.includes(n)) continue;
+        if (!tm.has(n)) tm.set(n, new Set());
+        if (r.user_id) tm.get(n)!.add(r.user_id);
+      }
+    }
+    for (const [, tm] of tagPerBrew) {
+      for (const [, users] of tm) {
+        if (users.size >= 3) offFlavorAlerts++;
+      }
+    }
+  }
+
   return {
     brewery_name: brewery.name,
-    period_start: periodStart.toISOString().split("T")[0],
-    period_end: periodEnd.toISOString().split("T")[0],
+    period_start: periodStart.toISOString().split('T')[0],
+    period_end: periodEnd.toISOString().split('T')[0],
     summary: {
       total_scans: totalScans,
       unique_visitors: uniqueVisitors,
@@ -330,6 +487,14 @@ export async function generateReportData(
     top_brews: topBrews,
     geographic_data: geographicData,
     device_stats: deviceData,
+    extended: {
+      drinkerRate,
+      newVerifiedDrinkers,
+      topFlavorTag,
+      peakHour,
+      offFlavorAlerts,
+      qualitySummary,
+    },
   };
 }
 
@@ -422,24 +587,37 @@ export async function sendTestReport(breweryId: string, email: string) {
     reportData.summary.total_scans,
     reportData.summary.unique_visitors,
     topBrewsList || '<p style="color:#64748b;font-style:italic">Keine Daten verfügbar</p>',
-    breweryId
+    breweryId,
+    reportData.extended
   );
 
   if (!result.success) {
-    throw new Error("Fehler beim Senden der E-Mail: " + result.error);
+    throw new Error('Fehler beim Senden der E-Mail: ' + result.error);
   }
 
-  // Log it (optional: skip if we don't have settings id easily, or fetch it)
-  /*
-  await supabase.from("analytics_report_logs").insert({
-    brewery_id: breweryId,
-    email_sent_to: email,
-    status: "sent",
-    period_start: reportData.period_start,
-    period_end: reportData.period_end,
-    report_setting_id: "...", // Required but we don't have it here without extra fetch
-  });
-  */
+  // Write log entry (fetch settings id if available)
+  try {
+    const { data: settingsRow } = await supabase
+      .from('analytics_report_settings')
+      .select('id')
+      .eq('brewery_id', breweryId)
+      .single();
+
+    if (settingsRow?.id) {
+      await supabase.from('analytics_report_logs').insert({
+        report_setting_id: settingsRow.id,
+        brewery_id: breweryId,
+        email_sent_to: email,
+        status: 'sent',
+        period_start: reportData.period_start,
+        period_end: reportData.period_end,
+        total_scans: reportData.summary.total_scans,
+        unique_visitors: reportData.summary.unique_visitors,
+      });
+    }
+  } catch {
+    // Non-critical: log failure shouldn't block report delivery
+  }
 
   return { success: true };
 }

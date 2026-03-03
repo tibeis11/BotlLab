@@ -4,7 +4,6 @@ import { User, MessageSquare, Beaker } from 'lucide-react';
 import Link from 'next/link';
 import ReportButton from './ReportButton';
 import PostReplyButton from './PostReplyButton';
-import { getTierConfig } from '@/lib/tier-system';
 import { getTierBorderColor } from '@/lib/premium-config';
 import VoteBar from './VoteBar';
 import type { VoteCounts } from '@/lib/forum-service';
@@ -16,7 +15,6 @@ interface PostAuthor {
     id: string;
     display_name: string | null;
     avatar_url: string | null;
-    tier: string | null;
     joined_at: string | null;
     subscription_tier: string | null;
 }
@@ -24,7 +22,7 @@ interface PostAuthor {
 interface ForumPostData {
     id: string;
     content: string;
-    author_id: string;
+    author_id: string | null;
     thread_id: string;
     parent_id: string | null;
     created_at: string;
@@ -35,7 +33,7 @@ interface ForumPostData {
 
 interface ForumPostProps {
     post: ForumPostData;
-    threadAuthorId: string;
+    threadAuthorId: string | null;
     initialCounts?: VoteCounts;
     initialUserVotes?: string[];
     currentUserId?: string | null;
@@ -71,9 +69,6 @@ export default async function ForumPost({ post, threadAuthorId, initialCounts, i
         }
     }
 
-    // Tier configuration logic
-    const tierConfig = post.author?.tier ? getTierConfig(post.author.tier) : null;
-    const showTierBadge = tierConfig && tierConfig.name !== 'lehrling';
     const tierBorderClass = getTierBorderColor(post.author?.subscription_tier);
 
     const contentToRender = (post.content || '').trim();
@@ -88,7 +83,7 @@ export default async function ForumPost({ post, threadAuthorId, initialCounts, i
                     <Link href={`/brewer/${post.author.id}`}>
                         <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs overflow-hidden bg-zinc-900 border-[1.5px] transition hover:brightness-110 ${tierBorderClass}`}>
                             <img 
-                                src={post.author.avatar_url || getTierConfig(post.author.tier || 'lehrling').avatarPath} 
+                                src={post.author.avatar_url || '/tiers/lehrling.png'} 
                                 alt="" 
                                 className="w-full h-full object-cover" 
                             />
@@ -111,15 +106,6 @@ export default async function ForumPost({ post, threadAuthorId, initialCounts, i
                         </Link>
                     ) : (
                         <span className="font-semibold text-[13px] text-zinc-500 leading-none">Gelöschter Nutzer</span>
-                    )}
-
-                    {showTierBadge && (
-                        <span 
-                            className="text-[9px] uppercase font-bold tracking-wider px-1 py-px rounded bg-black/40 border border-white/5 leading-none"
-                            style={{ color: tierConfig.color }} 
-                        >
-                            {tierConfig.displayName}
-                        </span>
                     )}
 
                     {post.author_id === threadAuthorId && (

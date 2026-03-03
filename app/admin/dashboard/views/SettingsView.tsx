@@ -1,6 +1,7 @@
 
 'use client';
 import AdminPlanSwitcher from '../components/AdminPlanSwitcher';
+import AdminModeSwitcher from '../components/AdminModeSwitcher';
 
 import { useState } from 'react';
 import { triggerAggregation } from '@/lib/actions/analytics-admin-actions';
@@ -38,6 +39,9 @@ export default function SettingsView() {
 
       {/* Admin: Subscription Plan Switcher */}
       <AdminPlanSwitcher />
+
+      {/* Admin: App-Mode Switcher (drinker/brewer) */}
+      <AdminModeSwitcher />
 
       {/* Analytics Data Management */}
       <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800">

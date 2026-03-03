@@ -1,3 +1,5 @@
+'use client';
+
 interface TasteSliderProps {
   id: string;
   label: string;
@@ -29,7 +31,7 @@ export default function TasteSlider({
   return (
     <div className="mb-6">
       <div className="flex justify-between items-center mb-2">
-        <label className="text-sm font-bold text-white">{label}</label>
+        <label htmlFor={id} className="text-sm font-bold text-white">{label}</label>
         <span className={`text-xs font-mono transition-colors ${isSet ? 'text-cyan-400' : 'text-zinc-600'}`}>
           {isSet ? `${value}/10` : '–'}
         </span>
@@ -51,12 +53,17 @@ export default function TasteSlider({
 
          {/* Native Range Input with custom styling */}
          <input
+            id={id}
             type="range"
             min="1"
             max="10"
             step="1"
             value={displayValue}
             onChange={handleChange}
+            aria-label={label}
+            aria-valuemin={1}
+            aria-valuemax={10}
+            aria-valuenow={displayValue}
             className={`
                 w-full absolute opacity-0 z-20 cursor-pointer h-full
             `}

@@ -110,12 +110,14 @@ export default function TeamLayout({
       );
   }
 
+  const isAnalytics = pathname?.includes('/analytics');
+
   return (
     <div className="min-h-screen bg-black text-zinc-200">
       <NotificationProvider>
         {breweryId && <SquadHeader breweryId={breweryId} isMember={isMember} />}
 
-        <main className="max-w-6xl mx-auto px-4 py-8">
+        <main className={isAnalytics ? 'w-full px-4 sm:px-6 lg:px-10 py-8' : 'max-w-6xl mx-auto px-4 py-8'}>
             {/* Context Banner - Simplified since Nav is now in Header */}
             {pathname === `/team/${breweryId}` && (
                 <div className="mb-12 text-center animate-in fade-in slide-in-from-bottom-4 duration-500">

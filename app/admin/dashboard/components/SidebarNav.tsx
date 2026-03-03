@@ -71,6 +71,7 @@ export const NAV_CONFIG: NavSection[] = [
     views: [
       { id: 'botlguide',  label: 'BotlGuide',     Icon: BookOpen },
       { id: 'scans',      label: 'Scan-Analyse',   Icon: QrCode },
+      { id: 'modelhealth', label: 'Model Health',  Icon: Activity },
       { id: 'algorithms', label: 'Algorithmen',    Icon: Settings2 },
     ],
   },
@@ -89,9 +90,10 @@ export const NAV_CONFIG: NavSection[] = [
     label: 'Einstellungen',
     Icon: Wrench,
     views: [
-      { id: 'discover', label: 'Discover',       Icon: Search },
-      { id: 'plans',    label: 'Pläne & Tiers',  Icon: CreditCard },
-      { id: 'admins',   label: 'Admin-Zugänge',  Icon: UserCog },
+      { id: 'discover',    label: 'Discover',       Icon: Search },
+      { id: 'plans',       label: 'Pläne & Tiers',  Icon: CreditCard },
+      { id: 'admins',      label: 'Admin-Zugänge',  Icon: UserCog },
+      { id: 'zweiwelten',  label: 'Zwei Welten',    Icon: Layers },
     ],
   },
 ]

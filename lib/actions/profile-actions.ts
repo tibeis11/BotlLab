@@ -68,6 +68,6 @@ export async function updateProfile(input: ProfileUpdateInput): Promise<ActionRe
     return { error: error.message };
   }
 
-  revalidatePath('/dashboard/account');
+  revalidatePath('/account');
   return { data: { success: true } };
 }

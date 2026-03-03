@@ -9,16 +9,39 @@ import {
   CartesianGrid, 
   Tooltip, 
   ResponsiveContainer,
-  Legend
+  Legend,
+  ReferenceLine
 } from 'recharts';
 import { formatDate } from 'date-fns';
 import { de } from 'date-fns/locale';
 
-interface ScansOverTimeChartProps {
-  data: Record<string, { scans: number; unique: number }>;
+// Phase 10: Event type configuration
+const EVENT_TYPE_CONFIG: Record<string, { emoji: string; label: string; color: string }> = {
+  tasting:  { emoji: '🍻', label: 'Tasting',  color: '#f59e0b' },
+  festival: { emoji: '🎉', label: 'Festival', color: '#ef4444' },
+  party:    { emoji: '🎈', label: 'Party',    color: '#ec4899' },
+  meetup:   { emoji: '🤝', label: 'Meetup',   color: '#8b5cf6' },
+  unknown:  { emoji: '📍', label: 'Event',    color: '#6b7280' },
+};
+
+export interface EventAnnotation {
+  id: string;
+  date: string; // ISO date string (YYYY-MM-DD) matching chart x-axis
+  eventType: string;
+  city: string | null;
+  totalScans: number;
+  uniqueSessions: number;
+  brewerLabel: string | null;
+  confidence: number;
 }
 
-export default function ScansOverTimeChart({ data }: ScansOverTimeChartProps) {
+interface ScansOverTimeChartProps {
+  data: Record<string, { scans: number; unique: number }>;
+  events?: EventAnnotation[];
+  onEventClick?: (eventId: string) => void;
+}
+
+export default function ScansOverTimeChart({ data, events, onEventClick }: ScansOverTimeChartProps) {
   const chartData = useMemo(() => {
     return Object.entries(data)
       .sort((a, b) => new Date(a[0]).getTime() - new Date(b[0]).getTime())
@@ -31,6 +54,18 @@ export default function ScansOverTimeChart({ data }: ScansOverTimeChartProps) {
       }));
   }, [data]);
 
+  // Phase 10: Map events to their chart x-axis formatted dates
+  const eventsByFormattedDate = useMemo(() => {
+    if (!events || events.length === 0) return new Map<string, EventAnnotation>();
+    const map = new Map<string, EventAnnotation>();
+    for (const evt of events) {
+      const evtDate = evt.date.slice(0, 10); // YYYY-MM-DD
+      const formatted = formatDate(new Date(evtDate), 'dd. MMM', { locale: de });
+      map.set(formatted, evt);
+    }
+    return map;
+  }, [events]);
+
   if (chartData.length === 0) {
     return (
       <div className="h-64 flex items-center justify-center text-zinc-500 text-sm">
@@ -41,8 +76,13 @@ export default function ScansOverTimeChart({ data }: ScansOverTimeChartProps) {
 
   return (
     <div className="bg-black rounded-lg p-6 border border-zinc-800">
-      <div className="mb-6">
+      <div className="mb-6 flex items-center justify-between">
         <h3 className="text-zinc-400 text-xs font-medium uppercase tracking-wider">Scans & Besucher Trend</h3>
+        {events && events.length > 0 && (
+          <span className="text-zinc-500 text-[10px] uppercase tracking-wider">
+            📍 {events.length} Event{events.length !== 1 ? 's' : ''} erkannt
+          </span>
+        )}
       </div>
       
       <div className="h-[300px] w-full">
@@ -73,10 +113,12 @@ export default function ScansOverTimeChart({ data }: ScansOverTimeChartProps) {
               allowDecimals={false}
             />
             <Tooltip 
-              content={({ active, payload }) => {
+              content={({ active, payload, label }) => {
                 if (active && payload && payload.length) {
+                  const eventForDate = eventsByFormattedDate.get(label as string);
+                  const config = eventForDate ? (EVENT_TYPE_CONFIG[eventForDate.eventType] || EVENT_TYPE_CONFIG.unknown) : null;
                   return (
-                    <div className="bg-zinc-900 border border-zinc-800 p-3 rounded-lg shadow-xl">
+                    <div className="bg-zinc-900 border border-zinc-800 p-3 rounded-lg shadow-xl max-w-xs">
                       <p className="text-zinc-300 text-xs mb-2 font-medium">{payload[0].payload.fullDate}</p>
                       <div className="space-y-1">
                         <div className="flex items-center gap-2 text-xs">
@@ -90,6 +132,21 @@ export default function ScansOverTimeChart({ data }: ScansOverTimeChartProps) {
                           <span className="text-white font-mono font-medium">{payload[1].value}</span>
                         </div>
                       </div>
+                      {eventForDate && config && (
+                        <div className="mt-2 pt-2 border-t border-zinc-700">
+                          <div className="flex items-center gap-1.5 text-xs">
+                            <span>{config.emoji}</span>
+                            <span className="font-medium" style={{ color: config.color }}>
+                              {eventForDate.brewerLabel || config.label}
+                            </span>
+                          </div>
+                          <div className="text-[10px] text-zinc-500 mt-1 space-y-0.5">
+                            {eventForDate.city && <p>{eventForDate.city}</p>}
+                            <p>{eventForDate.totalScans} Scans • {eventForDate.uniqueSessions} Personen</p>
+                            <p>{config.label} — {Math.round(eventForDate.confidence * 100)}% sicher</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 }
@@ -101,6 +158,30 @@ export default function ScansOverTimeChart({ data }: ScansOverTimeChartProps) {
                iconType="circle"
                formatter={(value) => <span className="text-zinc-400 text-xs font-medium ml-1">{value}</span>}
             />
+
+            {/* Phase 10: Event reference lines */}
+            {events && events.map((evt) => {
+              const formattedDate = formatDate(new Date(evt.date.slice(0, 10)), 'dd. MMM', { locale: de });
+              const config = EVENT_TYPE_CONFIG[evt.eventType] || EVENT_TYPE_CONFIG.unknown;
+              return (
+                <ReferenceLine
+                  key={evt.id}
+                  x={formattedDate}
+                  stroke={config.color}
+                  strokeDasharray="4 4"
+                  strokeWidth={1.5}
+                  label={{
+                    value: config.emoji,
+                    position: 'top',
+                    fontSize: 16,
+                    offset: 8,
+                  }}
+                  onClick={() => onEventClick?.(evt.id)}
+                  style={{ cursor: onEventClick ? 'pointer' : 'default' }}
+                />
+              );
+            })}
+
             <Area 
               type="monotone" 
               dataKey="scans" 

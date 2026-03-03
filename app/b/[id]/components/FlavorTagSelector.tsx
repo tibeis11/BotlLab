@@ -1,3 +1,6 @@
+'use client';
+
+import { useMemo } from 'react';
 import { FLAVOR_TAGS } from "@/lib/rating-config";
 
 interface FlavorTagSelectorProps {
@@ -19,14 +22,14 @@ export default function FlavorTagSelector({
     }
   };
 
-  const groupedTags = FLAVOR_TAGS.reduce(
+  const groupedTags = useMemo(() => FLAVOR_TAGS.reduce(
     (acc, tag) => {
       if (!acc[tag.category]) acc[tag.category] = [];
       acc[tag.category].push(tag);
       return acc;
     },
     {} as Record<string, typeof FLAVOR_TAGS>,
-  );
+  ), []);
 
   return (
     <div className="space-y-4">
@@ -60,6 +63,9 @@ export default function FlavorTagSelector({
                   key={tag.id}
                   onClick={() => toggleTag(tag.id)}
                   disabled={isDisabled}
+                  aria-pressed={isSelected}
+                  aria-disabled={isDisabled ? true : undefined}
+                  title={isDisabled ? `Maximum von ${maxSelection} Tags erreicht` : undefined}
                   className={`
                     px-3 py-2 rounded-xl border-2 font-medium text-sm transition-all
                     flex items-center gap-2

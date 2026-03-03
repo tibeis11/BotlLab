@@ -36,7 +36,7 @@ export default function Home() {
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
               <Link 
-                href="/login" 
+                href="/login?intent=brew" 
                 className="w-full sm:w-auto px-10 py-5 bg-cyan-500 text-black font-black text-lg rounded-2xl hover:bg-cyan-400 hover:scale-105 transition transform shadow-[0_0_40px_-10px_rgba(6,182,212,0.5)]"
               >
                 Kostenlos loslegen
@@ -325,7 +325,7 @@ export default function Home() {
                  Schließe dich hunderten von Brauern an, die ihre Spülbürste gegen smartes Inventar-Management getauscht haben.
               </p>
               <Link 
-                href="/login" 
+                href="/login?intent=brew" 
                 className="inline-block w-full sm:w-auto px-12 py-5 bg-white text-black font-black text-xl rounded-2xl hover:bg-cyan-400 hover:scale-105 transition transform"
               >
                 Account kostenlos erstellen

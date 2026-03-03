@@ -17,7 +17,7 @@ interface PostAuthor {
 interface PostData {
     id: string;
     content: string;
-    author_id: string;
+    author_id: string | null;
     thread_id: string;
     parent_id: string | null;
     created_at: string;
@@ -28,7 +28,7 @@ interface PostData {
 
 interface PostsLoadMoreProps {
     threadId: string;
-    threadAuthorId: string;
+    threadAuthorId: string | null;
     currentUserId: string | null;
     /** Total reply count from the thread (denormalized) */
     totalReplyCount: number;

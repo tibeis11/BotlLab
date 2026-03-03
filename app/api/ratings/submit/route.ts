@@ -11,15 +11,20 @@ export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
         let {
-            brew_id, rating, comment, author_name, ip_address,
+            brew_id, rating, comment, author_name,
             taste_bitterness, taste_sweetness, taste_body, taste_carbonation, taste_acidity,
             flavor_tags, appearance_color, appearance_clarity, aroma_intensity,
             user_id, form_start_time, qr_verified
         } = body;
 
-        if (!brew_id || !rating || !author_name || !ip_address) {
+        if (!brew_id || !rating || !author_name) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
+
+        // IP wird serverseitig aus dem Request-Header gelesen — nie vom Client
+        const ip_address = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+            ?? req.headers.get('x-real-ip')
+            ?? 'unknown';
 
         // --- Spam Protection: Time Check (Invisible Captcha) ---
         // A human usually needs > 2 seconds to check stars and name.

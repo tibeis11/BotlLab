@@ -209,6 +209,7 @@ export default function PrivacyPage() {
               <li>Session-Management (Login-Daten)</li>
               <li>Sicherheitstoken (CSRF-Schutz)</li>
               <li>Lokaler Speicher (sessionStorage) zur Vermeidung von Mehrfacherfassungen bei der Personalisierung (z.B. welche Brews du in der aktuellen Sitzung bereits gesehen hast).</li>
+              <li>Lokaler Speicher (<code>localStorage</code>) zur geräteinternen Duplikat-Prüfung beim Bewerten und Kronkorken-Sammeln: Schlüssel <code>botllab_rated_[BrewID]</code> und <code>botllab_cap_[BrewID]</code>. Diese Daten verlassen dein Gerät nicht, werden an keinen Server übermittelt und stellen kein Tracking-Cookie dar. Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an Spam- und Missbrauchsprävention).</li>
               </ul>
             </div>
             
@@ -222,7 +223,7 @@ export default function PrivacyPage() {
                 Dies geschieht auf Basis unseres berechtigten Interesses (Art. 6 Abs. 1 lit. f DSGVO) an der Bereitstellung eines personalisierten und nutzerfreundlichen Dienstes.
               </p>
               <p>
-                <strong>Widerspruchsrecht:</strong> Du kannst dieser internen Analyse und Personalisierung jederzeit in deinen <a href="/dashboard/account" className="text-brand underline">Kontoeinstellungen</a> widersprechen (Opt-Out).
+                <strong>Widerspruchsrecht:</strong> Du kannst dieser internen Analyse und Personalisierung jederzeit in deinen <a href="/account" className="text-brand underline">Kontoeinstellungen</a> widersprechen (Opt-Out).
               </p>
             </div>
           </div>

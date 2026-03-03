@@ -257,8 +257,6 @@ export default function BrewDetailPage() {
       .select('id')
       .eq('user_id', user.id);
 
-    const tierConfig = getTierConfig(profileData?.tier || 'lehrling');
-    
     // Limits are now on Team/Brewery level, not User.
     // For individual "Remix" actions into a personal context (if supported), we should check the target brewery limit.
     // However, since we now strictly create brews inside a Brewery Context, this "Remix to Personal" flow needs adjustment.
@@ -424,7 +422,7 @@ export default function BrewDetailPage() {
             // Profile laden (Personal)
             const { data: profileData } = await supabase
               .from('profiles')
-              .select('id, display_name, location, bio, logo_url, tier')
+              .select('id, display_name, location, bio, logo_url')
               .eq('id', brewData.user_id)
               .maybeSingle();
             setProfile(profileData);

@@ -9,9 +9,13 @@ import {
     getTasteTimeline
 } from "@/lib/rating-analytics";
 import { ANALYTICS_TIER_FEATURES, type UserTier } from "@/lib/analytics-tier-features";
+import { getConversionRate, getBrewCapClaimRate, getRaterDemographics, getStyleBenchmark } from "@/lib/actions/analytics-actions";
 
 // Components
 import AnalyticsMetricCard from "../../components/AnalyticsMetricCard";
+import DrinkerFunnelCard from "../../components/DrinkerFunnelCard";
+import RaterDemographicsPanel from "../../components/RaterDemographicsPanel";
+import StyleBenchmarkCard from "../../components/StyleBenchmarkCard";
 import TasteProfileRadar from "./components/TasteProfileRadar";
 import TasteEvolutionChart from "./components/TasteEvolutionChart";
 import AttributeStats from "./components/AttributeStats";
@@ -66,6 +70,27 @@ export default async function BrewAnalyticsPage({ params }: { params: { breweryI
   const distribution = await getAttributeDistribution(brewId);
   const timeline = await getTasteTimeline(brewId);
 
+  // Phase 2: funnel data for this brew
+  const [conversionResult, capResult, demographicsResult, benchmarkResult] = await Promise.all([
+    getConversionRate(breweryId, { brewId }),
+    getBrewCapClaimRate(brewId),
+    getRaterDemographics({ brewId }),
+    getStyleBenchmark(brewId),
+  ]);
+  const conversionData = conversionResult.data;
+  const capData = capResult.data;
+  const demographicsData = demographicsResult.data;
+  const benchmarkData = benchmarkResult.data ?? null;
+
+  // Fetch brew-level logged_in_scans from analytics_daily_stats
+  const { data: brewDailyStats } = await supabase
+    .from('analytics_daily_stats')
+    .select('logged_in_scans')
+    .eq('brew_id', brewId);
+  const brewLoggedInScans = (brewDailyStats ?? []).reduce(
+    (sum, row) => sum + ((row as any).logged_in_scans ?? 0), 0
+  );
+
   // Calculate detailed profile stats
   const detailedRatingsCount = ratings.filter(r => r.taste_bitterness !== null).length;
   const completionRate = ratings.length > 0 ? Math.round((detailedRatingsCount / ratings.length) * 100) : 0;
@@ -92,6 +117,17 @@ export default async function BrewAnalyticsPage({ params }: { params: { breweryI
                      </div>
                 </div>
             </div>
+      </div>
+
+      {/* Phase 2: Verified Drinker Funnel (brew-scoped) */}
+      <div className="mb-8">
+        <DrinkerFunnelCard
+          totalScans={conversionData?.totalScans ?? 0}
+          loggedInScans={brewLoggedInScans}
+          verifiedDrinkers={conversionData?.conversions ?? 0}
+          capCollectors={capData?.capCollectors ?? 0}
+          userTier={tier}
+        />
       </div>
 
       {/* Metric Cards */}
@@ -143,7 +179,21 @@ export default async function BrewAnalyticsPage({ params }: { params: { breweryI
              <TasteEvolutionChart data={timeline} />
          </div>
       </div>
-      
+
+      {/* Phase 4: Stil-Benchmark */}
+      <div className="mb-8">
+        <StyleBenchmarkCard benchmark={benchmarkData} userTier={tier} />
+      </div>
+
+      {/* Phase 3: Rater Demographics */}
+      <div className="mb-8">
+        <RaterDemographicsPanel
+          allScanners={demographicsData?.all ?? null}
+          verifiedDrinkers={demographicsData?.verified ?? null}
+          userTier={tier}
+        />
+      </div>
+
       {/* Attribute Distribution (Full Width or Grid) */}
       <div className="mb-8">
            <h3 className="text-zinc-500 text-xs font-medium uppercase tracking-wider mb-4">Detail-Verteilung</h3>

@@ -11,14 +11,16 @@ import {
   type ReportData,
   type ReportFrequency,
 } from "@/lib/actions/report-actions";
-import { Mail, Clock, TrendingUp, Calendar, CheckCircle2, XCircle, Loader2, Eye, Send } from "lucide-react";
+import { Mail, Clock, TrendingUp, Calendar, CheckCircle2, XCircle, Loader2, Eye, Send, Shield, Info } from "lucide-react";
 import CustomSelect from "@/app/components/CustomSelect";
+import { useAuth } from "@/app/context/AuthContext";
 
 type Props = {
   breweryId: string;
 };
 
 export default function ReportSettingsPanel({ breweryId }: Props) {
+  const { user } = useAuth();
   const [settings, setSettings] = useState<ReportSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -27,8 +29,8 @@ export default function ReportSettingsPanel({ breweryId }: Props) {
   const [showPreview, setShowPreview] = useState(false);
   const [logs, setLogs] = useState<any[]>([]);
 
-  // Form state
-  const [enabled, setEnabled] = useState(true);
+  // Form state — default to disabled
+  const [enabled, setEnabled] = useState(false);
   const [frequency, setFrequency] = useState<ReportFrequency>("weekly");
   const [email, setEmail] = useState("");
   const [sendDay, setSendDay] = useState(1);
@@ -40,6 +42,13 @@ export default function ReportSettingsPanel({ breweryId }: Props) {
     loadSettings();
     loadLogs();
   }, [breweryId]);
+
+  // Pre-fill email from auth user if no settings exist yet
+  useEffect(() => {
+    if (!settings && user?.email && !email) {
+      setEmail(user.email);
+    }
+  }, [user, settings]);
 
   async function loadSettings() {
     try {
@@ -140,7 +149,7 @@ export default function ReportSettingsPanel({ breweryId }: Props) {
             <Mail className="w-6 h-6 text-cyan-400" />
           </div>
           <div className="flex-1">
-            <h2 className="text-xl font-bold text-white mb-1">E-Mail Reports</h2>
+            <h2 className="text-sm font-semibold text-white mb-1">E-Mail Reports</h2>
             <p className="text-zinc-400 text-sm">
               Automatische Analytics-Updates direkt in dein Postfach.
             </p>
@@ -151,7 +160,7 @@ export default function ReportSettingsPanel({ breweryId }: Props) {
       {/* Settings Form */}
       <div className="bg-black rounded-lg border border-zinc-800 p-6 sm:p-8">
         <div className="flex items-center justify-between mb-8 pb-4 border-b border-zinc-900">
-             <h3 className="text-base font-bold text-white uppercase tracking-wider">Einstellungen</h3>
+             <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Einstellungen</h3>
              <div className="flex items-center gap-3">
                 <input
                     type="checkbox"
@@ -305,11 +314,11 @@ export default function ReportSettingsPanel({ breweryId }: Props) {
           
 
           {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-zinc-900">
+          <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-zinc-900 max-w-xl">
             <button
               onClick={handleSave}
               disabled={saving}
-              className="flex-1 px-6 py-2.5 bg-white text-black font-bold text-sm rounded-md hover:bg-zinc-200 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              className="px-6 py-2.5 bg-white text-black font-bold text-sm rounded-md hover:bg-zinc-200 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {saving ? (
                 <>
@@ -320,10 +329,10 @@ export default function ReportSettingsPanel({ breweryId }: Props) {
                 "Änderungen speichern"
               )}
             </button>
-            <div className="flex gap-3 w-full sm:w-auto">
+            <div className="flex gap-3">
                 <button
                 onClick={handlePreview}
-                className="flex-1 sm:flex-none px-4 py-2.5 bg-black border border-zinc-800 text-zinc-300 font-medium text-sm rounded-md hover:text-white hover:border-zinc-700 transition-all flex items-center justify-center gap-2"
+                className="px-4 py-2.5 bg-black border border-zinc-800 text-zinc-300 font-medium text-sm rounded-md hover:text-white hover:border-zinc-700 transition-all flex items-center justify-center gap-2"
                 >
                 <Eye className="w-4 h-4" />
                 Vorschau
@@ -331,7 +340,7 @@ export default function ReportSettingsPanel({ breweryId }: Props) {
                 <button
                 onClick={handleSendTest}
                 disabled={sendingTest || !email}
-                className="flex-1 sm:flex-none px-4 py-2.5 bg-black border border-zinc-800 text-zinc-300 font-medium text-sm rounded-md hover:text-white hover:border-zinc-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                className="px-4 py-2.5 bg-black border border-zinc-800 text-zinc-300 font-medium text-sm rounded-md hover:text-white hover:border-zinc-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                 title={!email ? "Bitte E-Mail angeben" : "Test-Bericht jetzt senden"}
                 >
                 {sendingTest ? (
@@ -349,7 +358,7 @@ export default function ReportSettingsPanel({ breweryId }: Props) {
       {/* Report Logs */}
       {logs.length > 0 && (
         <div className="bg-black rounded-lg p-6 border border-zinc-800">
-          <h3 className="text-base font-bold text-white uppercase tracking-wider mb-6">Versand-Historie</h3>
+          <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-6">Versand-Historie</h3>
           <div className="space-y-1">
             {logs.map((log) => (
               <div key={log.id} className="flex items-center gap-4 p-3 hover:bg-zinc-900/50 rounded-lg transition-colors border border-transparent hover:border-zinc-800/50">
@@ -385,6 +394,32 @@ export default function ReportSettingsPanel({ breweryId }: Props) {
         </div>
       )}
 
+      {/* DSGVO / Privacy Compliance Info */}
+      <div className="bg-black rounded-lg border border-zinc-800 p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Shield className="w-4 h-4 text-emerald-400" />
+          <h3 className="text-sm font-semibold text-white">Datenschutz & E-Mail-Versand</h3>
+        </div>
+        <div className="space-y-3 text-xs text-zinc-500 leading-relaxed">
+          <div className="flex items-start gap-2">
+            <Info className="w-3 h-3 text-zinc-600 mt-0.5 shrink-0" />
+            <p><strong className="text-zinc-400">Rechtsgrundlage:</strong> Der Versand erfolgt ausschließlich auf Grundlage deiner ausdrücklichen Einwilligung (Art. 6 Abs. 1 lit. a DSGVO). Du kannst die Einwilligung jederzeit widerrufen.</p>
+          </div>
+          <div className="flex items-start gap-2">
+            <Info className="w-3 h-3 text-zinc-600 mt-0.5 shrink-0" />
+            <p><strong className="text-zinc-400">Dateninhalt:</strong> Die Reports enthalten ausschließlich aggregierte, anonymisierte Analytics-Daten deiner Brauerei. Es werden keine personenbezogenen Daten Dritter übermittelt.</p>
+          </div>
+          <div className="flex items-start gap-2">
+            <Info className="w-3 h-3 text-zinc-600 mt-0.5 shrink-0" />
+            <p><strong className="text-zinc-400">Empfänger:</strong> Die E-Mail wird ausschließlich an die von dir angegebene Adresse versendet. Eine Weitergabe an Dritte findet nicht statt.</p>
+          </div>
+          <div className="flex items-start gap-2">
+            <Info className="w-3 h-3 text-zinc-600 mt-0.5 shrink-0" />
+            <p><strong className="text-zinc-400">Widerruf & Löschung:</strong> Du kannst den Report jederzeit über diese Einstellungen oder den Abmelde-Link in jeder E-Mail deaktivieren. Versandprotokolle werden nach 90 Tagen automatisch gelöscht.</p>
+          </div>
+        </div>
+      </div>
+
       {/* Preview Modal */}
       {showPreview && previewData && (
         <div 
@@ -412,15 +447,15 @@ export default function ReportSettingsPanel({ breweryId }: Props) {
                   <div className="w-32 h-8 bg-zinc-200 mb-6 rounded flex items-center justify-center text-zinc-400 text-xs font-bold uppercase tracking-widest">
                     Logo
                   </div>
-                  <h1 className="text-xl font-bold text-slate-900 mb-2">Dein Analytics Report 📈</h1>
+                  <h1 className="text-xl font-bold text-slate-900 mb-2">Dein Analytics Report</h1>
                   <p className="text-sm text-slate-600 leading-relaxed">
                     Hier ist die Zusammenfassung für <strong>{previewData.brewery_name}</strong> im Zeitraum {new Date(previewData.period_start).toLocaleDateString()} bis {new Date(previewData.period_end).toLocaleDateString()}.
                   </p>
                 </div>
 
                 <div className="p-8">
-                    {/* KPI Cards */}
-                    <div className="grid grid-cols-2 gap-4 mb-8">
+                    {/* KPI Cards Row 1 */}
+                    <div className="grid grid-cols-2 gap-4 mb-6">
                         <div className="bg-white border border-slate-200 rounded-lg p-5 text-center shadow-sm">
                             <p className="text-3xl font-black text-slate-900 m-0">{previewData.summary.total_scans}</p>
                             <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mt-1 m-0">Scans</p>
@@ -430,6 +465,45 @@ export default function ReportSettingsPanel({ breweryId }: Props) {
                             <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mt-1 m-0">Visitors</p>
                         </div>
                     </div>
+
+                    {/* KPI Cards Row 2 — Extended */}
+                    {previewData.extended && (
+                      <div className="grid grid-cols-2 gap-4 mb-8">
+                        <div className="bg-white border border-slate-200 rounded-lg p-5 text-center shadow-sm">
+                            <p className="text-3xl font-black text-emerald-600 m-0">{previewData.extended.drinkerRate.toFixed(1)}%</p>
+                            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mt-1 m-0">Drinker Rate</p>
+                        </div>
+                        <div className="bg-white border border-slate-200 rounded-lg p-5 text-center shadow-sm">
+                            <p className="text-3xl font-black text-violet-600 m-0">{previewData.extended.newVerifiedDrinkers}</p>
+                            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mt-1 m-0">Verified Drinkers</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Quality Summary */}
+                    {previewData.extended?.qualitySummary?.avgRating && (
+                      <div className="mb-6 bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+                        <p className="text-xs font-bold text-emerald-800 uppercase tracking-wider mb-2">Qualitäts-Summary</p>
+                        <div className="grid grid-cols-3 gap-3 text-center">
+                          <div>
+                            <p className="text-2xl font-black text-emerald-700">{previewData.extended.qualitySummary.avgRating}</p>
+                            <p className="text-[10px] text-emerald-600 uppercase">Ø Rating</p>
+                          </div>
+                          {previewData.extended.qualitySummary.bestBrew && (
+                            <div>
+                              <p className="text-sm font-bold text-emerald-700 truncate">{previewData.extended.qualitySummary.bestBrew.name}</p>
+                              <p className="text-[10px] text-emerald-600 uppercase">Bester Sud ({previewData.extended.qualitySummary.bestBrew.avgRating})</p>
+                            </div>
+                          )}
+                          {previewData.extended.qualitySummary.worstBrew && (
+                            <div>
+                              <p className="text-sm font-bold text-amber-700 truncate">{previewData.extended.qualitySummary.worstBrew.name}</p>
+                              <p className="text-[10px] text-amber-600 uppercase">Schwächster ({previewData.extended.qualitySummary.worstBrew.avgRating})</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Top Brews */}
                     {includeTopBrews && previewData.top_brews.length > 0 && (
@@ -459,9 +533,15 @@ export default function ReportSettingsPanel({ breweryId }: Props) {
                     </div>
                 </div>
                 
-                <div className="bg-slate-50 p-6 text-center border-t border-slate-100/50">
+                <div className="bg-slate-50 p-6 text-center border-t border-slate-100/50 space-y-2">
                     <p className="text-[10px] text-slate-400 m-0">
-                    Du erhältst diesen Report basierend auf deinen Einstellungen. <a href="#" className="text-slate-600 underline">Einstellungen ändern</a>
+                      Du erhältst diesen Report, weil du ihn in deinen Analytics-Einstellungen aktiviert hast (Art. 6 Abs. 1 lit. a DSGVO).
+                    </p>
+                    <p className="text-[10px] text-slate-400 m-0">
+                      <a href="#" className="text-slate-600 underline">Einstellungen ändern</a> · <a href="#" className="text-slate-500 underline">Report abbestellen</a>
+                    </p>
+                    <p className="text-[10px] text-slate-400 m-0">
+                      BotlLab · <a href="https://botllab.de/impressum" className="text-slate-400 underline">Impressum</a> · <a href="https://botllab.de/privacy" className="text-slate-400 underline">Datenschutz</a>
                     </p>
                 </div>
               </div>

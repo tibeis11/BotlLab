@@ -28,7 +28,6 @@ import Logo from '../../components/Logo';
 import NotificationBell from '../../components/NotificationBell';
 import { supabase, getActiveBrewery, getUserBreweries } from '@/lib/supabase';
 import { useAuth } from '@/app/context/AuthContext';
-import { getTierConfig } from '@/lib/tier-system';
 import { getBreweryBranding } from '@/lib/actions/premium-actions';
 import { getTierBorderColor } from '@/lib/premium-config';
 
@@ -36,7 +35,7 @@ export default function AdminHeader() {
   const { user, signOut } = useAuth();
   const userId = user?.id;
   const [userName, setUserName] = useState<string | null>(null);
-  const [tierData, setTierData] = useState<{ path: string, color: string, name: string, borderColor: string } | null>(null);
+  const [tierData, setTierData] = useState<{ path: string, borderColor: string } | null>(null);
   const [breweryId, setBreweryId] = useState<string | null>(null);
   const [activeBreweryName, setActiveBreweryName] = useState<string | null>(null);
   const [branding, setBranding] = useState<{ logoUrl: string | null; breweryName: string | null; isPremiumBranding: boolean }>({
@@ -83,7 +82,7 @@ export default function AdminHeader() {
         // Fetch User Profile
         const { data: profile } = await supabase
           .from('profiles')
-          .select('display_name, tier, logo_url, subscription_tier')
+          .select('display_name, logo_url, subscription_tier')
           .eq('id', user.id)
           .single();
           
@@ -91,11 +90,8 @@ export default function AdminHeader() {
         
         if (profile) {
           setUserName(profile.display_name || user.email?.split('@')[0] || 'Brauer');
-          const config = getTierConfig(profile.tier || 'lehrling');
           setTierData({
-              path: profile.logo_url || config.avatarPath,
-              color: config.color,
-              name: config.displayName,
+              path: profile.logo_url || '/tiers/lehrling.png',
               borderColor: getTierBorderColor(profile.subscription_tier)
           });
         }
@@ -384,11 +380,6 @@ export default function AdminHeader() {
                 <span className="truncate max-w-[120px] font-bold text-white text-sm">
                     {userName || 'Profil'}
                 </span>
-                {tierData && (
-                    <span className="text-[9px] font-black uppercase tracking-wider mt-0.5" style={{ color: tierData.color }}>
-                        {tierData.name}
-                    </span>
-                )}
               </div>
             </button>
 
@@ -401,7 +392,7 @@ export default function AdminHeader() {
                   </div>
 
                   <Link 
-                    href="/dashboard/account"
+                    href="/account"
                     className="block w-full px-4 py-3 text-white hover:bg-zinc-800 transition text-sm font-medium flex items-center gap-2"
                   >
                     <Settings className="w-4 h-4" /> Einstellungen
@@ -746,11 +737,10 @@ export default function AdminHeader() {
                         </div>
                         <div>
                             <p className="text-sm font-bold text-white leading-tight">{userName}</p>
-                            <p className="text-[10px] uppercase font-black tracking-wide" style={{ color: tierData.color }}>{tierData.name}</p>
                         </div>
                     </div>
                     <Link
-                       href="/dashboard/account"
+                       href="/account"
                        onClick={() => setIsMobileMenuOpen(false)}
                        className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-white transition"
                     >

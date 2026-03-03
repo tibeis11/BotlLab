@@ -20,7 +20,7 @@ interface PostAuthor {
 interface ClientForumPostData {
     id: string;
     content: string;
-    author_id: string;
+    author_id: string | null;
     thread_id: string;
     parent_id: string | null;
     created_at: string;
@@ -31,7 +31,7 @@ interface ClientForumPostData {
 
 interface ClientForumPostProps {
     post: ClientForumPostData;
-    threadAuthorId: string;
+    threadAuthorId: string | null;
     initialCounts?: VoteCounts;
     initialUserVotes?: string[];
 }

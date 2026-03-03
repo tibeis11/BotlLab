@@ -10,7 +10,6 @@ import { cookies } from 'next/headers';
 import ReplyInput from './ReplyInput';
 import ReportButton from './ReportButton';
 import MarkSolvedButton from './MarkSolvedButton';
-import { getTierConfig } from '@/lib/tier-system';
 import { getTierBorderColor } from '@/lib/premium-config';
 import ForumPost from './ForumPost';
 import PostBranch from './PostBranch';
@@ -26,7 +25,7 @@ import MarkdownContent from '@/app/forum/_components/MarkdownContent';
 import ThreadRightRail from './ThreadRightRail';
 import BrewCommentsBanner from './BrewCommentsBanner';
 
-const POSTS_PAGE_SIZE = 30;
+const POSTS_PAGE_SIZE = 30; 
 
 interface PageProps {
     params: Promise<{ id: string }>;
@@ -214,26 +213,13 @@ export default async function ThreadPage({ params }: PageProps) {
                                     <Link href={`/brewer/${thread.author.id}`} className="flex items-center gap-2.5 group/author">
                                         <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs overflow-hidden bg-zinc-900 border-[1.5px] transition ${tierBorderClass}`}>
                                             <img
-                                                src={thread.author.avatar_url || getTierConfig(thread.author.tier || 'lehrling').avatarPath}
+                                                src={thread.author.avatar_url || '/tiers/lehrling.png'}
                                                 alt="Avatar"
                                                 className="w-full h-full object-cover"
                                             />
                                         </div>
                                         <div className="flex items-baseline gap-1.5">
                                             <span className="font-semibold text-white text-[13px] group-hover/author:text-emerald-400 transition">{thread.author.display_name}</span>
-                                            {(() => {
-                                                if (!thread.author.tier) return null;
-                                                const tierConfig = getTierConfig(thread.author.tier);
-                                                if (tierConfig.name === 'lehrling') return null;
-                                                return (
-                                                    <span
-                                                        className="text-[9px] uppercase font-bold tracking-wider px-1 py-px rounded bg-zinc-900 border border-zinc-800 leading-none"
-                                                        style={{ color: tierConfig.color }}
-                                                    >
-                                                        {tierConfig.displayName}
-                                                    </span>
-                                                );
-                                            })()}
                                             <span className="text-[9px] uppercase font-bold tracking-wider px-1 py-px rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 leading-none">
                                                 OP
                                             </span>

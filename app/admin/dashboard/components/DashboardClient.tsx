@@ -26,6 +26,7 @@ import EmailReportsView from '@/app/admin/dashboard/views/EmailReportsView'
 import BotlguideView from '@/app/admin/dashboard/views/BotlguideView'
 import ScanAnalyticsView from '@/app/admin/dashboard/views/ScanAnalyticsView'
 import AlgorithmsView from '@/app/admin/dashboard/views/AlgorithmsView'
+import ModelAccuracyView from '@/app/admin/dashboard/views/ModelAccuracyView'
 
 // Views — System
 import AlertsView from '@/app/admin/dashboard/views/AlertsView'
@@ -35,6 +36,7 @@ import AuditLogView from '@/app/admin/dashboard/views/AuditLogView'
 import SettingsView from '@/app/admin/dashboard/views/SettingsView'
 import DiscoverView from '@/app/admin/dashboard/views/DiscoverView'
 import AdminAccessView from '@/app/admin/dashboard/views/AdminAccessView'
+import ZweiWeltenView from '@/app/admin/dashboard/views/ZweiWeltenView'
 
 // Server actions for nav badge counts
 import { getUnacknowledgedAlertCount } from '@/lib/actions/analytics-admin-actions'
@@ -68,8 +70,9 @@ function renderView(section: Section, view: string | undefined, role: AdminRole)
   }
 
   if (section === 'product') {
-    if (view === 'scans')      return <ScanAnalyticsView />
-    if (view === 'algorithms') return <AlgorithmsView />
+    if (view === 'scans')       return <ScanAnalyticsView />
+    if (view === 'modelhealth') return <ModelAccuracyView />
+    if (view === 'algorithms')  return <AlgorithmsView />
     return <BotlguideView />     // default: botlguide
   }
 
@@ -80,8 +83,9 @@ function renderView(section: Section, view: string | undefined, role: AdminRole)
   }
 
   if (section === 'settings') {
-    if (view === 'admins')   return <AdminAccessView canWrite={isSuperAdmin} />
-    if (view === 'discover') return <DiscoverView />
+    if (view === 'admins')      return <AdminAccessView canWrite={isSuperAdmin} />
+    if (view === 'discover')   return <DiscoverView />
+    if (view === 'zweiwelten') return <ZweiWeltenView />
     return <SettingsView />      // default: plans
   }
 

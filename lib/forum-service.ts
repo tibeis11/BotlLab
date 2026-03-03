@@ -21,7 +21,7 @@ export async function getRecentThreads(limit = 8, sort: 'new' | 'top' = 'new') {
         .select(`
             *,
             category:forum_categories(title, slug),
-            author:profiles(id, display_name, avatar_url:logo_url, tier, subscription_tier),
+            author:profiles(id, display_name, avatar_url:logo_url, subscription_tier),
             brew:brews(id, name, image_url, moderation_status)
         `)
         .neq('thread_type', 'brew_comments')
@@ -148,7 +148,7 @@ export async function getThreadsByCategory(
         .from('forum_threads')
         .select(`
             *,
-            author:profiles(id, display_name, avatar_url:logo_url, tier, subscription_tier),
+            author:profiles(id, display_name, avatar_url:logo_url, subscription_tier),
             category:forum_categories(title, slug),
             brew:brews(id, name, image_url, moderation_status)
         `)
@@ -189,7 +189,7 @@ export async function getThread(id: string) {
         .from('forum_threads')
         .select(`
             *,
-            author:profiles(id, display_name, avatar_url:logo_url, tier, subscription_tier),
+            author:profiles(id, display_name, avatar_url:logo_url, subscription_tier),
             category:forum_categories(*),
             brew:brews(id, name, image_url, moderation_status, brewery_id, style, brew_type, description, likes_count, brewery:breweries(name))
         `)
@@ -204,7 +204,7 @@ export async function getPosts(threadId: string, limit = 30, offset = 0) {
         .from('forum_posts')
         .select(`
             *,
-            author:profiles(id, display_name, avatar_url:logo_url, tier, joined_at, subscription_tier)
+            author:profiles(id, display_name, avatar_url:logo_url, joined_at, subscription_tier)
         `)
         .eq('thread_id', threadId)
         .order('created_at', { ascending: true })
@@ -328,7 +328,7 @@ export interface SavedItem {
         is_solved?: boolean | null;
         tags?: string[] | null;
         category?: { title: string; slug: string } | null;
-        author?: { id: string; display_name: string; logo_url?: string | null; tier?: string | null; subscription_tier?: string | null } | null;
+        author?: { id: string; display_name: string; logo_url?: string | null; subscription_tier?: string | null } | null;
         brew?: { id: string; name: string; image_url?: string | null; moderation_status?: string | null } | null;
     };
     post?: {
@@ -362,7 +362,7 @@ export async function getUserSavedContent(userId: string): Promise<SavedItem[]> 
         threadIds.length > 0
             ? supabase
                 .from('forum_threads')
-                .select('id, title, content, last_reply_at, reply_count, view_count, is_solved, tags, category:forum_categories(title, slug), author:profiles(id, display_name, logo_url, tier, subscription_tier), brew:brews(id, name, image_url, moderation_status)')
+                .select('id, title, content, last_reply_at, reply_count, view_count, is_solved, tags, category:forum_categories(title, slug), author:profiles(id, display_name, logo_url, subscription_tier), brew:brews(id, name, image_url, moderation_status)')
                 .in('id', threadIds)
             : Promise.resolve({ data: [] }),
         postIds.length > 0

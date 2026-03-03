@@ -659,6 +659,43 @@ export async function updateUserSubscriptionPlan(email: string, plan: string) {
 }
 
 // ============================================================================
+// Admin: Update User App Mode (drinker ↔ brewer)
+// ============================================================================
+export async function updateUserAppMode(email: string, mode: 'drinker' | 'brewer') {
+  try {
+    const adminClient = getServiceRoleClient()
+
+    const { data: { users }, error: listError } = await adminClient.auth.admin.listUsers()
+    if (listError) {
+      console.error('Error listing users:', listError)
+      throw new Error('Fehler bei der Benutzersuche im Auth-System.')
+    }
+
+    const user = users.find(u => u.email?.toLowerCase() === email.toLowerCase())
+    if (!user) {
+      throw new Error('Benutzer mit dieser E-Mail wurde im System nicht gefunden.')
+    }
+
+    const { error: profileError } = await adminClient
+      .from('profiles')
+      .update({ app_mode: mode })
+      .eq('id', user.id)
+
+    if (profileError) {
+      console.error('Error updating app_mode:', profileError)
+      throw new Error('Fehler beim Aktualisieren des App-Modus.')
+    }
+
+    await logAdminAction('update_user_app_mode', user.id, { email, mode })
+
+    return { success: true }
+  } catch (error: any) {
+    console.error('updateUserAppMode error:', error)
+    throw error
+  }
+}
+
+// ============================================================================
 // Audit Logs (for transparency)
 // ============================================================================
 
@@ -1317,4 +1354,359 @@ export async function getScanTrend(days = 7): Promise<{ date: string; scans: num
     result.push({ date: dateStr, scans: map[dateStr] ?? 0 })
   }
   return result
+}
+
+// ============================================================================
+// PHASE 9.8.6 — Model Accuracy Metrics (Scan Intent Classification)
+// ============================================================================
+
+export interface ModelAccuracyMetrics {
+  overall: {
+    accuracy: number;
+    precision: number;
+    recall: number;
+    f1Score: number;
+    totalFeedbacks: number;
+  };
+  perIntent: {
+    intent: string;
+    truePositives: number;
+    trueNegatives: number;
+    falsePositives: number;
+    falseNegatives: number;
+    accuracy: number;
+    precision: number | null;
+    recall: number | null;
+    feedbackCount: number;
+    currentProbability: number;
+    empiricalProbability: number;
+    samplingRate: number;
+    samplingMode: 'standard' | 'maintenance' | 're-learning';
+  }[];
+  calibrationCurve: {
+    bin: number;
+    predicted: number;
+    actual: number;
+    n: number;
+  }[];
+  drift: {
+    date: string;
+    accuracy: number;
+    precision: number;
+    recall: number;
+  }[];
+  alerts: {
+    severity: 'critical' | 'warning' | 'info';
+    message: string;
+    intent?: string;
+    recommendation: string;
+  }[];
+}
+
+// Default probabilities (mirror of analytics-actions.ts INTENT_PROBABILITIES)
+const DEFAULT_PROBS: Record<string, number> = {
+  browse: 0.15,
+  collection_browse: 0.05,
+  repeat: 0.85,
+  event: 0.70,
+  single: 0.50,
+  social_discovery: 0.30,
+  confirmed: 1.00,
+};
+
+// Base sampling rates per intent
+const SAMPLING_RATES: Record<string, number> = {
+  single: 0.20,
+  social_discovery: 0.15,
+  event: 0.10,
+  repeat: 0.05,
+  browse: 0,
+  collection_browse: 0,
+  confirmed: 0,
+};
+
+/**
+ * Phase 9.8.6 — Comprehensive model accuracy metrics for admin dashboard.
+ * Requires admin authentication.
+ */
+export async function getModelAccuracyMetrics(): Promise<ModelAccuracyMetrics | null> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+
+  // Admin check
+  const headersList = await headers()
+  const isAdmin = headersList.get('x-is-admin') === '1'
+  if (!isAdmin) {
+    // Fallback: check profiles table
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+    if ((profile as any)?.role !== 'admin') return null
+  }
+
+  const service = getServiceRoleClient()
+
+  // ── Fetch all feedbacks ───────────────────────────────────────────────
+  const { data: feedbacks, error } = await (service as any)
+    .from('scan_intent_feedback')
+    .select('*')
+    .order('created_at', { ascending: true })
+    .limit(5000)
+
+  if (error || !feedbacks || feedbacks.length === 0) {
+    return {
+      overall: { accuracy: 0, precision: 0, recall: 0, f1Score: 0, totalFeedbacks: 0 },
+      perIntent: [],
+      calibrationCurve: [],
+      drift: [],
+      alerts: [{
+        severity: 'info',
+        message: 'Noch keine Feedback-Daten vorhanden',
+        recommendation: 'Das System sammelt automatisch Feedback über den Drinker-Bestätigungs-Prompt.',
+      }],
+    }
+  }
+
+  // ── Overall metrics ───────────────────────────────────────────────────
+  let tp = 0, tn = 0, fp = 0, fn = 0
+
+  for (const f of feedbacks) {
+    const predicted = (f.predicted_probability ?? 0.5) >= 0.5
+    const actual = f.actual_drinking === true
+
+    if (predicted && actual) tp++
+    else if (predicted && !actual) fp++
+    else if (!predicted && actual) fn++
+    else tn++
+  }
+
+  const total = tp + tn + fp + fn
+  const accuracy = total > 0 ? (tp + tn) / total : 0
+  const precision = (tp + fp) > 0 ? tp / (tp + fp) : 0
+  const recall = (tp + fn) > 0 ? tp / (tp + fn) : 0
+  const f1Score = (precision + recall) > 0
+    ? 2 * (precision * recall) / (precision + recall)
+    : 0
+
+  // ── Per-intent breakdown ──────────────────────────────────────────────
+  const intentMap = new Map<string, { tp: number; tn: number; fp: number; fn: number; count: number; actualDrinkers: number }>()
+
+  for (const f of feedbacks) {
+    const intent = f.predicted_intent ?? 'single'
+    if (!intentMap.has(intent)) intentMap.set(intent, { tp: 0, tn: 0, fp: 0, fn: 0, count: 0, actualDrinkers: 0 })
+    const entry = intentMap.get(intent)!
+    entry.count++
+
+    const predicted = (f.predicted_probability ?? 0.5) >= 0.5
+    const actual = f.actual_drinking === true
+    if (actual) entry.actualDrinkers++
+
+    if (predicted && actual) entry.tp++
+    else if (predicted && !actual) entry.fp++
+    else if (!predicted && actual) entry.fn++
+    else entry.tn++
+  }
+
+  const perIntent = Array.from(intentMap.entries()).map(([intent, m]) => {
+    const iTotal = m.tp + m.tn + m.fp + m.fn
+    const iPrecision = (m.tp + m.fp) > 0 ? m.tp / (m.tp + m.fp) : null
+    const iRecall = (m.tp + m.fn) > 0 ? m.tp / (m.tp + m.fn) : null
+    const iAccuracy = iTotal > 0 ? (m.tp + m.tn) / iTotal : 0
+    const empirical = m.count > 0 ? m.actualDrinkers / m.count : 0
+
+    // Sampling mode logic
+    let samplingMode: 'standard' | 'maintenance' | 're-learning' = 'standard'
+    if (m.count >= 200) samplingMode = 'maintenance'
+    if (iAccuracy < 0.6 && m.count >= 50) samplingMode = 're-learning'
+
+    return {
+      intent,
+      truePositives: m.tp,
+      trueNegatives: m.tn,
+      falsePositives: m.fp,
+      falseNegatives: m.fn,
+      accuracy: Math.round(iAccuracy * 1000) / 1000,
+      precision: iPrecision !== null ? Math.round(iPrecision * 1000) / 1000 : null,
+      recall: iRecall !== null ? Math.round(iRecall * 1000) / 1000 : null,
+      feedbackCount: m.count,
+      currentProbability: DEFAULT_PROBS[intent] ?? 0.5,
+      empiricalProbability: Math.round(empirical * 1000) / 1000,
+      samplingRate: SAMPLING_RATES[intent] ?? 0,
+      samplingMode,
+    }
+  }).sort((a, b) => b.feedbackCount - a.feedbackCount)
+
+  // ── Calibration Curve ─────────────────────────────────────────────────
+  const bins = Array.from({ length: 10 }, (_, i) => ({
+    bin: i / 10,
+    sumPredicted: 0,
+    actualDrinkers: 0,
+    n: 0,
+  }))
+
+  for (const f of feedbacks) {
+    const prob = f.predicted_probability ?? 0.5
+    const binIndex = Math.min(Math.floor(prob * 10), 9)
+    bins[binIndex].sumPredicted += prob
+    bins[binIndex].n++
+    if (f.actual_drinking === true) bins[binIndex].actualDrinkers++
+  }
+
+  const calibrationCurve = bins
+    .filter(b => b.n > 0)
+    .map(b => ({
+      bin: b.bin,
+      predicted: Math.round((b.sumPredicted / b.n) * 1000) / 1000,
+      actual: Math.round((b.actualDrinkers / b.n) * 1000) / 1000,
+      n: b.n,
+    }))
+
+  // ── Temporal Drift (7-day rolling window, last 90 days) ───────────────
+  const drift: { date: string; accuracy: number; precision: number; recall: number }[] = []
+
+  // Group feedbacks by date
+  const byDate = new Map<string, typeof feedbacks>()
+  for (const f of feedbacks) {
+    const d = (f.created_at as string).split('T')[0]
+    if (!byDate.has(d)) byDate.set(d, [])
+    byDate.get(d)!.push(f)
+  }
+
+  const sortedDates = Array.from(byDate.keys()).sort()
+  const ninetyDaysAgo = new Date()
+  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
+  const cutoffStr = ninetyDaysAgo.toISOString().split('T')[0]
+
+  // Generate rolling 7-day windows
+  const recentDates = sortedDates.filter(d => d >= cutoffStr)
+  for (const date of recentDates) {
+    const windowStart = new Date(date)
+    windowStart.setDate(windowStart.getDate() - 6)
+    const windowStartStr = windowStart.toISOString().split('T')[0]
+
+    let wTp = 0, wTn = 0, wFp = 0, wFn = 0
+    for (const [d, items] of byDate.entries()) {
+      if (d >= windowStartStr && d <= date) {
+        for (const f of items) {
+          const predicted = (f.predicted_probability ?? 0.5) >= 0.5
+          const actual = f.actual_drinking === true
+          if (predicted && actual) wTp++
+          else if (predicted && !actual) wFp++
+          else if (!predicted && actual) wFn++
+          else wTn++
+        }
+      }
+    }
+
+    const wTotal = wTp + wTn + wFp + wFn
+    if (wTotal >= 5) { // Minimum window size
+      drift.push({
+        date,
+        accuracy: Math.round(((wTp + wTn) / wTotal) * 1000) / 1000,
+        precision: (wTp + wFp) > 0 ? Math.round((wTp / (wTp + wFp)) * 1000) / 1000 : 0,
+        recall: (wTp + wFn) > 0 ? Math.round((wTp / (wTp + wFn)) * 1000) / 1000 : 0,
+      })
+    }
+  }
+
+  // ── Alerts ────────────────────────────────────────────────────────────
+  const alerts: ModelAccuracyMetrics['alerts'] = []
+
+  // Critical: overall accuracy < 70%
+  if (accuracy < 0.70 && total >= 50) {
+    alerts.push({
+      severity: 'critical',
+      message: `Gesamt-Accuracy bei ${(accuracy * 100).toFixed(1)}% — unter 70%-Schwelle`,
+      recommendation: 'Klassifikationsregeln und Default-Probabilities überprüfen.',
+    })
+  }
+
+  // Per-intent alerts
+  for (const pi of perIntent) {
+    if (pi.feedbackCount < 50) {
+      alerts.push({
+        severity: 'info',
+        message: `'${pi.intent}' hat nur ${pi.feedbackCount} Feedbacks — nicht aussagekräftig`,
+        intent: pi.intent,
+        recommendation: pi.samplingRate > 0
+          ? 'Sampling-Rate temporär erhöhen für mehr Daten.'
+          : 'Hard-Exclude-Kategorie — kein Sampling vorgesehen.',
+      })
+      continue
+    }
+
+    if (pi.accuracy < 0.60) {
+      alerts.push({
+        severity: 'critical',
+        message: `'${pi.intent}' Accuracy nur ${(pi.accuracy * 100).toFixed(1)}% (N=${pi.feedbackCount})`,
+        intent: pi.intent,
+        recommendation: `Default-Probability von ${pi.currentProbability} auf ${pi.empiricalProbability.toFixed(2)} anpassen.`,
+      })
+    } else if (pi.recall !== null && pi.recall < 0.50) {
+      alerts.push({
+        severity: 'warning',
+        message: `'${pi.intent}' Recall nur ${(pi.recall * 100).toFixed(1)}% — viele echte Trinker werden übersehen`,
+        intent: pi.intent,
+        recommendation: `Default-Probability erhöhen (aktuell: ${pi.currentProbability}, empirisch: ${pi.empiricalProbability.toFixed(2)}).`,
+      })
+    } else if (pi.precision !== null && pi.precision < 0.50) {
+      alerts.push({
+        severity: 'warning',
+        message: `'${pi.intent}' Precision nur ${(pi.precision * 100).toFixed(1)}% — viele falsche Positives`,
+        intent: pi.intent,
+        recommendation: 'Klassifikationsregel überprüfen — möglicherweise zu lockere Kriterien.',
+      })
+    }
+  }
+
+  // Drift alert
+  if (drift.length >= 14) {
+    const recent7 = drift.slice(-7)
+    const older = drift.slice(-90, -7)
+    const recentAvg = recent7.reduce((s, d) => s + d.accuracy, 0) / recent7.length
+    const olderAvg = older.reduce((s, d) => s + d.accuracy, 0) / (older.length || 1)
+
+    if (olderAvg - recentAvg > 0.10) {
+      alerts.push({
+        severity: 'critical',
+        message: `Accuracy-Drift erkannt: 7-Tage-Schnitt (${(recentAvg * 100).toFixed(1)}%) liegt ${((olderAvg - recentAvg) * 100).toFixed(1)}pp unter dem Langzeitschnitt`,
+        recommendation: 'Mögliche Ursache: Neue Features, verändertes Nutzerverhalten oder saisonale Effekte.',
+      })
+    }
+  }
+
+  // Cold start info
+  if (total < 200) {
+    alerts.push({
+      severity: 'info',
+      message: `Bootstrap-Modus: Erst ${total}/200 Feedbacks gesammelt`,
+      recommendation: 'Cold-Start-Bonus aktiv — Sampling-Rate ist erhöht. Genauigkeitswerte erst ab 200 Feedbacks verlässlich.',
+    })
+  }
+
+  // Healthy status
+  if (alerts.length === 0) {
+    alerts.push({
+      severity: 'info',
+      message: 'Modell ist gesund — alle Kategorien über 75% Accuracy',
+      recommendation: 'Weiter beobachten. Nächste Überprüfung in 7 Tagen.',
+    })
+  }
+
+  return {
+    overall: {
+      accuracy: Math.round(accuracy * 1000) / 1000,
+      precision: Math.round(precision * 1000) / 1000,
+      recall: Math.round(recall * 1000) / 1000,
+      f1Score: Math.round(f1Score * 1000) / 1000,
+      totalFeedbacks: total,
+    },
+    perIntent,
+    calibrationCurve,
+    drift,
+    alerts,
+  }
 }

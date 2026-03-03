@@ -12,6 +12,14 @@ export const brewSchema = z.object({
   is_public: z.boolean().default(false),
   brewery_id: z.string().uuid("Ungültige Brauerei-ID"),
   data: z.record(z.string(), z.any()).optional().nullable(),
+  flavor_profile: z.object({
+    sweetness: z.number().min(0).max(1),
+    bitterness: z.number().min(0).max(1),
+    body: z.number().min(0).max(1),
+    roast: z.number().min(0).max(1),
+    fruitiness: z.number().min(0).max(1),
+    source: z.enum(['manual', 'data_suggestion', 'botlguide']),
+  }).optional().nullable(),
 });
 
 export type BrewInput = z.infer<typeof brewSchema>;

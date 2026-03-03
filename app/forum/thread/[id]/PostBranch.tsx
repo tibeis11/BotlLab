@@ -10,7 +10,6 @@ interface PostAuthor {
     id: string;
     display_name: string | null;
     avatar_url: string | null;
-    tier: string | null;
     joined_at: string | null;
     subscription_tier: string | null;
 }
@@ -18,7 +17,7 @@ interface PostAuthor {
 export interface ForumPostData {
     id: string;
     content: string;
-    author_id: string;
+    author_id: string | null;
     thread_id: string;
     parent_id: string | null;
     created_at: string;
@@ -31,7 +30,7 @@ interface PostBranchProps {
     post: ForumPostData;
     allPosts: ForumPostData[];
     depth: number;
-    threadAuthorId: string;
+    threadAuthorId: string | null;
     voteCounts: VoteMap;
     userVotesArray: string[];
     currentUserId: string | null;
@@ -53,7 +52,7 @@ export default async function PostBranch({
     brewMap,
 }: PostBranchProps) {
     const children = allPosts.filter(p => p.parent_id === post.id);
-    const childDepth = Math.min(depth + 1, MAX_DEPTH);
+    const childDepth = Math.min(depth + 1, MAX_DEPTH); 
 
     return (
         <div className={depth > 0 ? 'mt-0' : undefined}>
