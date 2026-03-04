@@ -1,7 +1,8 @@
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
 import GuideContent from './content.json';
+import type { BotlGuideCapability, BotlGuideSessionContext } from './types';
 
 // Type for the content keys
 export type BotlGuideKey = keyof typeof GuideContent;
@@ -9,21 +10,33 @@ export type BotlGuideKey = keyof typeof GuideContent;
 interface BotlGuideContextType {
   isOpen: boolean;
   currentKey: BotlGuideKey | null;
-  openGuide: (key: BotlGuideKey) => void;
+  /** Active AI capability selected for this guide session (Stage 1+) */
+  activeCapability: BotlGuideCapability | null;
+  openGuide: (key: BotlGuideKey, capability?: BotlGuideCapability) => void;
   closeGuide: () => void;
   content: typeof GuideContent;
-  sessionContext?: any; // Context for AI generation
+  sessionContext?: BotlGuideSessionContext;
   userTier?: 'free' | 'brewer' | 'brewery' | 'enterprise';
 }
 
 const BotlGuideContext = createContext<BotlGuideContextType | undefined>(undefined);
 
-export function BotlGuideProvider({ children, sessionContext, userTier = 'free' }: { children: ReactNode, sessionContext?: any, userTier?: 'free' | 'brewer' | 'brewery' | 'enterprise' }) {
+export function BotlGuideProvider({
+  children,
+  sessionContext,
+  userTier = 'free',
+}: {
+  children: ReactNode;
+  sessionContext?: BotlGuideSessionContext;
+  userTier?: 'free' | 'brewer' | 'brewery' | 'enterprise';
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const [currentKey, setCurrentKey] = useState<BotlGuideKey | null>(null);
+  const [activeCapability, setActiveCapability] = useState<BotlGuideCapability | null>(null);
 
-  const openGuide = (key: BotlGuideKey) => {
+  const openGuide = (key: BotlGuideKey, capability?: BotlGuideCapability) => {
     setCurrentKey(key);
+    setActiveCapability(capability ?? 'coach.guide');
     setIsOpen(true);
   };
 
@@ -32,7 +45,18 @@ export function BotlGuideProvider({ children, sessionContext, userTier = 'free' 
   };
 
   return (
-    <BotlGuideContext.Provider value={{ isOpen, currentKey, openGuide, closeGuide, content: GuideContent, sessionContext, userTier }}>
+    <BotlGuideContext.Provider
+      value={{
+        isOpen,
+        currentKey,
+        activeCapability,
+        openGuide,
+        closeGuide,
+        content: GuideContent,
+        sessionContext,
+        userTier,
+      }}
+    >
       {children}
     </BotlGuideContext.Provider>
   );

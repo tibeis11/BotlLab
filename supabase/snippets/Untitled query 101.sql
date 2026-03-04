@@ -1,0 +1,1 @@
+SELECT tgname FROM pg_trigger WHERE tgname = 'on_brew_image_change';

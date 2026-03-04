@@ -1,16 +1,20 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Bell, Check, Trash2 } from 'lucide-react';
+import { Bell, Check, Trash2, Sparkles } from 'lucide-react';
 import { useUserNotifications, NotificationItem } from '../context/UserNotificationContext';
 import { formatDistanceToNow } from 'date-fns';
 import { de } from 'date-fns/locale';
 import Link from 'next/link';
+import { useBotlGuideInsights } from '@/lib/hooks/useBotlGuideInsights';
+import { BotlGuideInsightBanner } from './BotlGuideInsight';
 
 export default function NotificationBell() {
   const { notifications, unreadCount, markAsRead, markAllAsRead, deleteNotification } = useUserNotifications();
+  const { insights, dismiss: dismissInsight } = useBotlGuideInsights(3);
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const totalBadge = unreadCount + insights.length;
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -127,9 +131,9 @@ export default function NotificationBell() {
         title="Benachrichtigungen"
       >
         <Bell size={20} />
-        {unreadCount > 0 && (
+        {totalBadge > 0 && (
           <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full shadow-lg border border-black">
-            {unreadCount > 9 ? '9+' : unreadCount}
+            {totalBadge > 9 ? '9+' : totalBadge}
           </span>
         )}
       </button>
@@ -149,6 +153,25 @@ export default function NotificationBell() {
           </div>
           
           <div className="max-h-[60vh] overflow-y-auto">
+            {/* BotlGuide Insights Section */}
+            {insights.length > 0 && (
+              <div className="p-3 space-y-2 border-b border-zinc-900">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Sparkles size={11} className="text-purple-400" />
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-purple-400">BotlGuide</span>
+                </div>
+                {insights.map(insight => (
+                  <BotlGuideInsightBanner
+                    key={insight.id}
+                    insight={insight}
+                    onDismiss={dismissInsight}
+                    compact
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Regular notifications */}
             {notifications.length === 0 ? (
                 <div className="p-8 text-center text-zinc-500 text-sm">
                     Keine Benachrichtigungen.

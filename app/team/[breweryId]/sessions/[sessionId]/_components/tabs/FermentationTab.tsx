@@ -27,6 +27,9 @@ import { de } from 'date-fns/locale';
 import { calculateABVFromSG, platoToSG, sgToPlato } from '@/lib/brewing-calculations';
 import { BotlGuideTrigger } from '@/app/components/BotlGuideTrigger';
 import { BotlGuideKey } from '@/lib/botlguide/BotlGuideContext';
+import { useBotlGuide } from '@/lib/botlguide/hooks/useBotlGuide';
+import { BotlGuidePersonaPill } from '@/app/components/BotlGuideBadge';
+import { BotlGuideResponse } from '@/app/components/BotlGuideResponse';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 const CALIB_TEMP = 20; // °C – standard hydrometer calibration
@@ -120,6 +123,38 @@ export function FermentationTab() {
 
     // ─ Delete confirmation ─
     const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+    // ─ BotlGuide Coach AI ─
+    const coachHook = useBotlGuide();
+    const [activeCoachCap, setActiveCoachCap] = useState<'analyze' | 'predict' | null>(null);
+
+    const handleCoachAnalyze = async (cap: 'analyze' | 'predict') => {
+        setActiveCoachCap(cap);
+        coachHook.reset();
+        const capability = cap === 'analyze' ? 'coach.analyze_fermentation' : 'coach.predict_fg';
+        const measurementPayload = measurements.map(m => ({
+            gravity: m.gravity,
+            temperature: m.temperature,
+            measured_at: m.measured_at,
+            note: m.note,
+        }));
+        await coachHook.generate({
+            capability,
+            context: {
+                brewStyle: session?.brew?.style ?? undefined,
+                brewType: (session?.brew?.brew_type ?? undefined) as import('@/lib/botlguide/types').BotlGuideSessionContext['brewType'],
+                yeast: session?.brew?.recipe_data?.yeast?.name ?? session?.brew?.recipe_data?.yeast ?? undefined,
+                targetOG: session?.measured_og ?? session?.brew?.recipe_data?.og ?? undefined,
+                targetFG: session?.brew?.recipe_data?.fg ?? session?.brew?.recipe_data?.target_fg ?? undefined,
+            },
+            data: {
+                measurements: measurementPayload,
+                ogSG: ogSG ?? undefined,
+                currentABV: currentABV ?? undefined,
+            },
+            cacheKey: `coach_${cap}_${session?.id}_${measurements.length}`,
+        });
+    };
 
     // ─ KPI ─
     const latestM = measurements.length > 0 ? measurements[measurements.length - 1] : null;
@@ -239,6 +274,26 @@ export function FermentationTab() {
                         >°P</button>
                     </div>
                     
+                    {measurements.length >= 2 && (
+                        <>
+                            <button
+                                onClick={() => handleCoachAnalyze('analyze')}
+                                disabled={coachHook.isLoading}
+                                className="text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors border bg-zinc-900 border-zinc-700 text-emerald-400 hover:border-emerald-500/50 hover:text-emerald-300 disabled:opacity-40"
+                            >
+                                <Activity className="w-3.5 h-3.5" />
+                                <span>Analysieren</span>
+                            </button>
+                            <button
+                                onClick={() => handleCoachAnalyze('predict')}
+                                disabled={coachHook.isLoading}
+                                className="text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors border bg-zinc-900 border-zinc-700 text-blue-400 hover:border-blue-500/50 hover:text-blue-300 disabled:opacity-40"
+                            >
+                                <Activity className="w-3.5 h-3.5" />
+                                <span>FG vorhersagen</span>
+                            </button>
+                        </>
+                    )}
                     <button
                         onClick={() => { setShowAddForm(v => !v); setEditingId(null); setConfirmDeleteId(null); }}
                         className={`text-xs font-bold px-4 py-1.5 rounded-lg flex items-center gap-2 transition-colors border ${showAddForm ? 'bg-zinc-800 text-white border-zinc-700' : 'bg-emerald-600 hover:bg-emerald-500 border-transparent text-white'}`}
@@ -281,6 +336,28 @@ export function FermentationTab() {
                     subtext={latestM?.measured_at ? `Zuletzt: ${format(new Date(latestM.measured_at), 'HH:mm')}` : undefined}
                 />
             </div>
+
+            {/* BotlGuide Coach Analysis */}
+            {(coachHook.isLoading || coachHook.text || coachHook.error || coachHook.upgradeRequired) && (
+                <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                        <BotlGuidePersonaPill persona="BotlGuide Coach" />
+                        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+                            {activeCoachCap === 'predict' ? 'FG-Prognose' : 'Gärungsanalyse'}
+                        </span>
+                    </div>
+                    <BotlGuideResponse
+                        text={coachHook.text ?? undefined}
+                        persona="BotlGuide Coach"
+                        capability={activeCoachCap === 'analyze' ? 'coach.analyze_fermentation' : activeCoachCap === 'predict' ? 'coach.predict_fg' : undefined}
+                        isLoading={coachHook.isLoading}
+                        error={coachHook.error ?? undefined}
+                        upgradeRequired={coachHook.upgradeRequired}
+                        creditsUsed={coachHook.lastCreditsUsed ?? undefined}
+                        onRetry={() => activeCoachCap && handleCoachAnalyze(activeCoachCap)}
+                    />
+                </div>
+            )}
 
             {/* Inline Add Form Container */}
             {showAddForm && (

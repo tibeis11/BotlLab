@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
 import PremiumFeatureLock from '@/app/components/PremiumFeatureLock';
 import { SubscriptionTier } from '@/lib/premium-config';
-import { Settings, Bell, Users, Lock, Factory, Mail, ShieldAlert, FlaskConical, Plus, Trash2, Pencil, Check, Star, X, Loader2 } from 'lucide-react';
+import { Settings, Bell, Users, Lock, Factory, Mail, ShieldAlert, FlaskConical, Plus, Trash2, Pencil, Check, Star, X, Loader2, BookOpen } from 'lucide-react';
+import TeamKnowledgeManager from './components/TeamKnowledgeManager';
 import ResponsiveTabs from '@/app/components/ResponsiveTabs';
 import { EquipmentProfile, BREW_METHOD_LABELS } from '@/lib/types/equipment';
 import { dissolveBrewery, transferOwnership, getMembersOwnerStatus } from '@/lib/actions/team-actions';
@@ -21,7 +22,7 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
   const [ownerPremiumTier, setOwnerPremiumTier] = useState<SubscriptionTier>('free');
   
   // Tab State
-  const [activeTab, setActiveTab] = useState<'general' | 'notifications' | 'membership' | 'equipment'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'notifications' | 'membership' | 'equipment' | 'botlguide'>('general');
 
   const router = useRouter();
 
@@ -97,7 +98,8 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
     { id: 'general', label: 'Allgemein', icon: Settings, requiredRole: ['owner', 'admin'] },
     { id: 'equipment', label: 'Brauanlage', icon: FlaskConical, requiredRole: ['owner', 'admin'] },
     { id: 'notifications', label: 'Benachrichtigungen', icon: Bell, requiredRole: ['owner', 'admin', 'member', 'moderator'] },
-    { id: 'membership', label: 'Mitgliedschaft', icon: Users, requiredRole: ['owner', 'admin', 'member', 'moderator'] }
+    { id: 'membership', label: 'Mitgliedschaft', icon: Users, requiredRole: ['owner', 'admin', 'member', 'moderator'] },
+    { id: 'botlguide', label: 'BotlGuide Wissen', icon: BookOpen, requiredRole: ['owner', 'admin'] }
   ];
 
   const filteredItems = menuItems.filter(item => item.requiredRole.includes(userRole));
@@ -156,6 +158,8 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
                     <NotificationSettings breweryId={brewery.id} />
                 ) : activeTab === 'membership' ? (
                     <MembershipSettings breweryId={brewery.id} userRole={userRole} />
+                ) : activeTab === 'botlguide' && isAdmin ? (
+                    <TeamKnowledgeManager breweryId={brewery.id} />
                 ) : (
                     <div className="bg-zinc-900 rounded-lg border border-zinc-800 p-12 text-center flex flex-col items-center">
                         <Lock className="w-12 h-12 text-zinc-700 mb-4" />
@@ -183,6 +187,7 @@ function GeneralSettings({
 }) {
   const supabase = useSupabase();
   const [breweryName, setBreweryName] = useState(brewery.name || "");
+  const [websiteUrl, setWebsiteUrl] = useState(brewery.website || "");
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(brewery.logo_url);
   
@@ -220,6 +225,7 @@ function GeneralSettings({
         .update({
           name: breweryName,
           logo_url: logoUrl,
+          website: websiteUrl.trim() || null,
         })
         .eq('id', brewery.id);
 
@@ -289,6 +295,19 @@ function GeneralSettings({
                             className="w-full px-3 py-2 rounded bg-zinc-900 text-white border border-zinc-800 focus:outline-none focus:border-zinc-600 transition-colors placeholder:text-zinc-700 sm:text-sm"
                             placeholder="E.g. CyberBrew Labs"
                         />
+                    </div>
+
+                    {/* Website / Shop URL */}
+                    <div>
+                        <label className="block text-xs font-medium text-zinc-400 mb-1.5">Website / Shop URL</label>
+                        <input 
+                            type="url"
+                            value={websiteUrl}
+                            onChange={e => setWebsiteUrl(e.target.value)}
+                            className="w-full px-3 py-2 rounded bg-zinc-900 text-white border border-zinc-800 focus:outline-none focus:border-zinc-600 transition-colors placeholder:text-zinc-700 sm:text-sm"
+                            placeholder="https://meine-brauerei.de"
+                        />
+                        <p className="text-xs text-zinc-600 mt-1">Wird als Shop-Link auf dem digitalen Flaschenetikett angezeigt.</p>
                     </div>
                 </div>
               </div>

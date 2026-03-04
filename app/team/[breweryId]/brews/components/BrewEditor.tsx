@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useMemo, type ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ChartBar, Thermometer, Leaf, FlaskConical, FileText, Grape, Wine, Apple, Settings, Hexagon, Citrus, Activity, Gauge, Droplets, Sprout, ScrollText, Tag, Crown, Microscope, Star, RefreshCw, AlertTriangle, Globe, Loader2, Sparkles, Upload, Trash2, Lightbulb, Search, Check, X, Eye, Pencil } from 'lucide-react';
+import { ChartBar, Thermometer, Leaf, FlaskConical, FileText, Grape, Wine, Apple, Settings, Hexagon, Citrus, Activity, Gauge, Droplets, Sprout, ScrollText, Tag, Crown, Microscope, Star, RefreshCw, AlertTriangle, Globe, Loader2, Sparkles, Upload, Trash2, Lightbulb, Search, Check, X, Eye, Pencil, ShieldCheck } from 'lucide-react';
 import ResponsiveTabs from '@/app/components/ResponsiveTabs';
 import { useSupabase } from '@/lib/hooks/useSupabase';
 import { getBreweryTierConfig } from '@/lib/tier-system';
@@ -12,6 +12,7 @@ import { useAchievementNotification } from '@/app/context/AchievementNotificatio
 import { useAuth } from '@/app/context/AuthContext';
 import { addToFeed } from '@/lib/feed-service';
 import CrownCap from '@/app/components/CrownCap';
+import { BotlGuideBadge, BotlGuidePersonaPill } from '@/app/components/BotlGuideBadge';
 import { inferFermentationType, inferMashMethod, inferMashProcess } from '@/lib/brew-type-lookup';
 import CustomSelect from '@/app/components/CustomSelect';
 import { IngredientListEditor } from './IngredientListEditor';
@@ -31,6 +32,7 @@ import LegalConsentModal from '@/app/components/LegalConsentModal';
 import { trackEvent } from '@/lib/actions/analytics-actions'; // This will need to be safe for client side usage or moved to API call wrapper
 import FlavorProfileEditor from './FlavorProfileEditor';
 import type { FlavorProfile } from '@/lib/flavor-profile-config';
+import ReactMarkdown from 'react-markdown';
 
 function formatIngredientsForPrompt(value: any): string {
     if (!value) return '';
@@ -279,8 +281,30 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
     const [generatingDescription, setGeneratingDescription] = useState(false);
     const [generatingLabelPrompt, setGeneratingLabelPrompt] = useState(false);
     const [resultsEditable, setResultsEditable] = useState(false);
+    // Tracks which result fields the user has manually overridden (prevents auto-calc from clobbering them)
+    const manualOverrides = useRef<Set<string>>(new Set());
     const [analyzingRecipe, setAnalyzingRecipe] = useState(false);
     const [optimizationSuggestions, setOptimizationSuggestions] = useState<string[]>([]);
+    // Stage 2 AI state
+    const [suggestingHops, setSuggestingHops] = useState(false);
+    const [hopSuggestions, setHopSuggestions] = useState<string | null>(null);
+    const [loadingPairing, setLoadingPairing] = useState(false);
+    const [pairingResult, setPairingResult] = useState<{ pairings: Array<{ food: string; why: string; emoji: string }>; intro: string } | null>(null);
+    const [generatingSocial, setGeneratingSocial] = useState(false);
+    const [socialResult, setSocialResult] = useState<{ instagram: string; facebook: string } | null>(null);
+    // Stage 3: BJCP check (RAG)
+    const [checkingBjcp, setCheckingBjcp] = useState(false);
+    type BjcpParamCheck = { param: string; value: string; range: string; status: 'ok' | 'low' | 'high' | 'missing' };
+    type BjcpResult = {
+        bjcpStyle: { code: string; name: string; nameDe: string };
+        conformityScore: number;
+        parameterChecks: BjcpParamCheck[];
+        strengths: string[];
+        deviations: string[];
+        improvements: string[];
+        verdict: string;
+    };
+    const [bjcpResult, setBjcpResult] = useState<BjcpResult | null>(null);
     const [message, setMessage] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<'input' | 'label' | 'caps' | 'optimization' | 'ratings' | 'flavor' | 'settings'>('input');
     const [premiumStatus, setPremiumStatus] = useState<PremiumStatus | null>(null);
@@ -497,6 +521,8 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
     ]);
 
     // --- Auto Calculations (Dependent on Batch Size) ---
+    // FIX: Respects manualOverrides — fields the user has explicitly edited are not overwritten.
+    //      og/fg removed from dependency array to prevent feedback loops.
     useEffect(() => {
         if (brew.brew_type !== 'beer' || !brew.data) return;
 
@@ -506,34 +532,29 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 
         const batchSize = safeFloat(d.batch_size_liters);
         const efficiency = safeFloat(d.efficiency || '75');
-        // Note: autoAttenuation logic below might override this locally
 
-        // 1. Calculate OG from Malts
+        // 1. Calculate OG from Malts (skip if user manually overrode OG)
         let calcOG = 0;
         if (Array.isArray(d.malts) && batchSize > 0) {
             calcOG = calculateOG(batchSize, efficiency, d.malts as any[]);
-            const currentOG = safeFloat(d.og);
-
-            // Allow update if diff is significant (> 0.002 to avoid flip-flop)
-            if (calcOG > 0 && Math.abs(calcOG - currentOG) > 0.002) {
-                currentData.og = calcOG.toString();
-                hasChanges = true;
+            if (!manualOverrides.current.has('og')) {
+                const currentOG = safeFloat(d.og);
+                if (calcOG > 0 && Math.abs(calcOG - currentOG) > 0.002) {
+                    currentData.og = calcOG.toString();
+                    hasChanges = true;
+                }
             }
         }
 
         // 2. Max Attenuation from Yeast List
         let autoAttenuation = safeFloat(d.attenuation);
         if (Array.isArray(d.yeast)) {
-            // Find max attenuation from yeast list
             let maxAtt = 0;
             d.yeast.forEach((y: any) => {
                 const v = safeFloat(y.attenuation);
                 if (v > maxAtt) maxAtt = v;
             });
 
-            // If we found a yeast attenuation, use it
-            // If yeast list is empty or has 0 attenuation, we keep existing user input OR 0 ??
-            // Actually, if we have yeast, we should sync. 
             if (maxAtt > 0 && Math.abs(maxAtt - autoAttenuation) > 0.1) {
                 currentData.attenuation = maxAtt.toString();
                 autoAttenuation = maxAtt;
@@ -541,12 +562,9 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
             }
         }
 
-        // 3. FG Calculation (based on OG and Attenuation)
-        // Re-read OG from currentData in case we just updated it
+        // 3. FG Calculation (skip if user manually overrode FG)
         const og = safeFloat(currentData.og || d.og);
-
-        if (og > 0) {
-            // Use the updated attenuation value (autoAttenuation)
+        if (og > 0 && !manualOverrides.current.has('fg')) {
             const calcFG = calculateFG(og, autoAttenuation);
             const currentFG = safeFloat(d.fg);
 
@@ -556,10 +574,9 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
             }
         }
 
-        // 4. ABV Calculation
-        // Uses updated OG/FG 
+        // 4. ABV Calculation (skip if user manually overrode ABV)
         const fg = safeFloat(currentData.fg || d.fg);
-        if (og > 0 && fg > 0 && og > fg) {
+        if (og > 0 && fg > 0 && og > fg && !manualOverrides.current.has('abv')) {
             const calcAbv = calculateABV(og, fg);
             const currentAbv = safeFloat(d.abv);
 
@@ -569,25 +586,23 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
             }
         }
 
-        // 5. Color (EBC) Calculation
-        if (Array.isArray(d.malts) && batchSize > 0) {
+        // 5. Color (EBC) Calculation (skip if user manually overrode color)
+        if (Array.isArray(d.malts) && batchSize > 0 && !manualOverrides.current.has('color')) {
             const calcColor = calculateColorEBC(batchSize, d.malts as any[]);
             const currentColor = safeFloat(d.color);
 
-            // Allow slight tolerance
             if (calcColor > 0 && Math.abs(calcColor - currentColor) > 0.1) {
                 currentData.color = calcColor.toString();
                 hasChanges = true;
             }
         }
 
-        // 6. IBU Calculation
-        if (Array.isArray(d.hops) && batchSize > 0 && og > 0) {
+        // 6. IBU Calculation (skip if user manually overrode IBU)
+        if (Array.isArray(d.hops) && batchSize > 0 && og > 0 && !manualOverrides.current.has('ibu')) {
             const boilTime = d.boil_time ? safeFloat(d.boil_time) : 60;
             const calcIBU = calculateIBU(batchSize, og, d.hops as any[], boilTime);
             const currentIBU = safeFloat(d.ibu);
 
-            // Lower tolerance to 0.1 to keep values in sync with Inspector
             if (calcIBU > 0 && Math.abs(calcIBU - currentIBU) > 0.1) {
                 currentData.ibu = calcIBU.toString();
                 hasChanges = true;
@@ -602,12 +617,8 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 
     }, [
         brew.brew_type,
-        brew.data?.og,
-        brew.data?.fg,
-        // Use length keys or JSON.stringify for deep comparison to avoid ref-change loop
-        // brew.data?.malts, 
-        // brew.data?.hops, 
-        // brew.data?.yeast,
+        // FIX: og/fg REMOVED from dependency array — they are outputs, not inputs.
+        // They were causing an infinite feedback loop where manual edits got overwritten.
         brew.data?.malts?.length,
         JSON.stringify(brew.data?.malts), // Deep check, but safe since small
         brew.data?.hops?.length,
@@ -615,7 +626,8 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
         brew.data?.batch_size_liters,
         brew.data?.yeast?.length,
         brew.data?.attenuation,
-        brew.data?.efficiency
+        brew.data?.efficiency,
+        brew.data?.boil_time
     ]);
     useEffect(() => {
         if (!authLoading) {
@@ -762,6 +774,30 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                 newAchievements.forEach(achievement => showAchievement(achievement));
             }).catch(console.error);
 
+            // Fire-and-forget: BotlGuide RAG — update recipe embedding
+            ;(async () => {
+                try {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+                    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+                    if (!session || !supabaseUrl || !anonKey) return;
+                    await fetch(`${supabaseUrl}/functions/v1/botlguide-embed`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${session.access_token}`,
+                            'apikey': anonKey,
+                        },
+                        body: JSON.stringify({
+                            type: 'user_recipe',
+                            brew_id: data.id,
+                            user_id: user.id,
+                            brewery_id: breweryId,
+                        }),
+                    });
+                } catch { /* non-critical */ }
+            })();
+
             return;
         }
 
@@ -793,6 +829,30 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
             checkAndGrantAchievements(user.id).then(newAchievements => {
                 newAchievements.forEach(achievement => showAchievement(achievement));
             }).catch(console.error);
+
+            // Fire-and-forget: BotlGuide RAG — update recipe embedding
+            ;(async () => {
+                try {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+                    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+                    if (!session || !supabaseUrl || !anonKey) return;
+                    await fetch(`${supabaseUrl}/functions/v1/botlguide-embed`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${session.access_token}`,
+                            'apikey': anonKey,
+                        },
+                        body: JSON.stringify({
+                            type: 'user_recipe',
+                            brew_id: data.id,
+                            user_id: user.id,
+                            brewery_id: breweryId,
+                        }),
+                    });
+                } catch { /* non-critical */ }
+            })();
         }
         setSaving(false);
     }
@@ -971,20 +1031,14 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
     }
 
     /**
-     * Helper to show credit info next to AI buttons
+     * Helper to show BotlGuide credit badge next to AI buttons.
+     * Uses the shared BotlGuideBadge component for consistent branding.
      */
     function AICreditBadge() {
         if (!premiumStatus) return null;
-        const remaining = premiumStatus.features.aiGenerationsRemaining;
-        // JSON.stringify converts Infinity to null, so we check both
-        const isUnlimited = remaining === Infinity || remaining === null;
-
-        return (
-            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ml-1.5 ${isUnlimited || (remaining && remaining > 0) ? 'bg-cyan-500/20 text-cyan-400' : 'bg-red-500/20 text-red-500'
-                }`}>
-                {isUnlimited ? '∞' : remaining} Left
-            </span>
-        );
+        const r = premiumStatus.features.aiGenerationsRemaining;
+        const remaining = r === Infinity ? null : r;
+        return <BotlGuideBadge remaining={remaining} />;
     }
 
     async function handleField<K extends keyof BrewForm>(key: K, value: BrewForm[K]) {
@@ -1026,14 +1080,13 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                 if (d.base) context.push(`Base: ${d.base}`);
             }
 
-            const response = await fetch('/api/generate-text', {
+            const response = await fetch('/api/botlguide', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    type: 'name',
-                    context: context.join(', '),
-                    brewType: brew.brew_type,
-                    style: brew.style
+                    capability: 'copywriter.name',
+                    context: { brewStyle: brew.style, brewType: brew.brew_type },
+                    data: { details: context.join(', ') }
                 })
             });
 
@@ -1112,18 +1165,20 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                 recipeData.yeast = d.yeast;
             }
 
-            const response = await fetch('/api/generate-text', {
+            const response = await fetch('/api/botlguide', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    type: 'optimization',
-                    recipeData
+                    capability: 'architect.optimize',
+                    data: recipeData
                 })
             });
 
             const data = await response.json();
-            if (data.suggestions && Array.isArray(data.suggestions)) {
-                setOptimizationSuggestions(data.suggestions);
+            // New gateway returns suggestions nested under data.data
+            const suggestions = data.data?.suggestions ?? data.suggestions;
+            if (suggestions && Array.isArray(suggestions)) {
+                setOptimizationSuggestions(suggestions);
                 setMessage('Rezept analysiert!');
             } else {
                 setMessage(data.error || 'Analyse fehlgeschlagen.');
@@ -1174,14 +1229,13 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                 if (d.natural_flavors) details.push(`Natural flavors`);
             }
 
-            const response = await fetch('/api/generate-text', {
+            const response = await fetch('/api/botlguide', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    type: 'description',
-                    details: details.join(', '),
-                    brewType: brew.brew_type,
-                    style: brew.style
+                    capability: 'copywriter.description',
+                    context: { brewStyle: brew.style, brewType: brew.brew_type },
+                    data: { details: details.join(', ') }
                 })
             });
 
@@ -1211,19 +1265,160 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
         }
     }
 
+    async function handleCheckBjcp() {
+        if (!brew.style) { setMessage('Bierstil angeben, damit BJCP-Prüfung möglich ist.'); return; }
+        setCheckingBjcp(true);
+        setBjcpResult(null);
+        setMessage(null);
+        try {
+            const response = await fetch('/api/botlguide', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    capability: 'architect.check_bjcp',
+                    context: {
+                        brewStyle: brew.style, brewType: brew.brew_type,
+                        targetOG: brew.data?.og, targetFG: brew.data?.fg,
+                        ibu: brew.data?.ibu, colorEBC: brew.data?.ebc,
+                        abv: brew.abv,
+                    },
+                    data: {
+                        name: brew.name,
+                        style: brew.style,
+                        og: brew.data?.og,
+                        fg: brew.data?.fg,
+                        abv: brew.abv,
+                        ibu: brew.data?.ibu,
+                        ebc: brew.data?.ebc,
+                        malts: formatIngredientsForPrompt(brew.data?.malts ?? []),
+                        hops: formatIngredientsForPrompt(brew.data?.hops ?? []),
+                        yeast: brew.data?.yeast ?? null,
+                    },
+                }),
+            });
+            if (response.status === 402) { setMessage('Keine KI-Credits mehr übrig!'); return; }
+            if (response.status === 403) { setMessage('BJCP-Check ist ab dem Brewery-Abo verfügbar.'); return; }
+            const data = await response.json();
+            if (data.data?.conformityScore !== undefined) setBjcpResult(data.data as BjcpResult);
+            else setMessage(data.error || 'BJCP-Prüfung fehlgeschlagen.');
+        } catch (e: any) {
+            setMessage(e?.message || 'BJCP-Prüfung fehlgeschlagen.');
+        } finally {
+            setCheckingBjcp(false);
+            refreshPremium();
+        }
+    }
+
+    async function handleSuggestHops() {
+        setSuggestingHops(true);
+        setHopSuggestions(null);
+        setMessage(null);
+        try {
+            const existingHops = formatIngredientsForPrompt(brew.data?.hops);
+            const response = await fetch('/api/botlguide', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    capability: 'architect.suggest_hops',
+                    context: { brewStyle: brew.style, brewType: brew.brew_type, ibu: brew.data?.ibu, targetOG: brew.data?.og },
+                    data: {
+                        style: brew.style,
+                        ibu: brew.data?.ibu,
+                        og: brew.data?.og,
+                        malts: formatIngredientsForPrompt(brew.data?.malts),
+                        existingHops,
+                    },
+                }),
+            });
+            if (response.status === 402) { setMessage('Keine KI-Credits mehr übrig!'); return; }
+            const data = await response.json();
+            if (data.text) setHopSuggestions(data.text);
+            else setMessage(data.error || 'Hopfen-Empfehlung fehlgeschlagen.');
+        } catch (e: any) {
+            setMessage(e?.message || 'Hopfen-Empfehlung fehlgeschlagen.');
+        } finally {
+            setSuggestingHops(false);
+            refreshPremium();
+        }
+    }
+
+    async function handleFoodPairing() {
+        setLoadingPairing(true);
+        setPairingResult(null);
+        setMessage(null);
+        try {
+            const response = await fetch('/api/botlguide', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    capability: 'sommelier.pairing',
+                    context: { brewStyle: brew.style, brewType: brew.brew_type, recipeName: brew.name, abv: brew.data?.abv, ibu: brew.data?.ibu },
+                    data: {
+                        name: brew.name,
+                        style: brew.style,
+                        abv: brew.data?.abv,
+                        ibu: brew.data?.ibu,
+                        malts: formatIngredientsForPrompt(brew.data?.malts),
+                        hops: formatIngredientsForPrompt(brew.data?.hops),
+                    },
+                }),
+            });
+            if (response.status === 402) { setMessage('Keine KI-Credits mehr übrig!'); return; }
+            const data = await response.json();
+            if (data.data?.pairings) setPairingResult(data.data as typeof pairingResult);
+            else setMessage(data.error || 'Food Pairing fehlgeschlagen.');
+        } catch (e: any) {
+            setMessage(e?.message || 'Food Pairing fehlgeschlagen.');
+        } finally {
+            setLoadingPairing(false);
+            refreshPremium();
+        }
+    }
+
+    async function handleGenerateSocial() {
+        setGeneratingSocial(true);
+        setSocialResult(null);
+        setMessage(null);
+        try {
+            const response = await fetch('/api/botlguide', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    capability: 'copywriter.social',
+                    context: { brewStyle: brew.style, brewType: brew.brew_type, recipeName: brew.name, abv: brew.data?.abv, ibu: brew.data?.ibu },
+                    data: {
+                        name: brew.name,
+                        style: brew.style,
+                        description: brew.description,
+                        abv: brew.data?.abv,
+                        ibu: brew.data?.ibu,
+                    },
+                }),
+            });
+            if (response.status === 402) { setMessage('Keine KI-Credits mehr übrig!'); return; }
+            const data = await response.json();
+            if (data.data?.instagram || data.data?.facebook) setSocialResult(data.data as typeof socialResult);
+            else setMessage(data.error || 'Social-Post Generierung fehlgeschlagen.');
+        } catch (e: any) {
+            setMessage(e?.message || 'Social-Post Generierung fehlgeschlagen.');
+        } finally {
+            setGeneratingSocial(false);
+            refreshPremium();
+        }
+    }
+
     async function handleGenerateLabelPrompt() {
         setGeneratingLabelPrompt(true);
         setMessage(null);
 
         try {
-            const response = await fetch('/api/generate-text', {
+            const response = await fetch('/api/botlguide', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    type: 'label_prompt',
-                    context: brew.name, // Pass name as context
-                    brewType: brew.brew_type,
-                    style: brew.style
+                    capability: 'copywriter.label_prompt',
+                    context: { brewStyle: brew.style, brewType: brew.brew_type, recipeName: brew.name },
+                    data: {}
                 })
             });
 
@@ -1314,10 +1509,16 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 
             if (!user) throw new Error('Nicht authentifiziert');
 
-            // Note: Trigger will reset moderation status to pending automatically!
+            // Explizit pending setzen (Defense in Depth – zusätzlich zum DB-Trigger)
             const { data, error } = await supabase
                 .from('brews')
-                .update({ image_url: imageUrl })
+                .update({
+                    image_url: imageUrl,
+                    moderation_status: 'pending',
+                    moderated_at: null,
+                    moderated_by: null,
+                    moderation_rejection_reason: null
+                })
                 .eq('id', brew.id)
                 .select()
                 .single();
@@ -1365,15 +1566,22 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
             const { data: urlData } = supabase.storage.from('labels').getPublicUrl(fileName);
             const imageUrl = `${urlData?.publicUrl}?t=${Date.now()}`;
 
+            // Explizit pending setzen (Defense in Depth – zusätzlich zum DB-Trigger)
             const { error } = await supabase
                 .from('brews')
-                .update({ cap_url: imageUrl })
+                .update({
+                    cap_url: imageUrl,
+                    moderation_status: 'pending',
+                    moderated_at: null,
+                    moderated_by: null,
+                    moderation_rejection_reason: null
+                })
                 .eq('id', brew.id);
 
             if (error) throw error;
 
-            setBrew(prev => ({ ...prev, cap_url: imageUrl }));
-            setMessage('Kronkorken-Design hochgeladen!');
+            setBrew(prev => ({ ...prev, cap_url: imageUrl, moderation_status: 'pending', moderation_rejection_reason: null }));
+            setMessage('Kronkorken-Design hochgeladen und wird geprüft!');
         } catch (err: any) {
             setMessage(err.message);
         } finally {
@@ -1675,7 +1883,13 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                 <div className="flex items-center justify-between gap-2 mb-4 border-b border-zinc-800 pb-2">
                                                     <span className="text-[10px] uppercase font-bold text-zinc-500 tracking-widest">Ergebnisse / Prognose</span>
                                                     <button
-                                                        onClick={() => setResultsEditable(!resultsEditable)}
+                                                        onClick={() => {
+                                                            if (resultsEditable) {
+                                                                // Toggling OFF edit mode: clear all manual overrides so auto-calc resumes
+                                                                manualOverrides.current.clear();
+                                                            }
+                                                            setResultsEditable(!resultsEditable);
+                                                        }}
                                                         className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded transition-colors ${resultsEditable ? 'bg-cyan-900/40 text-cyan-400 border border-cyan-800' : 'text-zinc-600 hover:text-zinc-400 border border-transparent hover:border-zinc-800'}`}
                                                     >
                                                         {resultsEditable ? <><Check className="w-3 h-3 inline mr-1" />Fertig</> : <><Pencil className="w-3 h-3 inline mr-1" />Bearbeiten</>}
@@ -1685,7 +1899,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                     <NumberInput
                                                         label="Bittere (IBU)"
                                                         value={brew.data?.ibu || ''}
-                                                        onChange={(val) => updateData('ibu', val)}
+                                                        onChange={(val) => { manualOverrides.current.add('ibu'); updateData('ibu', val); }}
                                                         placeholder="30"
                                                         step={0.1}
                                                         isCalculated={!!brew.data?.hops?.length}
@@ -1697,7 +1911,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                     <NumberInput
                                                         label="Farbe (EBC)"
                                                         value={brew.data?.color || ''}
-                                                        onChange={(val) => updateData('color', val)}
+                                                        onChange={(val) => { manualOverrides.current.add('color'); updateData('color', val); }}
                                                         placeholder="10"
                                                         previewColor={brew.data?.color ? ebcToHex(parseFloat(brew.data.color)) : undefined}
                                                         isCalculated={!!brew.data?.malts?.length}
@@ -1709,7 +1923,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                     <NumberInput
                                                         label="Alkohol (ABV %)"
                                                         value={brew.data?.abv || ''}
-                                                        onChange={(val) => updateData('abv', val)}
+                                                        onChange={(val) => { manualOverrides.current.add('abv'); updateData('abv', val); }}
                                                         placeholder="5.2"
                                                         step={0.1}
                                                         isCalculated={!!brew.data?.og}
@@ -1721,7 +1935,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                     <NumberInput
                                                         label="Stammwürze (°P)"
                                                         value={brew.data?.og || ''}
-                                                        onChange={(val) => updateData('og', val)}
+                                                        onChange={(val) => { manualOverrides.current.add('og'); updateData('og', val); }}
                                                         placeholder="12.0"
                                                         step={0.1}
                                                         isCalculated={!!brew.data?.malts?.length}
@@ -1733,7 +1947,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                     <NumberInput
                                                         label="Restextrakt (°P)"
                                                         value={brew.data?.fg || ''}
-                                                        onChange={(val) => updateData('fg', val)}
+                                                        onChange={(val) => { manualOverrides.current.add('fg'); updateData('fg', val); }}
                                                         placeholder="3.0"
                                                         step={0.1}
                                                         isCalculated={!!brew.data?.og}
@@ -2274,7 +2488,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="text-xs uppercase tracking-[0.2em] text-blue-500 font-medium mb-1">KI-Assistent</p>
+                                        <BotlGuidePersonaPill persona="BotlGuide Architect" className="mb-2" />
                                         <h2 className="text-lg font-bold text-white">Rezept-Optimierung</h2>
                                     </div>
                                     <button
@@ -2314,6 +2528,268 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                         <p className="text-sm text-zinc-500">Noch keine Analyse durchgeführt</p>
                                     </div>
                                 )}
+
+                                {/* ── BotlGuide Architect: Hopfen-Empfehlungen ─────────────────────────── */}
+                                <div className="border-t border-zinc-800/50 pt-6 space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <BotlGuidePersonaPill persona="BotlGuide Architect" className="mb-2" />
+                                            <h3 className="text-base font-bold text-white">Hopfen-Empfehlungen</h3>
+                                            <p className="text-xs text-zinc-500 mt-0.5">Passende Hopfensorten für deinen Stil und dein IBU-Ziel.</p>
+                                        </div>
+                                        <button
+                                            onClick={handleSuggestHops}
+                                            disabled={suggestingHops || !brew.style || premiumStatus?.features.aiGenerationsRemaining === 0}
+                                            className="bg-blue-900/50 hover:bg-blue-900 border border-blue-900 text-blue-100 font-medium px-4 py-2 rounded-md transition disabled:opacity-50 text-sm flex items-center gap-2"
+                                        >
+                                            {suggestingHops ? <><Search size={16} className="animate-spin" /> Analysiere...</> : <><Leaf size={16} /> Hopfen vorschlagen</>}
+                                            <AICreditBadge />
+                                        </button>
+                                    </div>
+                                    {suggestingHops && (
+                                        <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-5 space-y-3 animate-pulse">
+                                            <div className="h-3 bg-zinc-800 rounded w-1/3" />
+                                            <div className="h-3 bg-zinc-800 rounded w-full" />
+                                            <div className="h-3 bg-zinc-800 rounded w-5/6" />
+                                            <div className="h-3 bg-zinc-800 rounded w-2/3" />
+                                            <div className="h-3 bg-zinc-800 rounded w-full" />
+                                            <div className="h-3 bg-zinc-800 rounded w-4/5" />
+                                        </div>
+                                    )}
+                                    {hopSuggestions && !suggestingHops && (
+                                        <div className="bg-black border border-blue-900/30 rounded-xl p-5 space-y-4">
+                                            <div className="prose prose-invert prose-sm max-w-none
+                                                prose-p:text-zinc-300 prose-p:leading-relaxed prose-p:my-0
+                                                prose-strong:text-blue-300 prose-strong:font-semibold
+                                                prose-headings:text-white prose-headings:font-bold
+                                                prose-ol:text-zinc-300 prose-ol:space-y-4 prose-ol:pl-4
+                                                prose-ul:text-zinc-300 prose-ul:pl-4
+                                                prose-li:text-zinc-300 prose-li:leading-relaxed
+                                                [&_ol>li]:border-b [&_ol>li]:border-zinc-800/60 [&_ol>li]:pb-4 [&_ol>li:last-child]:border-0 [&_ol>li:last-child]:pb-0">
+                                                <ReactMarkdown>{hopSuggestions}</ReactMarkdown>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {!hopSuggestions && !suggestingHops && (
+                                        <div className="bg-black border border-dashed border-zinc-800 rounded-lg p-4 text-center">
+                                            <p className="text-xs text-zinc-600">Stil oder IBU-Ziel hinterlegen, dann Empfehlungen generieren.</p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* ── BotlGuide Sommelier: Food Pairing ────────────────────────────────── */}
+                                <div className="border-t border-zinc-800/50 pt-6 space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <BotlGuidePersonaPill persona="BotlGuide Sommelier" className="mb-2" />
+                                            <h3 className="text-base font-bold text-white">Food Pairing</h3>
+                                            <p className="text-xs text-zinc-500 mt-0.5">Welche Gerichte passen am besten zu diesem Getränk?</p>
+                                        </div>
+                                        <button
+                                            onClick={handleFoodPairing}
+                                            disabled={loadingPairing || !brew.style || premiumStatus?.features.aiGenerationsRemaining === 0}
+                                            className="bg-rose-900/40 hover:bg-rose-900/70 border border-rose-900 text-rose-100 font-medium px-4 py-2 rounded-md transition disabled:opacity-50 text-sm flex items-center gap-2"
+                                        >
+                                            {loadingPairing ? <><Search size={16} className="animate-spin" /> Analysiere...</> : <><Sparkles size={16} /> Pairings generieren</>}
+                                            <AICreditBadge />
+                                        </button>
+                                    </div>
+                                    {pairingResult && (
+                                        <div className="bg-black border border-zinc-800 rounded-lg p-4 space-y-3">
+                                            <p className="text-xs text-zinc-400 italic">{pairingResult.intro}</p>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                {pairingResult.pairings.map((p, i) => (
+                                                    <div key={i} className="flex items-start gap-3 bg-zinc-900/50 border border-zinc-800 rounded-lg p-3">
+                                                        <span className="text-xl flex-shrink-0">{p.emoji}</span>
+                                                        <div>
+                                                            <p className="text-sm font-bold text-white">{p.food}</p>
+                                                            <p className="text-xs text-zinc-400 mt-0.5">{p.why}</p>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                    {!pairingResult && !loadingPairing && (
+                                        <div className="bg-black border border-dashed border-zinc-800 rounded-lg p-4 text-center">
+                                            <p className="text-xs text-zinc-600">Stil und Name hinterlegen, dann Pairing-Vorschläge generieren.</p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* ── BotlGuide Copywriter: Social-Media ───────────────────────────────── */}
+                                <div className="border-t border-zinc-800/50 pt-6 space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <BotlGuidePersonaPill persona="BotlGuide Copywriter" className="mb-2" />
+                                            <h3 className="text-base font-bold text-white">Social-Media-Posts</h3>
+                                            <p className="text-xs text-zinc-500 mt-0.5">Instagram- und Facebook-Post für dein Getränk.</p>
+                                        </div>
+                                        <button
+                                            onClick={handleGenerateSocial}
+                                            disabled={generatingSocial || !brew.name || !brew.style || premiumStatus?.features.aiGenerationsRemaining === 0}
+                                            className="bg-amber-900/40 hover:bg-amber-900/70 border border-amber-900 text-amber-100 font-medium px-4 py-2 rounded-md transition disabled:opacity-50 text-sm flex items-center gap-2"
+                                        >
+                                            {generatingSocial ? <><Search size={16} className="animate-spin" /> Schreibe...</> : <><Sparkles size={16} /> Posts generieren</>}
+                                            <AICreditBadge />
+                                        </button>
+                                    </div>
+                                    {socialResult && (
+                                        <div className="space-y-3">
+                                            <div className="bg-black border border-zinc-800 rounded-lg p-4">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <span className="text-[10px] font-bold uppercase tracking-widest text-pink-400">Instagram</span>
+                                                    <button
+                                                        onClick={() => navigator.clipboard.writeText(socialResult.instagram)}
+                                                        className="text-[10px] text-zinc-500 hover:text-white transition flex items-center gap-1"
+                                                    >
+                                                        <Check size={10} /> Kopieren
+                                                    </button>
+                                                </div>
+                                                <p className="text-sm text-zinc-300 whitespace-pre-wrap">{socialResult.instagram}</p>
+                                            </div>
+                                            <div className="bg-black border border-zinc-800 rounded-lg p-4">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <span className="text-[10px] font-bold uppercase tracking-widest text-blue-400">Facebook</span>
+                                                    <button
+                                                        onClick={() => navigator.clipboard.writeText(socialResult.facebook)}
+                                                        className="text-[10px] text-zinc-500 hover:text-white transition flex items-center gap-1"
+                                                    >
+                                                        <Check size={10} /> Kopieren
+                                                    </button>
+                                                </div>
+                                                <p className="text-sm text-zinc-300 whitespace-pre-wrap">{socialResult.facebook}</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {!socialResult && !generatingSocial && (
+                                        <div className="bg-black border border-dashed border-zinc-800 rounded-lg p-4 text-center">
+                                            <p className="text-xs text-zinc-600">Name und Stil hinterlegen, dann Posts generieren.</p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* ── BotlGuide Architect: BJCP-Konformität prüfen (Stage 3 RAG) ──────────────── */}
+                                <div className="border-t border-zinc-800/50 pt-6 space-y-4">
+                                    <div className="flex items-start justify-between">
+                                        <div>
+                                            <BotlGuidePersonaPill persona="BotlGuide Architect" className="mb-2" />
+                                            <h3 className="text-base font-bold text-white">BJCP-Konformität prüfen</h3>
+                                            <p className="text-xs text-zinc-500 mt-0.5">Rezept gegen BJCP 2021 Stilrichtlinien validieren (nur Brewery+).</p>
+                                        </div>
+                                        <button
+                                            onClick={handleCheckBjcp}
+                                            disabled={checkingBjcp || !brew.style || premiumStatus?.features.aiGenerationsRemaining === 0}
+                                            className="bg-indigo-900/50 hover:bg-indigo-900 border border-indigo-800 text-indigo-100 font-medium px-4 py-2 rounded-lg transition disabled:opacity-50 text-sm flex items-center gap-2 flex-shrink-0"
+                                        >
+                                            {checkingBjcp ? <><Search size={14} className="animate-spin" /> Prüfe...</> : <><ShieldCheck size={14} /> Prüfen</>}
+                                            <AICreditBadge />
+                                        </button>
+                                    </div>
+
+                                    {checkingBjcp && (
+                                        <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-5 space-y-3 animate-pulse">
+                                            <div className="h-3 bg-zinc-800 rounded w-1/3" />
+                                            <div className="h-3 bg-zinc-800 rounded w-full" />
+                                            <div className="h-3 bg-zinc-800 rounded w-2/3" />
+                                        </div>
+                                    )}
+
+                                    {bjcpResult && !checkingBjcp && (
+                                        <div className="bg-black border border-indigo-900/30 rounded-xl p-5 space-y-5">
+                                            {/* Header: Style + Score */}
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-400/80">BJCP {bjcpResult.bjcpStyle.code}</span>
+                                                    <p className="text-sm font-bold text-white mt-0.5">{bjcpResult.bjcpStyle.nameDe}</p>
+                                                </div>
+                                                <div className="text-center">
+                                                    <div className={`text-3xl font-black tabular-nums ${
+                                                        bjcpResult.conformityScore >= 80 ? 'text-emerald-400'
+                                                        : bjcpResult.conformityScore >= 55 ? 'text-amber-400' : 'text-red-400'
+                                                    }`}>
+                                                        {bjcpResult.conformityScore}
+                                                    </div>
+                                                    <div className="text-[9px] text-zinc-500 uppercase tracking-wider">/100</div>
+                                                </div>
+                                            </div>
+
+                                            {/* Parameter Checks */}
+                                            {bjcpResult.parameterChecks?.length > 0 && (
+                                                <div>
+                                                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-2">Parameter</p>
+                                                    <div className="space-y-1.5">
+                                                        {bjcpResult.parameterChecks.map((p, i) => (
+                                                            <div key={i} className="flex items-center gap-2 text-xs">
+                                                                <span className={`text-[10px] font-bold w-4 ${p.status === 'ok' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                                                                    {p.status === 'ok' ? '✓' : p.status === 'high' ? '↑' : p.status === 'low' ? '↓' : '?'}
+                                                                </span>
+                                                                <span className="text-zinc-400 w-10 flex-shrink-0">{p.param}</span>
+                                                                <span className="font-mono text-white">{p.value}</span>
+                                                                <span className="text-zinc-600">→ {p.range}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Strengths */}
+                                            {bjcpResult.strengths?.length > 0 && (
+                                                <div>
+                                                    <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400/80 mb-2">Stärken</p>
+                                                    <ul className="space-y-1">
+                                                        {bjcpResult.strengths.map((s, i) => (
+                                                            <li key={i} className="text-xs text-zinc-300 flex items-start gap-2">
+                                                                <span className="text-emerald-400 mt-0.5">+</span>{s}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+
+                                            {/* Deviations */}
+                                            {bjcpResult.deviations?.length > 0 && (
+                                                <div>
+                                                    <p className="text-[10px] font-bold uppercase tracking-widest text-amber-400/80 mb-2">Abweichungen</p>
+                                                    <ul className="space-y-1">
+                                                        {bjcpResult.deviations.map((d, i) => (
+                                                            <li key={i} className="text-xs text-zinc-300 flex items-start gap-2">
+                                                                <span className="text-amber-400 mt-0.5">⚠️</span>{d}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+
+                                            {/* Improvements */}
+                                            {bjcpResult.improvements?.length > 0 && (
+                                                <div>
+                                                    <p className="text-[10px] font-bold uppercase tracking-widest text-blue-400/80 mb-2">Verbesserungen</p>
+                                                    <ul className="space-y-1">
+                                                        {bjcpResult.improvements.map((imp, i) => (
+                                                            <li key={i} className="text-xs text-zinc-300 flex items-start gap-2">
+                                                                <span className="text-blue-400 mt-0.5">→</span>{imp}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+
+                                            {/* Verdict */}
+                                            {bjcpResult.verdict && (
+                                                <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-3">
+                                                    <p className="text-xs text-zinc-400 leading-relaxed italic">{bjcpResult.verdict}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {!bjcpResult && !checkingBjcp && (
+                                        <div className="bg-black border border-dashed border-zinc-800 rounded-lg p-4 text-center">
+                                            <p className="text-xs text-zinc-600">Bierstil hinterlegen, dann BJCP-Konformität prüfen.</p>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         )}
 

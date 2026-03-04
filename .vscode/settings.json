@@ -10,6 +10,7 @@
   "chat.tools.terminal.autoApprove": {
     "true": true,
     "npm i": true,
-    "tsx": true
+    "tsx": true,
+    "npx supabase": true
   }
 }

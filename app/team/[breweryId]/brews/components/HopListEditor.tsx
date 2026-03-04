@@ -9,6 +9,7 @@ export interface Hop {
     alpha?: string;
     time?: string;
     usage?: string; // Boil, Dry Hop, Mash, First Wort, Whirlpool
+    form?: string;  // Pellet, Leaf, Plug
 }
 
 interface HopListEditorProps {
@@ -22,6 +23,12 @@ const USAGE_OPTIONS = [
     { value: 'Whirlpool', label: 'Whirlpool' },
     { value: 'Mash', label: 'Maischen (Mash)' },
     { value: 'First Wort', label: 'Vorderwürze' }
+];
+
+const FORM_OPTIONS = [
+    { value: 'Pellet', label: 'Pellet' },
+    { value: 'Leaf', label: 'Dolden' },
+    { value: 'Plug', label: 'Plug' },
 ];
 
 export function HopListEditor({ value, onChange }: HopListEditorProps) {
@@ -178,6 +185,16 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
                                     placement="top"
                                 />
                             </div>
+
+                            <div className="space-y-1">
+                                <label className="text-[10px] uppercase font-bold text-zinc-500">Form</label>
+                                <CustomSelect 
+                                    value={items[editingIndex].form || 'Pellet'}
+                                    onChange={(val) => updateRow(editingIndex, 'form', val)}
+                                    options={FORM_OPTIONS}
+                                    placement="top"
+                                />
+                            </div>
                         </div>
 
                         <div className="p-4 border-t border-zinc-800 bg-zinc-900 shrink-0 flex gap-3">
@@ -237,6 +254,11 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
                                                {item.alpha}%
                                             </span>
                                         )}
+                                        {item.form && item.form !== 'Pellet' && (
+                                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-zinc-900 text-zinc-400 border border-zinc-800">
+                                               {item.form}
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -255,19 +277,20 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
                 {/* Desktop View (Table) */}
                 <div className="hidden md:block">
                     {items.length > 0 && (
-                        <div className="grid grid-cols-[60px_50px_1fr_60px_60px_80px_30px] gap-2 mb-2 text-[10px] uppercase font-bold text-zinc-600">
+                        <div className="grid grid-cols-[60px_50px_1fr_60px_60px_80px_70px_30px] gap-2 mb-2 text-[10px] uppercase font-bold text-zinc-600">
                             <div>Menge</div>
                             <div title="Einheit">Einh.</div>
                             <div>Sorte</div>
                             <div title="Alpha-Säure %">Alpha %</div>
                             <div title="Kochzeit / Dauer">Min</div>
                             <div>Typ</div>
+                            <div>Form</div>
                             <div></div>
                         </div>
                     )}
 
                     {items.map((item, idx) => (
-                        <div key={idx} className="grid grid-cols-[60px_50px_1fr_60px_60px_80px_30px] gap-2 items-center animate-in fade-in slide-in-from-top-1 duration-200">
+                        <div key={idx} className="grid grid-cols-[60px_50px_1fr_60px_60px_80px_70px_30px] gap-2 items-center animate-in fade-in slide-in-from-top-1 duration-200">
                             <input 
                                 type="text"
                                 inputMode="decimal"
@@ -317,6 +340,17 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
                                     { value: 'Whirlpool', label: 'Whirlpool' },
                                     { value: 'Mash', label: 'Maische' },
                                     { value: 'First Wort', label: 'Vorderwürze' },
+                                ]}
+                            />
+                            <CustomSelect
+                                value={item.form || 'Pellet'}
+                                onChange={(val) => updateRow(idx, 'form', val)}
+                                variant="zinc"
+                                size="sm"
+                                options={[
+                                    { value: 'Pellet', label: 'Pellet' },
+                                    { value: 'Leaf', label: 'Dolden' },
+                                    { value: 'Plug', label: 'Plug' },
                                 ]}
                             />
                             <button 

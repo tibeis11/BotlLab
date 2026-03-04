@@ -254,45 +254,47 @@ export default function FlavorProfileEditor({
         return;
       }
 
-      const response = await fetch('/api/generate-text', {
+      const response = await fetch('/api/botlguide', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'flavor_profile', recipeData: recipePayload }),
+        body: JSON.stringify({ capability: 'sommelier.flavor_profile', data: recipePayload }),
       });
 
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
         if (response.status === 402) {
-          setSuggestionError('AI-Credit-Limit erreicht. Upgrade für mehr BotlGuide-Analysen.');
+          setSuggestionError('AI-Credit-Limit erreicht. Upgrade für mehr BotlGuide Sommelier-Analysen.');
         } else {
-          setSuggestionError(err.error || 'BotlGuide-Analyse fehlgeschlagen.');
+          setSuggestionError(err.error || 'BotlGuide Sommelier-Analyse fehlgeschlagen.');
         }
         setIsSuggesting(false);
         return;
       }
 
       const result = await response.json();
+      // New gateway wraps structured data under result.data
+      const profileData = result.data ?? result;
 
-      if (result.profile) {
+      if (profileData.profile) {
         const clamp = (v: unknown) => {
           const n = typeof v === 'number' ? v : parseFloat(String(v));
           return isNaN(n) ? 0.5 : Math.max(0, Math.min(1, n));
         };
 
         const profile: FlavorProfile = {
-          sweetness: clamp(result.profile.sweetness),
-          bitterness: clamp(result.profile.bitterness),
-          body: clamp(result.profile.body),
-          roast: clamp(result.profile.roast),
-          fruitiness: clamp(result.profile.fruitiness),
+          sweetness: clamp(profileData.profile.sweetness),
+          bitterness: clamp(profileData.profile.bitterness),
+          body: clamp(profileData.profile.body),
+          roast: clamp(profileData.profile.roast),
+          fruitiness: clamp(profileData.profile.fruitiness),
           source: 'botlguide',
         };
 
         onChange(profile);
         setIsEditing(true);
-        setSuggestionExplanation(result.explanation || 'BotlGuide hat dein Rezept analysiert.');
+        setSuggestionExplanation(profileData.explanation || 'BotlGuide Sommelier hat dein Rezept analysiert.');
       } else {
-        setSuggestionError('BotlGuide konnte kein Profil generieren.');
+        setSuggestionError('BotlGuide Sommelier konnte kein Profil generieren.');
       }
     } catch (err: any) {
       console.error('[FlavorProfileEditor] suggest error:', err);

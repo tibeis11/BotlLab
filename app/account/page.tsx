@@ -16,7 +16,7 @@ import { SubscriptionTier } from '@/lib/premium-config';
 import { redeemCode } from '@/lib/actions/premium-actions';
 import ResponsiveTabs from '@/app/components/ResponsiveTabs';
 import { AppMode } from '@/lib/types/user-mode';
-import { User, CreditCard, Users, Key, ShieldCheck, Eye, AlertTriangle, Menu, Settings, Lock, Mail, ShieldAlert, Loader2, Construction, Check, CheckCircle, Infinity, X, Globe, Home, Factory, ArrowRight, LogOut, BarChart3 } from 'lucide-react';
+import { User, CreditCard, Users, Key, ShieldCheck, Eye, AlertTriangle, Menu, Settings, Lock, Mail, ShieldAlert, Loader2, Construction, Check, CheckCircle, Infinity, X, Globe, Home, Factory, ArrowRight, LogOut, BarChart3, Sparkles } from 'lucide-react';
 
 export default function AccountPage() {
 	const { user, loading: authLoading, signOut } = useAuth();
@@ -50,6 +50,7 @@ export default function AccountPage() {
         birthdate?: string,
         website: string,
         analytics_opt_out: boolean,
+        botlguide_insights_enabled: boolean,
         subscription_tier: SubscriptionTier,
         subscription_status: string
     }>({
@@ -60,6 +61,7 @@ export default function AccountPage() {
         birthdate: '',
 		website: '',
         analytics_opt_out: false,
+        botlguide_insights_enabled: true,
         subscription_tier: 'free',
         subscription_status: 'active'
 	});
@@ -143,6 +145,7 @@ export default function AccountPage() {
                     birthdate: data.birthdate ? (typeof data.birthdate === 'string' ? data.birthdate.split('T')[0] : new Date(data.birthdate).toISOString().split('T')[0]) : '',
 				website: data.website || '',
                 analytics_opt_out: data.analytics_opt_out || false,
+                botlguide_insights_enabled: data.botlguide_insights_enabled !== false,
                 subscription_tier: (data.subscription_tier as SubscriptionTier) || 'free',
                 subscription_status: data.subscription_status || 'active'
 			});
@@ -423,18 +426,27 @@ export default function AccountPage() {
     async function togglePrivacy() {
         if (!user) return;
         const newVal = !profile.analytics_opt_out;
-        
-        // Optimistic UI update
         setProfile(prev => ({ ...prev, analytics_opt_out: newVal }));
-        
         const { error } = await supabase
             .from('profiles')
             .update({ analytics_opt_out: newVal })
             .eq('id', user.id);
-            
         if (error) {
-            // Revert on error
             setProfile(prev => ({ ...prev, analytics_opt_out: !newVal }));
+            alert('Fehler beim Speichern der Einstellung: ' + error.message);
+        }
+    }
+
+    async function toggleBotlGuideInsights() {
+        if (!user) return;
+        const newVal = !profile.botlguide_insights_enabled;
+        setProfile(prev => ({ ...prev, botlguide_insights_enabled: newVal }));
+        const { error } = await supabase
+            .from('profiles')
+            .update({ botlguide_insights_enabled: newVal })
+            .eq('id', user.id);
+        if (error) {
+            setProfile(prev => ({ ...prev, botlguide_insights_enabled: !newVal }));
             alert('Fehler beim Speichern der Einstellung: ' + error.message);
         }
     }
@@ -1167,6 +1179,33 @@ export default function AccountPage() {
                                     
                                     <div className="text-xs text-zinc-500 pt-6 border-t border-zinc-800">
                                         Mehr Details findest du in unserer <Link href="/privacy" className="text-zinc-400 underline hover:text-white">Datenschutzerklärung</Link>.
+                                    </div>
+
+                                    {/* BotlGuide Insights Toggle */}
+                                    <div className="flex items-start gap-4 pt-6 border-t border-zinc-800">
+                                        <div className="p-3 bg-purple-500/10 rounded-lg border border-purple-500/20 text-purple-400">
+                                            <Sparkles className="w-6 h-6" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <h3 className="font-bold text-white mb-1">BotlGuide Proaktive Insights</h3>
+                                            <p className="text-zinc-400 text-sm leading-relaxed mb-4">
+                                                BotlGuide beobachtet automatisch deine aktiven Gärungen und warnt dich, wenn sich etwas Ungewöhnliches tut (z.B. Stuck Fermentation, Temperatur-Anomalien). Nur für Brewery+ verfügbar.
+                                            </p>
+                                            <label className="flex items-center gap-3 cursor-pointer group">
+                                                <div className="relative">
+                                                    <input
+                                                        type="checkbox"
+                                                        className="peer sr-only"
+                                                        checked={profile.botlguide_insights_enabled}
+                                                        onChange={toggleBotlGuideInsights}
+                                                    />
+                                                    <div className="w-11 h-6 bg-zinc-700 rounded-full peer-checked:bg-purple-500 peer-focus:ring-4 peer-focus:ring-purple-500/30 transition-all after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
+                                                </div>
+                                                <span className={`font-bold text-sm ${profile.botlguide_insights_enabled ? 'text-white' : 'text-zinc-500'}`}>
+                                                    {profile.botlguide_insights_enabled ? 'Aktiviert' : 'Deaktiviert'}
+                                                </span>
+                                            </label>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

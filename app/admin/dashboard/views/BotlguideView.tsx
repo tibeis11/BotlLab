@@ -4,21 +4,25 @@ import { useState, useEffect } from 'react'
 import {
   getBotlguideFeedback,
   getBotlguideFeedbackStats,
+  getBotlguideUsageStats,
   type BotlguideFeedbackItem,
   type BotlguideFeedbackStats,
+  type BotlguideUsageStats,
 } from '@/lib/actions/analytics-admin-actions'
 import DateRangePicker from '../components/DateRangePicker'
 import MetricCard from '../components/MetricCard'
 import BarChart from '../components/charts/BarChart'
 import { DateRange } from '@/lib/types/admin-analytics'
-import { ThumbsUp, ThumbsDown, BookOpen } from 'lucide-react'
+import { ThumbsUp, ThumbsDown, BookOpen, Zap, Clock, AlertTriangle as AlertTriangleIcon, Users, TrendingUp } from 'lucide-react'
 
 export default function BotlguideView() {
   const [dateRange, setDateRange] = useState<DateRange>('30d')
   const [stats, setStats] = useState<BotlguideFeedbackStats | null>(null)
+  const [usageStats, setUsageStats] = useState<BotlguideUsageStats | null>(null)
   const [items, setItems] = useState<BotlguideFeedbackItem[]>([])
   const [loading, setLoading] = useState(true)
   const [showGenerated, setShowGenerated] = useState<string | null>(null)
+  const [activeSection, setActiveSection] = useState<'usage' | 'feedback'>('usage')
 
   useEffect(() => {
     loadData()
@@ -27,12 +31,14 @@ export default function BotlguideView() {
   async function loadData() {
     setLoading(true)
     try {
-      const [statsData, itemsData] = await Promise.all([
+      const [statsData, itemsData, usageData] = await Promise.all([
         getBotlguideFeedbackStats(dateRange),
         getBotlguideFeedback(dateRange, 100),
+        getBotlguideUsageStats(dateRange),
       ])
       setStats(statsData)
       setItems(itemsData)
+      setUsageStats(usageData)
     } catch (e) {
       console.error(e)
     } finally {
@@ -62,13 +68,216 @@ export default function BotlguideView() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <BookOpen className="w-5 h-5 text-cyan-400" />
-            <h2 className="text-2xl font-black text-white">BotlGuide Feedback</h2>
+            <h2 className="text-2xl font-black text-white">BotlGuide Analytics</h2>
           </div>
-          <p className="text-zinc-500 text-sm">Nutzer-Feedback zu KI-generierten Brau-Erklärungen</p>
+          <p className="text-zinc-500 text-sm">Usage, Performance & Feedback-Monitoring</p>
         </div>
-        <DateRangePicker value={dateRange} onChange={setDateRange} />
+        <div className="flex items-center gap-3">
+          <div className="flex bg-zinc-800 rounded-lg p-0.5">
+            <button
+              onClick={() => setActiveSection('usage')}
+              className={`px-3 py-1.5 rounded text-xs font-bold transition-colors ${
+                activeSection === 'usage' ? 'bg-purple-600 text-white' : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              <Zap className="w-3 h-3 inline mr-1" />Usage
+            </button>
+            <button
+              onClick={() => setActiveSection('feedback')}
+              className={`px-3 py-1.5 rounded text-xs font-bold transition-colors ${
+                activeSection === 'feedback' ? 'bg-purple-600 text-white' : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              <ThumbsUp className="w-3 h-3 inline mr-1" />Feedback
+            </button>
+          </div>
+          <DateRangePicker value={dateRange} onChange={setDateRange} />
+        </div>
       </div>
 
+      {/* ══ USAGE SECTION ═════════════════════════════════════════════════════ */}
+      {activeSection === 'usage' && (
+        <>
+          {/* Usage KPI Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <MetricCard
+              title="API Calls"
+              value={(usageStats?.totalCalls || 0).toLocaleString()}
+              icon="⚡"
+              loading={loading}
+            />
+            <MetricCard
+              title="Credits verbraucht"
+              value={(usageStats?.totalCredits || 0).toLocaleString()}
+              icon="🪙"
+              loading={loading}
+            />
+            <MetricCard
+              title="Unique Users"
+              value={(usageStats?.uniqueUsers || 0).toLocaleString()}
+              icon="👤"
+              loading={loading}
+            />
+            <MetricCard
+              title="P95 Response"
+              value={usageStats?.p95ResponseMs ? `${(usageStats.p95ResponseMs / 1000).toFixed(1)}s` : '–'}
+              icon={usageStats?.p95ResponseMs && usageStats.p95ResponseMs > 10000 ? '🔴' : '🟢'}
+              loading={loading}
+            />
+          </div>
+
+          {/* Performance Overview */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-5">
+              <h3 className="text-sm font-semibold text-zinc-400 mb-3 flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5" /> Response Times
+              </h3>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-zinc-500">Durchschnitt</span>
+                  <span className="text-sm font-bold text-white">
+                    {usageStats?.avgResponseMs ? `${(usageStats.avgResponseMs / 1000).toFixed(1)}s` : '–'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-zinc-500">Median (P50)</span>
+                  <span className="text-sm font-bold text-white">
+                    {usageStats?.p50ResponseMs ? `${(usageStats.p50ResponseMs / 1000).toFixed(1)}s` : '–'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-zinc-500">P95</span>
+                  <span className={`text-sm font-bold ${
+                    usageStats?.p95ResponseMs && usageStats.p95ResponseMs > 10000 ? 'text-red-400' : 'text-green-400'
+                  }`}>
+                    {usageStats?.p95ResponseMs ? `${(usageStats.p95ResponseMs / 1000).toFixed(1)}s` : '–'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-5">
+              <h3 className="text-sm font-semibold text-zinc-400 mb-3 flex items-center gap-1.5">
+                <AlertTriangleIcon className="w-3.5 h-3.5" /> Error Rate
+              </h3>
+              <div className="flex items-center gap-3">
+                <div className="flex-1 bg-zinc-800 rounded-full h-3 overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${
+                      (usageStats?.errorRate || 0) > 5 ? 'bg-red-500' : 'bg-green-500'
+                    }`}
+                    style={{ width: `${Math.min(usageStats?.errorRate || 0, 100)}%` }}
+                  />
+                </div>
+                <span className={`text-sm font-bold ${
+                  (usageStats?.errorRate || 0) > 5 ? 'text-red-400' : 'text-green-400'
+                }`}>
+                  {usageStats?.errorRate ?? 0}%
+                </span>
+              </div>
+              {/* Top Errors */}
+              {usageStats?.topErrors && usageStats.topErrors.length > 0 && (
+                <div className="mt-3 space-y-1">
+                  <p className="text-[10px] text-zinc-500 uppercase tracking-wider">Top Errors</p>
+                  {usageStats.topErrors.slice(0, 3).map((e, i) => (
+                    <div key={i} className="text-xs text-red-300/70 truncate">
+                      {e.capability}: {e.errorMessage} ({e.count}x)
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-5">
+              <h3 className="text-sm font-semibold text-zinc-400 mb-3 flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5" /> Team RAG Usage
+              </h3>
+              {usageStats?.teamRagUsage && usageStats.teamRagUsage.length > 0 ? (
+                <div className="space-y-2">
+                  {usageStats.teamRagUsage.slice(0, 5).map((t, i) => (
+                    <div key={i} className="flex justify-between items-center text-xs">
+                      <span className="text-zinc-400 font-mono truncate max-w-[120px]">{t.breweryId.slice(0, 8)}…</span>
+                      <span className="text-white">{t.calls} calls / {t.ragCalls} RAG</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-zinc-600">Noch keine Team-RAG-Nutzung</p>
+              )}
+            </div>
+          </div>
+
+          {/* Capability Breakdown */}
+          {usageStats?.byCapability && usageStats.byCapability.length > 0 && (
+            <div className="bg-zinc-900 rounded-xl border border-zinc-800 overflow-hidden">
+              <div className="p-4 border-b border-zinc-800">
+                <h3 className="font-bold text-white flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-purple-400" /> Usage pro Capability
+                </h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-zinc-800">
+                      <th className="text-left py-3 px-4 text-zinc-500 font-medium text-xs">Capability</th>
+                      <th className="text-right py-3 px-4 text-zinc-500 font-medium text-xs">Calls</th>
+                      <th className="text-right py-3 px-4 text-zinc-500 font-medium text-xs">Credits</th>
+                      <th className="text-right py-3 px-4 text-zinc-500 font-medium text-xs">Avg Response</th>
+                      <th className="text-right py-3 px-4 text-zinc-500 font-medium text-xs">Error Rate</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {usageStats.byCapability.map((c) => (
+                      <tr key={c.capability} className="border-b border-zinc-800/50 hover:bg-zinc-800/20">
+                        <td className="py-3 px-4 font-mono text-xs text-purple-300">{c.capability}</td>
+                        <td className="text-right py-3 px-4 text-white font-medium">{c.calls}</td>
+                        <td className="text-right py-3 px-4 text-zinc-400">{c.credits}</td>
+                        <td className="text-right py-3 px-4 text-zinc-400">
+                          {c.avgMs ? `${(c.avgMs / 1000).toFixed(1)}s` : '–'}
+                        </td>
+                        <td className="text-right py-3 px-4">
+                          <span className={`text-xs font-bold ${
+                            c.errorRate > 5 ? 'text-red-400' : 'text-green-400'
+                          }`}>
+                            {c.errorRate}%
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Daily Trend Chart */}
+          {usageStats?.dailyTrend && usageStats.dailyTrend.length > 0 && (
+            <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-5">
+              <h3 className="text-sm font-semibold text-zinc-400 mb-4">Tagestrend</h3>
+              <div className="overflow-x-auto">
+                <div className="min-w-[600px]">
+                  <BarChart
+                    data={usageStats.dailyTrend.map(d => ({
+                      name: new Date(d.date).toLocaleDateString('de-DE', { month: 'short', day: 'numeric' }),
+                      calls: d.calls,
+                      credits: d.credits,
+                    }))}
+                    xKey="name"
+                    yKeys={[
+                      { key: 'calls', color: '#a855f7', label: 'API Calls' },
+                      { key: 'credits', color: '#eab308', label: 'Credits' },
+                    ]}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ══ FEEDBACK SECTION ══════════════════════════════════════════════════ */}
+      {activeSection === 'feedback' && (
+        <>
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
@@ -217,6 +426,8 @@ export default function BotlguideView() {
           ))}
         </div>
       </div>
+        </>
+      )}
     </div>
   )
 }

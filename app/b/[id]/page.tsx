@@ -20,6 +20,8 @@ import StashButton from './components/StashButton';
 import BrewBounties from './components/BrewBounties';
 import { RatingSubmission } from '@/lib/types/rating';
 import IngredientList from './components/IngredientList';
+import GeoConsentPrompt from './components/GeoConsentPrompt';
+import ShopLink from './components/ShopLink';
 import type { BottleWithBrew, BreweryData, RatingData, TeamMember, BrewerProfile } from './types';
 
 // Phase 9.3: static dark blur placeholder for hero Image (zinc-900 = #18181b)
@@ -65,6 +67,8 @@ export default function PublicScanPage() {
   const [ratingCTAHighlight, setRatingCTAHighlight] = useState(false);
   // Hero-Bild Fehlerbehandlung: Fallback wenn Image-URL nicht erreichbar
   const [heroImageError, setHeroImageError] = useState(false);
+  // Phase 12.1: GeoConsentPrompt nach Star-Rating einblenden
+  const [showGeoConsent, setShowGeoConsent] = useState(false);
 
   // Tracking: Use ref to prevent multiple tracking calls
   const hasTrackedScan = useRef(false);
@@ -1117,6 +1121,16 @@ export default function PublicScanPage() {
             onClaimCap={claimCap}
             existingRatingId={existingRatingId}
             currentUser={user}
+            onRatingComplete={() => {
+              // Phase 12.1: Show GeoConsentPrompt 2s after rating submit
+              // Conditions: not already asked, not brewer mode, geolocation API available
+              const alreadyAsked = localStorage.getItem('botllab_geo_asked');
+              const isBrewer = userAppMode === 'brewer';
+              const hasGeoApi = typeof navigator !== 'undefined' && 'geolocation' in navigator;
+              if (!alreadyAsked && !isBrewer && hasGeoApi) {
+                setTimeout(() => setShowGeoConsent(true), 2000);
+              }
+            }}
           />
         )}
 
@@ -1154,6 +1168,14 @@ export default function PublicScanPage() {
           />
           <BrewBounties brewId={brew.id} />
         </div>
+
+        {/* Phase 13.1: Shop / Website Link — nur wenn Brauerei eine Website hat */}
+        {brewery?.website && (
+          <ShopLink
+            breweryName={brewery.name}
+            websiteUrl={brewery.website}
+          />
+        )}
 
         {/* --- Link zur Brauerei & Team --- */}
         {brewery && (
@@ -1212,6 +1234,14 @@ export default function PublicScanPage() {
         bottleId={data.id}
         isOwner={user?.id === data?.brews?.user_id}
       />
+
+      {/* Phase 12.1: Geo-Consent Prompt (after star rating, 2s delay) */}
+      {showGeoConsent && (
+        <GeoConsentPrompt
+          bottleId={data.id}
+          onClose={() => setShowGeoConsent(false)}
+        />
+      )}
     </div>
   );
 }

@@ -10,7 +10,8 @@ import {
     HopItem, 
     MaltItem,
     IBUContribution,
-    ColorContribution
+    ColorContribution,
+    OGContribution
 } from '@/lib/brewing-calculations';
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
@@ -61,6 +62,16 @@ export function FormulaInspector({ isOpen, onClose, type, data }: FormulaInspect
         };
     }, [isOpen]);
 
+    // Close on Escape key
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') onClose();
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, onClose]);
+
     if (!isOpen || !mounted) return null;
 
     let icon = <Calculator size={24} />;
@@ -76,24 +87,33 @@ export function FormulaInspector({ isOpen, onClose, type, data }: FormulaInspect
     }
 
     return createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={onClose}>
-            <div className="bg-black border border-zinc-800 w-full max-w-2xl max-h-[90dvh] flex flex-col rounded-xl shadow-2xl animate-in fade-in zoom-in-95 duration-200 overflow-hidden" onClick={e => e.stopPropagation()}>
-                <div className="shrink-0 z-10 flex items-center justify-between p-4 sm:p-6 border-b border-zinc-800 bg-black">
+        <div className="fixed inset-0 z-[9999] flex justify-end" onClick={onClose}>
+            {/* Backdrop */}
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] animate-in fade-in duration-300" />
+
+            {/* Slide-in Panel */}
+            <div
+                className="relative w-full max-w-lg h-full bg-zinc-950 border-l border-zinc-800 shadow-2xl animate-in slide-in-from-right duration-300 flex flex-col"
+                onClick={e => e.stopPropagation()}
+            >
+                {/* Header */}
+                <div className="shrink-0 z-10 flex items-center justify-between px-5 py-4 border-b border-zinc-800 bg-zinc-950">
                     <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-zinc-900 text-cyan-500 border border-zinc-800">
                             {icon}
                         </div>
                         <div>
-                            <h2 className="text-lg font-bold text-white uppercase tracking-tight">{title}</h2>
+                            <h2 className="text-base sm:text-lg font-bold text-white uppercase tracking-tight leading-tight">{title}</h2>
                             <p className="text-[10px] uppercase font-medium tracking-wider text-zinc-500">Transparenter Einblick in die Formeln</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg transition-colors">
+                    <button onClick={onClose} className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors">
                         <X size={20} />
                     </button>
                 </div>
 
-                <div className="p-4 sm:p-6 space-y-8 overflow-y-auto">
+                {/* Scrollable Content */}
+                <div className="flex-1 overflow-y-auto overscroll-contain p-5 space-y-8">
                     {type === 'IBU' && <IBUInspector data={data} />}
                     {type === 'Color' && <ColorInspector data={data} />}
                     {type === 'BatchSize' && <BatchSizeInspector data={data} />}
@@ -214,7 +234,7 @@ function BatchSizeInspector({ data }: { data: FormulaInspectorProps['data'] }) {
 }
 
 function OGInspector({ data }: { data: FormulaInspectorProps['data'] }) {
-    const { ogPlato, totalGrainKg, extractMass } = calculateOGDetails(
+    const { ogPlato, totalGrainKg, extractMass, parts } = calculateOGDetails(
         data.batchSize,
         data.malts || [],
         data.efficiency || 75
@@ -239,17 +259,50 @@ function OGInspector({ data }: { data: FormulaInspectorProps['data'] }) {
                      <p>Angenommene SHA: <span className="text-cyan-500">{data.efficiency || 75}%</span></p>
                      
                      <div className="my-4 bg-zinc-900 border border-zinc-800 p-2 rounded-lg overflow-x-auto">
-                        <BlockMath math="M_{Extrakt} = M_{Schüttung} \times \frac{SHA}{100}" />
-                        <BlockMath math={`M_{Extrakt} = ${totalGrainKg}kg \\times ${((data.efficiency || 75)/100).toFixed(2)} = ${extractMass}kg`} />
+                        <BlockMath math="M_{Extrakt} = \\sum (M_i \\times P_i) \\times \\frac{SHA}{100} \\div V_{Batch}" />
                      </div>
                      
                      <p className="mb-2 text-zinc-500">// Konzentration (Lincoln Equation)</p>
                      <p className="text-xs text-zinc-500 mt-1">Wir nutzen eine exakte Herleitung aus der Lincoln-Gleichung für SG:</p>
                      <div className="my-2 bg-zinc-900 border border-zinc-800 p-2 rounded-lg overflow-x-auto">
-                        <BlockMath math="C = \frac{M_{Extrakt} \times 100}{V_{Batch}}" />
-                        <BlockMath math="P = \frac{259 \times C}{259 + C}" />
+                        <BlockMath math="SG = 1 + \\frac{Points}{1000}" />
+                        <BlockMath math="P = \\frac{259 \\times C}{259 + C}" />
                      </div>
                  </div>
+            </div>
+
+            <div className="space-y-4">
+                <h3 className="font-bold text-white text-sm uppercase tracking-wide">Beiträge der Malze</h3>
+                <div className="rounded-lg border border-zinc-800 overflow-hidden">
+                    <table className="w-full text-sm text-left">
+                        <thead className="bg-black border-b border-zinc-800 text-zinc-500 font-medium">
+                            <tr>
+                                <th className="p-3 text-xs uppercase tracking-wider">Malz</th>
+                                <th className="p-3 text-right text-xs uppercase tracking-wider">Menge</th>
+                                <th className="p-3 text-right text-xs uppercase tracking-wider">Potential</th>
+                                <th className="p-3 text-right text-white text-xs uppercase tracking-wider">Punkte</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-800">
+                            {parts.map((part, i) => (
+                                <tr key={i} className="hover:bg-zinc-900 transition-colors bg-black">
+                                    <td className="p-3 font-medium text-zinc-300">{part.maltName}</td>
+                                    <td className="p-3 text-right text-zinc-400">{part.amountKg}kg</td>
+                                    <td className="p-3 text-right text-zinc-400">{part.potential} pts</td>
+                                    <td className="p-3 text-right font-bold text-amber-500">{part.points}</td>
+                                </tr>
+                            ))}
+                            {parts.length === 0 && (
+                                <tr className="bg-black">
+                                    <td colSpan={4} className="p-8 text-center text-zinc-500">Keine Malze hinzugefügt.</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+                <p className="text-xs text-zinc-500">
+                    * Gesamt-Schüttung: {totalGrainKg}kg · Extrakt: {extractMass}kg · SHA: {data.efficiency || 75}%
+                </p>
             </div>
         </div>
     );
@@ -357,7 +410,7 @@ function IBUInspector({ data }: { data: FormulaInspectorProps['data'] }) {
                     <div className="my-2 bg-zinc-900 border border-zinc-800 p-2 rounded-lg">
                         <BlockMath math="U_{\text{total}} = U_{\text{Bigness}} \times U_{\text{Time}}" />
                         <div className="text-green-500 mt-2 font-bold text-center text-xs">
-                             + 10% für Pellets (x 1.1)
+                             + 10% nur für Pellets (× 1.1)
                         </div>
                     </div>
                     
@@ -366,6 +419,7 @@ function IBUInspector({ data }: { data: FormulaInspectorProps['data'] }) {
                          <BlockMath math="U_{\text{Bigness}} = 1.65 \times 0.000125^{(SG_{Boil}-1)}" />
                          <BlockMath math="U_{\text{Time}} = \frac{1 - e^{-0.04 \times t}}{4.15}" />
                     </div>
+                    <p className="mt-2 text-zinc-500 text-xs">Whirlpool: reduzierter Isomerisierungsfaktor (0.0125 statt 0.04). Dry Hop & Mash: kein IBU-Beitrag.</p>
                 </div>
             </div>
 
@@ -379,6 +433,7 @@ function IBUInspector({ data }: { data: FormulaInspectorProps['data'] }) {
                                 <th className="p-3 text-right text-xs uppercase tracking-wider">Menge</th>
                                 <th className="p-3 text-right text-xs uppercase tracking-wider">Alpha</th>
                                 <th className="p-3 text-right text-xs uppercase tracking-wider">Zeit</th>
+                                <th className="p-3 text-right text-xs uppercase tracking-wider">Typ</th>
                                 <th className="p-3 text-right text-xs uppercase tracking-wider">Ausbeute</th>
                                 <th className="p-3 text-right text-white text-xs uppercase tracking-wider">IBU</th>
                             </tr>
@@ -390,13 +445,22 @@ function IBUInspector({ data }: { data: FormulaInspectorProps['data'] }) {
                                     <td className="p-3 text-right text-zinc-400">{part.amount}g</td>
                                     <td className="p-3 text-right text-zinc-400">{part.alpha}%</td>
                                     <td className="p-3 text-right text-zinc-400">{part.time}m</td>
+                                    <td className="p-3 text-right">
+                                        <span className={`text-xs px-1.5 py-0.5 rounded ${
+                                            part.usage === 'Whirlpool' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
+                                            part.usage === 'Dry Hop' ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
+                                            'bg-zinc-800 text-zinc-400 border border-zinc-700'
+                                        }`}>
+                                            {part.usage}{part.form && part.form !== 'Pellet' ? ` · ${part.form}` : ''}
+                                        </span>
+                                    </td>
                                     <td className="p-3 text-right text-zinc-500">{(part.utilization * 100).toFixed(1)}%</td>
                                     <td className="p-3 text-right font-bold text-amber-500">+{part.ibu}</td>
                                 </tr>
                             ))}
                             {parts.length === 0 && (
                                 <tr className="bg-black">
-                                    <td colSpan={6} className="p-8 text-center text-zinc-500">Keine Hopfen hinzugefügt.</td>
+                                    <td colSpan={7} className="p-8 text-center text-zinc-500">Keine Hopfen hinzugefügt.</td>
                                 </tr>
                             )}
                         </tbody>

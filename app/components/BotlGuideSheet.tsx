@@ -1,97 +1,60 @@
 'use client';
 
 import { useGuide, BotlGuideKey } from '@/lib/botlguide/BotlGuideContext';
+import { useBotlGuide } from '@/lib/botlguide/hooks/useBotlGuide';
 import { X, Sparkles, BookOpen, ThumbsUp, ThumbsDown, Loader2, AlertTriangle } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import ReactMarkdown from 'react-markdown'; // Assuming this is available, if not fallback to simple text or perilously set innerHTML. 
-// Actually, simple text with bold is fine. I'll just render text for now or simple formatter.
+import ReactMarkdown from 'react-markdown';
 
 export function BotlGuideSheet() {
     const { isOpen, currentKey, closeGuide, content, sessionContext, userTier } = useGuide();
+    const { generate, text: aiText, isLoading, error, upgradeRequired, reset } = useBotlGuide();
     const [showAI, setShowAI] = useState(false);
-    const [aiContent, setAiContent] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
     const [feedback, setFeedback] = useState<'up' | 'down' | null>(null);
 
     const isPremium = userTier === 'brewer' || userTier === 'brewery' || userTier === 'enterprise';
+    // Free-User erhalten 5 Teaser-Credits/Monat und können AI vollwertig ausprobieren.
+    // Die API (generate-text) erzwingt das Limit serverseitig via check_and_increment_ai_credits.
+    const isFree = !userTier || userTier === 'free';
 
     const handleFeedback = (vote: 'up' | 'down') => {
         setFeedback(vote);
-        // Optimistic update
         fetch('/api/botlguide/feedback', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 contextKey: currentKey,
+                capability: 'coach.guide',
                 feedback: vote,
-                generatedText: aiContent
+                generatedText: aiText,
             })
         }).catch(e => console.error('Feedback failed', e));
     };
 
-    // Reset state when key changes
+    // Reset when guide key changes
     useEffect(() => {
         setShowAI(false);
-        setAiContent(null);
-        setError(null);
+        reset();
         setFeedback(null);
-    }, [currentKey]);
+    }, [currentKey, reset]);
 
-    // Close on escape key
+    // Close on Escape
     useEffect(() => {
-        const handleEsc = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') closeGuide();
-        };
+        const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') closeGuide(); };
         window.addEventListener('keydown', handleEsc);
         return () => window.removeEventListener('keydown', handleEsc);
     }, [closeGuide]);
 
     const handleUnlock = async () => {
         setShowAI(true);
-        if (aiContent) return; 
+        if (aiText) return; // already loaded
 
-        // Check cache
-        const cacheKey = `botlguide_${currentKey}`;
-        const cached = sessionStorage.getItem(cacheKey);
-        if (cached) {
-            setAiContent(cached);
-            return;
-        }
-
-        setIsLoading(true);
-        setError(null);
-
-        try {
-            const res = await fetch('/api/generate-text', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    type: 'guide',
-                    details: currentKey, // Send key as details
-                    context: sessionContext // Send full context
-                })
-            });
-
-            if (!res.ok) {
-                if (res.status === 402) {
-                    throw new Error("Upgrade Required");
-                }
-                throw new Error("Fehler bei der Generierung");
-            }
-
-            const data = await res.json();
-            if (data.text) {
-                setAiContent(data.text);
-                sessionStorage.setItem(cacheKey, data.text);
-            } else {
-                throw new Error("Keine Antwort erhalten");
-            }
-        } catch (e: any) {
-            setError(e.message || "Unbekannter Fehler");
-        } finally {
-            setIsLoading(false);
-        }
+        await generate({
+            capability: 'coach.guide',
+            context: { ...sessionContext },
+            data: { details: currentKey ?? '' },
+            cacheKey: `coach_guide_${currentKey}`,
+        });
     };
 
     if (!isOpen || !currentKey) return null;
@@ -151,15 +114,14 @@ export function BotlGuideSheet() {
                                 <div className={`absolute inset-0 z-10 flex flex-col items-center justify-center p-4 text-center transition-all ${
                                     isPremium 
                                         ? 'bg-purple-950/20 group-hover:bg-purple-950/30' 
-                                        : 'bg-gradient-to-b from-transparent via-zinc-950/80 to-zinc-950 sm:to-zinc-950/90'
+                                        : 'bg-emerald-950/20 group-hover:bg-emerald-950/30'
                                 }`}>
-                                    <span className={`font-bold text-sm mb-1 group-hover:scale-105 transition-transform flex items-center gap-2 ${isPremium ? 'text-purple-300' : 'text-white'}`}>
-                                        {isPremium ? <Sparkles className="w-3 h-3" /> : null}
-                                        {isPremium ? 'Rezept analysieren & Tipps holen' : 'Coaching freischalten'}
+                                    <span className={`font-bold text-sm mb-1 group-hover:scale-105 transition-transform flex items-center gap-2 ${isPremium ? 'text-purple-300' : 'text-emerald-300'}`}>
+                                        <Sparkles className="w-3 h-3" />
+                                        {isPremium ? 'Rezept analysieren & Tipps holen' : 'KI-Analyse ausprobieren'}
                                     </span>
                                     
-                                    {!isPremium && <span className="text-xs text-zinc-500 mt-1">Upgrade auf Brewer Plan für kontext-basierte Tipps.</span>}
-                                    
+                                    {isFree && <span className="text-[10px] text-emerald-500/80 mt-1 uppercase tracking-widest font-bold">Teaser · 1 von 5 Credits</span>}
                                     {isPremium && <span className="text-[10px] text-purple-400/70 mt-1 uppercase tracking-widest font-bold">1 Credit</span>}
                                 </div>
                                 
@@ -181,22 +143,28 @@ export function BotlGuideSheet() {
                                 ) : error ? (
                                     <div className="bg-red-950/20 border border-red-500/20 rounded-lg p-4 flex flex-col items-center text-center space-y-2">
                                         <AlertTriangle className="w-5 h-5 text-red-400" />
-                                        <span className="text-sm text-red-200 font-medium">{error === "Upgrade Required" ? "Premium-Funktion" : "Fehler"}</span>
+                                        <span className="text-sm text-red-200 font-medium">
+                                            {upgradeRequired
+                                                ? (isFree ? "Teaser-Credits aufgebraucht" : "AI-Limit erreicht") 
+                                                : "Fehler"}
+                                        </span>
                                         <p className="text-xs text-red-300/70">
-                                            {error === "Upgrade Required" 
-                                                ? "Upgrade auf Brewer oder Brewery Plan nötig." 
+                                            {upgradeRequired 
+                                                ? (isFree 
+                                                    ? "Deine 5 kostenlosen Teaser-Credits sind für diesen Monat aufgebraucht. Upgrade auf Brewer für 50 Credits." 
+                                                    : "Du hast dein monatliches AI-Kontingent erreicht. Upgrade für mehr Credits.") 
                                                 : error}
                                         </p>
-                                        {error === "Upgrade Required" && (
+                                        {upgradeRequired && (
                                             <a href="/pricing" className="mt-2 text-xs bg-red-900/50 hover:bg-red-900 text-white px-3 py-1.5 rounded-md font-bold transition-colors">
-                                                Zum Pricing
+                                                {isFree ? 'Jetzt upgraden' : 'Zum Pricing'}
                                             </a>
                                         )}
                                     </div>
                                 ) : (
                                     <div className="bg-purple-900/10 border border-purple-500/20 rounded-lg p-4">
                                         <div className="text-sm text-purple-100 leading-relaxed mb-4 prose prose-invert prose-sm prose-p:my-1.5 prose-strong:text-purple-200 prose-strong:font-bold max-w-none">
-                                            <ReactMarkdown>{aiContent ?? ''}</ReactMarkdown>
+                                            <ReactMarkdown>{aiText ?? ''}</ReactMarkdown>
                                         </div>
                                         <div className="flex items-center justify-between text-xs text-zinc-500 border-t border-purple-500/10 pt-3 mt-2">
                                             <span className="text-[9px] uppercase tracking-wider font-bold opacity-70">AI-Generiert</span>

@@ -511,7 +511,8 @@ export default function DiscoverClient({
       .select(
         'id,name,style,image_url,created_at,user_id,brew_type,mash_method,fermentation_type,copy_count,times_brewed,view_count,trending_score,quality_score,is_featured,abv,ibu,data,remix_parent_id,moderation_status,breweries!left(id,name,logo_url),ratings(rating),likes_count'
       )
-      .eq('is_public', true);
+      .eq('is_public', true)
+      .neq('moderation_status', 'pending');
 
     // Backend Filters
     if (search) {

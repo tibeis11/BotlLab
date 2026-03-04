@@ -35,6 +35,36 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Prompt is missing" }, { status: 400 });
     }
 
+    // Ownership check: Verify the user owns the brew OR is a member of its brewery
+    if (brewId) {
+      const { data: brew, error: brewError } = await supabase
+        .from("brews")
+        .select("user_id, brewery_id")
+        .eq("id", brewId)
+        .single();
+
+      if (brewError || !brew) {
+        return NextResponse.json({ error: "Brew not found" }, { status: 404 });
+      }
+
+      const isOwner = brew.user_id === user.id;
+
+      let isBreweryMember = false;
+      if (!isOwner && brew.brewery_id) {
+        const { data: membership } = await supabase
+          .from("brewery_members")
+          .select("id")
+          .eq("brewery_id", brew.brewery_id)
+          .eq("user_id", user.id)
+          .maybeSingle();
+        isBreweryMember = !!membership;
+      }
+
+      if (!isOwner && !isBreweryMember) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+    }
+
     const apiKey = process.env.GOOGLE_AI_API_KEY;
     if (!apiKey) {
       return NextResponse.json({ error: "API Key missing" }, { status: 500 });

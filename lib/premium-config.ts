@@ -10,6 +10,7 @@ export interface TierFeatures {
   bypass_member_limits: boolean; // Unlimited crew members (max 100 enforced in UI)
   priority_support: boolean;
   analytics_access: boolean;
+  team_sop_upload: boolean;
 }
 
 export interface TierConfig {
@@ -55,7 +56,7 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier, TierConfig> = {
     badge_color: "bg-zinc-500",
     badge_icon: "🆓",
     features: {
-      ai_generations_per_month: 0,
+      ai_generations_per_month: 5, // 5 Teaser-Credits/Monat – Free-User können KI testen
       custom_brewery_slogan: false,
       brewery_logo_on_labels: false,
       bypass_brew_limits: false,
@@ -64,6 +65,7 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier, TierConfig> = {
       bypass_member_limits: false,
       priority_support: false,
       analytics_access: false,
+      team_sop_upload: false,
     },
   },
   brewer: {
@@ -83,6 +85,7 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier, TierConfig> = {
       bypass_member_limits: false,
       priority_support: false,
       analytics_access: true,
+      team_sop_upload: false,
     },
   },
   brewery: {
@@ -102,6 +105,7 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier, TierConfig> = {
       bypass_member_limits: true,
       priority_support: true,
       analytics_access: true,
+      team_sop_upload: false,
     },
   },
   enterprise: {
@@ -121,6 +125,7 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier, TierConfig> = {
       bypass_member_limits: true,
       priority_support: true,
       analytics_access: true,
+      team_sop_upload: true,
     },
   },
 };

@@ -66,6 +66,7 @@ export interface BreweryData {
   name: string;
   logo_url?: string | null;
   location?: string | null;
+  website?: string | null;
   moderation_status?: string | null;
   [key: string]: unknown;
 }

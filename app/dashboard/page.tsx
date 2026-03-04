@@ -5,13 +5,15 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import DiscoverWidget from './components/DiscoverWidget';
 import TrendingForumWidget from './components/TrendingForumWidget';
-import { Megaphone, Award, Bell, Flame, Plus, Users, ArrowRight, User } from 'lucide-react';
+import { Megaphone, Award, Bell, Flame, Plus, Users, ArrowRight, User, Sparkles } from 'lucide-react';
 import { getActiveBrewery } from '@/lib/supabase';
 import { useSupabase } from '@/lib/hooks/useSupabase';
 import { useAuth } from '@/app/context/AuthContext';
 import { getBreweryFeed, addToFeed, type FeedItem } from '@/lib/feed-service';
 import { createDefaultBreweryTemplate } from '@/lib/actions/label-actions';
 import { getTierBorderColor } from '@/lib/premium-config';
+import { useBotlGuideInsights } from '@/lib/hooks/useBotlGuideInsights';
+import { BotlGuideInsightList } from '@/app/components/BotlGuideInsight';
 
 export default function DashboardPage() {
     return (
@@ -40,6 +42,9 @@ function DashboardContent() {
     const [newBreweryName, setNewBreweryName] = useState("");
     const [joinCode, setJoinCode] = useState("");
     const [onboardingError, setOnboardingError] = useState<string | null>(null);
+
+    // BotlGuide Insights
+    const { insights, dismiss: dismissInsight } = useBotlGuideInsights(3);
 
     // Initialize Dashboard
     useEffect(() => {
@@ -202,7 +207,22 @@ function DashboardContent() {
                 
                 {/* --- LEFT COLUMN: MAIN CONTENT --- */}
                 <div className="space-y-8 min-w-0">
-                    
+
+                    {/* BOTLGUIDE INSIGHTS */}
+                    {insights.length > 0 && (
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2">
+                                <Sparkles size={15} className="text-purple-400" />
+                                <h3 className="text-sm font-bold text-white">BotlGuide sagt…</h3>
+                            </div>
+                            <BotlGuideInsightList
+                                insights={insights}
+                                onDismiss={dismissInsight}
+                                breweryId={activeBrewery?.id}
+                            />
+                        </div>
+                    )}
+
                     {/* CASE 1: No Brewery - Show Onboarding */}
                     {!activeBrewery && (
                         <div className="md:bg-black md:border md:border-zinc-800 md:rounded-lg md:p-8 relative overflow-hidden">

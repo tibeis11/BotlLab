@@ -53,7 +53,7 @@ export default function PricingPage() {
                     <FeatureItem active={true}>Community Rezepte</FeatureItem>
                     <FeatureItem active={true}>Basis Brau-Tools</FeatureItem>
                     <FeatureItem active={true} description="Erstelle & speichere eigene Rezepte">Rezepte Editor</FeatureItem>
-                    <FeatureItem active={false}>AI Assistent</FeatureItem>
+                    <FeatureItem active={true} highlight="text-emerald-400">5 Teaser-Credits / Monat</FeatureItem>
                     <FeatureItem active={false}>Erweiterte Analytics</FeatureItem>
                     <FeatureItem active={false}>Eigenes Branding</FeatureItem>
                 </ul>
@@ -201,7 +201,7 @@ export default function PricingPage() {
                 />
                  <FaqItem 
                     question="Was sind AI Credits?"
-                    answer="AI Credits werden für die Generierung von Rezepten, Etiketten-Bildern und KI-Feedback verwendet. Ein Credit entspricht ungefähr einer komplexen Anfrage oder Bild-Generierung."
+                    answer="AI Credits werden für die Generierung von Rezepten, Etiketten-Bildern und KI-Feedback verwendet. Ein Credit entspricht ungefähr einer komplexen Anfrage oder Bild-Generierung. Free-Nutzer erhalten 5 Teaser-Credits pro Monat, um die KI-Funktionen unverbindlich zu testen."
                 />
                  <FaqItem 
                     question="Kann ich jederzeit wechseln?"

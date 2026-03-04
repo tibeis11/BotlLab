@@ -1015,8 +1015,12 @@ export type Database = {
           converted_to_rating: boolean | null
           country_code: string | null
           created_at: string
+          detected_city: string | null
+          detected_country: string | null
+          detected_region: string | null
           device_type: string | null
           drinking_probability: number | null
+          geo_consent_given: boolean | null
           geo_source: string | null
           geom: unknown
           id: string
@@ -1049,8 +1053,12 @@ export type Database = {
           converted_to_rating?: boolean | null
           country_code?: string | null
           created_at?: string
+          detected_city?: string | null
+          detected_country?: string | null
+          detected_region?: string | null
           device_type?: string | null
           drinking_probability?: number | null
+          geo_consent_given?: boolean | null
           geo_source?: string | null
           geom?: unknown
           id?: string
@@ -1083,8 +1091,12 @@ export type Database = {
           converted_to_rating?: boolean | null
           country_code?: string | null
           created_at?: string
+          detected_city?: string | null
+          detected_country?: string | null
+          detected_region?: string | null
           device_type?: string | null
           drinking_probability?: number | null
+          geo_consent_given?: boolean | null
           geo_source?: string | null
           geom?: unknown
           id?: string

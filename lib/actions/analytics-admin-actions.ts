@@ -815,6 +815,51 @@ export async function acknowledgeAlert(historyId: number, adminNote?: string) {
 // BotlGuide Feedback
 // ============================================================================
 
+// ── BotlGuide Usage Stats (from audit_log RPC) ────────────────────────────
+
+export type BotlguideUsageStats = {
+  totalCalls: number
+  totalCredits: number
+  uniqueUsers: number
+  avgResponseMs: number
+  p50ResponseMs: number
+  p95ResponseMs: number
+  errorRate: number
+  byCapability: {
+    capability: string
+    calls: number
+    avgMs: number
+    credits: number
+    errorRate: number
+  }[]
+  dailyTrend: {
+    date: string
+    calls: number
+    credits: number
+    avgMs: number
+  }[]
+  teamRagUsage: {
+    breweryId: string
+    calls: number
+    ragCalls: number
+  }[]
+  topErrors: {
+    capability: string
+    errorMessage: string
+    count: number
+  }[]
+}
+
+export async function getBotlguideUsageStats(
+  dateRange: DateRange = '30d'
+): Promise<BotlguideUsageStats | null> {
+  const supabase = getServiceRoleClient()
+  const days = dateRange === '7d' ? 7 : dateRange === '30d' ? 30 : dateRange === '90d' ? 90 : 365
+  const { data, error } = await supabase.rpc('get_botlguide_usage_stats', { p_days: days })
+  if (error) { console.error('Usage stats error:', error); return null }
+  return (data as unknown as BotlguideUsageStats) ?? null
+}
+
 export type BotlguideFeedbackItem = {
   id: string
   user_id: string | null

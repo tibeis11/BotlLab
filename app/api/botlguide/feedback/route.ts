@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { contextKey, feedback, generatedText } = await req.json();
+    const { contextKey, feedback, generatedText, capability } = await req.json();
 
     if (!contextKey || !feedback) {
       return NextResponse.json(
@@ -26,7 +26,8 @@ export async function POST(req: NextRequest) {
       user_id: user.id,
       context_key: contextKey,
       feedback: feedback,
-      generated_text: generatedText || null
+      generated_text: generatedText || null,
+      capability: capability || null,
     });
 
     if (error) {

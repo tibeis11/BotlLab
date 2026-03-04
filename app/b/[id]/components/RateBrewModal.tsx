@@ -15,6 +15,8 @@ interface RateBrewModalProps {
   onClaimCap?: (ratingId: string) => Promise<void>; 
   existingRatingId?: string | null;
   currentUser?: User | null;
+  /** Phase 12.1: Called after a NEW star-rating is successfully submitted (not for existing ratings) */
+  onRatingComplete?: () => void;
 }
 
 export default function RateBrewModal({ 
@@ -25,7 +27,8 @@ export default function RateBrewModal({
   initialAuthorName = '', 
   onClaimCap, 
   existingRatingId,
-  currentUser
+  currentUser,
+  onRatingComplete,
 }: RateBrewModalProps) {
   // Steps: 'rating' -> 'success'
   const [step, setStep] = useState<'rating' | 'success'>(existingRatingId ? 'success' : 'rating');
@@ -101,6 +104,8 @@ export default function RateBrewModal({
     if (ratingId) {
         setCreatedRatingId(ratingId);
         setStep('success');
+        // Phase 12.1: Notify parent that a new rating was submitted
+        onRatingComplete?.();
     }
   };
 

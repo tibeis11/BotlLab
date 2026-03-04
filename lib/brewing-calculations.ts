@@ -26,7 +26,91 @@ export interface HopItem {
     unit: string;
     alpha?: string; // %
     time?: string; // min
-    usage?: string; // Boil, etc.
+    usage?: string; // Boil, First Wort, Whirlpool, Dry Hop, Mash
+    form?: string;  // Pellet, Leaf/Whole, Plug — default: Pellet
+}
+
+// ── Malt amount normalizer (handles g, kg, lbs, oz) ──────────────────────
+
+/** Returns the malt amount normalized to kg, respecting the unit field. */
+export function maltAmountKg(malt: MaltItem): number {
+    let amount = safeFloat(malt.amount);
+    if (!malt.unit) return amount; // assume kg
+    const u = malt.unit.toLowerCase();
+    if (u === 'g' || u === 'gramm' || u === 'grams') return amount / 1000;
+    if (u === 'lb' || u === 'lbs')                    return amount * 0.453592;
+    if (u === 'oz')                                    return amount * 0.0283495;
+    return amount; // kg (default)
+}
+
+// ── Malt extract potential lookup (pts·L / kg at 100 % efficiency) ───────
+
+interface MaltPotentialEntry { pattern: RegExp; potential: number; defaultEBC: number }
+
+/**
+ * Lookup table: common malt name patterns → realistic extract potential
+ * Source: BeerSmith / Braumagazin / Weyermann spec sheets
+ * Potential is in metric gravity points·Liter / kg (= PPG × 8.345)
+ */
+const MALT_POTENTIAL_TABLE: MaltPotentialEntry[] = [
+    // ── Sugars & Syrups (highest potential, no efficiency loss) ──
+    { pattern: /zucker|sugar|sucrose|kandis|candi/i,        potential: 384, defaultEBC: 0 },
+    { pattern: /dextrose|glucose|traubenzucker/i,            potential: 384, defaultEBC: 0 },
+    { pattern: /honig|honey/i,                               potential: 301, defaultEBC: 4 },
+    // ── Dry & Liquid Malt Extract ──
+    { pattern: /trockenmalzextrakt|dry.*extract|dme/i,       potential: 367, defaultEBC: 8 },
+    { pattern: /fl[üu]ssig.*extrakt|liquid.*extract|lme/i,   potential: 309, defaultEBC: 8 },
+    { pattern: /malzextrakt|malt.*extract/i,                 potential: 309, defaultEBC: 8 },
+    // ── Base Malts ──
+    { pattern: /pilsner|pilsener|pils/i,                     potential: 309, defaultEBC: 3 },
+    { pattern: /pale\s*ale|maris.*otter|golden.*promise/i,   potential: 309, defaultEBC: 6 },
+    { pattern: /vienna|wiener/i,                             potential: 300, defaultEBC: 9 },
+    { pattern: /m[üu]nch|munich/i,                           potential: 292, defaultEBC: 18 },
+    { pattern: /weizen|wheat|weizenmalz/i,                   potential: 309, defaultEBC: 4 },
+    { pattern: /roggen|rye/i,                                potential: 292, defaultEBC: 7 },
+    { pattern: /dinkel|spelt/i,                              potential: 284, defaultEBC: 4 },
+    { pattern: /hafer|oat|haferflocken|flaked.*oat/i,        potential: 267, defaultEBC: 3 },
+    { pattern: /rauch|smoked/i,                              potential: 300, defaultEBC: 6 },
+    { pattern: /mais|corn|flaked.*corn|flaked.*maize/i,      potential: 309, defaultEBC: 2 },
+    { pattern: /reis|rice|flaked.*rice/i,                     potential: 309, defaultEBC: 2 },
+    // ── Caramel / Crystal Malts ──
+    { pattern: /cara.*pils|carapils/i,                       potential: 275, defaultEBC: 4 },
+    { pattern: /cara.*hell|carahell/i,                       potential: 275, defaultEBC: 25 },
+    { pattern: /cara.*red|carared/i,                         potential: 275, defaultEBC: 50 },
+    { pattern: /cara.*m[üu]n|caramunich/i,                   potential: 275, defaultEBC: 80 },
+    { pattern: /cara.*amber|caraamber/i,                     potential: 275, defaultEBC: 60 },
+    { pattern: /cara.*aroma|caraaroma/i,                     potential: 275, defaultEBC: 300 },
+    { pattern: /cara.*fa|carafa/i,                           potential: 259, defaultEBC: 1000 },
+    { pattern: /crystal|karamell|caramel|cara\b/i,           potential: 275, defaultEBC: 60 },
+    { pattern: /special\s*b/i,                               potential: 275, defaultEBC: 300 },
+    // ── Roasted / Dark Malts ──
+    { pattern: /schokoladen|chocolate/i,                     potential: 250, defaultEBC: 900 },
+    { pattern: /r[öo]st.*gerste|roast.*barley/i,             potential: 234, defaultEBC: 1300 },
+    { pattern: /black.*malt|schwarzmalz|farbmalz/i,          potential: 234, defaultEBC: 1200 },
+    { pattern: /r[öo]stmalz|roasted.*malt/i,                 potential: 242, defaultEBC: 600 },
+    { pattern: /melanoidin/i,                                potential: 284, defaultEBC: 60 },
+    { pattern: /biscuit|bisquit|keks/i,                      potential: 284, defaultEBC: 45 },
+    { pattern: /amber.*malt/i,                               potential: 284, defaultEBC: 50 },
+    { pattern: /brown.*malt/i,                               potential: 267, defaultEBC: 200 },
+    { pattern: /acidulated|sauermalz|sauer/i,                potential: 267, defaultEBC: 4 },
+];
+
+/** Returns the extract potential (pts·L/kg) for a malt, falling back to 300 (base malt average). */
+export function getMaltPotential(maltName: string): number {
+    if (!maltName) return 300;
+    for (const entry of MALT_POTENTIAL_TABLE) {
+        if (entry.pattern.test(maltName)) return entry.potential;
+    }
+    return 300; // reasonable average for unknown/base malts
+}
+
+/** Returns a sensible default EBC for a malt when the user hasn't entered one. */
+export function getMaltDefaultEBC(maltName: string): number {
+    if (!maltName) return 4; // light base malt default
+    for (const entry of MALT_POTENTIAL_TABLE) {
+        if (entry.pattern.test(maltName)) return entry.defaultEBC;
+    }
+    return 4; // light base malt default
 }
 
 export interface ColorContribution {
@@ -48,8 +132,10 @@ export function calculateColorEBCDetails(batchSizeLiters: number, malts: MaltIte
     const parts: ColorContribution[] = [];
 
     for (const malt of malts) {
-        const amount = safeFloat(malt.amount); // kg
-        const ebc = safeFloat(malt.color_ebc);
+        const amount = maltAmountKg(malt); // BUG-FIX: unit-aware conversion to kg
+        // BUG-FIX: Fall back to name-based default EBC when user leaves field empty
+        const rawEbc = safeFloat(malt.color_ebc);
+        const ebc = rawEbc > 0 ? rawEbc : getMaltDefaultEBC(malt.name);
         
         if (amount <= 0) continue;
 
@@ -181,17 +267,31 @@ export interface IBUContribution {
     bigness: number;
     boilTimeFactor: number;
     mgAlpha: number;
+    usage: string;
+    form: string;
+}
+
+export interface OGContribution {
+    maltName: string;
+    amountKg: number;
+    potential: number;
+    points: number;
 }
 
 /**
  * Detailed calculation for IBU using Tinseth formula.
+ * Supports Boil, First Wort, and Whirlpool additions.
+ * Pellet bonus (+10%) is only applied when hop.form is 'Pellet' or unset (default).
  */
 export function calculateIBUDetails(batchSizeLiters: number, ogPlato: number, hops: HopItem[], boilTimeTotal: number = 60) {
     if (batchSizeLiters <= 0 || !hops.length) {
         return { totalIBU: 0, boilGravity: 0, parts: [] as IBUContribution[] };
     }
 
-    const boilGravity = 1 + (ogPlato * 0.004);
+    // BUG-FIX: Use proper Lincoln equation for Plato → SG conversion
+    const boilGravity = ogPlato > 0
+        ? 1 + (ogPlato / (258.6 - 0.8796 * ogPlato))
+        : 1.000;
     
     let totalIBU = 0;
     const parts: IBUContribution[] = [];
@@ -201,21 +301,37 @@ export function calculateIBUDetails(batchSizeLiters: number, ogPlato: number, ho
         const alpha = safeFloat(hop.alpha);
         const time = safeFloat(hop.time);
         const usage = hop.usage || 'Boil';
+        const form = hop.form || 'Pellet'; // Default: Pellet
 
-        if (amount <= 0 || alpha <= 0 || time <= 0) continue;
-        if (usage !== 'Boil' && usage !== 'First Wort') continue;
+        if (amount <= 0 || alpha <= 0) continue;
+
+        // Skip Dry Hop and Mash — they contribute negligible IBU
+        if (usage === 'Dry Hop' || usage === 'Mash') continue;
+        // Require time > 0 for all contributing additions
+        if (time <= 0) continue;
 
         // 1. Bigness Factor
         const bigness = 1.65 * Math.pow(0.000125, (boilGravity - 1));
 
-        // 2. Boil Time Factor
-        const boilTimeFactor = (1 - Math.exp(-0.04 * time)) / 4.15;
+        let boilTimeFactor: number;
+        let utilization: number;
 
-        // Tinseth base utilization.
-        let utilization = bigness * boilTimeFactor;
+        if (usage === 'Whirlpool') {
+            // Whirlpool: reduced utilization (~5-10% of boil equivalent)
+            // Model as boil at reduced temperature → reduced isomerization rate
+            // Use 0.0125 rate constant (vs 0.04 for full boil) × time
+            boilTimeFactor = (1 - Math.exp(-0.0125 * time)) / 4.15;
+            utilization = bigness * boilTimeFactor;
+        } else {
+            // 2. Standard Boil Time Factor (Boil, First Wort)
+            boilTimeFactor = (1 - Math.exp(-0.04 * time)) / 4.15;
+            utilization = bigness * boilTimeFactor;
+        }
 
-        // Apply 10% bonus for pellets
-        utilization *= 1.1;
+        // BUG-FIX: Only apply pellet bonus when form is Pellet (or default)
+        if (form === 'Pellet' || form === 'pellet') {
+            utilization *= 1.1;
+        }
 
         const mgAlpha = amount * alpha * 10;
         const ibuVal = (utilization * mgAlpha) / batchSizeLiters;
@@ -231,7 +347,9 @@ export function calculateIBUDetails(batchSizeLiters: number, ogPlato: number, ho
             utilization,
             bigness,
             boilTimeFactor,
-            mgAlpha
+            mgAlpha,
+            usage,
+            form
         });
     }
 
@@ -363,6 +481,7 @@ export function calculateBatchSizeFromWater(
 
 /**
  * Detailed OG Calculation.
+ * BUG-FIX: Uses unit-aware amount (maltAmountKg) and per-malt extract potentials.
  */
 export function calculateOGDetails(
     batchSizeLiters: number,
@@ -370,21 +489,28 @@ export function calculateOGDetails(
     efficiencyPercent: number
 ) {
     if (batchSizeLiters <= 0) {
-        return { ogPlato: 0, totalGrainKg: 0, extractMass: 0, ogPoints: 0, ogSG: 1.000 };
+        return { ogPlato: 0, totalGrainKg: 0, extractMass: 0, ogPoints: 0, ogSG: 1.000, parts: [] as OGContribution[] };
     }
 
     const efficiency = safeFloat(efficiencyPercent) / 100;
     
-    // 1. Calculate Total Grain Mass
+    // 1. Calculate Total Grain Mass (properly unit-converted)
     const totalGrainKg = calculateTotalGrain(malts);
     
-    // 2. Calculate Total Potential Extract
-    // Simplified: Average yield potential ~300 GravityPoints * Liter / kg
+    // 2. Calculate Total Potential Extract with per-malt potentials
     let totalPoints = 0;
+    const parts: OGContribution[] = [];
     for (const malt of malts) {
-        const amount = safeFloat(malt.amount);
-        const potential = 300; 
-        totalPoints += amount * potential;
+        const amountKg = maltAmountKg(malt); // BUG-FIX: unit-aware conversion
+        const potential = getMaltPotential(malt.name); // BUG-FIX: name-based lookup
+        const maltPoints = amountKg * potential;
+        totalPoints += maltPoints;
+        parts.push({
+            maltName: malt.name || 'Unbekannt',
+            amountKg: parseFloat(amountKg.toFixed(2)),
+            potential,
+            points: parseFloat(maltPoints.toFixed(0))
+        });
     }
 
     // 3. Apply Efficiency
@@ -404,7 +530,8 @@ export function calculateOGDetails(
         totalGrainKg: parseFloat(totalGrainKg.toFixed(2)),
         extractMass: parseFloat(extractMass.toFixed(2)),
         ogPoints: parseFloat(points.toFixed(0)),
-        ogSG: parseFloat(sg.toFixed(3))
+        ogSG: parseFloat(sg.toFixed(3)),
+        parts
     };
 }
 

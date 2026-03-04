@@ -56,6 +56,7 @@ async function getInitialBrews() {
     .from('brews')
     .select(BREW_SELECT)
     .eq('is_public', true)
+    .neq('moderation_status', 'pending')
     .order('quality_score', { ascending: false })
     .range(0, BREW_PAGE_SIZE - 1);
   if (error) { console.error('[SSR] Error loading brews:', error.message); return []; }
@@ -70,6 +71,7 @@ async function getTrendingBrews() {
     .from('brews')
     .select(BREW_SELECT)
     .eq('is_public', true)
+    .neq('moderation_status', 'pending')
     .order('trending_score', { ascending: false })
     .limit(10);
   if (error) { console.error('[SSR] Error loading trending:', error.message); return []; }
@@ -84,6 +86,7 @@ async function getFeaturedBrews() {
     .select(BREW_SELECT)
     .eq('is_public', true)
     .eq('is_featured', true)
+    .neq('moderation_status', 'pending')
     .order('quality_score', { ascending: false })
     .limit(12);
   if (error) { console.error('[SSR] Error loading featured:', error.message); return []; }
