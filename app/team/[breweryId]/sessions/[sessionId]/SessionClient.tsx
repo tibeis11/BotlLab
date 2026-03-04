@@ -139,7 +139,7 @@ export default function SessionClient({ sessionId }: { sessionId: string }) {
       recipeName: session.brew?.name || 'Unbekanntes Rezept',
       brewStyle: session.brew?.style || session.brew?.recipe_data?.style?.name || 'Unbekannt',
       targetOG: session.brew?.recipe_data?.og || session.brew?.recipe_data?.est_og,
-      currentGravity: currentGravity,
+      currentGravity: currentGravity ?? undefined,
       yeast: session.brew?.recipe_data?.yeast_id || session.brew?.recipe_data?.yeast?.name || 'Hefe',
       mashTempC: (session.measurements as any)?.timers?.mash?.targetTemp, // Try to get from active timer state
       mashDurationMin: (session.measurements as any)?.timers?.mash?.duration,
