@@ -142,7 +142,7 @@ export function FermentationTab() {
             capability,
             context: {
                 brewStyle: session?.brew?.style ?? undefined,
-                brewType: (session?.brew?.brew_type ?? undefined) as import('@/lib/botlguide/types').BotlGuideSessionContext['brewType'],
+                brewType: ((session?.brew as any)?.brew_type ?? undefined) as import('@/lib/botlguide/types').BotlGuideSessionContext['brewType'],
                 yeast: session?.brew?.recipe_data?.yeast?.name ?? session?.brew?.recipe_data?.yeast ?? undefined,
                 targetOG: session?.measured_og ?? session?.brew?.recipe_data?.og ?? undefined,
                 targetFG: session?.brew?.recipe_data?.fg ?? session?.brew?.recipe_data?.target_fg ?? undefined,
