@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import Header from '@/app/components/Header';
 import DiscoverBrewCard from '@/app/components/DiscoverBrewCard';
 import ReportButton from '@/app/components/reporting/ReportButton';
 import DrinkTimeline from '@/app/my-cellar/components/DrinkTimeline';
@@ -212,13 +213,7 @@ export default function PublicBrewerPage() {
   return (
     <div className="min-h-screen bg-black text-white">
 
-      {/* Minimal sticky header (uses IntersectionObserver sentinel inside component) */}
-      <MinimalStickyHeader
-        brewName={profile.display_name}
-        activeTab={activeTab}
-        onTabClick={setActiveTab}
-        tabs={tabs.map(t => ({ id: t.id, label: t.label }))}
-      />
+      <Header />
 
       {/* ── HERO ─────────────────────────────────────────────────── */}
       <div className="relative overflow-hidden min-h-[260px] md:min-h-[320px] flex items-end">
@@ -288,6 +283,14 @@ export default function PublicBrewerPage() {
           </div>
         </div>
       </div>
+
+      {/* Minimal sticky header — sentinel placed here so it triggers when hero leaves viewport */}
+      <MinimalStickyHeader
+        brewName={profile.display_name}
+        activeTab={activeTab}
+        onTabClick={setActiveTab}
+        tabs={tabs.map(t => ({ id: t.id, label: t.label }))}
+      />
 
       {/* ── MAIN CONTENT ─────────────────────────────────────────── */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 pb-16">
