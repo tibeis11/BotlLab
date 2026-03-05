@@ -1709,17 +1709,19 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
     return (
         <div className="bg-black text-white sm:p-6 md:p-8 font-sans antialiased">
             <div className="max-w-[1600px] mx-auto w-full space-y-8">
-                <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800 pb-6">
-                    <div>
-                        <div className="flex items-center gap-3 mb-1">
-                            <h1 className="text-2xl font-bold text-white tracking-tight">{id === 'new' ? 'Neues Rezept' : brew.name || 'Rezept bearbeiten'}</h1>
-                            <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-cyan-950/30 text-cyan-400 border border-cyan-900 uppercase tracking-wide">
+                <header className="sticky top-[64px] z-40 bg-[#060606]/80 backdrop-blur-xl flex flex-row items-center justify-between gap-4 border-b border-zinc-800/80 py-3 mb-8 -mx-4 px-4 sm:-mx-8 sm:px-8 mt-[-1rem]">
+                    <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 sm:gap-3 mb-0 sm:mb-1">
+                            <h1 className="text-lg sm:text-2xl font-bold text-white tracking-tight truncate">
+                                {id === 'new' ? 'Neues Rezept' : brew.name || 'Rezept'}
+                            </h1>
+                            <span className="hidden sm:inline-block px-2 py-0.5 rounded text-[10px] font-medium bg-[#ff6b2a]/10 text-[#ff6b2a] border border-[#ff6b2a]/20 uppercase tracking-widest shrink-0">
                                 Editor
                             </span>
                         </div>
-                        <p className="text-sm text-zinc-500">Hier entstehen deine Brau-Kreationen</p>
+                        <p className="hidden sm:block text-sm text-zinc-500 truncate">Hier entstehen deine Brau-Kreationen</p>
                     </div>
-                    <div className="flex items-center gap-3 w-full md:w-auto">
+                    <div className="flex items-center gap-2 shrink-0">
                         <Link
                             href={`/team/${breweryId}/brews`}
                             className="hidden md:flex bg-black hover:bg-zinc-900 text-zinc-300 hover:text-white px-4 py-2 rounded-md text-sm font-medium border border-zinc-800 transition-colors items-center gap-2"
@@ -1729,9 +1731,9 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                         <button
                             onClick={handleSave}
                             disabled={saving}
-                            className="flex-1 md:flex-none bg-gradient-to-r from-cyan-500 to-blue-500 text-black font-bold px-6 py-2.5 rounded-lg hover:from-cyan-400 hover:to-blue-400 transition disabled:opacity-60 text-center justify-center items-center text-sm shadow-lg shadow-cyan-900/20"
+                            className="bg-white text-black font-semibold px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg hover:bg-zinc-200 transition disabled:opacity-60 text-sm shadow-md"
                         >
-                            {saving ? 'Speichern...' : 'Speichern'}
+                            {saving ? '...' : 'Speichern'}
                         </button>
                     </div>
                 </header>
@@ -1782,7 +1784,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                     <p className="text-xs uppercase tracking-[0.2em] text-cyan-400 font-bold mb-1">Rezept</p>
                                     <h2 className="text-2xl font-bold text-white tracking-tight">Basisdaten bearbeiten</h2>
                                 </div>
-                                <div className="space-y-6 sm:bg-black sm:border sm:border-zinc-800 sm:rounded-lg sm:p-6 mb-8 sm:mb-0 border-b border-zinc-900 pb-8 sm:pb-0 sm:border-0">
+                                <div className="space-y-8 bg-[#0B0C10] border border-zinc-800/60 rounded-3xl p-6 sm:p-10 shadow-lg mb-8 mt-2">
                                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                                         <div className="lg:col-span-8">
                                             <div className="flex items-center justify-between">
@@ -1797,7 +1799,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                     <AICreditBadge />
                                                 </button>
                                             </div>
-                                            <div className="flex items-center w-full bg-black border border-zinc-800 rounded-md transition focus-within:border-cyan-500 focus-within:ring-1 focus-within:ring-cyan-500/20 overflow-hidden pr-1.5">
+                                            <div className="flex items-center w-full bg-[#060606]/80 text-white border border-zinc-800/80 rounded-xl transition focus-within:border-cyan-500/50 focus-within:ring-1 focus-within:ring-cyan-500/20 overflow-hidden pr-1.5 shadow-inner">
                                                 <input
                                                     value={brew.name}
                                                     onChange={(e) => handleField('name', e.target.value)}
@@ -1811,7 +1813,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                             <input
                                                 value={brew.style}
                                                 onChange={(e) => handleField('style', e.target.value)}
-                                                className="w-full bg-black border border-zinc-800 rounded-md px-3 py-2 text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-700 font-medium"
+                                                className="w-full bg-[#060606]/80 text-white border border-zinc-800/80 rounded-xl px-3 py-2 focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-700 font-medium shadow-inner"
                                                 placeholder="z.B. Hazy IPA, Rotwein"
                                             />
                                         </div>
@@ -1830,7 +1832,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                 <AICreditBadge />
                                             </button>
                                         </div>
-                                        <div className="relative flex flex-col w-full bg-black border border-zinc-800 rounded-md transition focus-within:border-purple-500 focus-within:ring-1 focus-within:ring-purple-500/20 overflow-hidden">
+                                        <div className="relative flex flex-col w-full bg-[#060606]/80 text-white border border-zinc-800/80 rounded-xl px-2 py-1 transition focus-within:border-purple-500/50 focus-within:ring-1 focus-within:ring-purple-500/20 overflow-hidden shadow-inner">
                                             <textarea
                                                 value={brew.description || ''}
                                                 onChange={(e) => handleField('description', e.target.value)}
@@ -1841,8 +1843,14 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                     </div>
                                 </div>
 
-                                <div className="sm:bg-black sm:border sm:border-zinc-800 sm:rounded-lg sm:p-6 space-y-4 mb-8 sm:mb-0 border-b border-zinc-900 pb-8 sm:pb-0 sm:border-0">
-                                    <label className="text-xs uppercase font-medium tracking-wider text-zinc-500 mb-3 block">Getränke-Typ</label>
+                                <div className="bg-[#0B0C10] border border-zinc-800/60 rounded-3xl p-6 sm:p-10 shadow-lg mb-8 space-y-4">
+                                    <h3 className="text-xl font-semibold tracking-tight text-white flex items-center gap-4 mb-8 pb-4 border-b border-zinc-800/50">
+                                            <div className="h-10 w-10 flex items-center justify-center text-cyan-400 bg-cyan-950/30 rounded-xl border border-cyan-900/50 shadow-sm">
+                                                <Settings className="w-5 h-5" />
+                                            </div>
+                                            Getränke-Typ
+                                    </h3>
+
                                     <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                                         {(
                                             [
@@ -1869,11 +1877,11 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                 </div>
 
                                 {brew.brew_type === 'beer' && (
-                                    <div className="space-y-16">
+                                    <div className="space-y-8">
                                         {/* SECTION 1: EKS & MESSWERTE */}
-                                        <div className="sm:bg-black sm:border sm:border-zinc-800 sm:rounded-lg sm:p-8 mb-16 sm:mb-0 border-b border-zinc-900 pb-16 sm:pb-0 sm:border-0">
-                                            <h3 className="text-xl font-bold text-white mb-8 flex items-center gap-3">
-                                                <div className="h-10 w-10 rounded-full bg-zinc-900 flex items-center justify-center text-zinc-400 border border-zinc-700">
+                                        <div className="bg-[#0B0C10] border border-zinc-800/60 rounded-3xl p-6 sm:p-10 shadow-lg mb-8">
+                                            <h3 className="text-xl font-semibold tracking-tight text-white flex items-center gap-4 mb-8 pb-4 border-b border-zinc-800/50">
+                                                <div className="h-10 w-10 flex items-center justify-center text-cyan-400 bg-cyan-950/30 rounded-xl border border-cyan-900/50 shadow-sm">
                                                     <Activity className="w-5 h-5" />
                                                 </div>
                                                 Eckdaten & Ergebnisse
@@ -1984,9 +1992,9 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                         </div>
 
                                         {/* SECTION 2: WASSER & MAISCHEN */}
-                                        <div className="sm:bg-black sm:border sm:border-zinc-800 sm:rounded-lg sm:p-8 mb-16 sm:mb-0 border-b border-zinc-900 pb-16 sm:pb-0 sm:border-0">
-                                            <h3 className="text-xl font-bold text-white mb-8 flex items-center gap-3">
-                                                <div className="h-10 w-10 rounded-full bg-zinc-900 flex items-center justify-center text-zinc-400 border border-zinc-700">
+                                        <div className="bg-[#0B0C10] border border-zinc-800/60 rounded-3xl p-6 sm:p-10 shadow-lg mb-8">
+                                            <h3 className="text-xl font-semibold tracking-tight text-white flex items-center gap-4 mb-8 pb-4 border-b border-zinc-800/50">
+                                                <div className="h-10 w-10 flex items-center justify-center text-cyan-400 bg-cyan-950/30 rounded-xl border border-cyan-900/50 shadow-sm">
                                                     <Thermometer className="w-5 h-5" />
                                                 </div>
                                                 Wasser & Maischen
@@ -2186,9 +2194,9 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                         </div>
 
                                         {/* SECTION 3: KOCHEN & HOPFEN */}
-                                        <div className="sm:bg-black sm:border sm:border-zinc-800 sm:rounded-lg sm:p-8 mb-16 sm:mb-0 border-b border-zinc-900 pb-16 sm:pb-0 sm:border-0">
-                                            <h3 className="text-xl font-bold text-white mb-8 flex items-center gap-3">
-                                                <div className="h-10 w-10 rounded-full bg-zinc-900 flex items-center justify-center text-zinc-400 border border-zinc-700">
+                                        <div className="bg-[#0B0C10] border border-zinc-800/60 rounded-3xl p-6 sm:p-10 shadow-lg mb-8">
+                                            <h3 className="text-xl font-semibold tracking-tight text-white flex items-center gap-4 mb-8 pb-4 border-b border-zinc-800/50">
+                                                <div className="h-10 w-10 flex items-center justify-center text-cyan-400 bg-cyan-950/30 rounded-xl border border-cyan-900/50 shadow-sm">
                                                     <Leaf className="w-5 h-5" />
                                                 </div>
                                                 Kochen & Hopfen
@@ -2206,9 +2214,9 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                             </div>
                                         </div>
                                         {/* SECTION 4: GÄRUNG */}
-                                        <div className="sm:bg-black sm:border sm:border-zinc-800 sm:rounded-lg sm:p-8 mb-16 sm:mb-0 border-b border-zinc-900 pb-16 sm:pb-0 sm:border-0">
-                                            <h3 className="text-xl font-bold text-white mb-8 flex items-center gap-3">
-                                                <div className="h-10 w-10 rounded-full bg-zinc-900 flex items-center justify-center text-zinc-400 border border-zinc-700">
+                                        <div className="bg-[#0B0C10] border border-zinc-800/60 rounded-3xl p-6 sm:p-10 shadow-lg mb-8">
+                                            <h3 className="text-xl font-semibold tracking-tight text-white flex items-center gap-4 mb-8 pb-4 border-b border-zinc-800/50">
+                                                <div className="h-10 w-10 flex items-center justify-center text-cyan-400 bg-cyan-950/30 rounded-xl border border-cyan-900/50 shadow-sm">
                                                     <Microscope className="w-5 h-5" />
                                                 </div>
                                                 Gärung
@@ -2254,9 +2262,9 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                 {brew.brew_type === 'wine' && (
                                     <div className="space-y-6">
                                         {/* Section: Messwerte */}
-                                        <div className="bg-black border border-zinc-800 rounded-lg p-6">
-                                            <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
-                                                <div className="h-8 w-8 rounded-full bg-zinc-900 flex items-center justify-center text-zinc-400 border border-zinc-700">
+                                        <div className="bg-[#0B0C10] border border-zinc-800/60 rounded-3xl p-6 sm:p-8 shadow-lg mb-8">
+                                            <h3 className="text-lg font-semibold tracking-tight text-white flex items-center gap-4 mb-8 pb-4 border-b border-zinc-800/50">
+                                                <div className="h-8 w-8 flex items-center justify-center text-cyan-400 bg-cyan-950/30 rounded-lg border border-cyan-900/50 shadow-sm">
                                                     <Activity className="w-4 h-4" />
                                                 </div>
                                                 Zielwerte & Eckdaten
@@ -2272,9 +2280,9 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                         </div>
 
                                         {/* Section: Zutaten & Herkunft */}
-                                        <div className="bg-black border border-zinc-800 rounded-lg p-6">
-                                            <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
-                                                <div className="h-8 w-8 rounded-full bg-zinc-900 flex items-center justify-center text-zinc-400 border border-zinc-700">
+                                        <div className="bg-[#0B0C10] border border-zinc-800/60 rounded-3xl p-6 sm:p-8 shadow-lg mb-8">
+                                            <h3 className="text-lg font-semibold tracking-tight text-white flex items-center gap-4 mb-8 pb-4 border-b border-zinc-800/50">
+                                                <div className="h-8 w-8 flex items-center justify-center text-cyan-400 bg-cyan-950/30 rounded-lg border border-cyan-900/50 shadow-sm">
                                                     <Grape className="w-4 h-4" />
                                                 </div>
                                                 Reben & Herkunft
@@ -2291,9 +2299,9 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                             </div>
                                         </div>
                                         {/* Section: Ausbau */}
-                                        <div className="bg-black border border-zinc-800 rounded-lg p-6">
-                                            <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
-                                                <div className="h-8 w-8 rounded-full bg-zinc-900 flex items-center justify-center text-zinc-400 border border-zinc-700">
+                                        <div className="bg-[#0B0C10] border border-zinc-800/60 rounded-3xl p-6 sm:p-8 shadow-lg mb-8">
+                                            <h3 className="text-lg font-semibold tracking-tight text-white flex items-center gap-4 mb-8 pb-4 border-b border-zinc-800/50">
+                                                <div className="h-8 w-8 flex items-center justify-center text-cyan-400 bg-cyan-950/30 rounded-lg border border-cyan-900/50 shadow-sm">
                                                     <Wine className="w-4 h-4" />
                                                 </div>
                                                 Ausbau
@@ -2314,9 +2322,9 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                 {brew.brew_type === 'cider' && (
                                     <div className="space-y-6">
                                         {/* Section: Messwerte */}
-                                        <div className="bg-black border border-zinc-800 rounded-lg p-6">
-                                            <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
-                                                <div className="h-8 w-8 rounded-full bg-zinc-900 flex items-center justify-center text-zinc-400 border border-zinc-700">
+                                        <div className="bg-[#0B0C10] border border-zinc-800/60 rounded-3xl p-6 sm:p-8 shadow-lg mb-8">
+                                            <h3 className="text-lg font-semibold tracking-tight text-white flex items-center gap-4 mb-8 pb-4 border-b border-zinc-800/50">
+                                                <div className="h-8 w-8 flex items-center justify-center text-cyan-400 bg-cyan-950/30 rounded-lg border border-cyan-900/50 shadow-sm">
                                                     <Activity className="w-4 h-4" />
                                                 </div>
                                                 Zielwerte & Eckdaten
@@ -2331,9 +2339,9 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                         </div>
 
                                         {/* Section: Zutaten */}
-                                        <div className="bg-black border border-zinc-800 rounded-lg p-6">
-                                            <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
-                                                <div className="h-8 w-8 rounded-full bg-zinc-900 flex items-center justify-center text-zinc-400 border border-zinc-700">
+                                        <div className="bg-[#0B0C10] border border-zinc-800/60 rounded-3xl p-6 sm:p-8 shadow-lg mb-8">
+                                            <h3 className="text-lg font-semibold tracking-tight text-white flex items-center gap-4 mb-8 pb-4 border-b border-zinc-800/50">
+                                                <div className="h-8 w-8 flex items-center justify-center text-cyan-400 bg-cyan-950/30 rounded-lg border border-cyan-900/50 shadow-sm">
                                                     <Apple className="w-4 h-4" />
                                                 </div>
                                                 Zutaten
@@ -2350,9 +2358,9 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                             </div>
                                         </div>
                                         {/* Section: Prozess */}
-                                        <div className="bg-black border border-zinc-800 rounded-lg p-6">
-                                            <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
-                                                <div className="h-8 w-8 rounded-full bg-zinc-900 flex items-center justify-center text-zinc-400 border border-zinc-700">
+                                        <div className="bg-[#0B0C10] border border-zinc-800/60 rounded-3xl p-6 sm:p-8 shadow-lg mb-8">
+                                            <h3 className="text-lg font-semibold tracking-tight text-white flex items-center gap-4 mb-8 pb-4 border-b border-zinc-800/50">
+                                                <div className="h-8 w-8 flex items-center justify-center text-cyan-400 bg-cyan-950/30 rounded-lg border border-cyan-900/50 shadow-sm">
                                                     <Settings className="w-4 h-4" />
                                                 </div>
                                                 Verarbeitung
@@ -2394,9 +2402,9 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                 {brew.brew_type === 'mead' && (
                                     <div className="space-y-6">
                                         {/* Section: Messwerte */}
-                                        <div className="bg-black border border-zinc-800 rounded-lg p-6">
-                                            <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
-                                                <div className="h-8 w-8 rounded-full bg-zinc-900 flex items-center justify-center text-zinc-400 border border-zinc-700">
+                                        <div className="bg-[#0B0C10] border border-zinc-800/60 rounded-3xl p-6 sm:p-8 shadow-lg mb-8">
+                                            <h3 className="text-lg font-semibold tracking-tight text-white flex items-center gap-4 mb-8 pb-4 border-b border-zinc-800/50">
+                                                <div className="h-8 w-8 flex items-center justify-center text-cyan-400 bg-cyan-950/30 rounded-lg border border-cyan-900/50 shadow-sm">
                                                     <Activity className="w-4 h-4" />
                                                 </div>
                                                 Messwerte
@@ -2410,9 +2418,9 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                             </div>
                                         </div>
                                         {/* Section: Zutaten */}
-                                        <div className="bg-black border border-zinc-800 rounded-lg p-6">
-                                            <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
-                                                <div className="h-8 w-8 rounded-full bg-zinc-900 flex items-center justify-center text-zinc-400 border border-zinc-700">
+                                        <div className="bg-[#0B0C10] border border-zinc-800/60 rounded-3xl p-6 sm:p-8 shadow-lg mb-8">
+                                            <h3 className="text-lg font-semibold tracking-tight text-white flex items-center gap-4 mb-8 pb-4 border-b border-zinc-800/50">
+                                                <div className="h-8 w-8 flex items-center justify-center text-cyan-400 bg-cyan-950/30 rounded-lg border border-cyan-900/50 shadow-sm">
                                                     <Hexagon className="w-4 h-4" />
                                                 </div>
                                                 Zutaten
@@ -2447,9 +2455,9 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                 {brew.brew_type === 'softdrink' && (
                                     <div className="space-y-6">
                                         {/* Section: Messwerte */}
-                                        <div className="bg-black border border-zinc-800 rounded-lg p-6">
-                                            <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
-                                                <div className="h-8 w-8 rounded-full bg-zinc-900 flex items-center justify-center text-zinc-400 border border-zinc-700">
+                                        <div className="bg-[#0B0C10] border border-zinc-800/60 rounded-3xl p-6 sm:p-8 shadow-lg mb-8">
+                                            <h3 className="text-lg font-semibold tracking-tight text-white flex items-center gap-4 mb-8 pb-4 border-b border-zinc-800/50">
+                                                <div className="h-8 w-8 flex items-center justify-center text-cyan-400 bg-cyan-950/30 rounded-lg border border-cyan-900/50 shadow-sm">
                                                     <Activity className="w-4 h-4" />
                                                 </div>
                                                 Messwerte
@@ -2462,9 +2470,9 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                             </div>
                                         </div>
                                         {/* Section: Zutaten */}
-                                        <div className="bg-black border border-zinc-800 rounded-lg p-6">
-                                            <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
-                                                <div className="h-8 w-8 rounded-full bg-zinc-900 flex items-center justify-center text-zinc-400 border border-zinc-700">
+                                        <div className="bg-[#0B0C10] border border-zinc-800/60 rounded-3xl p-6 sm:p-8 shadow-lg mb-8">
+                                            <h3 className="text-lg font-semibold tracking-tight text-white flex items-center gap-4 mb-8 pb-4 border-b border-zinc-800/50">
+                                                <div className="h-8 w-8 flex items-center justify-center text-cyan-400 bg-cyan-950/30 rounded-lg border border-cyan-900/50 shadow-sm">
                                                     <Citrus className="w-4 h-4" />
                                                 </div>
                                                 Inhalt
@@ -2485,16 +2493,16 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 
 
                                 <div className="space-y-6">
-                                    <div className="bg-black border border-zinc-800 rounded-lg p-6">
+                                    <div className="bg-[#0B0C10] border border-zinc-800/60 rounded-3xl p-6 sm:p-8 shadow-lg mb-8">
                                         <RecipeStepsEditor
                                             value={brew.data?.steps}
                                             onChange={(val) => updateData('steps', val)}
                                         />
                                     </div>
 
-                                    <div className="bg-black border border-zinc-800 rounded-lg p-6">
-                                        <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
-                                            <div className="h-8 w-8 rounded-full bg-zinc-900 flex items-center justify-center text-zinc-400 border border-zinc-700">
+                                    <div className="bg-[#0B0C10] border border-zinc-800/60 rounded-3xl p-6 sm:p-8 shadow-lg mb-8">
+                                        <h3 className="text-lg font-semibold tracking-tight text-white flex items-center gap-4 mb-8 pb-4 border-b border-zinc-800/50">
+                                            <div className="h-8 w-8 flex items-center justify-center text-cyan-400 bg-cyan-950/30 rounded-lg border border-cyan-900/50 shadow-sm">
                                                 <FileText className="w-4 h-4" />
                                             </div>
                                             Sonstiges
@@ -3168,8 +3176,8 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                     <h2 className="text-lg font-bold text-white">Einstellungen & Aktionen</h2>
                                 </div>
 
-                                <div className="bg-black border border-zinc-800 rounded-lg p-6">
-                                    <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
+                                <div className="bg-[#0B0C10] border border-zinc-800/60 rounded-3xl p-6 sm:p-8 shadow-lg mb-8">
+                                    <h3 className="text-lg font-semibold tracking-tight text-white flex items-center gap-4 mb-8 pb-4 border-b border-zinc-800/50">
                                         <div className="h-8 w-8 rounded-full bg-zinc-900 flex items-center justify-center border border-zinc-700"><Eye className="w-4 h-4 text-zinc-400" /></div>
                                         Sichtbarkeit
                                     </h3>
@@ -3249,22 +3257,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                     }}
                 />
 
-                {/* Sticky Action Bar for Mobile */}
-                <div className="fixed bottom-0 left-0 right-0 bg-zinc-950 border-t border-zinc-800 p-4 md:hidden z-50 flex items-center gap-3">
-                    <button
-                        onClick={() => router.push(`/team/${breweryId}/brews`)}
-                        className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white"
-                    >
-                        <X className="w-5 h-5" />
-                    </button>
-                    <button
-                        onClick={handleSave}
-                        disabled={saving}
-                        className="flex-1 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold rounded-xl shadow-lg active:scale-95 transition disabled:opacity-60"
-                    >
-                        {saving ? 'Speichere...' : 'Speichern'}
-                    </button>
-                </div>
+
             </div>
         </div>
     );
