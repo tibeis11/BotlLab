@@ -104,9 +104,9 @@ export default function BrewHero({
       {/* ──── DESKTOP: side-by-side ──── */}
       <div className="hidden lg:flex gap-10 px-6 py-10 items-start">
         {/* Image — fixed square */}
-        <div className="relative shrink-0 w-72 xl:w-80 aspect-square rounded-2xl overflow-hidden shadow-2xl bg-zinc-950">
+        <div className="group/hero relative shrink-0 w-72 xl:w-80 aspect-square rounded-2xl overflow-hidden shadow-2xl bg-zinc-950">
           {imageVisible ? (
-            <img src={brew.image_url} alt={brew.name} className="w-full h-full object-cover" />
+            <img src={brew.image_url} alt={brew.name} className="w-full h-full object-cover transition-transform duration-700 group-hover/hero:scale-105" />
           ) : imagePending ? (
             <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-zinc-900 to-zinc-950">
               <span className="text-5xl">⏳</span>
@@ -156,16 +156,16 @@ export default function BrewHero({
 function HeroBadges({ brew, brewTypeLabel }: { brew: any; brewTypeLabel: string }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 px-2.5 py-1 rounded-lg bg-zinc-900">
+      <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 px-2.5 py-1 rounded-full bg-zinc-900">
         {brewTypeLabel}
       </span>
       {brew.remix_parent_id && (
-        <span className="text-[10px] font-black uppercase tracking-widest text-purple-400 px-2.5 py-1 rounded-lg bg-purple-950/30 border border-purple-900/30">
+        <span className="text-[10px] font-black uppercase tracking-widest text-purple-400 px-2.5 py-1 rounded-full bg-purple-950/30 border border-purple-900/30">
           Remix
         </span>
       )}
       {brew.style && (
-        <span className="text-[10px] font-black tracking-normal text-cyan-400 px-2.5 py-1 rounded-lg bg-cyan-950/20">
+        <span className="text-[10px] font-black tracking-normal text-cyan-400 px-2.5 py-1 rounded-full bg-cyan-950/20">
           {brew.style.toUpperCase()}
         </span>
       )}

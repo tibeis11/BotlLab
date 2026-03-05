@@ -134,7 +134,7 @@ export default function BrewCommentsTab({ brew }: BrewCommentsTabProps) {
                 <button
                   onClick={handleSubmit}
                   disabled={!content.trim() || isPending}
-                  className="flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-xs px-4 py-2 rounded-lg transition"
+                  className="flex items-center gap-2 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 disabled:cursor-not-allowed text-black font-bold text-xs px-4 py-2 rounded-xl transition"
                 >
                   <Send size={12} />
                   {isPending ? 'Wird gesendet...' : 'Senden'}

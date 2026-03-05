@@ -203,43 +203,51 @@ export default function PublicBrewerPage() {
       
       <Header />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 pt-24">
+      {/* ── DISCOVER-STYLE HERO BANNER ── */}
+      <div className="relative overflow-hidden bg-zinc-900 border-b border-zinc-800">
+        {profile.logo_url && (
+          <img src={profile.logo_url} alt="" aria-hidden className="absolute inset-0 w-full h-full object-cover opacity-[0.06] blur-2xl scale-110 pointer-events-none" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/95 via-zinc-950/80 to-transparent" />
+        <div className="relative max-w-7xl mx-auto px-6 md:px-12 py-10 md:py-14 flex items-center gap-6 md:gap-10">
+          <div className="relative shrink-0 w-20 h-20 md:w-28 md:h-28 rounded-2xl overflow-hidden border border-zinc-700/60 shadow-2xl bg-zinc-900">
+            {profile.logo_url ? (
+              <img src={profile.logo_url} className="w-full h-full object-cover" alt={profile.display_name} />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-zinc-900 to-zinc-800 flex items-center justify-center text-4xl">👤</div>
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
+              <span className={`text-xs font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border ${isDrinker ? 'bg-amber-950/30 border-amber-800/30 text-amber-400' : 'bg-zinc-800/60 border-zinc-700/60 text-zinc-400'}`}>
+                {isDrinker ? 'Bierfreund' : 'Brauer'}
+              </span>
+              <ReportButton targetId={profile.id} targetType="user" />
+            </div>
+            <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight leading-tight">{profile.display_name}</h1>
+            {(profile.location || profile.website) && (
+              <div className="flex items-center gap-4 mt-2 flex-wrap">
+                {profile.location && <span className="text-sm text-zinc-400 flex items-center gap-1.5"><MapPin size={12} className="text-zinc-600" />{profile.location}</span>}
+                {profile.website && <a href={profile.website.includes('http') ? profile.website : `https://${profile.website}`} target="_blank" className="text-sm text-cyan-400 hover:text-cyan-300 transition truncate max-w-xs">{profile.website.replace(/https?:\/\//, '')}</a>}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
           
-           {/* --- LEFT COLUMN: Profile Image & Basic Stats (4 cols) --- */}
+           {/* --- LEFT COLUMN: Bio & Teams (4 cols) --- */}
           <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-8">
-             {/* Profile Image (Smaller) */}
-             <div className="relative w-48 h-48 mx-auto shadow-2xl rounded-full overflow-hidden border border-zinc-800 bg-zinc-900">
-                {profile.logo_url ? (
-                  <img src={profile.logo_url} className="w-full h-full object-cover" alt={profile.display_name} />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-zinc-900 to-zinc-800 flex items-center justify-center text-6xl">
-                    👤
-                  </div>
-                )}
-             </div>
 
              {/* Bio Card */}
+              {profile.bio && (
               <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-5 hover:border-zinc-700 transition">
                 <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest mb-3">Über</p>
-                <div className="space-y-4">
-                     {profile.location && (
-                      <p className="text-sm text-white flex items-center gap-2">
-                        📍 {profile.location}
-                      </p>
-                    )}
-                    {profile.website && (
-                      <a href={profile.website.includes('http') ? profile.website : `https://${profile.website}`} target="_blank" className="text-sm text-cyan-400 hover:text-cyan-300 block truncate">
-                        🌐 {profile.website.replace('https://', '')}
-                      </a>
-                    )}
-                     {profile.bio && (
-                      <p className="text-sm text-zinc-400 leading-relaxed pt-2 border-t border-zinc-800/50">
-                        {profile.bio}
-                      </p>
-                    )}
-                </div>
+                <p className="text-sm text-zinc-400 leading-relaxed">{profile.bio}</p>
               </div>
+              )}
               
               {/* Team Membership */}
                {teams.length > 0 && (
@@ -267,54 +275,37 @@ export default function PublicBrewerPage() {
 
           {/* --- RIGHT COLUMN: Content (8 cols) --- */}
           <div className="lg:col-span-8 space-y-10">
-            
-            {/* Header */}
-            <div className="text-center lg:text-left space-y-4">
-                <div className="flex flex-wrap gap-2 items-center justify-center lg:justify-start">
-                    <span 
-                        className={`text-xs font-black uppercase tracking-widest px-3 py-1 rounded-lg border shadow-sm ${
-                          isDrinker
-                            ? 'bg-amber-950/30 border-amber-800/30 text-amber-400'
-                            : 'bg-zinc-900 border-zinc-800 text-zinc-400'
-                        }`}
-                    >
-                        {isDrinker ? 'Bierfreund' : 'Brauer'}
-                    </span>
-                    <ReportButton targetId={profile.id} targetType="user" />
-                </div>
-                <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-none tracking-tight">{profile.display_name}</h1>
-            </div>
 
             {/* KPI Grid */}
             {isDrinker ? (
               /* ── CONSUMER KPI GRID ── */
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 flex flex-col justify-center min-h-[100px]">
+                <div className="bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 rounded-2xl p-4 flex flex-col justify-center min-h-[100px] transition-colors">
                   <div className="text-cyan-500 text-[10px] uppercase font-bold mb-1 tracking-wider">Kronkorken</div>
                   <div className="font-black text-3xl text-white">{consumerCaps.length}</div>
                 </div>
 
-                <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 flex flex-col justify-center min-h-[100px]">
+                <div className="bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 rounded-2xl p-4 flex flex-col justify-center min-h-[100px] transition-colors">
                   <div className="text-amber-500 text-[10px] uppercase font-bold mb-1 tracking-wider">Brauereien</div>
                   <div className="font-black text-3xl text-white">{uniqueBreweries}</div>
                 </div>
 
-                <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 flex flex-col justify-center min-h-[100px]">
+                <div className="bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 rounded-2xl p-4 flex flex-col justify-center min-h-[100px] transition-colors">
                   <div className="text-purple-500 text-[10px] uppercase font-bold mb-1 tracking-wider">Tasting IQ</div>
                   <div className="font-black text-3xl text-white">{profile.tasting_iq || 0}</div>
                 </div>
 
-                <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 flex flex-col justify-center min-h-[100px]">
+                <div className="bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 rounded-2xl p-4 flex flex-col justify-center min-h-[100px] transition-colors">
                   <div className="text-emerald-500 text-[10px] uppercase font-bold mb-1 tracking-wider">Bewertungen</div>
                   <div className="font-black text-3xl text-white">{totalConsumerRatings}</div>
                 </div>
 
-                <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 flex flex-col justify-center min-h-[100px]">
+                <div className="bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 rounded-2xl p-4 flex flex-col justify-center min-h-[100px] transition-colors">
                   <div className="text-amber-500 text-[10px] uppercase font-bold mb-1 tracking-wider flex items-center gap-1"><Star size={10} /> Ø Bewertung</div>
                   <div className="font-black text-3xl text-white">{avgConsumerRating || '–'}</div>
                 </div>
 
-                <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 flex flex-col justify-center min-h-[100px]">
+                <div className="bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 rounded-2xl p-4 flex flex-col justify-center min-h-[100px] transition-colors">
                   <div className="text-emerald-500 text-[10px] uppercase font-bold mb-1 tracking-wider">Diskussionen</div>
                   <div className="font-black text-3xl text-white">{forumThreads.length + forumPosts.length}</div>
                   <div className="text-[10px] text-zinc-500 mt-1">{forumThreads.length} Threads · {forumPosts.length} Antworten</div>
@@ -323,30 +314,30 @@ export default function PublicBrewerPage() {
             ) : (
               /* ── BREWER KPI GRID ── */
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                 <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 flex flex-col justify-center min-h-[100px]">
+                 <div className="bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 rounded-2xl p-4 flex flex-col justify-center min-h-[100px] transition-colors">
                     <div className="text-cyan-500 text-[10px] uppercase font-bold mb-1 tracking-wider">Rezepte</div>
                     <div className="font-black text-3xl text-white">{brews.length}</div>
                  </div>
 
-                 <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 flex flex-col justify-center min-h-[100px]">
+                 <div className="bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 rounded-2xl p-4 flex flex-col justify-center min-h-[100px] transition-colors">
                     <div className="text-amber-500 text-[10px] uppercase font-bold mb-1 tracking-wider">Ø Bewertung</div>
                     <div className="font-black text-3xl text-white">
                         {avgOverallRating || '-'} <span className="text-xs text-zinc-600 font-bold align-top">({totalRatings})</span>
                     </div>
                  </div>
                  
-                 <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 flex flex-col justify-center min-h-[100px]">
+                 <div className="bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 rounded-2xl p-4 flex flex-col justify-center min-h-[100px] transition-colors">
                      <div className="text-zinc-500 text-[10px] uppercase font-bold mb-1 tracking-wider">Aktiv seit</div>
                      <div className="font-black text-3xl text-white">{profile.founded_year || new Date(profile.created_at || Date.now()).getFullYear()}</div>
                  </div>
 
-                 <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 flex flex-col justify-center min-h-[100px]">
+                 <div className="bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 rounded-2xl p-4 flex flex-col justify-center min-h-[100px] transition-colors">
                      <div className="text-emerald-500 text-[10px] uppercase font-bold mb-1 tracking-wider">Diskussionen</div>
                      <div className="font-black text-3xl text-white">{forumThreads.length + forumPosts.length}</div>
                      <div className="text-[10px] text-zinc-500 mt-1">{forumThreads.length} Threads · {forumPosts.length} Antworten</div>
                  </div>
 
-                 <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 flex flex-col justify-center min-h-[100px]">
+                 <div className="bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 rounded-2xl p-4 flex flex-col justify-center min-h-[100px] transition-colors">
                      <div className="text-amber-500 text-[10px] uppercase font-bold mb-1 tracking-wider flex items-center gap-1"><Star size={10} /> Reputation</div>
                      <div className="font-black text-3xl text-white">{forumReputation}</div>
                      <div className="text-[10px] text-zinc-500 mt-1">erhaltene Reaktionen</div>
@@ -548,7 +539,7 @@ export default function PublicBrewerPage() {
                            >
                                <div className="flex justify-between items-start mb-1">
                                     <div className="flex items-center gap-2 mb-1">
-                                        <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-500/80 bg-emerald-950/30 px-2 py-0.5 rounded border border-emerald-500/20">
+                                        <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-500/80 bg-emerald-950/30 px-2 py-0.5 rounded-full border border-emerald-500/20">
                                             {thread.category?.title}
                                         </span>
                                         <span className="text-[10px] text-zinc-500 flex items-center gap-1">
