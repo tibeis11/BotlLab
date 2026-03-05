@@ -786,6 +786,8 @@ ${ctx.yeast ?? data.yeast ? `- Hefe: ${data.yeast ?? ctx.yeast}` : ''}
 ${ctx.dryHop ?? data.dryHop ? `- Dry Hop: ${data.dryHop ?? ctx.dryHop}g` : ''}
 ${ctx.boilMinutes ?? data.boilMinutes ? `- Kochzeit: ${data.boilMinutes ?? ctx.boilMinutes} min` : ''}
 ${ctx.mashTempC ?? data.mashTemp ? `- Maischetemperatur: ${data.mashTemp ?? ctx.mashTempC}°C` : ''}
+${data.mashProcess ? `- Maischverfahren: ${data.mashProcess === 'decoction' ? 'Dekoktion' : data.mashProcess === 'step_mash' ? 'Stufeninfusion' : 'Infusion'}` : ''}
+${data.mashSchedule ? `- Maischplan: ${data.mashSchedule}` : ''}
 
 Anforderungen:
 - 3–5 konkrete, umsetzbare Verbesserungsvorschläge auf Deutsch
@@ -882,6 +884,8 @@ ${ctx.hops ?? data.hops ? `- Hopfen: ${data.hops ?? ctx.hops}` : ''}
 ${ctx.yeast ?? data.yeast ? `- Hefe: ${data.yeast ?? ctx.yeast}` : ''}
 ${ctx.dryHop ?? data.dryHop ? `- Dry Hop: ${data.dryHop ?? ctx.dryHop}` : ''}
 ${ctx.mashTempC ?? data.mashTemp ? `- Maischetemperatur: ${data.mashTemp ?? ctx.mashTempC}°C` : ''}
+${data.mashProcess ? `- Maischverfahren: ${data.mashProcess === 'decoction' ? 'Dekoktion' : data.mashProcess === 'step_mash' ? 'Stufeninfusion' : 'Infusion'}` : ''}
+${data.mashSchedule ? `- Maischplan: ${data.mashSchedule}` : ''}
 
 5 Dimensionen (0.0–1.0):
 - sweetness: Süße (Restextrakt, Caramalz, FG)

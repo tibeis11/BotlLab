@@ -17,6 +17,7 @@ import {
     CheckCircle2,
     ChevronUp,
     ChevronDown,
+    Flame,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { BotlGuideTrigger } from '@/app/components/BotlGuideTrigger';
@@ -25,7 +26,7 @@ import { BotlGuideTrigger } from '@/app/components/BotlGuideTrigger';
 // Types
 // 
 
-type EventType = 'mash' | 'sparge' | 'boil' | 'measure';
+type EventType = 'mash' | 'sparge' | 'boil' | 'measure' | 'decoction_pull' | 'decoction_heat' | 'decoction_rest' | 'decoction_boil' | 'decoction_return';
 
 interface TEvent {
     id: string;
@@ -36,6 +37,10 @@ interface TEvent {
     temp?: number;
     spargeVol?: number;
     hops?: HopAddition[];
+    /** Stopwatch mode: count UP, no countdown */
+    stopwatch?: boolean;
+    /** Volume info string for decoction pull, e.g. "6.0 L Dickmaische" */
+    volumeInfo?: string;
 }
 
 interface HopAddition {
@@ -73,10 +78,15 @@ const fmtMs = (ms: number) => {
 };
 
 const TYPE_LABEL: Record<EventType, string> = {
-    mash:    'Maischen',
-    sparge:  'Laeutern',
-    boil:    'Wuerze\u00adkochen',
-    measure: 'Abschluss',
+    mash:              'Maischen',
+    sparge:            'Laeutern',
+    boil:              'Wuerze\u00adkochen',
+    measure:           'Abschluss',
+    decoction_pull:    'Dekoktion',
+    decoction_heat:    'Dekoktion',
+    decoction_rest:    'Dekoktion',
+    decoction_boil:    'Dekoktion',
+    decoction_return:  'Dekoktion',
 };
 
 // 
@@ -93,6 +103,28 @@ function LiveTimer({ state }: { state: TimerState }) {
         const tick = () => {
             const total = state.elapsed + (Date.now() - state.startTime!);
             setDisplay(fmtMs(Math.max(0, state.duration - total)));
+        };
+        tick();
+        const id = setInterval(tick, 200);
+        return () => clearInterval(id);
+    }, [state]);
+    return <>{display}</>;
+}
+
+// 
+// LiveStopwatch — counts UP (for decoction_heat where duration is unknown)
+// 
+
+function LiveStopwatch({ state }: { state: TimerState }) {
+    const [display, setDisplay] = useState(() => fmtMs(state.elapsed));
+    useEffect(() => {
+        if (!state.running || !state.startTime) {
+            setDisplay(fmtMs(state.elapsed));
+            return;
+        }
+        const tick = () => {
+            const total = state.elapsed + (Date.now() - state.startTime!);
+            setDisplay(fmtMs(total));
         };
         tick();
         const id = setInterval(tick, 200);
@@ -165,18 +197,94 @@ export function BrewDayTab() {
     const timeline = useMemo<TEvent[]>(() => {
         const ev: TEvent[] = [];
 
-        // 1. Mash steps (no Vorbereitung prefix)
+        // 1. Mash steps — Dekoktions-Schritte werden in Sub-Events expandiert
         const mashSteps: any[] = data.mash_steps ?? data.mash_schedule ?? [];
         if (mashSteps.length > 0) {
-            mashSteps.forEach((s, i) => {
+            mashSteps.forEach((s: any, i: number) => {
                 const t = sf(s.temperature ?? s.temp);
-                ev.push({
-                    id:    `mash-${i}`,
-                    type:  'mash',
-                    title: s.name ?? (i === 0 ? 'Einmaischen' : `Rast ${i + 1}`),
-                    time:  sf(s.duration ?? s.time),
-                    temp:  t > 0 ? t : undefined,
-                });
+
+                if (s.step_type === 'decoction') {
+                    // ── Dekoktions-Expansion ──
+                    const formLabel = s.decoction_form === 'thin' ? 'Dünnmaische'
+                        : s.decoction_form === 'liquid' ? 'Kochwasser'
+                        : 'Dickmaische';
+                    const rawVol = s.volume_liters ? sf(s.volume_liters) * scale : 0;
+                    const scaledVol = rawVol > 0 ? rawVol.toFixed(1).replace('.', ',') : '';
+                    const volInfo = scaledVol ? `${scaledVol} L ${formLabel}` : formLabel;
+                    const stepName = s.name ?? `Dekoktion ${i + 1}`;
+
+                    // 1. Pull — Teilmaische ziehen (Bestätigungsschritt)
+                    ev.push({
+                        id: `mash-${i}-pull`,
+                        type: 'decoction_pull',
+                        title: `${stepName}: Teilmaische ziehen`,
+                        description: volInfo,
+                        volumeInfo: volInfo,
+                    });
+
+                    // 2. Heat — Aufheizen (Stopwatch, kein Countdown)
+                    ev.push({
+                        id: `mash-${i}-heat`,
+                        type: 'decoction_heat',
+                        title: `Teilmaische aufheizen`,
+                        description: s.decoction_rest_temp
+                            ? `Ziel: ${s.decoction_rest_temp}°C`
+                            : 'Bis zum Kochen aufheizen',
+                        temp: s.decoction_rest_temp ? sf(s.decoction_rest_temp) : 100,
+                        stopwatch: true,
+                    });
+
+                    // 3. Optional: Teilmaische-Rast (wenn temp+time definiert)
+                    if (sf(s.decoction_rest_temp) > 0 && sf(s.decoction_rest_time) > 0) {
+                        ev.push({
+                            id: `mash-${i}-rest`,
+                            type: 'decoction_rest',
+                            title: `Teilmaische-Rast`,
+                            time: sf(s.decoction_rest_time),
+                            temp: sf(s.decoction_rest_temp),
+                        });
+                    }
+
+                    // 4. Boil — Teilmaische kochen
+                    if (sf(s.decoction_boil_time) > 0) {
+                        ev.push({
+                            id: `mash-${i}-boil`,
+                            type: 'decoction_boil',
+                            title: `Teilmaische kochen`,
+                            time: sf(s.decoction_boil_time),
+                            temp: 100,
+                        });
+                    }
+
+                    // 5. Return — Teilmaische zurückführen (Bestätigungsschritt)
+                    ev.push({
+                        id: `mash-${i}-return`,
+                        type: 'decoction_return',
+                        title: `${stepName}: Zurückführen`,
+                        temp: t > 0 ? t : undefined,
+                        description: t > 0 ? `Hauptmaische auf ${t}°C bringen` : undefined,
+                    });
+
+                    // 6. Hauptrast bei Zieltemperatur (wenn Dauer definiert)
+                    if (sf(s.duration) > 0) {
+                        ev.push({
+                            id: `mash-${i}-mainrest`,
+                            type: 'mash',
+                            title: `Rast bei ${t}°C`,
+                            time: sf(s.duration),
+                            temp: t > 0 ? t : undefined,
+                        });
+                    }
+                } else {
+                    // ── Normaler Rast-/Abmaisch-Schritt ──
+                    ev.push({
+                        id: `mash-${i}`,
+                        type: 'mash',
+                        title: s.name ?? (i === 0 ? 'Einmaischen' : `Rast ${i + 1}`),
+                        time: sf(s.duration ?? s.time),
+                        temp: t > 0 ? t : undefined,
+                    });
+                }
             });
         } else {
             ev.push({ id: 'mash-0', type: 'mash', title: 'Einmaischen', time: 60, temp: 67 });
@@ -272,10 +380,17 @@ export function BrewDayTab() {
     const goTo = (i: number) => {
         setActive(i);
         const step    = timeline[i];
-        const hasDur  = (step.time ?? 0) > 0 && step.type !== 'measure';
-        const newTimer: TimerState = hasDur
-            ? { running: false, startTime: null, elapsed: 0, duration: step.time! * 60_000 }
-            : { running: false, startTime: null, elapsed: 0, duration: 0 };
+        const isStopwatch = step.stopwatch;
+        const hasDuration = (step.time ?? 0) > 0 && step.type !== 'measure';
+        let newTimer: TimerState;
+        if (isStopwatch) {
+            // Stopwatch: count up, no target duration — user clicks "Erledigt" when done
+            newTimer = { running: false, startTime: null, elapsed: 0, duration: 0 };
+        } else if (hasDuration) {
+            newTimer = { running: false, startTime: null, elapsed: 0, duration: step.time! * 60_000 };
+        } else {
+            newTimer = { running: false, startTime: null, elapsed: 0, duration: 0 };
+        }
         setTimer(newTimer);
         updateSessionData({ measurements: { ...meas, active_step_index: i, timers: { ...savedTimers, global: newTimer } } as any });
     };
@@ -331,10 +446,15 @@ export function BrewDayTab() {
 
     type Phase = { label: string; color: string };
     const PHASE_MAP: Record<EventType, Phase> = {
-        mash:    { label: 'Maischen',  color: 'text-amber-400'   },
-        sparge:  { label: 'Laeutern', color: 'text-sky-400'     },
-        boil:    { label: 'Kochen',    color: 'text-red-400'     },
-        measure: { label: 'Abschluss', color: 'text-emerald-400' },
+        mash:              { label: 'Maischen',  color: 'text-amber-400'   },
+        sparge:            { label: 'Laeutern',  color: 'text-sky-400'     },
+        boil:              { label: 'Kochen',    color: 'text-red-400'     },
+        measure:           { label: 'Abschluss', color: 'text-emerald-400' },
+        decoction_pull:    { label: 'Maischen',  color: 'text-amber-400'   },
+        decoction_heat:    { label: 'Maischen',  color: 'text-amber-400'   },
+        decoction_rest:    { label: 'Maischen',  color: 'text-amber-400'   },
+        decoction_boil:    { label: 'Maischen',  color: 'text-amber-400'   },
+        decoction_return:  { label: 'Maischen',  color: 'text-amber-400'   },
     };
 
     const getHeader = (i: number): Phase | null => {
@@ -344,12 +464,12 @@ export function BrewDayTab() {
         return null;
     };
 
-    const hasDur = (ev: TEvent) => (ev.time ?? 0) > 0 && ev.type !== 'measure';
+    const hasDur = (ev: TEvent) => ((ev.time ?? 0) > 0 || ev.stopwatch) && ev.type !== 'measure';
 
     return (
         <div className="flex flex-col md:flex-row bg-black text-zinc-300 border-t border-zinc-900">
 
-            {timer.duration > 0 && (
+            {(timer.duration > 0 || timeline[active]?.stopwatch) && (
                 <div className="md:hidden fixed left-0 right-0 z-40 bg-zinc-950 border-t border-zinc-800 shadow-[0_-4px_16px_rgba(0,0,0,0.6)]" style={{ bottom: 'calc(4rem + max(env(safe-area-inset-bottom), 8px))' }}>
                     {/* Expandable details panel */}
                     {timerExpanded && (
@@ -383,7 +503,9 @@ export function BrewDayTab() {
                             <span className="text-sm text-zinc-400 truncate font-medium">{timeline[active]?.title}</span>
                         </div>
                         <div className="flex items-center gap-3 shrink-0">
-                            <span className="text-xl font-mono font-bold text-white tabular-nums"><LiveTimer state={timer} /></span>
+                            <span className="text-xl font-mono font-bold text-white tabular-nums">
+                                {timeline[active]?.stopwatch ? <LiveStopwatch state={timer} /> : <LiveTimer state={timer} />}
+                            </span>
                             <button onClick={toggleTimer} className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${timer.running ? 'bg-zinc-800 text-amber-500' : 'bg-amber-600 text-white'}`}>
                                 {timer.running ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
                             </button>
@@ -429,7 +551,8 @@ export function BrewDayTab() {
                                                     <div>
                                                         <p className="text-[10px] font-mono uppercase tracking-widest text-amber-500 mb-1">
                                                             {TYPE_LABEL[ev.type]}
-                                                            {hasDur(ev) && <span className="text-zinc-600 ml-2">· {ev.time} min</span>}
+                                                            {ev.stopwatch && <span className="text-zinc-600 ml-2">· Stoppuhr</span>}
+                                                            {!ev.stopwatch && hasDur(ev) && <span className="text-zinc-600 ml-2">· {ev.time} min</span>}
                                                         </p>
                                                         <h2 className="text-base font-bold text-white mb-2">{ev.title}</h2>
                                                         {ev.type === 'measure' && ev.description ? (
@@ -442,7 +565,7 @@ export function BrewDayTab() {
                                                         )}
                                                     </div>
 
-                                                    {(ev.temp || ev.spargeVol) && (
+                                                    {(ev.temp || ev.spargeVol || ev.volumeInfo) && (
                                                         <div className="flex flex-wrap gap-2">
                                                             {ev.temp && (
                                                                 <span className="inline-flex items-center gap-1 text-xs font-mono font-bold bg-zinc-950 border border-zinc-800 text-amber-400 px-2 py-1 rounded">
@@ -452,6 +575,11 @@ export function BrewDayTab() {
                                                             {ev.spargeVol && (
                                                                 <span className="inline-flex items-center gap-1 text-xs font-mono font-bold bg-zinc-950 border border-zinc-800 text-sky-400 px-2 py-1 rounded">
                                                                     <Droplets className="w-3 h-3" />{ev.spargeVol} L Nachguss
+                                                                </span>
+                                                            )}
+                                                            {ev.volumeInfo && (
+                                                                <span className="inline-flex items-center gap-1 text-xs font-mono font-bold bg-amber-500/10 border border-amber-500/20 text-amber-500 px-2 py-1 rounded">
+                                                                    <Flame className="w-3 h-3" />{ev.volumeInfo}
                                                                 </span>
                                                             )}
                                                         </div>
@@ -533,7 +661,9 @@ export function BrewDayTab() {
                                                         {hasDur(ev) && (
                                                             <button onClick={toggleTimer} className={`flex items-center gap-2 px-3 py-2 rounded text-xs font-bold uppercase tracking-wide border transition-colors shrink-0 ${timer.running ? 'bg-zinc-950 border-zinc-700 text-amber-500 hover:bg-zinc-800' : 'bg-amber-600 border-transparent text-white hover:bg-amber-500'}`}>
                                                                 {timer.running ? <Pause className="w-3 h-3 fill-current" /> : <Play className="w-3 h-3 fill-current" />}
-                                                                <span className="font-mono tabular-nums text-sm tracking-tighter"><LiveTimer state={timer} /></span>
+                                                                <span className="font-mono tabular-nums text-sm tracking-tighter">
+                                                                    {ev.stopwatch ? <LiveStopwatch state={timer} /> : <LiveTimer state={timer} />}
+                                                                </span>
                                                             </button>
                                                         )}
                                                         <button onClick={nextStep} className="flex flex-1 items-center justify-center gap-2 px-4 py-2 bg-white hover:bg-zinc-100 text-black text-xs font-bold uppercase tracking-wide rounded transition-colors active:scale-95">
@@ -542,21 +672,30 @@ export function BrewDayTab() {
                                                     </div>
                                                 </div>
 
-                                                {hasDur(ev) && timer.duration > 0 && (
+                                                {hasDur(ev) && timer.duration > 0 && !ev.stopwatch && (
                                                     <div className="h-0.5 bg-zinc-800"><TimerBar state={timer} /></div>
                                                 )}
                                             </div>
                                         ) : (
                                             <div className={`flex items-center gap-3 py-2 ${isPast ? 'opacity-35' : 'hover:opacity-70 transition-opacity'}`}>
-                                                <span className={`text-sm flex-1 min-w-0 truncate ${isPast ? 'line-through text-zinc-500' : 'text-zinc-400'}`}>{ev.title}</span>
+                                                {ev.type.startsWith('decoction_') && !isPast && (
+                                                    <Flame className="w-3 h-3 text-amber-600 shrink-0" />
+                                                )}
+                                                <span className={`text-sm flex-1 min-w-0 truncate ${isPast ? 'line-through text-zinc-500' : ev.type.startsWith('decoction_') ? 'text-amber-400/70' : 'text-zinc-400'}`}>{ev.title}</span>
                                                 <div className="flex items-center gap-2 shrink-0">
-                                                    {ev.temp !== undefined && ev.type === 'mash' && (
+                                                    {ev.temp !== undefined && (ev.type === 'mash' || ev.type.startsWith('decoction_')) && (
                                                         <span className="text-[10px] font-mono text-amber-700">{ev.temp}°C</span>
                                                     )}
                                                     {ev.spargeVol !== undefined && (
                                                         <span className="text-[10px] font-mono text-sky-700">{ev.spargeVol} L</span>
                                                     )}
-                                                    {hasDur(ev) && (
+                                                    {ev.volumeInfo && (
+                                                        <span className="text-[10px] font-mono text-amber-700">{ev.volumeInfo}</span>
+                                                    )}
+                                                    {ev.stopwatch && (
+                                                        <span className="text-[10px] font-mono text-zinc-700">⏱</span>
+                                                    )}
+                                                    {!ev.stopwatch && hasDur(ev) && (
                                                         <span className="text-[10px] font-mono text-zinc-700">{ev.time} min</span>
                                                     )}
                                                     {ev.type === 'measure' && ogReadings.length > 0 && (
@@ -576,10 +715,14 @@ export function BrewDayTab() {
 
             <div className="w-56 hidden xl:flex flex-col shrink-0 border-l border-zinc-900 p-5 gap-5 sticky top-0 self-start">
                 <div>
-                    <p className="text-[10px] uppercase tracking-widest text-zinc-600 mb-1">Timer</p>
-                    {timer.duration > 0 ? (
+                    <p className="text-[10px] uppercase tracking-widest text-zinc-600 mb-1">
+                        {timeline[active]?.stopwatch ? 'Stoppuhr' : 'Timer'}
+                    </p>
+                    {timer.duration > 0 || timeline[active]?.stopwatch ? (
                         <>
-                            <div className="text-3xl font-mono font-black text-white tabular-nums tracking-tighter"><LiveTimer state={timer} /></div>
+                            <div className="text-3xl font-mono font-black text-white tabular-nums tracking-tighter">
+                                {timeline[active]?.stopwatch ? <LiveStopwatch state={timer} /> : <LiveTimer state={timer} />}
+                            </div>
                             <div className="flex items-center gap-2 mt-1">
                                 <div className={`w-1.5 h-1.5 rounded-full ${timer.running ? 'bg-amber-500 animate-pulse' : 'bg-zinc-800'}`} />
                                 <span className="text-xs text-zinc-600">{timer.running ? 'Laeuft' : 'Pausiert'}</span>

@@ -21,7 +21,7 @@ import { HopListEditor } from './HopListEditor';
 import { YeastListEditor } from './YeastListEditor';
 import { MashStepsEditor } from './MashStepsEditor';
 import { RecipeStepsEditor } from './RecipeStepsEditor';
-import { calculateColorEBC, calculateIBU, calculateWaterProfile, calculateOG, calculateABV, calculateFG, ebcToHex, calculateBatchSizeFromWater, safeFloat, calculateTotalGrain } from '@/lib/brewing-calculations';
+import { calculateColorEBC, calculateIBU, calculateWaterProfile, calculateOG, calculateABV, calculateFG, ebcToHex, calculateBatchSizeFromWater, safeFloat, calculateTotalGrain, calculateDecoctionEvaporation } from '@/lib/brewing-calculations';
 import { FormulaInspector } from '@/app/components/FormulaInspector';
 import { SubscriptionTier, type PremiumStatus } from '@/lib/premium-config';
 import { type EquipmentProfile, profileToConfig, BREW_METHOD_LABELS } from '@/lib/types/equipment';
@@ -1144,7 +1144,20 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                 recipeData.spargeWater = d.sparge_water_liters;
 
                 if (Array.isArray(d.mash_steps)) {
-                    recipeData.mashSchedule = d.mash_steps.map((s: any) => `${s.name}: ${s.temperature}°C (${s.duration}min)`).join(' -> ');
+                    recipeData.mashSchedule = d.mash_steps.map((s: any) => {
+                        let label = `${s.name}: ${s.temperature}°C (${s.duration}min)`;
+                        if (s.step_type === 'decoction') {
+                            const parts: string[] = [`Dekoktion`];
+                            if (s.decoction_form) parts.push(s.decoction_form);
+                            if (s.volume_liters) parts.push(`${s.volume_liters}L`);
+                            if (s.decoction_boil_time) parts.push(`Kochen ${s.decoction_boil_time}min`);
+                            label += ` [${parts.join(', ')}]`;
+                        } else if (s.step_type === 'mashout') {
+                            label += ' [Abmaischen]';
+                        }
+                        return label;
+                    }).join(' -> ');
+                    if (d.mash_process) recipeData.mashProcess = d.mash_process;
                 }
             } else if (brew.brew_type === 'wine') {
                 recipeData.abv = d.abv;
@@ -1660,14 +1673,25 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
             boilOffRate: parseFloat(d.boil_off_rate?.toString().replace(',', '.') || '3.5'),
             trubLoss: parseFloat(d.trub_loss?.toString().replace(',', '.') || '0.5'),
             coolingShrinkage: parseFloat(d.cooling_shrinkage?.toString().replace(',', '.') || '0.04'),
-            mashThickness: parseFloat(d.mash_thickness?.toString().replace(',', '.') || '3.5')
+            mashThickness: parseFloat(d.mash_thickness?.toString().replace(',', '.') || '3.5'),
+            // Dekoktion: Verdampfungsverlust aus Teilmaische-Kochungen → fließt in Nachguss
+            decoctionEvaporation: d.mash_process === 'decoction' && Array.isArray(d.mash_steps)
+                ? calculateDecoctionEvaporation(d.mash_steps)
+                : 0
         };
         
         const result = calculateWaterProfile(batchSize, totalGrainKg, boilTimeHours, config);
         
-        updateData('mash_water_liters', result.mashWater.toString());
-        updateData('sparge_water_liters', result.spargeWater.toString());
-        setMessage(`Wasser berechnet! HG: ${result.mashWater}L, NG: ${result.spargeWater}L`);
+        const decEvap = config.decoctionEvaporation;
+        if (decEvap > 0) {
+            updateData('mash_water_liters', result.mashWater.toString());
+            updateData('sparge_water_liters', result.spargeWater.toString());
+            setMessage(`Wasser berechnet! HG: ${result.mashWater}L, NG: ${result.spargeWater}L (inkl. ${decEvap.toFixed(1)}L Dekoktions-Verdampfung)`);
+        } else {
+            updateData('mash_water_liters', result.mashWater.toString());
+            updateData('sparge_water_liters', result.spargeWater.toString());
+            setMessage(`Wasser berechnet! HG: ${result.mashWater}L, NG: ${result.spargeWater}L`);
+        }
         setTimeout(() => setMessage(null), 3000);
     }
 
@@ -2098,11 +2122,6 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                     onChange={(val) => updateData('malts', val)}
                                                 />
 
-                                                <MashStepsEditor
-                                                    value={brew.data?.mash_steps}
-                                                    onChange={(val) => updateData('mash_steps', val)}
-                                                />
-
                                                 {/* Braumethode & Maischverfahren */}
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                     {/* Braumethode */}
@@ -2122,7 +2141,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                             options={[
                                                                 { value: 'all_grain', label: 'All-Grain' },
                                                                 { value: 'extract', label: 'Extrakt' },
-                                                                { value: 'partial_mash', label: 'Teilmaische' },
+                                                                { value: 'partial_mash', label: 'Partial Mash (Kombiniert)' },
                                                             ]}
                                                         />
                                                     </div>
@@ -2153,6 +2172,16 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                         </div>
                                                     )}
                                                 </div>
+
+                                                {/* Maischplan — komplett ausblenden bei Extraktbrauen */}
+                                                {brew.data?.mash_method !== 'extract' && (
+                                                    <MashStepsEditor
+                                                        value={brew.data?.mash_steps}
+                                                        onChange={(val) => updateData('mash_steps', val)}
+                                                        mashProcess={brew.data?.mash_process}
+                                                        mashInfusionTotal={brew.data?.mash_water_liters ? String(brew.data.mash_water_liters) : undefined}
+                                                    />
+                                                )}
                                             </div>
                                         </div>
 

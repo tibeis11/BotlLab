@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import Scanner from '@/app/components/Scanner';
 import BottleScanner from '@/app/components/BottleScanner';
 import { TimelineEvent } from '@/lib/types/session-log';
-import { calculatePrimingSugar, calculateResidualCO2, platoToSG, calculateWaterProfile } from '@/lib/brewing-calculations';
+import { calculatePrimingSugar, calculateResidualCO2, platoToSG, calculateWaterProfile, calculateDecoctionEvaporation } from '@/lib/brewing-calculations';
 import { useDebouncedCallback } from 'use-debounce';
 
 // Lucide Icons
@@ -429,11 +429,15 @@ export function PlanningView() {
   }, 0);
 
   // Default calculation (Physics Model) — using equipment config from session
+  // Include decoction evaporation if mash_process is decoction
+  const decoctionConfig = data.mash_process === 'decoction' && Array.isArray(data.mash_steps)
+      ? { ...equipmentConfig, decoctionEvaporation: calculateDecoctionEvaporation(data.mash_steps) }
+      : equipmentConfig;
   waterProfile = calculateWaterProfile(
       scaleVolume || 20, 
       totalMaltBase, 
       boilTime,
-      equipmentConfig
+      decoctionConfig
   );
 
   // If recipe has explicit water values (from manual entry in editor), use them!
@@ -764,11 +768,40 @@ export function BrewingView() {
       }
   };
   
-  const timerMashSteps = useMemo(() => mashSteps.map((step: any, i: number) => ({
-      label: step.name || step.step || step.title || `Rast ${i+1}`,
-      duration: parseFloat(step.duration || '0'), 
-      temperature: parseFloat(step.temperature || step.temp)
-  })), [mashSteps]);
+  const timerMashSteps = useMemo(() => {
+      const steps: Array<{ label: string; duration: number; temperature: number }> = [];
+      mashSteps.forEach((step: any, i: number) => {
+          if (step.step_type === 'decoction') {
+              const name = step.name || `Dekoktion ${i + 1}`;
+              const temp = parseFloat(step.temperature || step.temp || '0');
+              // Pull (confirmation, no timer)
+              steps.push({ label: `${name}: Ziehen`, duration: 0, temperature: 0 });
+              // Heat (manual, no auto-timer)
+              steps.push({ label: `Aufheizen`, duration: 0, temperature: parseFloat(step.decoction_rest_temp || '100') });
+              // Optional rest before boil
+              if (parseFloat(step.decoction_rest_time || '0') > 0) {
+                  steps.push({ label: `Teilmaische-Rast`, duration: parseFloat(step.decoction_rest_time || '0'), temperature: parseFloat(step.decoction_rest_temp || '72') });
+              }
+              // Boil
+              if (parseFloat(step.decoction_boil_time || '0') > 0) {
+                  steps.push({ label: `Kochen`, duration: parseFloat(step.decoction_boil_time || '0'), temperature: 100 });
+              }
+              // Return (confirmation)
+              steps.push({ label: `${name}: Zurückführen`, duration: 0, temperature: temp });
+              // Main rest at target
+              if (parseFloat(step.duration || '0') > 0) {
+                  steps.push({ label: `Rast bei ${temp}°C`, duration: parseFloat(step.duration || '0'), temperature: temp });
+              }
+          } else {
+              steps.push({
+                  label: step.name || step.step || step.title || `Rast ${i + 1}`,
+                  duration: parseFloat(step.duration || '0'),
+                  temperature: parseFloat(step.temperature || step.temp)
+              });
+          }
+      });
+      return steps;
+  }, [mashSteps]);
 
   const timerBoilSteps = useMemo(() => hops.map((hop: any) => ({
       label: `${hop.name} (${hop.amount}g)`,
@@ -824,13 +857,18 @@ export function BrewingView() {
               <div className="space-y-3">
                   {mashSteps.map((step: any, i: number) => {
                        const name = step.name || step.step || step.title || `Rast ${i+1}`;
-                       const temp = step.temperature || step.temp; // Support both
+                       const temp = step.temperature || step.temp;
                        const stepDuration = parseFloat(step.duration || '0');
+                       const isDecoction = step.step_type === 'decoction';
                        const desc = stepDuration > 0
                         ? `${temp}°C für ${stepDuration} min`
                         : `${temp}°C`;
                         
                        const isCompleted = !!findStepEvent(name, desc);
+
+                       const formLabel = step.decoction_form === 'thin' ? 'Dünn'
+                           : step.decoction_form === 'liquid' ? 'Kochwasser'
+                           : 'Dick';
 
                        return (
                            <div 
@@ -840,6 +878,8 @@ export function BrewingView() {
                                     relative overflow-hidden rounded-lg border transition-all cursor-pointer group
                                     ${isCompleted 
                                         ? 'bg-zinc-900/30 border-zinc-800 opacity-60' 
+                                        : isDecoction
+                                        ? 'bg-zinc-900 border-amber-500/20 hover:border-amber-500/50 hover:bg-zinc-800'
                                         : 'bg-zinc-900 border-zinc-800 hover:border-amber-500/50 hover:bg-zinc-800'
                                     }
                                 `}
@@ -857,13 +897,36 @@ export function BrewingView() {
 
                                     <div className="flex-1 flex items-center justify-between gap-4">
                                         <div className="flex items-center gap-3 md:gap-4">
-                                            <div className="flex flex-col items-center justify-center w-12 h-12 bg-zinc-950 rounded-lg border border-zinc-800/50 transition-colors">
+                                            <div className={`flex flex-col items-center justify-center w-12 h-12 rounded-lg border border-zinc-800/50 transition-colors ${isDecoction ? 'bg-amber-500/5' : 'bg-zinc-950'}`}>
                                                 <div className={`text-base font-bold ${isCompleted ? 'text-zinc-500' : 'text-amber-500'}`}>{temp}°</div>
-                                                <div className="text-[8px] uppercase font-bold text-zinc-600 tracking-wider">Temp</div>
+                                                <div className="text-[8px] uppercase font-bold text-zinc-600 tracking-wider">
+                                                    {isDecoction ? 'Ziel' : 'Temp'}
+                                                </div>
                                             </div>
                                             <div>
-                                                 <div className={`text-sm font-bold uppercase tracking-wide mb-1 ${isCompleted ? 'text-zinc-500' : 'text-zinc-300'}`}>{name}</div>
-                                                 <div className="text-[10px] text-zinc-500 hidden md:block">Aufheizen auf {temp}°C</div>
+                                                 <div className="flex items-center gap-2 mb-1">
+                                                     <span className={`text-sm font-bold uppercase tracking-wide ${isCompleted ? 'text-zinc-500' : 'text-zinc-300'}`}>{name}</span>
+                                                     {isDecoction && (
+                                                         <span className="px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded">
+                                                             🔥 Dekoktion
+                                                         </span>
+                                                     )}
+                                                 </div>
+                                                 {isDecoction ? (
+                                                     <div className="flex flex-wrap gap-1.5">
+                                                         {step.volume_liters && (
+                                                             <span className="text-[9px] font-mono text-amber-600">{scaleAmount(step.volume_liters, volFactor)}L {formLabel}</span>
+                                                         )}
+                                                         {step.decoction_boil_time && (
+                                                             <span className="text-[9px] font-mono text-zinc-500">· Kochen {step.decoction_boil_time}min</span>
+                                                         )}
+                                                         {step.decoction_rest_temp && step.decoction_rest_time && (
+                                                             <span className="text-[9px] font-mono text-zinc-500">· Rast {step.decoction_rest_temp}°C/{step.decoction_rest_time}min</span>
+                                                         )}
+                                                     </div>
+                                                 ) : (
+                                                     <div className="text-[10px] text-zinc-500 hidden md:block">Aufheizen auf {temp}°C</div>
+                                                 )}
                                             </div>
                                         </div>
 

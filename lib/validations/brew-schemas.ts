@@ -1,5 +1,33 @@
 import { z } from "zod";
 
+// ── MashStep-Validierung ──
+// Separates Schema, das optional beim Speichern oder Import geprüft werden kann.
+
+export const mashStepSchema = z.object({
+  name: z.string().min(1).max(100),
+  temperature: z.union([z.string(), z.number()]).optional(),
+  duration: z.union([z.string(), z.number()]).optional(),
+  step_type: z.enum(['rest', 'decoction', 'mashout', 'strike']).optional(),
+  // Dekoktions-spezifische Felder (nur wenn step_type === 'decoction')
+  volume_liters: z.union([z.string(), z.number()]).optional(),
+  decoction_form: z.enum(['thick', 'thin', 'liquid']).optional(),
+  decoction_rest_temp: z.union([z.string(), z.number()]).optional(),
+  decoction_rest_time: z.union([z.string(), z.number()]).optional(),
+  decoction_boil_time: z.union([z.string(), z.number()]).optional(),
+});
+
+export type MashStepInput = z.infer<typeof mashStepSchema>;
+
+/**
+ * Validiert ein mash_steps-Array. Gibt parsed steps oder null zurück.
+ * Wird NICHT beim Speichern erzwungen (data ist JSONB), sondern ist ein
+ * optionaler Guard für Import-Skripte und BotlGuide-generierte Rezepte.
+ */
+export function validateMashSteps(steps: unknown): MashStepInput[] | null {
+  const result = z.array(mashStepSchema).safeParse(steps);
+  return result.success ? result.data : null;
+}
+
 export const brewSchema = z.object({
   name: z.string().min(1, "Name ist erforderlich").max(100, "Name darf maximal 100 Zeichen lang sein"),
   style: z.string().max(100, "Stil darf maximal 100 Zeichen lang sein").optional().nullable(),

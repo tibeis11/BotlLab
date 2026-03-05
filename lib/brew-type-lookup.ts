@@ -298,14 +298,18 @@ const NO_SPARGE_KEYWORDS = [
 
 /**
  * Ermittelt das Maischeverfahren aus den Maischeschritten.
+ * - step_type === 'decoction' in any step → decoction
  * - BIAB / No-Sparge Keywords → biab / no_sparge
  * - Schrittnamen mit "Dekoktion" → decoction
  * - 1 Schritt → infusion
  * - Mehrere Schritte → step_mash
  * - Keine Schritte → null
  */
-export function inferMashProcess(mashSteps: { name?: string; type?: string }[]): MashProcess | null {
+export function inferMashProcess(mashSteps: { name?: string; type?: string; step_type?: string }[]): MashProcess | null {
   if (!Array.isArray(mashSteps) || mashSteps.length === 0) return null;
+
+  // step_type-basiert (höchste Priorität — explizit gesetzt im Editor)
+  if (mashSteps.some(s => s?.step_type === 'decoction')) return 'decoction';
 
   const allNames = mashSteps.map(s => (s?.name || s?.type || '')).join(' ');
 

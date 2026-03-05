@@ -187,6 +187,8 @@ export interface WaterProfile {
     preBoilVolume: number;
     boilOffLoss: number;
     grainAbsorptionLoss: number;
+    /** Dekoktions-Verdampfungsverlust (im Nachguss kompensiert) */
+    decoctionEvaporationLoss: number;
 }
 
 export function calculateWaterProfile(
@@ -199,7 +201,8 @@ export function calculateWaterProfile(
         grainAbsorption?: number,    // L/kg (0.8 - 1.2)
         boilOffRate?: number,        // L/h
         trubLoss?: number,           // L
-        coolingShrinkage?: number    // % (0.04)
+        coolingShrinkage?: number,   // % (0.04)
+        decoctionEvaporation?: number // L (from calculateDecoctionEvaporation)
     } = {}
 ): WaterProfile {
     // PHYSICS MODEL (Standard Homebrew Constants, matching calculateBatchSizeDetails)
@@ -210,7 +213,8 @@ export function calculateWaterProfile(
          grainAbsorption = 0.96, // L/kg
          boilOffRate = 3.5,      // L/h
          trubLoss = 0.5,         // L
-         coolingShrinkage = 0.04 // 4%
+         coolingShrinkage = 0.04, // 4%
+         decoctionEvaporation = 0 // L — Dekoktions-Verdampfung
     } = config;
 
     // 1. Calculate Post-Boil Hot Volume needed (Pfannevoll am Ende)
@@ -231,7 +235,9 @@ export function calculateWaterProfile(
     const absorptionLoss = totalGrainKg * grainAbsorption;
 
     // 5. Total Water Input needed
-    const totalWaterInput = preBoilNeed + absorptionLoss;
+    // Dekoktions-Verdampfung wird hier addiert — fließt in Nachguss, NICHT Hauptguss,
+    // damit das Einmaischverhältnis (Maischedicke) erhalten bleibt.
+    const totalWaterInput = preBoilNeed + absorptionLoss + decoctionEvaporation;
 
     // 6. Split into Mash and Sparge
     // Default thickness if not provided
@@ -253,7 +259,8 @@ export function calculateWaterProfile(
         totalWater: parseFloat(totalWaterInput.toFixed(1)),
         preBoilVolume: parseFloat(preBoilNeed.toFixed(1)),
         boilOffLoss: parseFloat(totalBoilOff.toFixed(1)),
-        grainAbsorptionLoss: parseFloat(absorptionLoss.toFixed(1))
+        grainAbsorptionLoss: parseFloat(absorptionLoss.toFixed(1)),
+        decoctionEvaporationLoss: parseFloat(decoctionEvaporation.toFixed(1))
     };
 }
 
@@ -688,4 +695,65 @@ export function calculateCurrentGravity(og: number, attenuation: number): number
     const points = (og - 1) * 1000;
     const currentPoints = points * (1 - attenuation);
     return 1 + (currentPoints / 1000);
+}
+
+// ─── Decoction Calculations ─────────────────────────────────────────────
+
+/**
+ * Berechnet das benötigte Teilmaische-Volumen für eine Dekoktion.
+ * Basiert auf der Wärmebilanz-Gleichung:
+ *   V_pull = V_total × (T_target − T_current) / (T_boil − T_current)
+ *
+ * @param totalVolume   Gesamtes Maischevolumen (L)
+ * @param currentTemp   Aktuelle Temp der Hauptmaische (°C)
+ * @param targetTemp    Gewünschte Zieltemp nach Rückschüttung (°C)
+ * @param boilTemp      Kochtemperatur der Teilmaische (Standard: 100°C)
+ * @param form          Maischeform — beeinflusst spez. Wärmekapazität
+ *                      'thick' = Dickmaische (mehr Korn, niedrigere Wärmekapazität → mehr Volumen nötig)
+ *                      'thin'  = Dünnmaische (fast nur Flüssigkeit)
+ *                      'liquid'= reines Kochwasser
+ * @returns             Empfohlenes Zugvolumen in Litern (auf 0.1 L gerundet)
+ */
+export function calculateDecoctionVolume(
+    totalVolume: number,
+    currentTemp: number,
+    targetTemp: number,
+    boilTemp: number = 100,
+    form: 'thick' | 'thin' | 'liquid' = 'thick'
+): number {
+    if (totalVolume <= 0 || boilTemp <= currentTemp) return 0;
+    if (targetTemp <= currentTemp) return 0;
+
+    // Korrekturfaktor: Dickmaische hat niedrigere spez. Wärmekapazität
+    // als reine Flüssigkeit → man braucht mehr Volumen für denselben Temperaturhub
+    const CAPACITY_FACTOR: Record<string, number> = { thick: 1.15, thin: 1.0, liquid: 0.95 };
+    const factor = CAPACITY_FACTOR[form] ?? 1.0;
+    const corrected = (targetTemp - currentTemp) * factor;
+    const volume = totalVolume * corrected / (boilTemp - currentTemp);
+    return Math.round(volume * 10) / 10;
+}
+
+/**
+ * Berechnet die Gesamtverdampfung aller Dekoktions-Kochschritte.
+ * Wird für die Nachguss-Korrektur benötigt (Phase 9).
+ *
+ * @param decoctionSteps  Array mit Dekoktions-Schrittdaten
+ * @param boilOffRateMash Verdampfungsrate beim Maische-Kochen (L/h, Standard: 2.0)
+ * @returns               Gesamte Verdampfung in Litern
+ */
+export function calculateDecoctionEvaporation(
+    decoctionSteps: { boil_time_minutes: number; form: 'thick' | 'thin' | 'liquid' }[],
+    boilOffRateMash: number = 2.0
+): number {
+    if (!Array.isArray(decoctionSteps) || decoctionSteps.length === 0) return 0;
+
+    // Dünnmaische verdampft stärker (mehr freies Wasser), 
+    // Dickmaische hat weniger Oberfläche relativ zum Wasseranteil
+    const FORM_FACTOR: Record<string, number> = { thick: 0.6, thin: 1.0, liquid: 1.0 };
+
+    return decoctionSteps.reduce((sum, step) => {
+        const boilTime = Math.max(0, step.boil_time_minutes || 0);
+        const factor = FORM_FACTOR[step.form] ?? 1.0;
+        return sum + boilOffRateMash * (boilTime / 60) * factor;
+    }, 0);
 }

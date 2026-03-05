@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
-import { Wheat, Thermometer, Flame, Microscope, Scale, Clock, Shuffle } from 'lucide-react';
+import { Wheat, Thermometer, Flame, Microscope, Scale, Clock, Shuffle, Droplets } from 'lucide-react';
 import { ebcToHex, sgToPlato } from '@/lib/brewing-calculations';
 
 /* ─── Helpers ─── */
@@ -157,16 +157,21 @@ function HopView({ value, factor = 1 }: { value: any; factor?: number }) {
 
 /* ─── MashScheduleView ─── */
 
-function MashScheduleView({ steps, mashWater, spargeWater, factor = 1, calculatedMashWater, calculatedSpargeWater }: {
+const DECOCTION_FORM_LABEL: Record<string, string> = { thick: 'Dickmaische', thin: 'Dünnmaische', liquid: 'Flüssig' };
+const STEP_TYPE_LABEL: Record<string, string> = { rest: 'Rast', decoction: 'Dekoktion', mashout: 'Abmaischen', strike: 'Einmaischen' };
+
+function MashScheduleView({ steps, mashWater, spargeWater, factor = 1, calculatedMashWater, calculatedSpargeWater, mashProcess }: {
   steps: any;
   mashWater: any;
   spargeWater: any;
   factor?: number;
   calculatedMashWater?: number;
   calculatedSpargeWater?: number;
+  mashProcess?: string;
 }) {
   const displayMash = calculatedMashWater !== undefined ? calculatedMashWater : scaleAmount(mashWater, factor);
   const displaySparge = calculatedSpargeWater !== undefined ? calculatedSpargeWater : scaleAmount(spargeWater, factor);
+  const hasDecoction = mashProcess === 'decoction' || (Array.isArray(steps) && steps.some((s: any) => s.step_type === 'decoction'));
 
   return (
     <div className="space-y-6">
@@ -192,29 +197,72 @@ function MashScheduleView({ steps, mashWater, spargeWater, factor = 1, calculate
       {Array.isArray(steps) && steps.length > 0 && (
         <div>
           <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-4 flex items-center gap-2">
-            <Thermometer className="w-3 h-3" /> Rasten
+            <Thermometer className="w-3 h-3" /> Maischplan
+            {hasDecoction && (
+              <span className="text-[9px] font-bold text-orange-400 bg-orange-950/40 border border-orange-900/30 px-1.5 py-0.5 rounded-full uppercase tracking-widest">
+                Dekoktion
+              </span>
+            )}
           </p>
           <div className="relative border-l border-zinc-800 ml-2.5 space-y-1">
-            {steps.map((step: any, i: number) => (
-              <div key={i} className="relative pl-5 py-1.5 group">
-                <span className={`absolute -left-[5px] top-3.5 w-2.5 h-2.5 rounded-full border-2 border-zinc-950 group-hover:bg-cyan-500 transition-colors ${i === 0 ? 'bg-zinc-500' : 'bg-zinc-800'}`} />
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-semibold text-zinc-300 group-hover:text-white transition-colors">
-                    {step.name || `Rast ${i + 1}`}
-                  </span>
-                  <div className="flex gap-2 text-xs items-center">
-                    <span className="font-mono text-zinc-400 bg-zinc-900/60 px-2 py-0.5 rounded">
-                      {step.temperature}°C
-                    </span>
-                    {step.duration && (
-                      <span className="font-mono text-zinc-500 bg-zinc-900/40 px-2 py-0.5 rounded">
-                        {step.duration} min
+            {steps.map((step: any, i: number) => {
+              const isDecoction = step.step_type === 'decoction';
+              const isMashout = step.step_type === 'mashout';
+              const isStrike = step.step_type === 'strike';
+
+              return (
+                <div key={i} className="relative pl-5 py-1.5 group">
+                  <span className={`absolute -left-[5px] top-3.5 w-2.5 h-2.5 rounded-full border-2 border-zinc-950 group-hover:bg-cyan-500 transition-colors ${
+                    isDecoction ? 'bg-orange-500' : isMashout ? 'bg-emerald-600' : isStrike ? 'bg-blue-500' : i === 0 ? 'bg-zinc-500' : 'bg-zinc-800'
+                  }`} />
+                  <div className="flex justify-between items-start gap-3">
+                    <div className="flex flex-col gap-0.5 min-w-0">
+                      <span className="text-sm font-semibold text-zinc-300 group-hover:text-white transition-colors flex items-center gap-2">
+                        {step.name || (isDecoction ? `Dekoktion ${i + 1}` : isMashout ? 'Abmaischen' : isStrike ? 'Einmaischen' : `Rast ${i + 1}`)}
+                        {isDecoction && <Flame className="w-3.5 h-3.5 text-orange-400 shrink-0" />}
+                        {step.step_type && step.step_type !== 'rest' && (STEP_TYPE_LABEL[step.step_type] || step.step_type).toLowerCase() !== (step.name || '').toLowerCase() && (
+                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide ${
+                            isDecoction ? 'text-orange-400 bg-orange-950/40' : isMashout ? 'text-emerald-400 bg-emerald-950/40' : isStrike ? 'text-blue-400 bg-blue-950/40' : 'text-zinc-500 bg-zinc-900'
+                          }`}>
+                            {STEP_TYPE_LABEL[step.step_type] || step.step_type}
+                          </span>
+                        )}
                       </span>
-                    )}
+                      {/* Decoction sub-details */}
+                      {isDecoction && (step.decoction_form || step.volume_liters || step.decoction_boil_time) && (
+                        <div className="flex flex-wrap gap-1.5 mt-1">
+                          {step.decoction_form && (
+                            <span className="text-[10px] text-orange-300/70 bg-orange-950/20 px-1.5 py-0.5 rounded font-medium">
+                              {DECOCTION_FORM_LABEL[step.decoction_form] || step.decoction_form}
+                            </span>
+                          )}
+                          {step.volume_liters && (
+                            <span className="text-[10px] text-zinc-400 bg-zinc-900/60 px-1.5 py-0.5 rounded font-mono flex items-center gap-1">
+                              <Droplets className="w-2.5 h-2.5" /> {typeof step.volume_liters === 'number' ? scaleAmount(step.volume_liters, factor) : step.volume_liters} L
+                            </span>
+                          )}
+                          {step.decoction_boil_time && (
+                            <span className="text-[10px] text-zinc-400 bg-zinc-900/60 px-1.5 py-0.5 rounded font-mono">
+                              Kochen {step.decoction_boil_time} min
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex gap-2 text-xs items-center shrink-0">
+                      <span className="font-mono text-zinc-400 bg-zinc-900/60 px-2 py-0.5 rounded">
+                        {step.temperature}°C
+                      </span>
+                      {step.duration && (
+                        <span className="font-mono text-zinc-500 bg-zinc-900/40 px-2 py-0.5 rounded">
+                          {step.duration} min
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -455,6 +503,7 @@ export default function BrewRecipeTab({
                 factor={volFactor}
                 calculatedMashWater={waterProfile.mashWater}
                 calculatedSpargeWater={waterProfile.spargeWater}
+                mashProcess={brew.data?.mash_process}
               />
             </section>
           )}

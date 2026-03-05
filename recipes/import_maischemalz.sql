@@ -68,6 +68,13 @@ mapped_data AS (
                 WHEN lower(data->>'Maischform') LIKE '%einmaisch%'    THEN 'infusion'
                 ELSE data->>'Maischform'
             END,
+            'mash_process', CASE
+                WHEN lower(data->>'Maischform') LIKE '%infusion%'     THEN 'infusion'
+                WHEN lower(data->>'Maischform') LIKE '%dekok%'        THEN 'decoction'
+                WHEN lower(data->>'Maischform') LIKE '%kombi%'        THEN 'step_mash'
+                WHEN lower(data->>'Maischform') LIKE '%step%'         THEN 'step_mash'
+                ELSE 'infusion'
+            END,
             'notes', data->>'Kurzbeschreibung',
             'malts', (
                 SELECT COALESCE(jsonb_agg(
@@ -94,23 +101,48 @@ mapped_data AS (
                 ), '[]'::jsonb) FROM jsonb_array_elements(data->'Hopfenkochen') AS h
             ),
             'mash_steps', (
-                -- Maischeschritte: Typ-Feld wird genutzt falls vorhanden (Dekoktion etc.)
-                -- Mögliche Typen: Einmaischen, Aufheizen, Rast, Kochen, Abmaischen, Läutern
+                -- Maischeschritte: Typ-Feld wird für step_type genutzt
+                -- MaischeMalzundMehr Typen: Einmaischen, Aufheizen, Rast, Kochen, Dekoktion, Abmaischen, Läutern
                 SELECT COALESCE(
                     (
                         SELECT jsonb_agg(step ORDER BY ordinality)
                         FROM (
-                            -- Rasten aus dem Rezept
+                            -- Rasten aus dem Rezept — mit step_type-Mapping
                             SELECT
-                                jsonb_build_object(
-                                    'name', CASE
-                                        WHEN element->>'Typ' IS NOT NULL AND element->>'Typ' <> ''
-                                            THEN element->>'Typ'
-                                        ELSE 'Rast ' || idx::text
-                                    END,
-                                    'temperature', element->>'Temperatur',
-                                    'duration', element->>'Zeit'
-                                ) AS step,
+                                CASE
+                                    -- Dekoktions-Schritte: zusätzliche Felder
+                                    WHEN lower(COALESCE(element->>'Typ', '')) LIKE '%dekok%'
+                                    THEN jsonb_build_object(
+                                        'name', COALESCE(NULLIF(element->>'Typ', ''), 'Dekoktion ' || idx::text),
+                                        'temperature', element->>'Temperatur',
+                                        'duration', element->>'Zeit',
+                                        'step_type', 'decoction',
+                                        'decoction_form', 'thick',
+                                        'decoction_boil_time', '15',
+                                        'decoction_rest_temp', '',
+                                        'decoction_rest_time', '',
+                                        'volume_liters', ''
+                                    )
+                                    -- Abmaisch-Schritte
+                                    WHEN lower(COALESCE(element->>'Typ', '')) LIKE '%abmaisch%'
+                                    THEN jsonb_build_object(
+                                        'name', COALESCE(NULLIF(element->>'Typ', ''), 'Abmaischen'),
+                                        'temperature', element->>'Temperatur',
+                                        'duration', element->>'Zeit',
+                                        'step_type', 'mashout'
+                                    )
+                                    -- Normale Rasten
+                                    ELSE jsonb_build_object(
+                                        'name', CASE
+                                            WHEN element->>'Typ' IS NOT NULL AND element->>'Typ' <> ''
+                                                THEN element->>'Typ'
+                                            ELSE 'Rast ' || idx::text
+                                        END,
+                                        'temperature', element->>'Temperatur',
+                                        'duration', element->>'Zeit',
+                                        'step_type', 'rest'
+                                    )
+                                END AS step,
                                 idx AS ordinality
                             FROM jsonb_array_elements(data->'Rasten') WITH ORDINALITY AS r(element, idx)
                             UNION ALL
@@ -119,7 +151,8 @@ mapped_data AS (
                                 jsonb_build_object(
                                     'name', 'Abmaischen',
                                     'temperature', data->>'Abmaischtemperatur',
-                                    'duration', '5'
+                                    'duration', '5',
+                                    'step_type', 'mashout'
                                 ) AS step,
                                 999999 AS ordinality
                             WHERE (data->>'Abmaischtemperatur')::numeric > 0

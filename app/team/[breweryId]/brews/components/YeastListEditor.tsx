@@ -123,7 +123,7 @@ export function YeastListEditor({ value, onChange }: YeastListEditorProps) {
                                             type="text"
                                             inputMode="decimal"
                                             className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-3 pr-3 py-3 text-white focus:border-blue-500 outline-none placeholder:text-zinc-700"
-                                            placeholder="0"
+                                            placeholder="—"
                                             value={items[editingIndex].amount}
                                             onChange={(e) => updateRow(editingIndex, 'amount', e.target.value.replace(',', '.'))}
                                         />
@@ -191,8 +191,8 @@ export function YeastListEditor({ value, onChange }: YeastListEditorProps) {
                         >
                             <div className="flex items-center gap-4 flex-1 min-w-0">
                                 <div className="bg-zinc-900 h-12 min-w-[3.5rem] px-2 rounded-xl flex items-center justify-center border border-zinc-800 shrink-0">
-                                    <span className="text-base font-bold text-white max-w-[4rem] truncate">{item.amount || '0'}</span>
-                                    <span className="text-xs text-zinc-500 ml-1 mb-0.5">{item.unit || 'g'}</span>
+                                    <span className="text-base font-bold text-white max-w-[4rem] truncate">{item.amount || '—'}</span>
+                                    <span className="text-xs text-zinc-500 ml-1 mb-0.5">{item.amount ? (item.unit || 'g') : ''}</span>
                                 </div>
                                 <div className="min-w-0 flex-1">
                                     <div className="text-base font-bold text-white truncate">{item.name || 'Unbenannt'}</div>
@@ -246,7 +246,7 @@ export function YeastListEditor({ value, onChange }: YeastListEditorProps) {
                                 type="text"
                                 inputMode="decimal"
                                 className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-2 text-sm text-white focus:border-cyan-500 outline-none text-right placeholder:text-zinc-700"
-                                placeholder="0"
+                                placeholder="—"
                                 value={item.amount}
                                 onChange={(e) => updateRow(idx, 'amount', e.target.value.replace(',', '.'))}
                             />
