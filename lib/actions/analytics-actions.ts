@@ -2217,7 +2217,7 @@ export async function classifyCisScans(): Promise<{ nonQr: number; session: numb
     }
 
     // Additive scoring for QR scans ─────────────────────────────────────────
-    let score = CIS_SCORING.BASE_SCORE;
+    let score: number = CIS_SCORING.BASE_SCORE;
     const thisScanTime = new Date(scan.created_at).getTime();
     const sessionScans = sessionContext.get(scan.session_hash ?? '') ?? [];
 
