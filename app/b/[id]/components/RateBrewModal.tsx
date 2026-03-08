@@ -5,7 +5,7 @@ import type { User } from '@supabase/supabase-js';
 import FlavorTagSelector from './FlavorTagSelector';
 import { RatingSubmission } from '@/lib/types/rating';
 import Link from 'next/link';
-import { CheckCircle, Award, Palette, ChevronDown, ChevronRight, X, Star } from 'lucide-react';
+import { CheckCircle, Award, Palette, X, Star } from 'lucide-react';
 
 interface RateBrewModalProps {
   brewId: string;
@@ -46,7 +46,6 @@ export default function RateBrewModal({
   const [honeypot, setHoneypot] = useState('');
 
   // Detailed Profile State
-  const [showDetails, setShowDetails] = useState(false);
   const [profile, setProfile] = useState<Partial<RatingSubmission>>({
     flavor_tags: [],
     // Initialize to undefined so we know if user skipped them
@@ -240,71 +239,49 @@ export default function RateBrewModal({
         maxSelection={3}
       />
 
-      {/* Divider for Expanded Section (nur noch Aussehen) */}
-      <div className="pt-2">
-          <button 
-            type="button"
-            onClick={() => setShowDetails(!showDetails)}
-            className="flex items-center gap-2 text-sm font-bold text-text-disabled hover:text-text-secondary transition"
-          >
-             {showDetails ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-             <span>Aussehen (Optional)</span>
-          </button>
-      </div>
-
-      {showDetails && (
-          <div className="space-y-4 pt-3 border-t border-border animate-in fade-in slide-in-from-top-2">
-              
-               {/* Appearance */}
-               <div>
-                   <h4 className="text-xs font-bold uppercase text-text-muted tracking-wider mb-4 flex items-center gap-1.5"><Palette className="w-3.5 h-3.5" /> Aussehen</h4>
-                   
-                   <div className="grid grid-cols-2 gap-4">
-                       <div className="space-y-2">
-                           <span className="text-xs text-text-secondary">Farbe</span>
-                           <div className="flex gap-2">
-                               {['pale', 'amber', 'dark'].map(c => (
-                                   <button 
-                                      key={c}
-                                      type="button"
-                                      onClick={() => setAppearanceColor(c)}
-                                      className={`w-8 h-8 rounded-full border-2 transition ${appearanceColor === c ? 'border-brand scale-110' : 'border-transparent opacity-50 hover:opacity-100'}
-                                        ${c === 'pale' ? 'bg-[#f4d06f]' : c === 'amber' ? 'bg-[#d07b38]' : 'bg-[#4a2e16]'}
-                                      `}
-                                      title={c}
-                                   />
-                               ))}
-                           </div>
-                       </div>
-                       
-                       <div className="space-y-2">
-                           <span className="text-xs text-text-secondary">Klarheit</span>
-                           <div className="flex flex-wrap gap-2">
-                               {[
-                                   { id: 'clear', label: 'Klar' },
-                                   { id: 'hazy', label: 'Trüb' },
-                                   { id: 'opaque', label: 'Dicht' }
-                               ].map(opt => (
-                                   <button
-                                      key={opt.id}
-                                      type="button"
-                                      onClick={() => setAppearanceClarity(opt.id)}
-                                      className={`px-3 py-1 text-xs rounded-lg border transition ${
-                                          appearanceClarity === opt.id 
-                                            ? 'bg-brand-bg text-brand border-brand'
-                                            : 'bg-surface text-text-secondary border-border hover:border-border-hover'
-                                      }`}
-                                   >
-                                       {opt.label}
-                                   </button>
-                               ))}
-                           </div>
-                       </div>
-                   </div>
-               </div>
-
+      {/* Aussehen — immer sichtbar */}
+      <div>
+        <h4 className="text-xs font-bold uppercase text-text-muted tracking-wider mb-3 flex items-center gap-1.5"><Palette className="w-3.5 h-3.5" /> Aussehen</h4>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <span className="text-xs text-text-secondary">Farbe</span>
+            <div className="flex gap-2">
+              {['pale', 'amber', 'dark'].map(c => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setAppearanceColor(c)}
+                  className={`w-8 h-8 rounded-full border-2 transition ${appearanceColor === c ? 'border-brand scale-110' : 'border-transparent opacity-50 hover:opacity-100'} ${c === 'pale' ? 'bg-[#f4d06f]' : c === 'amber' ? 'bg-[#d07b38]' : 'bg-[#4a2e16]'}`}
+                  title={c}
+                />
+              ))}
+            </div>
           </div>
-      )}
+          <div className="space-y-2">
+            <span className="text-xs text-text-secondary">Klarheit</span>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { id: 'clear', label: 'Klar' },
+                { id: 'hazy', label: 'Trüb' },
+                { id: 'opaque', label: 'Dicht' }
+              ].map(opt => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => setAppearanceClarity(opt.id)}
+                  className={`px-3 py-1 text-xs rounded-lg border transition ${
+                    appearanceClarity === opt.id
+                      ? 'bg-brand-bg text-brand border-brand'
+                      : 'bg-surface text-text-secondary border-border hover:border-border-hover'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Comment */}
       <div className="pt-2">
