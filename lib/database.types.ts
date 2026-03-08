@@ -1,4 +1,3 @@
-Initialising login role...
 export type Json =
   | string
   | number
@@ -12,31 +11,6 @@ export type Database = {
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.1"
-  }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
   }
   public: {
     Tables: {
@@ -395,6 +369,8 @@ export type Database = {
           bottles_scanned: number | null
           brewery_id: string
           brews_count: number | null
+          btb_plays_anonymous: number | null
+          btb_plays_total: number | null
           created_at: string | null
           date: string
           id: number
@@ -407,6 +383,8 @@ export type Database = {
           bottles_scanned?: number | null
           brewery_id: string
           brews_count?: number | null
+          btb_plays_anonymous?: number | null
+          btb_plays_total?: number | null
           created_at?: string | null
           date: string
           id?: number
@@ -419,6 +397,8 @@ export type Database = {
           bottles_scanned?: number | null
           brewery_id?: string
           brews_count?: number | null
+          btb_plays_anonymous?: number | null
+          btb_plays_total?: number | null
           created_at?: string | null
           date?: string
           id?: number
@@ -866,6 +846,66 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      anonymous_game_sessions: {
+        Row: {
+          brew_id: string
+          claimed_by_user_id: string | null
+          created_at: string
+          event_type: string
+          expires_at: string
+          flavor_profile_id: string | null
+          id: string
+          ip_hash: string
+          match_percent: number | null
+          match_score: number | null
+          payload: Json
+          session_token: string
+        }
+        Insert: {
+          brew_id: string
+          claimed_by_user_id?: string | null
+          created_at?: string
+          event_type: string
+          expires_at?: string
+          flavor_profile_id?: string | null
+          id?: string
+          ip_hash: string
+          match_percent?: number | null
+          match_score?: number | null
+          payload: Json
+          session_token: string
+        }
+        Update: {
+          brew_id?: string
+          claimed_by_user_id?: string | null
+          created_at?: string
+          event_type?: string
+          expires_at?: string
+          flavor_profile_id?: string | null
+          id?: string
+          ip_hash?: string
+          match_percent?: number | null
+          match_score?: number | null
+          payload?: Json
+          session_token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "anonymous_game_sessions_brew_id_fkey"
+            columns: ["brew_id"]
+            isOneToOne: false
+            referencedRelation: "brews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "anonymous_game_sessions_flavor_profile_id_fkey"
+            columns: ["flavor_profile_id"]
+            isOneToOne: false
+            referencedRelation: "flavor_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1979,6 +2019,42 @@ export type Database = {
           },
         ]
       }
+      btb_used_nonces: {
+        Row: {
+          bottle_id: string
+          brew_id: string
+          nonce: string
+          used_at: string
+        }
+        Insert: {
+          bottle_id: string
+          brew_id: string
+          nonce: string
+          used_at?: string
+        }
+        Update: {
+          bottle_id?: string
+          brew_id?: string
+          nonce?: string
+          used_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "btb_used_nonces_bottle_id_fkey"
+            columns: ["bottle_id"]
+            isOneToOne: false
+            referencedRelation: "bottles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "btb_used_nonces_brew_id_fkey"
+            columns: ["brew_id"]
+            isOneToOne: false
+            referencedRelation: "brews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       collected_caps: {
         Row: {
           brew_id: string | null
@@ -2177,10 +2253,11 @@ export type Database = {
           created_at: string
           fruitiness: number | null
           id: string
+          ip_hash: string | null
           rating_id: string | null
           roast: number | null
           sweetness: number | null
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           bitterness?: number | null
@@ -2189,10 +2266,11 @@ export type Database = {
           created_at?: string
           fruitiness?: number | null
           id?: string
+          ip_hash?: string | null
           rating_id?: string | null
           roast?: number | null
           sweetness?: number | null
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           bitterness?: number | null
@@ -2201,10 +2279,11 @@ export type Database = {
           created_at?: string
           fruitiness?: number | null
           id?: string
+          ip_hash?: string | null
           rating_id?: string | null
           roast?: number | null
           sweetness?: number | null
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -3451,6 +3530,10 @@ export type Database = {
         Args: { user_id: string }
         Returns: Record<string, unknown>
       }
+      claim_anonymous_session: {
+        Args: { p_session_token: string; p_user_id: string }
+        Returns: Json
+      }
       create_own_squad: { Args: { name_input: string }; Returns: Json }
       dispatch_analytics_report_for_brewery: {
         Args: { p_brewery_id: string }
@@ -3616,6 +3699,10 @@ export type Database = {
       increment_profile_views: {
         Args: { p_profile_id: string }
         Returns: undefined
+      }
+      increment_tasting_iq: {
+        Args: { p_delta: number; p_user_id: string }
+        Returns: number
       }
       is_member_of: { Args: { _brewery_id: string }; Returns: boolean }
       record_brew_page_view: {
@@ -3809,9 +3896,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       report_reason: ["spam", "nsfw", "harassment", "copyright", "other"],
@@ -3827,5 +3911,3 @@ export const Constants = {
     },
   },
 } as const
-A new version of Supabase CLI is available: v2.75.0 (currently installed v2.72.8)
-We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli

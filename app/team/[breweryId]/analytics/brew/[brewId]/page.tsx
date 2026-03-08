@@ -234,8 +234,8 @@ export default async function BrewAnalyticsPage({ params }: { params: { breweryI
                   Dimension Details
                 </p>
                 {FLAVOR_DIMENSIONS.map((dim) => {
-                  const community = (communityProfile as Record<string, number>)[dim.id] ?? 0.5;
-                  const brewer = (brewerProfile as Record<string, number>)[dim.id] ?? 0.5;
+                  const community = (communityProfile as unknown as Record<string, number>)[dim.id] ?? 0.5;
+                  const brewer = (brewerProfile as unknown as Record<string, number>)[dim.id] ?? 0.5;
                   const diffPercent = Math.round(Math.abs(community - brewer) * 100);
                   const isClose = diffPercent <= 15;
 

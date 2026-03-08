@@ -1,4 +1,5 @@
 import { Lock } from 'lucide-react';
+import { impressumConfig } from '@/lib/site-config';
 
 export const metadata = {
   robots: 'noindex, nofollow',
