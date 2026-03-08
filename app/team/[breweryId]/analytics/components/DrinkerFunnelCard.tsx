@@ -126,21 +126,29 @@ export default function DrinkerFunnelCard({
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 md:divide-x md:divide-border/50">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-x-0">
           {stages.map((stage, idx) => {
             const barWidth = maxValue > 0 ? (stage.value / maxValue) * 100 : 0;
+            // Symmetric padding so the divider line sits exactly centered
+            // between adjacent content areas (equal space on both sides).
+            const paddingClass = idx === 0
+              ? 'md:pr-6'
+              : idx === stages.length - 1
+                ? 'md:pl-6'
+                : 'md:px-6';
             return (
               <div
                 key={stage.id}
-                className="flex flex-col gap-2 md:pl-6 first:pl-0 group"
+                className={`flex flex-col gap-2 relative ${paddingClass} group`}
                 title={stage.tooltip}
               >
+                {/* Centered divider between stages */}
+                {idx > 0 && (
+                  <div className="hidden md:block absolute inset-y-0 left-0 w-px bg-border/50" />
+                )}
                 {/* Stage index */}
                 <div className="flex items-center gap-1.5">
                   <span className="text-[10px] text-text-disabled font-mono">{idx + 1}</span>
-                  {idx > 0 && (
-                    <span className="hidden md:block text-border text-xs">›</span>
-                  )}
                 </div>
                 {/* Value */}
                 <div className={`text-2xl font-black font-mono tabular-nums ${stage.color}`}>
