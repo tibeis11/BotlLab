@@ -773,9 +773,11 @@ export async function getBreweryAnalyticsSummary(breweryId: string, options?: {
     if (funnelRows && funnelRows.length > 0) {
       funnelTotalScans    = funnelRows.length;
       funnelLoggedInScans = funnelRows.filter((r: any) => r.viewer_user_id != null).length;
+      // Unclassified scans (null) use BASE_SCORE as default — CIS cron runs once daily,
+      // so scans inserted after 08:00 aren't scored yet. 0.3 gives a reasonable intraday estimate.
       weightedDrinkerEstimate = funnelRows.reduce(
         (sum: number, r: { drinking_probability: number | null }) =>
-          sum + (r.drinking_probability ?? 0),
+          sum + (r.drinking_probability ?? CIS_SCORING.BASE_SCORE),
         0
       );
 
