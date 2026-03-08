@@ -103,7 +103,8 @@ export default function FlavorRadarChart({
             key={level}
             points={points}
             fill="none"
-            stroke="rgba(161,161,170,0.2)"
+            style={{ stroke: 'var(--color-border-hover)' }}
+            strokeOpacity={0.6}
             strokeWidth={level === 1 ? 1.5 : 0.75}
           />
         );
@@ -119,7 +120,8 @@ export default function FlavorRadarChart({
             y1={cy}
             x2={x}
             y2={y}
-            stroke="rgba(161,161,170,0.15)"
+            style={{ stroke: 'var(--color-border-hover)' }}
+            strokeOpacity={0.4}
             strokeWidth={0.75}
           />
         );
@@ -208,7 +210,7 @@ export default function FlavorRadarChart({
               y={y}
               textAnchor="middle"
               dominantBaseline="central"
-              fill="rgb(161,161,170)"
+              style={{ fill: 'var(--color-text-muted)' }}
               fontSize={fontSize}
               fontWeight={500}
             >

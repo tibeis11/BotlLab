@@ -106,7 +106,8 @@ export default function RadarChart({
             key={level}
             points={points}
             fill="none"
-            stroke="rgba(161,161,170,0.2)"
+            style={{ stroke: 'var(--color-border-hover)' }}
+            strokeOpacity={0.6}
             strokeWidth={level === 1 ? 1.5 : 0.75}
           />
         );
@@ -122,7 +123,8 @@ export default function RadarChart({
             y1={cy}
             x2={x}
             y2={y}
-            stroke="rgba(161,161,170,0.15)"
+            style={{ stroke: 'var(--color-border-hover)' }}
+            strokeOpacity={0.4}
             strokeWidth={0.75}
           />
         );
@@ -141,7 +143,8 @@ export default function RadarChart({
           <polygon
             points={profileToPoints(communityAsProfile, cx, cy, maxR)}
             fill="none"
-            stroke="rgba(161,161,170,0.5)"
+            style={{ stroke: 'var(--color-text-muted)' }}
+            strokeOpacity={0.7}
             strokeWidth={1.5}
             strokeDasharray="6 3"
             strokeLinejoin="round"
@@ -234,7 +237,7 @@ export default function RadarChart({
               y={y}
               textAnchor="middle"
               dominantBaseline="central"
-              fill="rgb(161,161,170)"
+              style={{ fill: 'var(--color-text-muted)' }}
               fontSize={fontSize}
               fontWeight={500}
             >
