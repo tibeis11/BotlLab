@@ -1065,9 +1065,9 @@ export default function PublicScanPage() {
         {/* Phase 2.3: Bewertungen - Horizontal scrollbar, Button oben rechts */}
         {ratingsLoading ? (
           <div className="space-y-3 animate-pulse" aria-label="Bewertungen werden geladen">
-            <div className="flex gap-3 overflow-hidden">
+            <div className="flex gap-3 overflow-hidden w-full">
               {[1, 2].map(i => (
-                <div key={i} className="min-w-[280px] shrink-0 bg-surface/50 border border-border rounded-xl p-4 space-y-2">
+                <div key={i} className="w-[85%] sm:w-[320px] shrink-0 bg-surface/50 border border-border rounded-xl p-4 space-y-2">
                   <div className="h-3 bg-surface-hover rounded w-1/3" />
                   <div className="h-2 bg-surface-hover rounded w-1/4 mt-1" />
                   <div className="h-3 bg-surface-hover rounded w-3/4 mt-2" />
@@ -1089,9 +1089,9 @@ export default function PublicScanPage() {
               )}
             </div>
             
-            <div className="flex gap-3 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide -mx-6 px-6 md:mx-0 md:px-0">
+            <div className="flex gap-3 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide w-full">
               {ratings.map(rating => (
-                <div key={rating.id} className="snap-center shrink-0 w-[280px] md:w-[320px] bg-surface/50 border border-border rounded-xl p-4 flex flex-col">
+                <div key={rating.id} className="snap-start shrink-0 w-[85%] sm:w-[320px] bg-surface/50 border border-border rounded-xl p-4 flex flex-col">
                   <div className="flex items-start justify-between mb-2">
                     <div>
                       <p className="font-bold text-text-primary text-sm truncate max-w-[140px]">{rating.author_name}</p>
