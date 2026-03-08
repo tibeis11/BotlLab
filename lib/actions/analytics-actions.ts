@@ -949,10 +949,12 @@ export async function getConversionRate(breweryId: string, options?: {
     }
 
     // Query scans with conversion flag + confirmed drinking
+    // Exclude owner scans — consistent with funnelQuery in getBreweryAnalyticsSummary
     let query = supabase
       .from('bottle_scans')
       .select('id, converted_to_rating, confirmed_drinking')
-      .eq('brewery_id', breweryId);
+      .eq('brewery_id', breweryId)
+      .eq('is_owner_scan', false);
 
     if (options?.brewId) {
       query = (query as any).eq('brew_id', options.brewId);
