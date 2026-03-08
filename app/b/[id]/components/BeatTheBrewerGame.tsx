@@ -418,11 +418,20 @@ export default function BeatTheBrewerGame({
                 zu sichern.
               </p>
               <a
-                href="/auth"
+                href="/login?intent=drink&register=true"
                 onClick={(e) => {
                   e.preventDefault();
-                  const url = new URL('/auth', window.location.origin);
-                  if (result.sessionToken) url.searchParams.set('claim_token', result.sessionToken);
+                  const url = new URL('/login', window.location.origin);
+                  url.searchParams.set('intent', 'drink');
+                  url.searchParams.set('register', 'true');
+                  
+                  // Go back to the bottle page after login
+                  const callbackUrl = new URL(window.location.href);
+                  if (result.sessionToken) {
+                    callbackUrl.searchParams.set('claim_token', result.sessionToken);
+                  }
+                  url.searchParams.set('callbackUrl', callbackUrl.toString());
+
                   window.location.href = url.toString();
                 }}
                 className="inline-block text-brand hover:text-brand-hover text-xs font-bold underline underline-offset-2 transition-colors"
