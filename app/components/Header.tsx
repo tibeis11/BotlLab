@@ -14,12 +14,10 @@ import {
   LogOut, 
   Menu, 
   MessageSquare, 
-  Moon,
   Package,
   Rocket,
   Search, 
   Settings, 
-  Sun,
   Tag,
   Thermometer,
   TrendingUp,
@@ -34,7 +32,7 @@ import { usePathname } from "next/navigation";
 import { getUserBreweries, getActiveBrewery } from "@/lib/supabase";
 import { useSupabase } from "@/lib/hooks/useSupabase";
 import { useAuth } from "../context/AuthContext";
-import { useTheme } from "../context/ThemeContext";
+
 import { getBreweryBranding } from "@/lib/actions/premium-actions";
 import { getTierBorderColor } from "@/lib/premium-config";
 import UserAvatar from "./UserAvatar";
@@ -42,7 +40,7 @@ import UserAvatar from "./UserAvatar";
 export default function Header({ breweryId, discoverSearchSlot, discoverMobileActions, forumSearchSlot, forumMobileActions }: { breweryId?: string; discoverSearchSlot?: React.ReactNode; discoverMobileActions?: React.ReactNode; forumSearchSlot?: React.ReactNode; forumMobileActions?: React.ReactNode }) {
   const supabase = useSupabase();
   const { user, loading, signOut } = useAuth();
-  const { theme, setTheme, resolved } = useTheme();
+
   const [profile, setProfile] = useState<any>(null);
   const [showMenu, setShowMenu] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -216,17 +214,6 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
             </Link>
           )}
           
-          <div className="h-4 w-px bg-border mx-2"></div>
-
-          {/* Theme Toggle */}
-          <button
-            onClick={() => setTheme(resolved === 'dark' ? 'light' : 'dark')}
-            className="p-2 rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-hover/50 transition-all"
-            title={resolved === 'dark' ? 'Light Mode' : 'Dark Mode'}
-          >
-            {resolved === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-          </button>
-
           <div className="h-4 w-px bg-border mx-2"></div>
           {loading ? (
             <div className="w-10 h-10 bg-surface-hover rounded-full animate-pulse"></div>
@@ -680,17 +667,6 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
                 </div>
                )}
                
-               {/* Theme Toggle */}
-               <button
-                onClick={() => setTheme(resolved === 'dark' ? 'light' : 'dark')}
-                className="w-full flex items-center justify-center gap-2 p-3 rounded-xl text-xs font-bold text-text-muted hover:bg-surface-hover hover:text-text-primary transition"
-               >
-                {resolved === 'dark'
-                  ? <><Sun className="w-4 h-4" /> Light Mode</>
-                  : <><Moon className="w-4 h-4" /> Dark Mode</>
-                }
-               </button>
-
                <button
                 onClick={() => { handleLogout(); setIsMobileMenuOpen(false); }}
                 className="w-full flex items-center justify-center gap-2 p-3 rounded-xl text-xs font-bold text-red-400/80 hover:bg-red-500/10 hover:text-red-400 transition"

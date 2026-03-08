@@ -29,14 +29,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Apply data-theme attribute on <html> whenever theme changes
+  // Apply data-theme attribute and resolve whenever theme changes
   useEffect(() => {
     const root = document.documentElement;
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
 
     if (theme === 'system') {
       root.removeAttribute('data-theme');
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      setResolved(prefersDark ? 'dark' : 'light');
+      setResolved(mq.matches ? 'dark' : 'light');
     } else {
       root.setAttribute('data-theme', theme);
       setResolved(theme);
@@ -48,19 +48,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   // Listen for system preference changes while in 'system' mode
   useEffect(() => {
     if (theme !== 'system') return;
-
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const handler = (e: MediaQueryListEvent) => {
-      setResolved(e.matches ? 'dark' : 'light');
-    };
+    const handler = (e: MediaQueryListEvent) => setResolved(e.matches ? 'dark' : 'light');
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
   }, [theme]);
 
-  const setTheme = (t: Theme) => setThemeState(t);
-
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, resolved }}>
+    <ThemeContext.Provider value={{ theme, setTheme: setThemeState, resolved }}>
       {children}
     </ThemeContext.Provider>
   );

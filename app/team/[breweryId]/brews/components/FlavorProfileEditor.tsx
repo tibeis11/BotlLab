@@ -12,6 +12,7 @@ import {
   getStyleBasedSuggestion,
   type RecipeDataForAnalysis,
 } from '@/lib/actions/flavor-profile-actions';
+import { BotlGuidePersonaPill } from '@/app/components/BotlGuideBadge';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -198,6 +199,7 @@ export default function FlavorProfileEditor({
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
   const [suggestionExplanation, setSuggestionExplanation] = useState<string | null>(null);
+  const [awaitingBotlGuideConfirm, setAwaitingBotlGuideConfirm] = useState(false);
 
   const handleEnable = () => {
     const initial = { ...EMPTY_FLAVOR_PROFILE };
@@ -211,6 +213,7 @@ export default function FlavorProfileEditor({
     setIsEditing(false);
     setSuggestionExplanation(null);
     setSuggestionError(null);
+    setAwaitingBotlGuideConfirm(false);
   };
 
   const handleSliderChange = (dimId: FlavorDimensionId, val: number) => {
@@ -220,14 +223,15 @@ export default function FlavorProfileEditor({
     onChange({ ...value, [dimId]: val, source: newSource });
   };
 
-  // ── Smart Suggestion: Stufe A → Stufe B Fallback ──────────────────────
+  // ── Smart Suggestion: Stufe A → Stufe B (mit Bestätigung) ────────────
   const handleSuggest = useCallback(async () => {
     setIsSuggesting(true);
     setSuggestionError(null);
     setSuggestionExplanation(null);
+    setAwaitingBotlGuideConfirm(false);
 
     try {
-      // Stufe A: Data suggestion from similar brews
+      // Stufe A: Data suggestion from similar brews (kein Credit-Verbrauch)
       if (brewStyle) {
         const dataResult = await getStyleBasedSuggestion(brewStyle, brewId);
         if (dataResult.success) {
@@ -239,20 +243,38 @@ export default function FlavorProfileEditor({
         }
       }
 
-      // Stufe B: BotlGuide LLM analysis
+      // Stufe A lieferte keine Daten → Nutzer fragen ob BotlGuide genutzt werden soll
       const recipePayload: RecipeDataForAnalysis = {
         ...brewData,
         style: brewStyle || brewData?.style,
       };
-
       const hasRecipeData = recipePayload.style || recipePayload.malts || recipePayload.hops ||
         recipePayload.abv || recipePayload.ibu || recipePayload.yeast;
 
       if (!hasRecipeData) {
         setSuggestionError('Zu wenig Daten: Hinterlege mindestens Bierstil, Zutaten oder Kennwerte für einen Vorschlag.');
-        setIsSuggesting(false);
-        return;
+      } else {
+        setAwaitingBotlGuideConfirm(true);
       }
+    } catch (err: any) {
+      console.error('[FlavorProfileEditor] suggest error:', err);
+      setSuggestionError('Fehler beim Durchsuchen der Vergleichsdaten.');
+    } finally {
+      setIsSuggesting(false);
+    }
+  }, [brewStyle, brewId, brewData, onChange]);
+
+  // ── Stufe B: BotlGuide LLM – wird nur nach Bestätigung aufgerufen ─────
+  const handleBotlGuideConfirmed = useCallback(async () => {
+    setIsSuggesting(true);
+    setSuggestionError(null);
+    setAwaitingBotlGuideConfirm(false);
+
+    try {
+      const recipePayload: RecipeDataForAnalysis = {
+        ...brewData,
+        style: brewStyle || brewData?.style,
+      };
 
       const response = await fetch('/api/botlguide', {
         method: 'POST',
@@ -267,12 +289,10 @@ export default function FlavorProfileEditor({
         } else {
           setSuggestionError(err.error || 'BotlGuide Sommelier-Analyse fehlgeschlagen.');
         }
-        setIsSuggesting(false);
         return;
       }
 
       const result = await response.json();
-      // New gateway wraps structured data under result.data
       const profileData = result.data ?? result;
 
       if (profileData.profile) {
@@ -280,7 +300,6 @@ export default function FlavorProfileEditor({
           const n = typeof v === 'number' ? v : parseFloat(String(v));
           return isNaN(n) ? 0.5 : Math.max(0, Math.min(1, n));
         };
-
         const profile: FlavorProfile = {
           sweetness: clamp(profileData.profile.sweetness),
           bitterness: clamp(profileData.profile.bitterness),
@@ -289,7 +308,6 @@ export default function FlavorProfileEditor({
           fruitiness: clamp(profileData.profile.fruitiness),
           source: 'botlguide',
         };
-
         onChange(profile);
         setIsEditing(true);
         setSuggestionExplanation(profileData.explanation || 'BotlGuide Sommelier hat dein Rezept analysiert.');
@@ -297,12 +315,12 @@ export default function FlavorProfileEditor({
         setSuggestionError('BotlGuide Sommelier konnte kein Profil generieren.');
       }
     } catch (err: any) {
-      console.error('[FlavorProfileEditor] suggest error:', err);
+      console.error('[FlavorProfileEditor] BotlGuide error:', err);
       setSuggestionError('Fehler beim Generieren des Vorschlags.');
     } finally {
       setIsSuggesting(false);
     }
-  }, [brewStyle, brewId, brewData, onChange]);
+  }, [brewStyle, brewData, onChange]);
 
   // ── Compact display (summary in tab header, etc.) ─────────────────────
   if (compact && value) {
@@ -347,12 +365,12 @@ export default function FlavorProfileEditor({
             type="button"
             onClick={handleSuggest}
             disabled={isSuggesting}
-            className="px-6 py-3 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 disabled:from-surface disabled:to-surface text-text-primary font-bold rounded-xl transition-all duration-200 flex items-center gap-2 disabled:opacity-60"
+            className="px-6 py-3 bg-accent-purple hover:bg-accent-purple/80 disabled:bg-surface disabled:text-text-muted text-white font-bold rounded-xl transition-all duration-200 flex items-center gap-2 disabled:opacity-60"
           >
             {isSuggesting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Analysiere...
+                Suche Vergleichsdaten...
               </>
             ) : (
               <>
@@ -365,21 +383,47 @@ export default function FlavorProfileEditor({
             type="button"
             onClick={handleEnable}
             disabled={isSuggesting}
-            className="px-6 py-3 bg-surface-hover hover:bg-surface-hover text-text-secondary font-bold rounded-xl transition border border-border flex items-center gap-2"
+            className="px-6 py-3 bg-surface hover:bg-surface-hover text-text-primary font-bold rounded-xl transition border border-border flex items-center gap-2"
           >
             <Pencil className="w-4 h-4" />
             Manuell anlegen
           </button>
         </div>
 
-        <p className="text-[10px] text-text-disabled mt-4 max-w-sm mx-auto">
-          &quot;Profil vorschlagen&quot; analysiert vorhandene Daten ähnlicher Biere oder nutzt BotlGuide
-          um ein Geschmacksprofil aus deinem Rezept abzuleiten. Du kannst es danach frei anpassen.
-        </p>
+        {/* BotlGuide Confirmation Card (shown when no community data found) */}
+        {awaitingBotlGuideConfirm && (
+          <div className="mt-4 bg-accent-purple/10 border border-accent-purple/30 rounded-xl px-5 py-4 max-w-md mx-auto text-left space-y-3">
+            <div className="flex items-center gap-2">
+              <BotlGuidePersonaPill persona="BotlGuide Sommelier" />
+            </div>
+            <p className="text-sm text-text-primary font-semibold">Keine Vergleichsdaten gefunden</p>
+            <p className="text-xs text-text-secondary">
+              Für diesen Bierstil liegen noch keine ausreichenden Community-Daten vor. BotlGuide Sommelier kann dein Rezept direkt analysieren — dabei wird <strong className="text-text-primary">1 KI-Credit</strong> verbraucht.
+            </p>
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={handleBotlGuideConfirmed}
+                disabled={isSuggesting}
+                className="px-4 py-2 bg-accent-purple hover:bg-accent-purple/80 text-white font-bold rounded-lg text-sm transition flex items-center gap-2 disabled:opacity-60"
+              >
+                {isSuggesting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                Ja, analysieren
+              </button>
+              <button
+                type="button"
+                onClick={() => setAwaitingBotlGuideConfirm(false)}
+                className="px-4 py-2 bg-surface hover:bg-surface-hover text-text-secondary font-bold rounded-lg text-sm transition border border-border"
+              >
+                Abbrechen
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Error message */}
         {suggestionError && (
-          <div className="mt-4 bg-red-950/30 border border-red-800/30 rounded-xl px-4 py-3 text-sm text-red-400 max-w-md mx-auto">
+          <div className="mt-4 bg-error/10 border border-error/30 rounded-xl px-4 py-3 text-sm text-error max-w-md mx-auto">
             {suggestionError}
           </div>
         )}
@@ -389,9 +433,9 @@ export default function FlavorProfileEditor({
 
   // ── Active editor ─────────────────────────────────────────────────────
   const sourceLabel = value?.source === 'data_suggestion'
-    ? { icon: <Database className="w-3 h-3" />, text: 'Daten-Vorschlag', cls: 'bg-emerald-950/40 text-emerald-400 border-emerald-800/30' }
+    ? { icon: <Database className="w-3 h-3" />, text: 'Daten-Vorschlag', cls: 'bg-success/10 text-success border-success/30' }
     : value?.source === 'botlguide'
-    ? { icon: <Bot className="w-3 h-3" />, text: 'BotlGuide', cls: 'bg-purple-950/40 text-purple-400 border-purple-800/30' }
+    ? { icon: <Bot className="w-3 h-3" />, text: 'BotlGuide', cls: 'bg-accent-purple/10 text-accent-purple border-accent-purple/30' }
     : { icon: <Pencil className="w-3 h-3" />, text: 'Manuell', cls: 'bg-surface-hover text-text-secondary border-border' };
 
   return (
@@ -415,7 +459,7 @@ export default function FlavorProfileEditor({
             type="button"
             onClick={handleSuggest}
             disabled={isSuggesting}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-cyan-400 hover:text-brand bg-cyan-950/30 hover:bg-cyan-950/50 border border-cyan-800/30 rounded-lg transition disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-accent-purple hover:text-accent-purple/80 bg-accent-purple/10 hover:bg-accent-purple/20 border border-accent-purple/20 rounded-lg transition disabled:opacity-50"
           >
             {isSuggesting ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
             Neu vorschlagen
@@ -423,7 +467,7 @@ export default function FlavorProfileEditor({
           <button
             type="button"
             onClick={handleClear}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-400 hover:text-red-300 bg-red-950/30 hover:bg-red-950/50 border border-red-800/30 rounded-lg transition"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-error hover:text-error/80 bg-error/10 hover:bg-error/20 border border-error/20 rounded-lg transition"
           >
             <Trash2 className="w-3 h-3" />
             Entfernen
@@ -433,15 +477,46 @@ export default function FlavorProfileEditor({
 
       {/* Suggestion explanation banner */}
       {suggestionExplanation && (
-        <div className="bg-purple-950/20 border border-purple-800/20 rounded-xl px-4 py-3 text-xs text-purple-300">
-          <Bot className="w-3.5 h-3.5 inline mr-1.5 -mt-0.5" />
-          {suggestionExplanation}
+        <div className="bg-accent-purple/10 border border-accent-purple/20 rounded-xl px-4 py-3 text-xs text-text-secondary flex items-start gap-2">
+          <BotlGuidePersonaPill persona="BotlGuide Sommelier" className="flex-shrink-0" />
+          <span>{suggestionExplanation}</span>
+        </div>
+      )}
+
+      {/* BotlGuide Confirmation Card (active editor — no community data found) */}
+      {awaitingBotlGuideConfirm && (
+        <div className="bg-accent-purple/10 border border-accent-purple/30 rounded-xl px-5 py-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <BotlGuidePersonaPill persona="BotlGuide Sommelier" />
+          </div>
+          <p className="text-sm text-text-primary font-semibold">Keine Vergleichsdaten gefunden</p>
+          <p className="text-xs text-text-secondary">
+            Für diesen Bierstil liegen noch keine ausreichenden Community-Daten vor. BotlGuide Sommelier kann dein Rezept direkt analysieren — dabei wird <strong className="text-text-primary">1 KI-Credit</strong> verbraucht.
+          </p>
+          <div className="flex items-center gap-2 pt-1">
+            <button
+              type="button"
+              onClick={handleBotlGuideConfirmed}
+              disabled={isSuggesting}
+              className="px-4 py-2 bg-accent-purple hover:bg-accent-purple/80 text-white font-bold rounded-lg text-sm transition flex items-center gap-2 disabled:opacity-60"
+            >
+              {isSuggesting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+              Ja, analysieren
+            </button>
+            <button
+              type="button"
+              onClick={() => setAwaitingBotlGuideConfirm(false)}
+              className="px-4 py-2 bg-surface hover:bg-surface-hover text-text-secondary font-bold rounded-lg text-sm transition border border-border"
+            >
+              Abbrechen
+            </button>
+          </div>
         </div>
       )}
 
       {/* Suggestion error */}
       {suggestionError && (
-        <div className="bg-red-950/30 border border-red-800/30 rounded-xl px-4 py-3 text-sm text-red-400">
+        <div className="bg-error/10 border border-error/30 rounded-xl px-4 py-3 text-sm text-error">
           {suggestionError}
         </div>
       )}

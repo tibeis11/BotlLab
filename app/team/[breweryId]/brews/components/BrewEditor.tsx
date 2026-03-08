@@ -1305,7 +1305,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                         ebc: brew.data?.ebc,
                         malts: formatIngredientsForPrompt(brew.data?.malts ?? []),
                         hops: formatIngredientsForPrompt(brew.data?.hops ?? []),
-                        yeast: brew.data?.yeast ?? null,
+                        yeast: formatIngredientsForPrompt(brew.data?.yeast ?? []),
                     },
                 }),
             });
@@ -2555,11 +2555,13 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                             </div>
                                         )}
                                         {optimizationSuggestions.length > 0 && (
-                                            <div className="space-y-2 pt-1 border-t border-border">
+                                            <div className="space-y-4 pt-4 border-t border-border">
                                                 {optimizationSuggestions.map((suggestion, idx) => (
                                                     <div key={idx} className="flex gap-2">
                                                         <Lightbulb className="text-brand w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-                                                        <p className="text-xs text-text-secondary leading-relaxed">{suggestion}</p>
+                                                        <div className="text-xs text-text-secondary leading-relaxed [&_p]:leading-relaxed [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_strong]:text-text-primary [&_strong]:font-semibold [&_h1]:text-text-primary [&_h2]:text-text-primary [&_h3]:text-text-primary">
+                                                            <ReactMarkdown>{suggestion}</ReactMarkdown>
+                                                        </div>
                                                     </div>
                                                 ))}
                                             </div>
@@ -2596,13 +2598,12 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                         )}
                                         {hopSuggestions && !suggestingHops && (
                                             <div className="pt-1 border-t border-border">
-                                                <div className="prose prose-sm max-w-none
-                                                    prose-p:text-text-secondary prose-p:leading-relaxed prose-p:my-0
-                                                    prose-strong:text-text-primary prose-strong:font-semibold
-                                                    prose-headings:text-text-primary prose-headings:font-bold
-                                                    prose-ol:text-text-secondary prose-ol:space-y-4 prose-ol:pl-4
-                                                    prose-ul:text-text-secondary prose-ul:pl-4
-                                                    prose-li:text-text-secondary prose-li:leading-relaxed
+                                                <div className="[&_p]:text-text-secondary [&_p]:leading-relaxed [&_p]:my-0
+                                                    [&_strong]:text-text-primary [&_strong]:font-semibold
+                                                    [&_h1]:text-text-primary [&_h1]:font-bold [&_h2]:text-text-primary [&_h2]:font-bold [&_h3]:text-text-primary [&_h3]:font-bold
+                                                    [&_ol]:text-text-secondary [&_ol]:space-y-4 [&_ol]:pl-4
+                                                    [&_ul]:text-text-secondary [&_ul]:pl-4
+                                                    [&_li]:text-text-secondary [&_li]:leading-relaxed text-xs
                                                     [&_ol>li]:border-b [&_ol>li]:border-border/60 [&_ol>li]:pb-4 [&_ol>li:last-child]:border-0 [&_ol>li:last-child]:pb-0">
                                                     <ReactMarkdown>{hopSuggestions}</ReactMarkdown>
                                                 </div>
@@ -2640,14 +2641,14 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                         {pairingResult && !loadingPairing && (
                                             <div className="pt-1 border-t border-border space-y-2">
                                                 {pairingResult.intro && (
-                                                    <p className="text-xs text-text-secondary italic">{pairingResult.intro}</p>
+                                                    <div className="text-xs text-text-secondary italic [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_strong]:text-text-primary [&_strong]:font-semibold"><ReactMarkdown>{pairingResult.intro}</ReactMarkdown></div>
                                                 )}
                                                 {pairingResult.pairings.map((p, i) => (
                                                     <div key={i} className="flex items-start gap-2.5 bg-background border border-border rounded-lg p-2.5">
                                                         <span className="text-base flex-shrink-0">{p.emoji}</span>
                                                         <div>
-                                                            <p className="text-xs font-bold text-text-primary">{p.food}</p>
-                                                            <p className="text-xs text-text-secondary mt-0.5">{p.why}</p>
+                                                            <div className="text-xs font-bold text-text-primary [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_strong]:text-text-primary [&_strong]:font-semibold"><ReactMarkdown>{p.food}</ReactMarkdown></div>
+                                                            <div className="text-xs text-text-secondary mt-0.5 leading-relaxed [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_strong]:text-text-primary [&_strong]:font-semibold"><ReactMarkdown>{p.why}</ReactMarkdown></div>
                                                         </div>
                                                     </div>
                                                 ))}
@@ -2694,7 +2695,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                             <Check size={10} /> Kopieren
                                                         </button>
                                                     </div>
-                                                    <p className="text-xs text-text-secondary whitespace-pre-wrap">{socialResult.instagram}</p>
+                                                    <div className="text-xs text-text-secondary whitespace-pre-wrap leading-relaxed [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_strong]:text-text-primary [&_strong]:font-semibold"><ReactMarkdown>{socialResult.instagram}</ReactMarkdown></div>
                                                 </div>
                                                 <div className="bg-background border border-border rounded-lg p-3">
                                                     <div className="flex items-center justify-between mb-2">
@@ -2706,7 +2707,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                             <Check size={10} /> Kopieren
                                                         </button>
                                                     </div>
-                                                    <p className="text-xs text-text-secondary whitespace-pre-wrap">{socialResult.facebook}</p>
+                                                    <div className="text-xs text-text-secondary whitespace-pre-wrap leading-relaxed [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_strong]:text-text-primary [&_strong]:font-semibold"><ReactMarkdown>{socialResult.facebook}</ReactMarkdown></div>
                                                 </div>
                                             </div>
                                         )}
@@ -2825,9 +2826,9 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                 </div>
                                                 {bjcpResult.verdict && (
                                                     <div className="bg-background border border-border rounded-lg p-3">
-                                                        <p className="text-xs text-text-secondary leading-relaxed italic [&_strong]:text-text-primary [&_strong]:font-semibold not-italic">
+                                                        <div className="text-xs text-text-secondary leading-relaxed italic [&_strong]:text-text-primary [&_strong]:font-semibold [&_p]:inline not-italic">
                                                             <ReactMarkdown>{bjcpResult.verdict}</ReactMarkdown>
-                                                        </p>
+                                                        </div>
                                                     </div>
                                                 )}
                                             </div>

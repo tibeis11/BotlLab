@@ -326,7 +326,7 @@ export default function PublicBreweryPage({ params }: { params: Promise<{ id: st
                   <p className="text-text-muted">Diese Brauerei hat noch keine öffentlichen Rezepte.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
                   {brews.map(brew => (
                     <DiscoverBrewCard
                       key={brew.id}

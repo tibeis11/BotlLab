@@ -17,7 +17,8 @@ import { redeemCode } from '@/lib/actions/premium-actions';
 import ResponsiveTabs from '@/app/components/ResponsiveTabs';
 import { AppMode } from '@/lib/types/user-mode';
 import LegalConsentModal from '@/app/components/LegalConsentModal';
-import { User, CreditCard, Users, Key, ShieldCheck, Eye, AlertTriangle, Menu, Settings, Lock, Mail, ShieldAlert, Loader2, Construction, Check, CheckCircle, Infinity, X, Globe, Home, Factory, ArrowRight, LogOut, BarChart3, Sparkles } from 'lucide-react';
+import { User, CreditCard, Users, Key, ShieldCheck, Eye, AlertTriangle, Menu, Settings, Lock, Mail, ShieldAlert, Loader2, Construction, Check, CheckCircle, Infinity, X, Globe, Home, Factory, ArrowRight, LogOut, BarChart3, Sparkles, Monitor, Sun, Moon } from 'lucide-react';
+import { useTheme, Theme } from '@/app/context/ThemeContext';
 
 export default function AccountPage() {
 	const { user, loading: authLoading, signOut } = useAuth();
@@ -39,7 +40,8 @@ export default function AccountPage() {
 	const router = useRouter();
 
     // Menu State
-    const [activeTab, setActiveTab] = useState<'profile' | 'subscription' | 'access' | 'security' | 'teams' | 'danger' | 'privacy'>('profile');
+    const [activeTab, setActiveTab] = useState<'profile' | 'subscription' | 'access' | 'security' | 'teams' | 'danger' | 'privacy' | 'appearance'>('profile');
+    const { theme: currentTheme, setTheme } = useTheme();
 
     // --- PROFILE STATE ---
     const [savingProfile, setSavingProfile] = useState(false);
@@ -514,6 +516,7 @@ export default function AccountPage() {
         { id: 'access', label: 'Zugangsdaten', icon: Key },
         { id: 'security', label: 'Sicherheit', icon: ShieldCheck },
         { id: 'privacy', label: 'Privatsphäre', icon: Eye },
+        { id: 'appearance', label: 'Darstellung', icon: Monitor },
         { id: 'danger', label: 'Account', icon: AlertTriangle }
     ];
 
@@ -1301,6 +1304,49 @@ export default function AccountPage() {
                             </div>
                         )}
                         
+                        {activeTab === 'appearance' && (
+                            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                <div>
+                                    <h2 className="text-xl font-bold text-text-primary mb-1">Darstellung</h2>
+                                    <p className="text-sm text-text-secondary">Wähle, wie BotlLab auf deinem Gerät aussehen soll.</p>
+                                </div>
+
+                                <div className="md:bg-surface md:border md:border-border rounded-2xl p-6 md:p-8 space-y-6">
+                                    <h3 className="text-[10px] font-black uppercase tracking-widest text-text-muted">Farbschema</h3>
+                                    <div className="grid grid-cols-3 gap-3">
+                                        {([
+                                            { value: 'system', label: 'Automatisch', sublabel: 'Systemeinstellung', icon: Monitor },
+                                            { value: 'light', label: 'Hell', sublabel: 'Immer Light Mode', icon: Sun },
+                                            { value: 'dark', label: 'Dunkel', sublabel: 'Immer Dark Mode', icon: Moon },
+                                        ] as { value: Theme; label: string; sublabel: string; icon: React.ElementType }[]).map(({ value, label, sublabel, icon: Icon }) => {
+                                            const active = currentTheme === value;
+                                            return (
+                                                <button
+                                                    key={value}
+                                                    onClick={() => setTheme(value)}
+                                                    className={`flex flex-col items-center gap-3 p-4 rounded-2xl border-2 transition-all ${
+                                                        active
+                                                            ? 'border-brand bg-brand/10 text-brand'
+                                                            : 'border-border bg-surface-hover/50 text-text-muted hover:border-border-hover hover:text-text-secondary'
+                                                    }`}
+                                                >
+                                                    <Icon className="w-6 h-6" />
+                                                    <div className="text-center">
+                                                        <div className={`text-sm font-bold ${active ? 'text-brand' : 'text-text-primary'}`}>{label}</div>
+                                                        <div className="text-[10px] text-text-muted mt-0.5">{sublabel}</div>
+                                                    </div>
+                                                    {active && <Check className="w-4 h-4" />}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                    <p className="text-xs text-text-muted pt-2">
+                                        Bei <span className="font-bold text-text-secondary">Automatisch</span> richtet sich BotlLab nach der Einstellung deines Betriebssystems.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
                         {activeTab === 'danger' && (
                              <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
                                 <div className="mb-8">
