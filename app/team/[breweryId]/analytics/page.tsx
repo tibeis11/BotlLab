@@ -588,6 +588,8 @@ export default function BreweryAnalyticsPage() {
                   topBrewsData={topBrewsData}
                   countryData={countryData}
                   deviceData={deviceData}
+                  startDate={timeRange === 'custom' ? (customStartDate || undefined) : timeRange === '7d' ? new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10) : timeRange === '30d' ? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10) : timeRange === '90d' ? new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10) : undefined}
+                  endDate={timeRange === 'custom' ? (customEndDate || undefined) : undefined}
                 />
               )}
               {section === 'audience' && <AudienceView brews={breweryBrews} breweryId={breweryId} userTier={userTier} />}

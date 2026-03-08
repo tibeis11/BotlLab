@@ -42,6 +42,8 @@ interface OverviewViewProps {
   topBrewsData: [string, number][];
   countryData: [string, number][];
   deviceData: [string, number][];
+  startDate?: string;
+  endDate?: string;
 }
 
 // ============================================================================
@@ -57,6 +59,8 @@ export default function OverviewView({
   conversionData,
   topBrewsData,
   deviceData,
+  startDate,
+  endDate,
 }: OverviewViewProps) {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -252,6 +256,8 @@ export default function OverviewView({
       <ScanSourceBreakdownCard
         breweryId={breweryId}
         userTier={userTier}
+        startDate={startDate}
+        endDate={endDate}
       />
 
       {/* Privacy Footer */}
