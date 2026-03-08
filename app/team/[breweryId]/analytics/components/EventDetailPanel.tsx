@@ -32,7 +32,7 @@ const EVENT_TYPE_CONFIG: Record<string, { emoji: string; label: string; color: s
   festival: { emoji: '🎉', label: 'Festival', color: '#ef4444', bgColor: 'bg-red-500/10 border-red-500/20' },
   party:    { emoji: '🎈', label: 'Party',    color: '#ec4899', bgColor: 'bg-pink-500/10 border-pink-500/20' },
   meetup:   { emoji: '🤝', label: 'Meetup',   color: '#8b5cf6', bgColor: 'bg-violet-500/10 border-violet-500/20' },
-  unknown:  { emoji: '📍', label: 'Event',    color: '#6b7280', bgColor: 'bg-zinc-500/10 border-zinc-500/20' },
+  unknown:  { emoji: '📍', label: 'Event',    color: '#6b7280', bgColor: 'bg-surface-hover/50 border-border-hover' },
 };
 
 interface EventDetailPanelProps {
@@ -87,21 +87,21 @@ export default function EventDetailPanel({
   };
 
   return (
-    <div className="bg-black border border-zinc-800 rounded-lg overflow-hidden">
+    <div className="bg-surface border border-border rounded-2xl overflow-hidden">
       {/* Header */}
-      <div className="p-4 border-b border-zinc-800 flex items-start justify-between">
+      <div className="p-4 border-b border-border flex items-start justify-between">
         <div className="flex items-center gap-3">
           <span className="text-2xl">{config.emoji}</span>
           <div>
-            <h3 className="text-white font-semibold text-sm">
+            <h3 className="text-text-primary font-semibold text-sm">
               {event.brewerLabel || `${config.label} erkannt`}
             </h3>
-            <p className="text-zinc-500 text-xs mt-0.5">{timeAgo}</p>
+            <p className="text-text-muted text-xs mt-0.5">{timeAgo}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <span 
-            className={`text-[10px] px-2 py-0.5 rounded-full border font-medium ${config.bgColor}`}
+            className={`text-[10px] px-2 py-0.5 rounded-full border font-bold ${config.bgColor}`}
             style={{ color: config.color }}
           >
             {config.label} — {Math.round(event.confidence * 100)}%
@@ -109,7 +109,7 @@ export default function EventDetailPanel({
           {onClose && (
             <button 
               onClick={onClose}
-              className="text-zinc-500 hover:text-zinc-300 transition-colors p-1"
+              className="text-text-muted hover:text-text-secondary transition-colors p-1"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M18 6L6 18M6 6l12 12" />
@@ -120,22 +120,22 @@ export default function EventDetailPanel({
       </div>
 
       {/* KPI Grid */}
-      <div className="grid grid-cols-4 gap-px bg-zinc-800">
-        <div className="bg-zinc-900 p-3 text-center">
-          <p className="text-white font-mono font-bold text-lg">{event.totalScans}</p>
-          <p className="text-zinc-500 text-[10px] uppercase tracking-wider mt-0.5">Scans</p>
+      <div className="grid grid-cols-4 gap-px bg-surface-hover">
+        <div className="bg-surface p-3 text-center">
+          <p className="text-text-primary font-mono font-bold text-lg">{event.totalScans}</p>
+          <p className="text-text-muted text-[10px] uppercase tracking-wider mt-0.5">Scans</p>
         </div>
-        <div className="bg-zinc-900 p-3 text-center">
-          <p className="text-white font-mono font-bold text-lg">{event.uniqueSessions}</p>
-          <p className="text-zinc-500 text-[10px] uppercase tracking-wider mt-0.5">Personen</p>
+        <div className="bg-surface p-3 text-center">
+          <p className="text-text-primary font-mono font-bold text-lg">{event.uniqueSessions}</p>
+          <p className="text-text-muted text-[10px] uppercase tracking-wider mt-0.5">Personen</p>
         </div>
-        <div className="bg-zinc-900 p-3 text-center">
-          <p className="text-white font-mono font-bold text-lg">{event.uniqueBrews}</p>
-          <p className="text-zinc-500 text-[10px] uppercase tracking-wider mt-0.5">Biere</p>
+        <div className="bg-surface p-3 text-center">
+          <p className="text-text-primary font-mono font-bold text-lg">{event.uniqueBrews}</p>
+          <p className="text-text-muted text-[10px] uppercase tracking-wider mt-0.5">Biere</p>
         </div>
-        <div className="bg-zinc-900 p-3 text-center">
-          <p className="text-white font-mono font-bold text-lg">{durationHours}h</p>
-          <p className="text-zinc-500 text-[10px] uppercase tracking-wider mt-0.5">Dauer</p>
+        <div className="bg-surface p-3 text-center">
+          <p className="text-text-primary font-mono font-bold text-lg">{durationHours}h</p>
+          <p className="text-text-muted text-[10px] uppercase tracking-wider mt-0.5">Dauer</p>
         </div>
       </div>
 
@@ -144,21 +144,21 @@ export default function EventDetailPanel({
         {/* Time & Location */}
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-xs">
-            <span className="text-zinc-500">🕐</span>
-            <span className="text-zinc-300">{formattedStart} – {formattedEnd}</span>
+            <span className="text-text-muted">🕐</span>
+            <span className="text-text-secondary">{formattedStart} – {formattedEnd}</span>
           </div>
           {event.city && (
             <div className="flex items-center gap-2 text-xs">
-              <span className="text-zinc-500">📍</span>
-              <span className="text-zinc-300">
+              <span className="text-text-muted">📍</span>
+              <span className="text-text-secondary">
                 {event.city}{event.countryCode ? `, ${event.countryCode}` : ''}
               </span>
             </div>
           )}
           {event.radiusM && (
             <div className="flex items-center gap-2 text-xs">
-              <span className="text-zinc-500">⭕</span>
-              <span className="text-zinc-300">
+              <span className="text-text-muted">⭕</span>
+              <span className="text-text-secondary">
                 Radius: ~{event.radiusM >= 1000 ? `${(event.radiusM / 1000).toFixed(1)} km` : `${event.radiusM} m`}
               </span>
             </div>
@@ -168,12 +168,12 @@ export default function EventDetailPanel({
         {/* Brew Distribution */}
         {event.brewIds.length > 0 && (
           <div>
-            <p className="text-zinc-500 text-[10px] uppercase tracking-wider mb-2">Gescannte Biere</p>
+            <p className="text-text-muted text-[10px] uppercase tracking-wider mb-2">Gescannte Biere</p>
             <div className="space-y-1">
               {event.brewIds.map((brewId) => (
                 <div key={brewId} className="flex items-center gap-2 text-xs">
                   <div className="w-1.5 h-1.5 rounded-full bg-cyan-500"></div>
-                  <span className="text-zinc-300">{brewNames[brewId] || brewId.slice(0, 8) + '…'}</span>
+                  <span className="text-text-secondary">{brewNames[brewId] || brewId.slice(0, 8) + '…'}</span>
                 </div>
               ))}
             </div>
@@ -182,17 +182,17 @@ export default function EventDetailPanel({
 
         {/* Monthly comparison */}
         {monthlyPct !== null && (
-          <div className="bg-zinc-800/50 rounded-md p-3 border border-zinc-700/50">
-            <p className="text-zinc-400 text-xs">
+          <div className="bg-surface-hover/50 rounded-lg p-3 border border-border-hover/50">
+            <p className="text-text-secondary text-xs">
               Dieses Event brachte <span className="text-cyan-400 font-medium">{event.totalScans} Scans</span> — 
-              das sind <span className="text-white font-medium">{monthlyPct}%</span> deiner monatlichen Scans
+              das sind <span className="text-text-primary font-medium">{monthlyPct}%</span> deiner monatlichen Scans
               {durationHours < 24 ? ` an einem einzigen ${durationHours < 4 ? 'Nachmittag' : 'Tag'}` : ''}.
             </p>
           </div>
         )}
 
         {/* Brewer Annotation */}
-        <div className="border-t border-zinc-800 pt-3">
+        <div className="border-t border-border pt-3">
           {isEditing ? (
             <div className="space-y-2">
               <input
@@ -200,26 +200,26 @@ export default function EventDetailPanel({
                 value={label}
                 onChange={(e) => setLabel(e.target.value)}
                 placeholder="Event-Name (z.B. Tag der offenen Tür)"
-                className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-1.5 text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600"
+                className="w-full bg-surface-hover border border-border-hover rounded px-3 py-1.5 text-xs text-text-primary placeholder:text-text-disabled focus:outline-none focus:border-border-hover"
               />
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Notizen zum Event..."
                 rows={2}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-1.5 text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600 resize-none"
+                className="w-full bg-surface-hover border border-border-hover rounded px-3 py-1.5 text-xs text-text-primary placeholder:text-text-disabled focus:outline-none focus:border-border-hover resize-none"
               />
               <div className="flex gap-2">
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="px-3 py-1 bg-white text-black text-xs font-medium rounded hover:bg-zinc-200 transition-colors disabled:opacity-50"
+                  className="px-3 py-1 bg-white text-black text-xs font-bold rounded-lg hover:bg-zinc-200 transition-colors disabled:opacity-50"
                 >
                   {saving ? 'Speichern…' : 'Speichern'}
                 </button>
                 <button
                   onClick={() => setIsEditing(false)}
-                  className="px-3 py-1 text-zinc-400 text-xs hover:text-zinc-200 transition-colors"
+                  className="px-3 py-1 text-text-secondary text-xs hover:text-text-primary transition-colors"
                 >
                   Abbrechen
                 </button>
@@ -228,7 +228,7 @@ export default function EventDetailPanel({
           ) : (
             <button
               onClick={() => setIsEditing(true)}
-              className="flex items-center gap-1.5 text-zinc-500 text-xs hover:text-zinc-300 transition-colors"
+              className="flex items-center gap-1.5 text-text-muted text-xs hover:text-text-secondary transition-colors"
             >
               <span>✏️</span>
               <span>{event.brewerLabel ? 'Event umbenennen' : 'Event benennen'}</span>

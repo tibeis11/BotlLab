@@ -88,21 +88,21 @@ export default function TeamLayout({
   }
 
   if (loading) {
-      if (!breweryId && !authLoading) return <div className="min-h-screen bg-black flex items-center justify-center text-zinc-500">Warte auf ID...</div>;
-      return <div className="min-h-screen bg-black flex items-center justify-center text-zinc-500">Lade Team...</div>;
+      if (!breweryId && !authLoading) return <div className="min-h-screen bg-background flex items-center justify-center text-text-muted">Warte auf ID...</div>;
+      return <div className="min-h-screen bg-background flex items-center justify-center text-text-muted">Lade Team...</div>;
   }
   
   if (!brewery) return (
-    <div className="min-h-screen bg-black flex flex-col items-center justify-center text-zinc-500 gap-4">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center text-text-muted gap-4">
         <p>Brauerei nicht gefunden.</p>
         <p className="text-xs font-mono opacity-50">ID: {breweryId || 'unbekannt'}</p>
-        <Link href="/dashboard" className="text-white underline">Zurück zum Dashboard</Link>
+        <Link href="/dashboard" className="text-text-primary underline">Zurück zum Dashboard</Link>
     </div>
   );
 
   if (isEditor) {
       return (
-        <div className="h-screen overflow-hidden bg-black text-zinc-200">
+        <div className="h-screen overflow-hidden bg-background text-foreground">
             <NotificationProvider>
                 {children}
             </NotificationProvider>
@@ -111,7 +111,7 @@ export default function TeamLayout({
   }
 
   return (
-    <div className="min-h-screen bg-black text-zinc-200">
+    <div className="min-h-screen bg-background text-foreground">
       <NotificationProvider>
         {breweryId && <SquadHeader breweryId={breweryId} isMember={isMember} />}
 
@@ -119,17 +119,17 @@ export default function TeamLayout({
             {/* Context Banner - Simplified since Nav is now in Header */}
             {pathname === `/team/${breweryId}` && (
                 <div className="mb-12 text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <div className="w-24 h-24 bg-zinc-900 rounded-full mx-auto mb-4 flex items-center justify-center text-4xl border border-zinc-800 shadow-xl relative overflow-hidden ring-4 ring-black">
+                    <div className="w-24 h-24 bg-surface rounded-full mx-auto mb-4 flex items-center justify-center text-4xl border border-border shadow-xl relative overflow-hidden ring-4 ring-background">
                         {brewery.logo_url ? (
                             <img src={brewery.logo_url} className="w-full h-full object-cover" alt="" />
                         ) : (
                             <span>🍺</span>
                         )}
                     </div>
-                    <h1 className="text-4xl font-black text-white tracking-tight mb-2">{brewery.name}</h1>
-                    <p className="text-zinc-500 flex items-center justify-center gap-2">
+                    <h1 className="text-4xl font-black text-text-primary tracking-tight mb-2">{brewery.name}</h1>
+                    <p className="text-text-muted flex items-center justify-center gap-2">
                         Brauerei Profil
-                        {isMember && <span className="bg-cyan-950 text-cyan-400 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider border border-cyan-900">Member</span>}
+                        {isMember && <span className="bg-brand-bg text-brand text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider border border-brand-dim">Member</span>}
                     </p>
                 </div>
             )}

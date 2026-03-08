@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
-import Footer from '@/app/components/Footer';
 import { getThread, getPosts, getVotesForThread, getUserBookmarkedIds, getThreadSubscription, getThreadPoll } from '@/lib/forum-service';
 import ViewCountTracker from './ViewCountTracker';
 import { MessageSquare, Calendar, User, Eye, Lock, ChevronDown, CheckCircle2, Beaker } from 'lucide-react';
@@ -18,6 +17,7 @@ import ThreadInteractionWrapper from './ThreadInteractionWrapper';
 import VoteBar from './VoteBar';
 import EditDeletePostButtons from './EditDeletePostButtons';
 import BookmarkButton from './BookmarkButton';
+import UserAvatar from '@/app/components/UserAvatar';
 import SubscribeButton from './SubscribeButton';
 import PollBlock from './PollBlock';
 import RealtimePostBanner from './RealtimePostBanner';
@@ -120,14 +120,18 @@ export default async function ThreadPage({ params }: PageProps) {
         <ThreadInteractionWrapper>
             <>
             {/* ── Thread Hero Banner ──────────────────────────────────── */}
-            <div className="relative overflow-hidden bg-zinc-900 border-b border-zinc-800">
-                <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/95 via-zinc-950/80 to-emerald-950/10" />
+            <div className="relative overflow-hidden bg-surface border-b border-border">
+                <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/80 to-success-bg/10" />
                 <div className="relative px-6 md:px-12 lg:px-16 py-5 md:py-7 max-w-screen-2xl mx-auto">
                     {/* Breadcrumb */}
-                    <div className="flex items-center gap-2 text-sm text-zinc-500 mb-2">
-                        <Link href="/forum" className="hover:text-zinc-300 transition">Forum</Link>
-                        <span>/</span>
-                        <Link href={`/forum/${thread.category.slug}`} className="hover:text-zinc-300 transition">{thread.category.title}</Link>
+                    <div className="flex items-center gap-2 text-sm text-text-muted mb-2">
+                        <Link href="/forum" className="hover:text-text-secondary transition">Forum</Link>
+                        {thread.category && (
+                            <>
+                                <span>/</span>
+                                <Link href={`/forum/${thread.category.slug}`} className="hover:text-text-secondary transition">{thread.category.title}</Link>
+                            </>
+                        )}
                     </div>
 
                     <div className="flex items-start justify-between gap-4">
@@ -136,19 +140,19 @@ export default async function ThreadPage({ params }: PageProps) {
                             <div className="flex items-center gap-3 flex-wrap mb-2">
                                 <h1 className="text-xl md:text-3xl font-black tracking-tight leading-tight">{thread.title}</h1>
                                 {thread.is_solved && (
-                                    <span className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[11px] font-bold shrink-0">
+                                    <span className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-success/15 border border-success/30 text-success text-[11px] font-bold shrink-0">
                                         <CheckCircle2 size={11} /> Gelöst
                                     </span>
                                 )}
                                 {thread.is_locked && (
-                                    <span className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-400 text-[11px] font-bold shrink-0">
+                                    <span className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-surface-hover border border-border-hover text-text-secondary text-[11px] font-bold shrink-0">
                                         <Lock size={10} /> Gesperrt
                                     </span>
                                 )}
                             </div>
 
                             {/* Meta row */}
-                            <div className="flex items-center gap-4 text-xs text-zinc-500 flex-wrap">
+                            <div className="flex items-center gap-4 text-xs text-text-muted flex-wrap">
                                 <div className="flex items-center gap-1.5">
                                     <Calendar size={12} />
                                     <span>{new Date(thread.created_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
@@ -198,7 +202,7 @@ export default async function ThreadPage({ params }: PageProps) {
                     {posts.length > 0 && (
                         <a
                             href="#replies"
-                            className="flex items-center gap-2 text-xs text-zinc-500 hover:text-emerald-400 transition font-medium group"
+                            className="flex items-center gap-2 text-xs text-text-muted hover:text-success transition font-medium group"
                         >
                             <ChevronDown size={14} className="group-hover:translate-y-0.5 transition-transform" />
                             ↓ {(thread.reply_count ?? posts.length)} Antworten
@@ -208,30 +212,24 @@ export default async function ThreadPage({ params }: PageProps) {
                     {/* ── OP (Original Post) ───────────────────────────── */}
                     <div>
                         {/* Author row */}
-                        <div className="flex items-center justify-between pb-3 border-b border-zinc-800/40">
+                        <div className="flex items-center justify-between pb-3 border-b border-border">
                             <div className="flex items-center gap-2.5">
                                 {thread.author ? (
                                     <Link href={`/brewer/${thread.author.id}`} className="flex items-center gap-2.5 group/author">
-                                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs overflow-hidden bg-zinc-900 border-[1.5px] transition ${tierBorderClass}`}>
-                                            <img
-                                                src={thread.author.avatar_url || '/tiers/lehrling.png'}
-                                                alt="Avatar"
-                                                className="w-full h-full object-cover"
-                                            />
-                                        </div>
+                                        <UserAvatar src={thread.author.avatar_url} name={thread.author.display_name} userId={thread.author.id} tier={thread.author.subscription_tier} sizeClass="w-7 h-7" />
                                         <div className="flex items-baseline gap-1.5">
-                                            <span className="font-semibold text-white text-[13px] group-hover/author:text-emerald-400 transition">{thread.author.display_name}</span>
-                                            <span className="text-[9px] uppercase font-bold tracking-wider px-1 py-px rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 leading-none">
+                                            <span className="font-semibold text-text-primary text-[13px] group-hover/author:text-brand transition">{thread.author.display_name}</span>
+                                            <span className="text-[9px] uppercase font-bold tracking-wider px-1 py-px rounded bg-brand/10 text-brand border border-brand/20 leading-none">
                                                 OP
                                             </span>
                                         </div>
                                     </Link>
                                 ) : (
                                     <div className="flex items-center gap-2.5">
-                                        <div className="w-7 h-7 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-500">
+                                        <div className="w-7 h-7 rounded-full bg-surface-hover flex items-center justify-center text-text-muted">
                                             <User size={12} />
                                         </div>
-                                        <span className="font-semibold text-zinc-400 text-[13px]">Gelöschter Nutzer</span>
+                                        <span className="font-semibold text-text-secondary text-[13px]">Gelöschter Nutzer</span>
                                     </div>
                                 )}
                             </div>
@@ -250,8 +248,8 @@ export default async function ThreadPage({ params }: PageProps) {
                         {/* Linked brew */}
                         {thread.brew && (
                             <div className="mt-3 max-w-sm">
-                                <Link href={`/brew/${thread.brew.id}`} className="inline-flex items-center gap-2.5 bg-zinc-950/30 border border-zinc-800/60 rounded-lg px-2.5 py-1.5 hover:bg-zinc-900/40 hover:border-zinc-700 transition group/brew">
-                                    <div className="w-8 h-8 bg-zinc-900 rounded overflow-hidden border border-zinc-800 flex-shrink-0">
+                                <Link href={`/brew/${thread.brew.id}`} className="inline-flex items-center gap-2.5 bg-background/30 border border-border rounded-lg px-2.5 py-1.5 hover:bg-surface/40 hover:border-border-hover transition group/brew">
+                                    <div className="w-8 h-8 bg-surface rounded overflow-hidden border border-border flex-shrink-0">
                                         {thread.brew.image_url ? (
                                             <img
                                                 src={thread.brew.image_url}
@@ -261,16 +259,16 @@ export default async function ThreadPage({ params }: PageProps) {
                                                 }`}
                                             />
                                         ) : (
-                                            <div className="w-full h-full flex items-center justify-center bg-zinc-900">
-                                                <Beaker className="w-4 h-4 text-zinc-600" />
+                                            <div className="w-full h-full flex items-center justify-center bg-surface">
+                                                <Beaker className="w-4 h-4 text-text-disabled" />
                                             </div>
                                         )}
                                     </div>
                                     <div>
-                                        <div className="text-[9px] text-zinc-500 uppercase font-bold tracking-wider leading-none mb-0.5">Betrifft Rezept</div>
-                                        <div className="text-xs font-bold text-zinc-300 group-hover/brew:text-emerald-400 transition">{thread.brew.name}</div>
+                                        <div className="text-[9px] text-text-muted uppercase font-bold tracking-wider leading-none mb-0.5">Betrifft Rezept</div>
+                                        <div className="text-xs font-bold text-text-secondary group-hover/brew:text-success transition">{thread.brew.name}</div>
                                     </div>
-                                    <span className="text-zinc-600 group-hover/brew:text-zinc-400 text-xs ml-1">→</span>
+                                    <span className="text-text-disabled group-hover/brew:text-text-secondary text-xs ml-1">→</span>
                                 </Link>
                             </div>
                         )}
@@ -288,7 +286,7 @@ export default async function ThreadPage({ params }: PageProps) {
                         )}
 
                         {/* Vote bar + mobile actions */}
-                        <div className="mt-4 pb-4 border-b border-zinc-800/40 flex items-center justify-between gap-3 flex-wrap">
+                        <div className="mt-4 pb-4 border-b border-border flex items-center justify-between gap-3 flex-wrap">
                             <VoteBar
                                 targetId={thread.id}
                                 targetType="thread"
@@ -315,7 +313,7 @@ export default async function ThreadPage({ params }: PageProps) {
                         const rootPosts = posts.filter(p => p.parent_id === null);
                         return (
                             <div id="replies" className="space-y-1.5 pt-3">
-                                <h3 className="text-[10px] font-bold uppercase tracking-widest text-zinc-600 mb-3 px-1">
+                                <h3 className="text-[10px] font-bold uppercase tracking-widest text-text-disabled mb-3 px-1">
                                     Antworten · {(thread.reply_count ?? posts.length)}
                                 </h3>
 
@@ -351,22 +349,22 @@ export default async function ThreadPage({ params }: PageProps) {
                     {/* Reply Input or Login Prompt */}
                     {user ? (
                         thread.is_locked ? (
-                            <div className="mt-6 pt-6 border-t border-zinc-800/60">
-                                <div className="border border-dashed border-zinc-800 rounded-xl p-6 text-center flex flex-col items-center gap-2">
-                                    <Lock size={18} className="text-zinc-600" />
-                                    <h3 className="font-bold text-zinc-400 text-sm">Thread gesperrt</h3>
-                                    <p className="text-zinc-600 text-xs">Dieser Thread akzeptiert keine neuen Antworten.</p>
+                            <div className="mt-6 pt-6 border-t border-border">
+                                <div className="border border-dashed border-border rounded-xl p-6 text-center flex flex-col items-center gap-2">
+                                    <Lock size={18} className="text-text-disabled" />
+                                    <h3 className="font-bold text-text-secondary text-sm">Thread gesperrt</h3>
+                                    <p className="text-text-disabled text-xs">Dieser Thread akzeptiert keine neuen Antworten.</p>
                                 </div>
                             </div>
                         ) : (
                             <ReplyInput threadId={thread.id} />
                         )
                     ) : (
-                        <div className="mt-6 pt-6 border-t border-zinc-800/60 sticky bottom-6">
-                            <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-6 text-center">
-                                <h3 className="font-bold text-white mb-1 text-sm">Du möchtest mitdiskutieren?</h3>
-                                <p className="text-zinc-500 text-xs mb-4">Melde dich an, um Antworten zu schreiben.</p>
-                                <Link href={`/login?next=/forum/thread/${thread.id}`} className="inline-block bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2 rounded-xl font-bold text-sm transition">
+                        <div className="mt-6 pt-6 border-t border-border sticky bottom-6">
+                            <div className="bg-surface/60 border border-border rounded-xl p-6 text-center">
+                                <h3 className="font-bold text-text-primary mb-1 text-sm">Du möchtest mitdiskutieren?</h3>
+                                <p className="text-text-muted text-xs mb-4">Melde dich an, um Antworten zu schreiben.</p>
+                                <Link href={`/login?next=/forum/thread/${thread.id}`} className="inline-block bg-success hover:bg-success/90 text-white px-5 py-2 rounded-xl font-bold text-sm transition">
                                     Einloggen
                                 </Link>
                             </div>
@@ -384,7 +382,6 @@ export default async function ThreadPage({ params }: PageProps) {
             </div>
             </>
             <ViewCountTracker threadId={id} />
-            <Footer />
         </ThreadInteractionWrapper>
     );
 }

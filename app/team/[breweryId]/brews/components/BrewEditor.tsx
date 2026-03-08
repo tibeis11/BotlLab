@@ -129,7 +129,7 @@ function NumberInput({
     return (
         <div className="w-full relative group">
             {label && (
-                <label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 flex items-end gap-2 h-8 leading-tight">
+                <label className="text-xs font-bold text-text-muted uppercase ml-1 mb-2 flex items-end gap-2 h-8 leading-tight">
                     <span>{label}</span>
                     {isCalculated && (
                         <div
@@ -141,20 +141,20 @@ function NumberInput({
                                 }
                             }}
                         >
-                            <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] border ${onInspectorOpen ? 'bg-amber-500/10 border-amber-500/50 text-amber-500' : 'bg-zinc-800 border-zinc-700 text-zinc-400'}`}>
+                            <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] border ${onInspectorOpen ? 'bg-rating/10 border-rating/50 text-rating' : 'bg-surface-hover border-border text-text-muted'}`}>
                                 {onInspectorOpen ? 'i' : 'ƒ'}
                             </div>
                             {calculationInfo && (
-                                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-48 bg-black border border-zinc-800 p-2 rounded-lg text-[10px] text-zinc-300 pointer-events-none opacity-0 group-hover/info:opacity-100 transition-opacity z-50 shadow-xl">
+                                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-48 bg-surface border border-border p-2 rounded-lg text-[10px] text-text-secondary pointer-events-none opacity-0 group-hover/info:opacity-100 transition-opacity z-50 shadow-xl">
                                     {calculationInfo}
-                                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-black border-r border-b border-zinc-800 rotate-45"></div>
+                                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-surface border-r border-b border-border rotate-45"></div>
                                 </div>
                             )}
                         </div>
                     )}
                 </label>
             )}
-            <div className={`flex items-center w-full border ${readOnly ? 'border-zinc-800 bg-zinc-900' : 'border-zinc-800 bg-zinc-950'} rounded-xl transition focus-within:border-cyan-500 focus-within:ring-2 focus-within:ring-cyan-500/20 overflow-hidden relative`}>
+            <div className={`flex items-center w-full border ${readOnly ? 'border-border bg-surface' : 'border-border bg-surface'} rounded-xl transition focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/20 overflow-hidden relative`}>
                 {/* Color Swatch / Strip */}
                 {previewColor && (
                     <>
@@ -177,7 +177,7 @@ function NumberInput({
                 {!readOnly && (
                     <button
                         onClick={() => update(val - step)}
-                        className={`w-12 h-12 flex items-center justify-center text-zinc-500 hover:text-white hover:bg-zinc-800 transition active:scale-90 flex-shrink-0 z-10 ${previewColor ? 'pl-2' : ''}`}
+                        className={`w-12 h-12 flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-surface-hover transition active:scale-90 flex-shrink-0 z-10 ${previewColor ? 'pl-2' : ''}`}
                         type="button"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
@@ -191,7 +191,7 @@ function NumberInput({
                     pattern="[0-9]*"
                     readOnly={readOnly}
                     tabIndex={readOnly ? -1 : 0}
-                    className={`flex-1 bg-transparent border-none text-center font-bold outline-none placeholder:font-normal placeholder:text-zinc-700 appearance-none min-w-0 relative z-10 ${readOnly ? 'text-white text-lg h-12 pointer-events-none select-none' : 'text-white text-lg h-12 focus:ring-0'}`}
+                    className={`flex-1 bg-transparent border-none text-center font-bold outline-none placeholder:font-normal placeholder:text-text-disabled appearance-none min-w-0 relative z-10 ${readOnly ? 'text-text-primary text-lg h-12 pointer-events-none select-none' : 'text-text-primary text-lg h-12 focus:ring-0'}`}
                     value={value || ''}
                     onChange={handleInputChange}
                     placeholder={placeholder}
@@ -199,7 +199,7 @@ function NumberInput({
                 {!readOnly && (
                     <button
                         onClick={() => update(val + step)}
-                        className="w-12 h-12 flex items-center justify-center text-zinc-500 hover:text-white hover:bg-zinc-800 transition active:scale-90 flex-shrink-0 z-10"
+                        className="w-12 h-12 flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-surface-hover transition active:scale-90 flex-shrink-0 z-10"
                         type="button"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
@@ -224,22 +224,22 @@ function Toggle({
     return (
         <button
             onClick={() => onChange(!checked)}
-            className="flex items-center justify-between gap-4 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 cursor-pointer hover:bg-zinc-900 hover:border-zinc-700 transition-all duration-200 group select-none outline-none w-full"
+            className="flex items-center justify-between gap-4 bg-surface border border-border rounded-xl px-4 py-3 cursor-pointer hover:bg-surface-hover hover:border-border-hover transition-all duration-200 group select-none outline-none w-full"
             type="button"
         >
-            <span className={`text-[10px] sm:text-xs font-bold uppercase tracking-widest transition-colors duration-200 ${checked ? 'text-zinc-200' : 'text-zinc-500 group-hover:text-zinc-400'}`}>
+            <span className={`text-[10px] sm:text-xs font-bold uppercase tracking-widest transition-colors duration-200 ${checked ? 'text-text-primary' : 'text-text-muted group-hover:text-text-secondary'}`}>
                 {label}
             </span>
 
             <div className={`relative w-11 h-6 rounded-full transition-all duration-300 ease-in-out p-1 ${checked
-                    ? 'bg-cyan-950/40 border-cyan-500/30 shadow-[0_0_10px_rgba(6,182,212,0.1)]'
-                    : 'bg-zinc-950 border-zinc-800 shadow-inner'
+                    ? 'bg-brand/10 border-brand/30 shadow-[0_0_10px_var(--color-brand,rgba(6,182,212,0.1))]'
+                    : 'bg-background border-border shadow-inner'
                 } border flex-shrink-0`}>
                 <div className={`h-full aspect-square rounded-full transition-all duration-300 shadow-sm flex items-center justify-center ${checked
-                        ? 'translate-x-5 bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.6)]'
-                        : 'translate-x-0 bg-zinc-700'
+                        ? 'translate-x-5 bg-brand shadow-[0_0_8px_var(--color-brand,rgba(6,182,212,0.6))]'
+                        : 'translate-x-0 bg-text-disabled'
                     }`} style={{ transitionTimingFunction: 'cubic-bezier(0.34, 1.25, 0.64, 1)' }}>
-                    <div className={`w-0.5 h-1.5 rounded-full transition-colors ${checked ? 'bg-white/50' : 'bg-zinc-800'}`} />
+                    <div className={`w-0.5 h-1.5 rounded-full transition-colors ${checked ? 'bg-white/50' : 'bg-border'}`} />
                 </div>
             </div>
         </button>
@@ -1697,41 +1697,41 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 
     if (loading) {
         return (
-            <div className="bg-black text-white flex items-center justify-center p-20">
+            <div className="bg-background text-text-primary flex items-center justify-center p-20">
                 <div className="text-center">
-                    <FlaskConical className="w-12 h-12 text-zinc-600 animate-pulse mx-auto mb-4" />
-                    <p className="text-zinc-400">Lade Rezeptdaten...</p>
+                    <FlaskConical className="w-12 h-12 text-text-disabled animate-pulse mx-auto mb-4" />
+                    <p className="text-text-muted">Lade Rezeptdaten...</p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="bg-black text-white sm:p-6 md:p-8 font-sans antialiased">
+        <div className="bg-background text-text-primary sm:p-6 md:p-8 font-sans antialiased">
             <div className="max-w-[1600px] mx-auto w-full space-y-8">
-                <header className="sticky top-[64px] z-40 bg-[#060606]/80 backdrop-blur-xl flex flex-row items-center justify-between gap-4 border-b border-zinc-800/80 py-3 mb-8 -mx-4 px-4 sm:-mx-8 sm:px-8 mt-[-1rem]">
+                <header className="sticky top-[64px] z-40 bg-background/80 backdrop-blur-xl flex flex-row items-center justify-between gap-4 border-b border-border py-3 mb-8 -mx-4 px-4 sm:-mx-8 sm:px-8 mt-[-1rem]">
                     <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 sm:gap-3 mb-0 sm:mb-1">
-                            <h1 className="text-lg sm:text-2xl font-bold text-white tracking-tight truncate">
+                            <h1 className="text-lg sm:text-2xl font-bold text-text-primary tracking-tight truncate">
                                 {id === 'new' ? 'Neues Rezept' : brew.name || 'Rezept'}
                             </h1>
                             <span className="hidden sm:inline-block px-2 py-0.5 rounded text-[10px] font-medium bg-[#ff6b2a]/10 text-[#ff6b2a] border border-[#ff6b2a]/20 uppercase tracking-widest shrink-0">
                                 Editor
                             </span>
                         </div>
-                        <p className="hidden sm:block text-sm text-zinc-500 truncate">Hier entstehen deine Brau-Kreationen</p>
+                        <p className="hidden sm:block text-sm text-text-muted truncate">Hier entstehen deine Brau-Kreationen</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                         <Link
                             href={`/team/${breweryId}/brews`}
-                            className="hidden md:flex bg-black hover:bg-zinc-900 text-zinc-300 hover:text-white px-4 py-2 rounded-md text-sm font-medium border border-zinc-800 transition-colors items-center gap-2"
+                            className="hidden md:flex bg-background hover:bg-surface text-text-secondary hover:text-text-primary px-4 py-2 rounded-md text-sm font-medium border border-border transition-colors items-center gap-2"
                         >
                             Abbrechen
                         </Link>
                         <button
                             onClick={handleSave}
                             disabled={saving}
-                            className="bg-white text-black font-semibold px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg hover:bg-zinc-200 transition disabled:opacity-60 text-sm shadow-md"
+                            className="bg-text-primary text-background font-semibold px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg hover:opacity-90 transition disabled:opacity-60 text-sm shadow-md"
                         >
                             {saving ? '...' : 'Speichern'}
                         </button>
@@ -1739,7 +1739,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                 </header>
 
                 {message && (
-                    <div className="bg-zinc-900 border border-cyan-500/30 rounded-xl px-4 py-3 text-sm text-zinc-200">
+                    <div className="bg-surface border border-brand/30 rounded-xl px-4 py-3 text-sm text-text-secondary">
                         {message}
                     </div>
                 )}
@@ -1747,7 +1747,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                 {/* Global moderation banner: show when a label or uploaded cap is pending review */}
                 {brew.moderation_status === 'pending' && (
                     ((brew.image_url && brew.image_url !== '/default_label/default.png') || (brew.cap_url && !(typeof brew.cap_url === 'string' && brew.cap_url.startsWith('#')))) && (
-                        <div className="bg-yellow-500/10 border border-amber-500/30 rounded-xl px-4 py-3 text-sm text-amber-300 mt-3">
+                        <div className="bg-rating/10 border border-rating/30 rounded-xl px-4 py-3 text-sm text-rating mt-3">
                             <strong className="font-bold">Prüfung läuft:</strong> Dein Label oder Kronkorken wird aktuell überprüft und ist vorübergehend eingeschränkt.
                         </div>
                     )
@@ -1781,77 +1781,69 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                         {activeTab === 'input' && (
                             <div className="space-y-8">
                                 <div>
-                                    <p className="text-xs uppercase tracking-[0.2em] text-cyan-400 font-bold mb-1">Rezept</p>
-                                    <h2 className="text-2xl font-bold text-white tracking-tight">Basisdaten bearbeiten</h2>
+                                    <p className="text-xs uppercase tracking-[0.2em] text-brand font-bold mb-1">Rezept</p>
+                                    <h2 className="text-2xl font-bold text-text-primary tracking-tight">Basisdaten bearbeiten</h2>
                                 </div>
-                                <div className="space-y-8 bg-[#0B0C10] border border-zinc-800/60 rounded-3xl p-6 sm:p-10 shadow-lg mb-8 mt-2">
+                                <div className="space-y-6">
                                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                                        <div className="lg:col-span-8">
-                                            <div className="flex items-center justify-between">
-                                                <label className="text-xs uppercase font-medium tracking-wider text-zinc-500 mb-2 block">Name</label>
-                                                <button
-                                                    onClick={handleGenerateName}
-                                                    disabled={generatingName || premiumStatus?.features.aiGenerationsRemaining === 0}
-                                                    className="text-[10px] uppercase font-bold text-cyan-600 hover:text-cyan-400 disabled:opacity-50 flex items-center gap-1 transition mb-2"
-                                                >
-                                                    {generatingName ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
-                                                    KI-Vorschlag
-                                                    <AICreditBadge />
-                                                </button>
-                                            </div>
-                                            <div className="flex items-center w-full bg-[#060606]/80 text-white border border-zinc-800/80 rounded-xl transition focus-within:border-cyan-500/50 focus-within:ring-1 focus-within:ring-cyan-500/20 overflow-hidden pr-1.5 shadow-inner">
+                                        <div className="lg:col-span-8 space-y-1.5">
+                                            <label className="text-[10px] uppercase font-bold tracking-widest text-text-disabled block">Name</label>
+                                            <div className="flex items-center w-full bg-surface text-text-primary border border-border rounded-xl transition focus-within:border-brand/50 focus-within:ring-1 focus-within:ring-brand/20 pr-2">
                                                 <input
                                                     value={brew.name}
                                                     onChange={(e) => handleField('name', e.target.value)}
-                                                    className="flex-1 bg-transparent border-none px-3 py-2 text-white outline-none placeholder:text-zinc-700 min-w-0 font-medium"
+                                                    className="flex-1 bg-transparent border-none px-4 py-3.5 text-base font-semibold text-text-primary outline-none placeholder:text-text-disabled min-w-0"
                                                     placeholder="z.B. Galaxy IPA"
                                                 />
+                                                <button
+                                                    onClick={handleGenerateName}
+                                                    disabled={generatingName || premiumStatus?.features.aiGenerationsRemaining === 0}
+                                                    className="shrink-0 flex items-center gap-1.5 bg-accent-purple/10 hover:bg-accent-purple/20 border border-accent-purple/30 text-accent-purple px-2.5 py-1.5 rounded-full text-[10px] font-bold tracking-wide transition disabled:opacity-50 whitespace-nowrap"
+                                                >
+                                                    {generatingName ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                                                    BotlGuide
+                                                    <AICreditBadge />
+                                                </button>
                                             </div>
                                         </div>
-                                        <div className="lg:col-span-4">
-                                            <label className="text-xs uppercase font-medium tracking-wider text-zinc-500 mb-2 block">Stil</label>
+                                        <div className="lg:col-span-4 space-y-1.5">
+                                            <label className="text-[10px] uppercase font-bold tracking-widest text-text-disabled block">Stil</label>
                                             <input
                                                 value={brew.style}
                                                 onChange={(e) => handleField('style', e.target.value)}
-                                                className="w-full bg-[#060606]/80 text-white border border-zinc-800/80 rounded-xl px-3 py-2 focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-700 font-medium shadow-inner"
-                                                placeholder="z.B. Hazy IPA, Rotwein"
+                                                className="w-full bg-surface text-text-primary border border-border rounded-xl px-4 py-3.5 text-base font-semibold focus:border-brand/50 focus:ring-1 focus:ring-brand/20 transition outline-none placeholder:text-text-disabled"
+                                                placeholder="z.B. Hazy IPA"
                                             />
                                         </div>
                                     </div>
 
-                                    <div>
-                                        <div className="flex items-center justify-between">
-                                            <label className="text-xs uppercase font-medium tracking-wider text-zinc-500 mb-2 block">Beschreibung</label>
-                                            <button
-                                                onClick={handleGenerateDescription}
-                                                disabled={generatingDescription || premiumStatus?.features.aiGenerationsRemaining === 0}
-                                                className="text-[10px] uppercase font-bold text-purple-600 hover:text-purple-400 disabled:opacity-50 flex items-center gap-1 transition mb-2"
-                                            >
-                                                {generatingDescription ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
-                                                KI-Vorschlag
-                                                <AICreditBadge />
-                                            </button>
-                                        </div>
-                                        <div className="relative flex flex-col w-full bg-[#060606]/80 text-white border border-zinc-800/80 rounded-xl px-2 py-1 transition focus-within:border-purple-500/50 focus-within:ring-1 focus-within:ring-purple-500/20 overflow-hidden shadow-inner">
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] uppercase font-bold tracking-widest text-text-disabled block">Beschreibung</label>
+                                        <div className="w-full bg-surface text-text-primary border border-border rounded-xl transition focus-within:border-accent-purple/50 focus-within:ring-1 focus-within:ring-accent-purple/20">
                                             <textarea
                                                 value={brew.description || ''}
                                                 onChange={(e) => handleField('description', e.target.value)}
-                                                className="w-full bg-transparent border-none px-3 py-3 text-white min-h-[120px] outline-none placeholder:text-zinc-700 resize-none flex-1 text-sm leading-relaxed"
+                                                className="w-full bg-transparent border-none px-4 py-3.5 text-text-primary min-h-[100px] outline-none placeholder:text-text-disabled resize-none text-sm leading-relaxed block"
                                                 placeholder="Aromen, Malz, Hopfen, Frucht, Farbe..."
                                             />
+                                            <div className="flex justify-end px-3 pb-3">
+                                                <button
+                                                    onClick={handleGenerateDescription}
+                                                    disabled={generatingDescription || premiumStatus?.features.aiGenerationsRemaining === 0}
+                                                    className="flex items-center gap-1.5 bg-accent-purple/10 hover:bg-accent-purple/20 border border-accent-purple/30 text-accent-purple px-2.5 py-1.5 rounded-full text-[10px] font-bold tracking-wide transition disabled:opacity-50"
+                                                >
+                                                    {generatingDescription ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                                                    BotlGuide
+                                                    <AICreditBadge />
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="bg-[#0B0C10] border border-zinc-800/60 rounded-3xl p-6 sm:p-10 shadow-lg mb-8 space-y-4">
-                                    <h3 className="text-xl font-semibold tracking-tight text-white flex items-center gap-4 mb-8 pb-4 border-b border-zinc-800/50">
-                                            <div className="h-10 w-10 flex items-center justify-center text-cyan-400 bg-cyan-950/30 rounded-xl border border-cyan-900/50 shadow-sm">
-                                                <Settings className="w-5 h-5" />
-                                            </div>
-                                            Getränke-Typ
-                                    </h3>
-
-                                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                                <div className="space-y-6 pt-6 border-t border-border">
+                                    <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-text-disabled mb-5">Getränke-Typ</p>
+                                    <div className="flex flex-wrap gap-2.5">
                                         {(
                                             [
                                                 { key: 'beer', label: 'Bier', Icon: Droplets },
@@ -1864,13 +1856,14 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                             <button
                                                 key={opt.key}
                                                 onClick={() => handleField('brew_type', opt.key)}
-                                                className={`flex flex-col items-center justify-center p-4 rounded-lg border transition-all duration-200 active:scale-95 ${brew.brew_type === opt.key
-                                                        ? 'bg-cyan-950/20 border-cyan-800 text-cyan-400 ring-1 ring-cyan-900'
-                                                        : 'bg-black border-zinc-800 text-zinc-500 hover:bg-zinc-900 hover:text-zinc-300'
-                                                    }`}
+                                                className={`flex items-center gap-2.5 px-5 py-2.5 rounded-full border text-sm font-bold transition-all duration-200 active:scale-95 ${
+                                                    brew.brew_type === opt.key
+                                                        ? 'bg-brand/10 text-brand border-brand shadow-md shadow-brand/10'
+                                                        : 'bg-background text-text-muted border-border hover:border-border-hover hover:text-text-secondary'
+                                                }`}
                                             >
-                                                <opt.Icon className="w-7 h-7 mb-2" />
-                                                <span className="text-xs font-bold uppercase tracking-wider">{opt.label}</span>
+                                                <opt.Icon className="w-4 h-4" />
+                                                {opt.label}
                                             </button>
                                         ))}
                                     </div>
@@ -1879,31 +1872,31 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                 {brew.brew_type === 'beer' && (
                                     <div className="space-y-8">
                                         {/* SECTION 1: EKS & MESSWERTE */}
-                                        <div className="bg-[#0B0C10] border border-zinc-800/60 rounded-3xl p-6 sm:p-10 shadow-lg mb-8">
-                                            <h3 className="text-xl font-semibold tracking-tight text-white flex items-center gap-4 mb-8 pb-4 border-b border-zinc-800/50">
-                                                <div className="h-10 w-10 flex items-center justify-center text-cyan-400 bg-cyan-950/30 rounded-xl border border-cyan-900/50 shadow-sm">
+                                        <div className="space-y-6 pt-6 border-t border-border">
+                                            <h3 className="text-sm font-bold uppercase tracking-widest text-text-primary border-l-2 border-brand pl-3 flex items-center gap-3 mb-6">
+                                                <span className="text-brand">
                                                     <Activity className="w-5 h-5" />
-                                                </div>
+                                                </span>
                                                 Eckdaten & Ergebnisse
                                             </h3>
 
                                             {/* Gruppe 1: Definition des Rezepts (Eingaben) */}
                                             <div className="mb-8">
-                                                <div className="flex items-center gap-2 mb-4 border-b border-zinc-800 pb-2">
-                                                    <span className="text-[10px] uppercase font-bold text-cyan-600 tracking-widest">Rezept-Vorgaben</span>
+                                                <div className="flex items-center gap-2 mb-4 border-l-2 border-brand pl-3">
+                                                    <span className="text-[10px] uppercase font-bold text-text-secondary tracking-widest">Rezept-Vorgaben</span>
                                                 </div>
                                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                                                     <div>
                                                         <NumberInput label="System-SHA (%)" value={brew.data?.efficiency || ''} onChange={(val) => updateData('efficiency', val)} placeholder="75" />
                                                         {loadedFromProfile && (
-                                                            <p className="text-[10px] text-cyan-600 mt-1 flex items-center gap-1">
+                                                            <p className="text-[10px] text-brand mt-1 flex items-center gap-1">
                                                                 <span>↑ Übernommen aus Anlage</span>
                                                                 <span className="font-semibold truncate">{loadedFromProfile}</span>
                                                             </p>
                                                         )}
                                                         {equipmentProfiles.length === 0 && (
-                                                            <p className="text-[10px] text-zinc-600 mt-1">
-                                                                Tipp: <a href={`/team/${breweryId}/settings?tab=equipment`} className="text-cyan-600 hover:underline">Brauanlage hinterlegen</a> um SHA automatisch vorzubelegen.
+                                                            <p className="text-[10px] text-text-disabled mt-1">
+                                                                Tipp: <a href={`/team/${breweryId}/settings?tab=equipment`} className="text-brand hover:underline">Brauanlage hinterlegen</a> um SHA automatisch vorzubelegen.
                                                             </p>
                                                         )}
                                                     </div>
@@ -1912,8 +1905,8 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 
                                             {/* Gruppe 2: Resultierende Werte (Berechnet) */}
                                             <div>
-                                                <div className="flex items-center justify-between gap-2 mb-4 border-b border-zinc-800 pb-2">
-                                                    <span className="text-[10px] uppercase font-bold text-zinc-500 tracking-widest">Ergebnisse / Prognose</span>
+                                                <div className="flex items-center justify-between gap-2 mb-4">
+                                                    <span className="text-[10px] uppercase font-bold text-text-secondary tracking-widest border-l-2 border-brand pl-3">Ergebnisse / Prognose</span>
                                                     <button
                                                         onClick={() => {
                                                             if (resultsEditable) {
@@ -1922,7 +1915,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                             }
                                                             setResultsEditable(!resultsEditable);
                                                         }}
-                                                        className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded transition-colors ${resultsEditable ? 'bg-cyan-900/40 text-cyan-400 border border-cyan-800' : 'text-zinc-600 hover:text-zinc-400 border border-transparent hover:border-zinc-800'}`}
+                                                        className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded transition-colors ${resultsEditable ? 'bg-brand-bg/40 text-brand border border-brand-dim' : 'text-text-disabled hover:text-text-secondary border border-transparent hover:border-border'}`}
                                                     >
                                                         {resultsEditable ? <><Check className="w-3 h-3 inline mr-1" />Fertig</> : <><Pencil className="w-3 h-3 inline mr-1" />Bearbeiten</>}
                                                     </button>
@@ -1992,11 +1985,11 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                         </div>
 
                                         {/* SECTION 2: WASSER & MAISCHEN */}
-                                        <div className="bg-[#0B0C10] border border-zinc-800/60 rounded-3xl p-6 sm:p-10 shadow-lg mb-8">
-                                            <h3 className="text-xl font-semibold tracking-tight text-white flex items-center gap-4 mb-8 pb-4 border-b border-zinc-800/50">
-                                                <div className="h-10 w-10 flex items-center justify-center text-cyan-400 bg-cyan-950/30 rounded-xl border border-cyan-900/50 shadow-sm">
+                                        <div className="space-y-6 pt-6 border-t border-border">
+                                            <h3 className="text-sm font-bold uppercase tracking-widest text-text-primary border-l-2 border-brand pl-3 flex items-center gap-3 mb-6">
+                                                <span className="text-brand">
                                                     <Thermometer className="w-5 h-5" />
-                                                </div>
+                                                </span>
                                                 Wasser & Maischen
                                             </h3>
                                             <div className="space-y-8">
@@ -2037,21 +2030,21 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                     <NumberInput label="Maische-pH (Ziel)" value={brew.data?.mash_ph || ''} onChange={(val) => updateData('mash_ph', val)} placeholder="5.4" step={0.1} />
                                                 </div>
 
-                                                <div className="bg-zinc-900/40 border border-zinc-800 rounded-lg overflow-hidden transition-all duration-300">
-                                                    <div className="p-4 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between bg-zinc-900/60">
+                                                <div className="bg-surface/40 border border-border rounded-lg overflow-hidden transition-all duration-300">
+                                                    <div className="p-4 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between bg-surface/60">
                                                         <button 
                                                             type="button"
                                                             onClick={() => setShowWaterProfile(!showWaterProfile)}
                                                             className="flex flex-col gap-1 text-left group focus:outline-none"
                                                         >
-                                                            <div className="flex items-center gap-2 text-sm font-medium text-white group-hover:text-cyan-400 transition-colors">
+                                                            <div className="flex items-center gap-2 text-sm font-medium text-text-primary group-hover:text-brand transition-colors">
                                                                 <div className={`transition-transform duration-200 ${showWaterProfile ? 'rotate-90' : ''}`}>
                                                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
                                                                 </div>
-                                                                <Settings className="w-4 h-4 text-cyan-500" />
+                                                                <Settings className="w-4 h-4 text-brand" />
                                                                 <span>Wasser-Automatik & Anlagenprofil</span>
                                                             </div>
-                                                            <p className="text-xs text-zinc-500 max-w-lg pl-6">
+                                                            <p className="text-xs text-text-muted max-w-lg pl-6">
                                                                 Pass hier deine Verluste an oder lass dein Brauwasser automatisch berechnen.
                                                             </p>
                                                         </button>
@@ -2059,7 +2052,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                         <button 
                                                             type="button"
                                                             onClick={handleCalculateWater}
-                                                            className="text-xs py-2 px-4 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded shadow-lg shadow-cyan-900/20 active:scale-95 transition-all flex items-center gap-2 whitespace-nowrap ml-auto sm:ml-0"
+                                                            className="text-xs py-2 px-4 bg-brand hover:bg-brand text-text-primary font-bold rounded shadow-lg shadow-brand-dim/20 active:scale-95 transition-all flex items-center gap-2 whitespace-nowrap ml-auto sm:ml-0"
                                                         >
                                                             <RefreshCw className="w-3 h-3" />
                                                             Wasser für {brew.data?.batch_size_liters || '?'}L berechnen
@@ -2067,12 +2060,12 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                     </div>
                                                     
                                                     {showWaterProfile && (
-                                                        <div className="p-5 border-t border-zinc-800 bg-black/20 animate-in slide-in-from-top-2 duration-200 space-y-4">
+                                                        <div className="p-5 border-t border-border bg-background/20 animate-in slide-in-from-top-2 duration-200 space-y-4">
 
                                                             {/* Anlage-Dropdown */}
                                                             {equipmentProfiles.length > 0 && (
                                                                 <div className="flex items-center gap-3">
-                                                                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider whitespace-nowrap">Anlage laden</label>
+                                                                    <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider whitespace-nowrap">Anlage laden</label>
                                                                     <select
                                                                         defaultValue=""
                                                                         onChange={e => {
@@ -2088,7 +2081,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                                             setLoadedFromProfile(p.name);
                                                                             e.target.value = '';
                                                                         }}
-                                                                        className="flex-1 bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-white focus:border-cyan-500 focus:outline-none transition appearance-none"
+                                                                        className="flex-1 bg-surface border border-border-hover rounded-lg px-3 py-1.5 text-sm text-text-primary focus:border-brand focus:outline-none transition appearance-none"
                                                                     >
                                                                         <option value="">— Profil wählen —</option>
                                                                         {equipmentProfiles.map(p => (
@@ -2100,9 +2093,9 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                                 </div>
                                                             )}
                                                             {equipmentProfiles.length === 0 && (
-                                                                <div className="text-[10px] text-zinc-500 bg-zinc-900/50 px-3 py-2 rounded border border-zinc-800 flex items-center gap-2">
+                                                                <div className="text-[10px] text-text-muted bg-surface/50 px-3 py-2 rounded border border-border flex items-center gap-2">
                                                                     <span>Keine Brauanlage hinterlegt —</span>
-                                                                    <a href={`/team/${breweryId}/settings?tab=equipment`} className="text-cyan-500 hover:underline font-medium">Jetzt anlegen →</a>
+                                                                    <a href={`/team/${breweryId}/settings?tab=equipment`} className="text-brand hover:underline font-medium">Jetzt anlegen →</a>
                                                                 </div>
                                                             )}
 
@@ -2114,11 +2107,11 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                                 <NumberInput label="Maischedicke (L/kg)" value={brew.data?.mash_thickness || ''} onChange={(val) => updateData('mash_thickness', val)} placeholder="3.5" step={0.1} />
                                                             </div>
                                                             {loadedFromProfile && (
-                                                                <p className="text-[10px] text-cyan-600/70 italic">
-                                                                    Werte übernommen aus Anlage: <span className="font-semibold not-italic text-cyan-500">{loadedFromProfile}</span>
+                                                                <p className="text-[10px] text-brand/70 italic">
+                                                                    Werte übernommen aus Anlage: <span className="font-semibold not-italic text-brand">{loadedFromProfile}</span>
                                                                 </p>
                                                             )}
-                                                            <p className="text-[10px] text-zinc-600 italic">
+                                                            <p className="text-[10px] text-text-disabled italic">
                                                                 Hinweis: Gib oben deine <strong>Ziel-Ausschlagwürze</strong> ein und drücke auf "Berechnen". Die Werte hier werden für die Berechnung verwendet.
                                                             </p>
                                                         </div>
@@ -2134,7 +2127,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                     {/* Braumethode */}
                                                     <div>
-                                                        <label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 block">
+                                                        <label className="text-xs font-bold text-text-muted uppercase ml-1 mb-2 block">
                                                             Braumethode
                                                         </label>
                                                         <CustomSelect
@@ -2143,7 +2136,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                                 autoSetFields.current.delete('mash_method');
                                                                 updateData('mash_method', val || null);
                                                             }}
-                                                            variant="zinc"
+                                                            variant="surface"
                                                             size="lg"
                                                             placeholder="– bitte wählen –"
                                                             options={[
@@ -2157,7 +2150,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                     {/* Maischverfahren — nur wenn nicht Extrakt */}
                                                     {brew.data?.mash_method !== 'extract' && (
                                                         <div>
-                                                            <label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 block">
+                                                            <label className="text-xs font-bold text-text-muted uppercase ml-1 mb-2 block">
                                                                 Maischverfahren
                                                             </label>
                                                             <CustomSelect
@@ -2166,7 +2159,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                                     autoSetFields.current.delete('mash_process');
                                                                     updateData('mash_process', val || null);
                                                                 }}
-                                                                variant="zinc"
+                                                                variant="surface"
                                                                 size="lg"
                                                                 placeholder="– bitte wählen –"
                                                                 options={[
@@ -2194,11 +2187,11 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                         </div>
 
                                         {/* SECTION 3: KOCHEN & HOPFEN */}
-                                        <div className="bg-[#0B0C10] border border-zinc-800/60 rounded-3xl p-6 sm:p-10 shadow-lg mb-8">
-                                            <h3 className="text-xl font-semibold tracking-tight text-white flex items-center gap-4 mb-8 pb-4 border-b border-zinc-800/50">
-                                                <div className="h-10 w-10 flex items-center justify-center text-cyan-400 bg-cyan-950/30 rounded-xl border border-cyan-900/50 shadow-sm">
+                                        <div className="space-y-6 pt-6 border-t border-border">
+                                            <h3 className="text-sm font-bold uppercase tracking-widest text-text-primary border-l-2 border-brand pl-3 flex items-center gap-3 mb-6">
+                                                <span className="text-brand">
                                                     <Leaf className="w-5 h-5" />
-                                                </div>
+                                                </span>
                                                 Kochen & Hopfen
                                             </h3>
                                             <div className="space-y-8">
@@ -2214,11 +2207,11 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                             </div>
                                         </div>
                                         {/* SECTION 4: GÄRUNG */}
-                                        <div className="bg-[#0B0C10] border border-zinc-800/60 rounded-3xl p-6 sm:p-10 shadow-lg mb-8">
-                                            <h3 className="text-xl font-semibold tracking-tight text-white flex items-center gap-4 mb-8 pb-4 border-b border-zinc-800/50">
-                                                <div className="h-10 w-10 flex items-center justify-center text-cyan-400 bg-cyan-950/30 rounded-xl border border-cyan-900/50 shadow-sm">
+                                        <div className="space-y-6 pt-6 border-t border-border">
+                                            <h3 className="text-sm font-bold uppercase tracking-widest text-text-primary border-l-2 border-brand pl-3 flex items-center gap-3 mb-6">
+                                                <span className="text-brand">
                                                     <Microscope className="w-5 h-5" />
-                                                </div>
+                                                </span>
                                                 Gärung
                                             </h3>
                                             <div className="space-y-8">
@@ -2226,32 +2219,31 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                     value={brew.data?.yeast}
                                                     onChange={(val) => updateData('yeast', val)}
                                                 />
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
                                                     <NumberInput label="Gärtemp. (°C)" value={brew.data?.primary_temp || ''} onChange={(val) => updateData('primary_temp', val)} placeholder="19" step={0.5} />
+                                                    {/* Gärungstyp */}
+                                                    <div>
+                                                        <label className="text-xs font-bold text-text-muted uppercase ml-1 mb-2 h-8 flex items-end leading-tight">
+                                                            Gärungstyp
+                                                        </label>
+                                                        <CustomSelect
+                                                            value={brew.data?.fermentation_type || ''}
+                                                            onChange={(val) => {
+                                                                autoSetFields.current.delete('fermentation_type');
+                                                                updateData('fermentation_type', val || null);
+                                                            }}
+                                                            variant="surface"
+                                                            size="lg"
+                                                            placeholder="– nicht angegeben –"
+                                                            options={[
+                                                                { value: 'top', label: 'Obergärig (Ale)' },
+                                                                { value: 'bottom', label: 'Untergärig (Lager)' },
+                                                                { value: 'spontaneous', label: 'Spontangärung' },
+                                                                { value: 'mixed', label: 'Gemischt' },
+                                                            ]}
+                                                        />
+                                                    </div>
                                                     <NumberInput label="Karbonisierung (g/l)" value={brew.data?.carbonation_g_l || ''} onChange={(val) => updateData('carbonation_g_l', val)} placeholder="5.0" step={0.1} />
-                                                </div>
-
-                                                {/* Gärungstyp */}
-                                                <div className="max-w-sm">
-                                                    <label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 block">
-                                                        Gärungstyp
-                                                    </label>
-                                                    <CustomSelect
-                                                        value={brew.data?.fermentation_type || ''}
-                                                        onChange={(val) => {
-                                                            autoSetFields.current.delete('fermentation_type');
-                                                            updateData('fermentation_type', val || null);
-                                                        }}
-                                                        variant="zinc"
-                                                        size="lg"
-                                                        placeholder="– nicht angegeben –"
-                                                        options={[
-                                                            { value: 'top', label: 'Obergärig (Ale)' },
-                                                            { value: 'bottom', label: 'Untergärig (Lager)' },
-                                                            { value: 'spontaneous', label: 'Spontangärung' },
-                                                            { value: 'mixed', label: 'Gemischt' },
-                                                        ]}
-                                                    />
                                                 </div>
                                             </div>
                                         </div>
@@ -2262,11 +2254,11 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                 {brew.brew_type === 'wine' && (
                                     <div className="space-y-6">
                                         {/* Section: Messwerte */}
-                                        <div className="bg-[#0B0C10] border border-zinc-800/60 rounded-3xl p-6 sm:p-8 shadow-lg mb-8">
-                                            <h3 className="text-lg font-semibold tracking-tight text-white flex items-center gap-4 mb-8 pb-4 border-b border-zinc-800/50">
-                                                <div className="h-8 w-8 flex items-center justify-center text-cyan-400 bg-cyan-950/30 rounded-lg border border-cyan-900/50 shadow-sm">
+                                        <div className="space-y-6 pt-6 border-t border-border">
+                                            <h3 className="text-sm font-bold uppercase tracking-widest text-text-primary border-l-2 border-brand pl-3 flex items-center gap-3 mb-6">
+                                                <span className="text-brand">
                                                     <Activity className="w-4 h-4" />
-                                                </div>
+                                                </span>
                                                 Zielwerte & Eckdaten
                                             </h3>
                                             <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-6">
@@ -2280,30 +2272,30 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                         </div>
 
                                         {/* Section: Zutaten & Herkunft */}
-                                        <div className="bg-[#0B0C10] border border-zinc-800/60 rounded-3xl p-6 sm:p-8 shadow-lg mb-8">
-                                            <h3 className="text-lg font-semibold tracking-tight text-white flex items-center gap-4 mb-8 pb-4 border-b border-zinc-800/50">
-                                                <div className="h-8 w-8 flex items-center justify-center text-cyan-400 bg-cyan-950/30 rounded-lg border border-cyan-900/50 shadow-sm">
+                                        <div className="space-y-6 pt-6 border-t border-border">
+                                            <h3 className="text-sm font-bold uppercase tracking-widest text-text-primary border-l-2 border-brand pl-3 flex items-center gap-3 mb-6">
+                                                <span className="text-brand">
                                                     <Grape className="w-4 h-4" />
-                                                </div>
+                                                </span>
                                                 Reben & Herkunft
                                             </h3>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                 <div>
-                                                    <label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 block">Rebsorte(n)</label>
-                                                    <input className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-600" value={brew.data?.grapes || ''} onChange={(e) => updateData('grapes', e.target.value)} placeholder="z.B. Riesling, Merlot..." />
+                                                    <label className="text-xs font-bold text-text-muted uppercase ml-1 mb-2 block">Rebsorte(n)</label>
+                                                    <input className="w-full bg-surface border border-border rounded-xl px-4 py-3 text-text-primary focus:border-brand focus:ring-2 focus:ring-brand/20 transition outline-none placeholder:text-text-disabled" value={brew.data?.grapes || ''} onChange={(e) => updateData('grapes', e.target.value)} placeholder="z.B. Riesling, Merlot..." />
                                                 </div>
                                                 <div>
-                                                    <label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-2 block">Region / Lage</label>
-                                                    <input className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-600" value={brew.data?.region || ''} onChange={(e) => updateData('region', e.target.value)} placeholder="z.B. Pfalz, Mosel..." />
+                                                    <label className="text-xs font-bold text-text-muted uppercase ml-1 mb-2 block">Region / Lage</label>
+                                                    <input className="w-full bg-surface border border-border rounded-xl px-4 py-3 text-text-primary focus:border-brand focus:ring-2 focus:ring-brand/20 transition outline-none placeholder:text-text-disabled" value={brew.data?.region || ''} onChange={(e) => updateData('region', e.target.value)} placeholder="z.B. Pfalz, Mosel..." />
                                                 </div>
                                             </div>
                                         </div>
                                         {/* Section: Ausbau */}
-                                        <div className="bg-[#0B0C10] border border-zinc-800/60 rounded-3xl p-6 sm:p-8 shadow-lg mb-8">
-                                            <h3 className="text-lg font-semibold tracking-tight text-white flex items-center gap-4 mb-8 pb-4 border-b border-zinc-800/50">
-                                                <div className="h-8 w-8 flex items-center justify-center text-cyan-400 bg-cyan-950/30 rounded-lg border border-cyan-900/50 shadow-sm">
+                                        <div className="space-y-6 pt-6 border-t border-border">
+                                            <h3 className="text-sm font-bold uppercase tracking-widest text-text-primary border-l-2 border-brand pl-3 flex items-center gap-3 mb-6">
+                                                <span className="text-brand">
                                                     <Wine className="w-4 h-4" />
-                                                </div>
+                                                </span>
                                                 Ausbau
                                             </h3>
                                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -2322,11 +2314,11 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                 {brew.brew_type === 'cider' && (
                                     <div className="space-y-6">
                                         {/* Section: Messwerte */}
-                                        <div className="bg-[#0B0C10] border border-zinc-800/60 rounded-3xl p-6 sm:p-8 shadow-lg mb-8">
-                                            <h3 className="text-lg font-semibold tracking-tight text-white flex items-center gap-4 mb-8 pb-4 border-b border-zinc-800/50">
-                                                <div className="h-8 w-8 flex items-center justify-center text-cyan-400 bg-cyan-950/30 rounded-lg border border-cyan-900/50 shadow-sm">
+                                        <div className="space-y-6 pt-6 border-t border-border">
+                                            <h3 className="text-sm font-bold uppercase tracking-widest text-text-primary border-l-2 border-brand pl-3 flex items-center gap-3 mb-6">
+                                                <span className="text-brand">
                                                     <Activity className="w-4 h-4" />
-                                                </div>
+                                                </span>
                                                 Zielwerte & Eckdaten
                                             </h3>
                                             <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-6">
@@ -2339,39 +2331,39 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                         </div>
 
                                         {/* Section: Zutaten */}
-                                        <div className="bg-[#0B0C10] border border-zinc-800/60 rounded-3xl p-6 sm:p-8 shadow-lg mb-8">
-                                            <h3 className="text-lg font-semibold tracking-tight text-white flex items-center gap-4 mb-8 pb-4 border-b border-zinc-800/50">
-                                                <div className="h-8 w-8 flex items-center justify-center text-cyan-400 bg-cyan-950/30 rounded-lg border border-cyan-900/50 shadow-sm">
+                                        <div className="space-y-6 pt-6 border-t border-border">
+                                            <h3 className="text-sm font-bold uppercase tracking-widest text-text-primary border-l-2 border-brand pl-3 flex items-center gap-3 mb-6">
+                                                <span className="text-brand">
                                                     <Apple className="w-4 h-4" />
-                                                </div>
+                                                </span>
                                                 Zutaten
                                             </h3>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                 <div>
-                                                    <label className="text-xs font-medium tracking-wider text-zinc-500 uppercase ml-1 mb-2 block">Apfelsorten</label>
-                                                    <input className="w-full bg-black border border-zinc-800 rounded-md px-3 py-2 text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-700" value={brew.data?.apples || ''} onChange={(e) => updateData('apples', e.target.value)} placeholder="z.B. Boskoop, Elstar..." />
+                                                    <label className="text-xs font-medium tracking-wider text-text-muted uppercase ml-1 mb-2 block">Apfelsorten</label>
+                                                    <input className="w-full bg-surface border border-border rounded-md px-3 py-2 text-text-primary focus:border-brand focus:ring-1 focus:ring-brand/20 transition outline-none placeholder:text-text-disabled" value={brew.data?.apples || ''} onChange={(e) => updateData('apples', e.target.value)} placeholder="z.B. Boskoop, Elstar..." />
                                                 </div>
                                                 <div>
-                                                    <label className="text-xs font-medium tracking-wider text-zinc-500 uppercase ml-1 mb-2 block">Hefe</label>
-                                                    <input className="w-full bg-black border border-zinc-800 rounded-md px-3 py-2 text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-700" value={brew.data?.yeast || ''} onChange={(e) => updateData('yeast', e.target.value)} placeholder="z.B. Cider Yeast" />
+                                                    <label className="text-xs font-medium tracking-wider text-text-muted uppercase ml-1 mb-2 block">Hefe</label>
+                                                    <input className="w-full bg-surface border border-border rounded-md px-3 py-2 text-text-primary focus:border-brand focus:ring-1 focus:ring-brand/20 transition outline-none placeholder:text-text-disabled" value={brew.data?.yeast || ''} onChange={(e) => updateData('yeast', e.target.value)} placeholder="z.B. Cider Yeast" />
                                                 </div>
                                             </div>
                                         </div>
                                         {/* Section: Prozess */}
-                                        <div className="bg-[#0B0C10] border border-zinc-800/60 rounded-3xl p-6 sm:p-8 shadow-lg mb-8">
-                                            <h3 className="text-lg font-semibold tracking-tight text-white flex items-center gap-4 mb-8 pb-4 border-b border-zinc-800/50">
-                                                <div className="h-8 w-8 flex items-center justify-center text-cyan-400 bg-cyan-950/30 rounded-lg border border-cyan-900/50 shadow-sm">
+                                        <div className="space-y-6 pt-6 border-t border-border">
+                                            <h3 className="text-sm font-bold uppercase tracking-widest text-text-primary border-l-2 border-brand pl-3 flex items-center gap-3 mb-6">
+                                                <span className="text-brand">
                                                     <Settings className="w-4 h-4" />
-                                                </div>
+                                                </span>
                                                 Verarbeitung
                                             </h3>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                 <div>
-                                                    <label className="text-xs font-medium tracking-wider text-zinc-500 uppercase ml-1 mb-2 block">Gärung</label>
+                                                    <label className="text-xs font-medium tracking-wider text-text-muted uppercase ml-1 mb-2 block">Gärung</label>
                                                     <CustomSelect
                                                         value={brew.data?.fermentation || ''}
                                                         onChange={(val) => updateData('fermentation', val)}
-                                                        variant="zinc"
+                                                        variant="surface"
                                                         size="lg"
                                                         placeholder="– bitte wählen –"
                                                         options={[
@@ -2381,11 +2373,11 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="text-xs font-medium tracking-wider text-zinc-500 uppercase ml-1 mb-2 block">Süßegrad</label>
+                                                    <label className="text-xs font-medium tracking-wider text-text-muted uppercase ml-1 mb-2 block">Süßegrad</label>
                                                     <CustomSelect
                                                         value={brew.data?.sweetness || 'dry'}
                                                         onChange={(val) => updateData('sweetness', val)}
-                                                        variant="zinc"
+                                                        variant="surface"
                                                         size="lg"
                                                         options={[
                                                             { value: 'dry', label: 'Trocken' },
@@ -2402,11 +2394,11 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                 {brew.brew_type === 'mead' && (
                                     <div className="space-y-6">
                                         {/* Section: Messwerte */}
-                                        <div className="bg-[#0B0C10] border border-zinc-800/60 rounded-3xl p-6 sm:p-8 shadow-lg mb-8">
-                                            <h3 className="text-lg font-semibold tracking-tight text-white flex items-center gap-4 mb-8 pb-4 border-b border-zinc-800/50">
-                                                <div className="h-8 w-8 flex items-center justify-center text-cyan-400 bg-cyan-950/30 rounded-lg border border-cyan-900/50 shadow-sm">
+                                        <div className="space-y-6 pt-6 border-t border-border">
+                                            <h3 className="text-sm font-bold uppercase tracking-widest text-text-primary border-l-2 border-brand pl-3 flex items-center gap-3 mb-6">
+                                                <span className="text-brand">
                                                     <Activity className="w-4 h-4" />
-                                                </div>
+                                                </span>
                                                 Messwerte
                                             </h3>
                                             <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-6">
@@ -2418,30 +2410,30 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                             </div>
                                         </div>
                                         {/* Section: Zutaten */}
-                                        <div className="bg-[#0B0C10] border border-zinc-800/60 rounded-3xl p-6 sm:p-8 shadow-lg mb-8">
-                                            <h3 className="text-lg font-semibold tracking-tight text-white flex items-center gap-4 mb-8 pb-4 border-b border-zinc-800/50">
-                                                <div className="h-8 w-8 flex items-center justify-center text-cyan-400 bg-cyan-950/30 rounded-lg border border-cyan-900/50 shadow-sm">
+                                        <div className="space-y-6 pt-6 border-t border-border">
+                                            <h3 className="text-sm font-bold uppercase tracking-widest text-text-primary border-l-2 border-brand pl-3 flex items-center gap-3 mb-6">
+                                                <span className="text-brand">
                                                     <Hexagon className="w-4 h-4" />
-                                                </div>
+                                                </span>
                                                 Zutaten
                                             </h3>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                 <div>
-                                                    <label className="text-xs font-medium tracking-wider text-zinc-500 uppercase ml-1 mb-2 block">Honigsorte(n)</label>
-                                                    <input className="w-full bg-black border border-zinc-800 rounded-md px-3 py-2 text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-700" value={brew.data?.honey || ''} onChange={(e) => updateData('honey', e.target.value)} placeholder="z.B. Akazie, Waldhonig..." />
+                                                    <label className="text-xs font-medium tracking-wider text-text-muted uppercase ml-1 mb-2 block">Honigsorte(n)</label>
+                                                    <input className="w-full bg-surface border border-border rounded-md px-3 py-2 text-text-primary focus:border-brand focus:ring-1 focus:ring-brand/20 transition outline-none placeholder:text-text-disabled" value={brew.data?.honey || ''} onChange={(e) => updateData('honey', e.target.value)} placeholder="z.B. Akazie, Waldhonig..." />
                                                 </div>
                                                 <div>
-                                                    <label className="text-xs font-medium tracking-wider text-zinc-500 uppercase ml-1 mb-2 block">Hefe</label>
-                                                    <input className="w-full bg-black border border-zinc-800 rounded-md px-3 py-2 text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-700" value={brew.data?.yeast || ''} onChange={(e) => updateData('yeast', e.target.value)} placeholder="z.B. Lalvin D-47, QA23" />
+                                                    <label className="text-xs font-medium tracking-wider text-text-muted uppercase ml-1 mb-2 block">Hefe</label>
+                                                    <input className="w-full bg-surface border border-border rounded-md px-3 py-2 text-text-primary focus:border-brand focus:ring-1 focus:ring-brand/20 transition outline-none placeholder:text-text-disabled" value={brew.data?.yeast || ''} onChange={(e) => updateData('yeast', e.target.value)} placeholder="z.B. Lalvin D-47, QA23" />
                                                 </div>
                                                 <div className="md:col-span-2">
-                                                    <label className="text-xs font-medium tracking-wider text-zinc-500 uppercase ml-1 mb-2 block">Zusätze (Früchte / Gewürze)</label>
-                                                    <input className="w-full bg-black border border-zinc-800 rounded-md px-3 py-2 text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-700" value={brew.data?.adjuncts || ''} onChange={(e) => updateData('adjuncts', e.target.value)} placeholder="z.B. Himbeeren, Zimt, Vanille..." />
+                                                    <label className="text-xs font-medium tracking-wider text-text-muted uppercase ml-1 mb-2 block">Zusätze (Früchte / Gewürze)</label>
+                                                    <input className="w-full bg-surface border border-border rounded-md px-3 py-2 text-text-primary focus:border-brand focus:ring-1 focus:ring-brand/20 transition outline-none placeholder:text-text-disabled" value={brew.data?.adjuncts || ''} onChange={(e) => updateData('adjuncts', e.target.value)} placeholder="z.B. Himbeeren, Zimt, Vanille..." />
                                                 </div>
                                                 <div className="md:col-span-2">
-                                                    <label className="text-xs font-medium tracking-wider text-zinc-500 uppercase ml-1 mb-2 block">Nährstoffplan</label>
+                                                    <label className="text-xs font-medium tracking-wider text-text-muted uppercase ml-1 mb-2 block">Nährstoffplan</label>
                                                     <textarea
-                                                        className="w-full bg-black border border-zinc-800 rounded-md px-3 py-2 text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-700 min-h-[80px]"
+                                                        className="w-full bg-surface border border-border rounded-md px-3 py-2 text-text-primary focus:border-brand focus:ring-1 focus:ring-brand/20 transition outline-none placeholder:text-text-disabled min-h-[80px]"
                                                         value={brew.data?.nutrient_schedule || ''}
                                                         onChange={(e) => updateData('nutrient_schedule', e.target.value)}
                                                         placeholder="z.B. TOSNA Schema: 24h, 48h, 72h und beim 1/3 Zuckerabbau..."
@@ -2455,11 +2447,11 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                 {brew.brew_type === 'softdrink' && (
                                     <div className="space-y-6">
                                         {/* Section: Messwerte */}
-                                        <div className="bg-[#0B0C10] border border-zinc-800/60 rounded-3xl p-6 sm:p-8 shadow-lg mb-8">
-                                            <h3 className="text-lg font-semibold tracking-tight text-white flex items-center gap-4 mb-8 pb-4 border-b border-zinc-800/50">
-                                                <div className="h-8 w-8 flex items-center justify-center text-cyan-400 bg-cyan-950/30 rounded-lg border border-cyan-900/50 shadow-sm">
+                                        <div className="space-y-6 pt-6 border-t border-border">
+                                            <h3 className="text-sm font-bold uppercase tracking-widest text-text-primary border-l-2 border-brand pl-3 flex items-center gap-3 mb-6">
+                                                <span className="text-brand">
                                                     <Activity className="w-4 h-4" />
-                                                </div>
+                                                </span>
                                                 Messwerte
                                             </h3>
                                             <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-6">
@@ -2470,17 +2462,17 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                             </div>
                                         </div>
                                         {/* Section: Zutaten */}
-                                        <div className="bg-[#0B0C10] border border-zinc-800/60 rounded-3xl p-6 sm:p-8 shadow-lg mb-8">
-                                            <h3 className="text-lg font-semibold tracking-tight text-white flex items-center gap-4 mb-8 pb-4 border-b border-zinc-800/50">
-                                                <div className="h-8 w-8 flex items-center justify-center text-cyan-400 bg-cyan-950/30 rounded-lg border border-cyan-900/50 shadow-sm">
+                                        <div className="space-y-6 pt-6 border-t border-border">
+                                            <h3 className="text-sm font-bold uppercase tracking-widest text-text-primary border-l-2 border-brand pl-3 flex items-center gap-3 mb-6">
+                                                <span className="text-brand">
                                                     <Citrus className="w-4 h-4" />
-                                                </div>
+                                                </span>
                                                 Inhalt
                                             </h3>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                 <div className="md:col-span-2">
-                                                    <label className="text-xs font-medium tracking-wider text-zinc-500 uppercase ml-1 mb-2 block">Basis / Geschmack</label>
-                                                    <input className="w-full bg-black border border-zinc-800 rounded-md px-3 py-2 text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-700" value={brew.data?.base || ''} onChange={(e) => updateData('base', e.target.value)} placeholder="z.B. Zitrone-Ingwer, Cola..." />
+                                                    <label className="text-xs font-medium tracking-wider text-text-muted uppercase ml-1 mb-2 block">Basis / Geschmack</label>
+                                                    <input className="w-full bg-surface border border-border rounded-md px-3 py-2 text-text-primary focus:border-brand focus:ring-1 focus:ring-brand/20 transition outline-none placeholder:text-text-disabled" value={brew.data?.base || ''} onChange={(e) => updateData('base', e.target.value)} placeholder="z.B. Zitrone-Ingwer, Cola..." />
                                                 </div>
                                                 <div className="flex flex-col gap-4">
                                                     <Toggle label="Natürliche Aromen" checked={!!brew.data?.natural_flavors} onChange={(val) => updateData('natural_flavors', val)} />
@@ -2493,24 +2485,24 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 
 
                                 <div className="space-y-6">
-                                    <div className="bg-[#0B0C10] border border-zinc-800/60 rounded-3xl p-6 sm:p-8 shadow-lg mb-8">
+                                    <div className="space-y-6 pt-6 border-t border-border">
                                         <RecipeStepsEditor
                                             value={brew.data?.steps}
                                             onChange={(val) => updateData('steps', val)}
                                         />
                                     </div>
 
-                                    <div className="bg-[#0B0C10] border border-zinc-800/60 rounded-3xl p-6 sm:p-8 shadow-lg mb-8">
-                                        <h3 className="text-lg font-semibold tracking-tight text-white flex items-center gap-4 mb-8 pb-4 border-b border-zinc-800/50">
-                                            <div className="h-8 w-8 flex items-center justify-center text-cyan-400 bg-cyan-950/30 rounded-lg border border-cyan-900/50 shadow-sm">
+                                    <div className="space-y-6 pt-6 border-t border-border">
+                                        <h3 className="text-sm font-bold uppercase tracking-widest text-text-primary border-l-2 border-brand pl-3 flex items-center gap-3 mb-6">
+                                            <span className="text-brand">
                                                 <FileText className="w-4 h-4" />
-                                            </div>
+                                            </span>
                                             Sonstiges
                                         </h3>
                                         <div>
-                                            <label className="text-xs font-medium tracking-wider text-zinc-500 uppercase ml-1 mb-2 block">Notizen / Details</label>
+                                            <label className="text-xs font-medium tracking-wider text-text-muted uppercase ml-1 mb-2 block">Notizen / Details</label>
                                             <textarea
-                                                className="w-full bg-black border border-zinc-800 rounded-md px-3 py-2 text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20 transition outline-none placeholder:text-zinc-700 min-h-[120px]"
+                                                className="w-full bg-surface border border-border rounded-md px-3 py-2 text-text-primary focus:border-brand focus:ring-1 focus:ring-brand/20 transition outline-none placeholder:text-text-disabled min-h-[120px]"
                                                 value={brew.data?.notes || ''}
                                                 onChange={(e) => updateData('notes', e.target.value)}
                                                 placeholder="Hier ist Platz für alles Weitere: Wasserprofil, Maischestruktur, pH-Wert Anpassungen, Pannen, Verkostungsnotizen..."
@@ -2523,309 +2515,325 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 
                         {activeTab === 'optimization' && (
                             <div className="space-y-4">
-                                <div className="flex items-center justify-between">
+                                {/* Header */}
+                                <div className="flex items-center justify-between gap-3">
                                     <div>
-                                        <BotlGuidePersonaPill persona="BotlGuide Architect" className="mb-2" />
-                                        <h2 className="text-lg font-bold text-white">Rezept-Optimierung</h2>
+                                        <h2 className="text-base font-bold text-text-primary">BotlGuide KI-Tools</h2>
+                                        <p className="text-xs text-text-muted mt-0.5">Analysiere, optimiere und vermarkte dein Rezept mit KI.</p>
                                     </div>
-                                    <button
-                                        onClick={handleOptimizeRecipe}
-                                        disabled={analyzingRecipe || !brew.name || !brew.style || premiumStatus?.features.aiGenerationsRemaining === 0}
-                                        className="bg-blue-900/50 hover:bg-blue-900 border border-blue-900 text-blue-100 font-medium px-4 py-2 rounded-md transition disabled:opacity-50 text-sm flex items-center gap-2"
-                                    >
-                                        {analyzingRecipe ? <><Search size={16} className="animate-spin" /> Analysiere...</> : <><Microscope size={16} /> Rezept analysieren</>}
-                                        <AICreditBadge />
-                                    </button>
+                                    <AICreditBadge />
                                 </div>
 
-                                <p className="text-sm text-zinc-500">
-                                    Lass die KI dein Rezept analysieren und erhalte Verbesserungsvorschläge für Balance, Stil-Konformität und Zutaten.
-                                </p>
+                                {/* Tool Cards Grid */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
 
-                                {optimizationSuggestions.length > 0 && (
-                                    <div className="space-y-3">
-                                        <p className="text-xs uppercase tracking-[0.2em] text-blue-400 font-bold">Vorschläge</p>
-                                        {optimizationSuggestions.map((suggestion, idx) => (
-                                            <div
-                                                key={idx}
-                                                className="bg-black border border-zinc-800 hover:border-blue-900 cursor-default transition-colors rounded-lg p-4 flex gap-3"
-                                            >
-                                                <Lightbulb className="text-blue-500 w-5 h-5 flex-shrink-0" />
-                                                <p className="text-sm text-zinc-300 leading-relaxed">{suggestion}</p>
+                                    {/* ── Rezept analysieren ── */}
+                                    <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+                                        <div className="flex items-start gap-2.5">
+                                            <Microscope size={15} className="text-accent-purple flex-shrink-0 mt-0.5" />
+                                            <div>
+                                                <BotlGuidePersonaPill persona="BotlGuide Architect" className="mb-1" />
+                                                <p className="text-sm font-bold text-text-primary leading-tight">Rezept analysieren</p>
+                                                <p className="text-xs text-text-muted mt-0.5">Balance, Stil-Konformität & Zutaten-Verbesserungen.</p>
                                             </div>
-                                        ))}
-                                    </div>
-                                )}
-
-                                {optimizationSuggestions.length === 0 && !analyzingRecipe && (
-                                    <div className="bg-black border border-zinc-800 rounded-lg p-6 text-center">
-                                        <div className="w-12 h-12 mx-auto mb-3 text-zinc-500 opacity-50 flex items-center justify-center">
-                                            <Microscope size={32} />
                                         </div>
-                                        <p className="text-sm text-zinc-500">Noch keine Analyse durchgeführt</p>
+                                        <button
+                                            onClick={handleOptimizeRecipe}
+                                            disabled={analyzingRecipe || !brew.name || !brew.style || premiumStatus?.features.aiGenerationsRemaining === 0}
+                                            className="w-full bg-gradient-to-r from-accent-purple/40 to-brand-bg border border-accent-purple/30 text-text-primary font-medium px-4 py-2.5 rounded-xl hover:shadow-lg hover:shadow-accent-purple/20 transition disabled:opacity-60 flex items-center justify-center gap-2 text-sm min-h-[40px]"
+                                        >
+                                            {analyzingRecipe
+                                                ? <><Loader2 size={14} className="animate-spin" /><span>Analysiere...</span></>
+                                                : <><Microscope size={14} /><span>Analysieren</span></>
+                                            }
+                                        </button>
+                                        {analyzingRecipe && (
+                                            <div className="space-y-2 animate-pulse">
+                                                <div className="h-2.5 bg-surface-hover rounded w-1/3" />
+                                                <div className="h-2.5 bg-surface-hover rounded w-full" />
+                                                <div className="h-2.5 bg-surface-hover rounded w-4/5" />
+                                            </div>
+                                        )}
+                                        {optimizationSuggestions.length > 0 && (
+                                            <div className="space-y-2 pt-1 border-t border-border">
+                                                {optimizationSuggestions.map((suggestion, idx) => (
+                                                    <div key={idx} className="flex gap-2">
+                                                        <Lightbulb className="text-brand w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                                                        <p className="text-xs text-text-secondary leading-relaxed">{suggestion}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
-                                )}
 
-                                {/* ── BotlGuide Architect: Hopfen-Empfehlungen ─────────────────────────── */}
-                                <div className="border-t border-zinc-800/50 pt-6 space-y-4">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <BotlGuidePersonaPill persona="BotlGuide Architect" className="mb-2" />
-                                            <h3 className="text-base font-bold text-white">Hopfen-Empfehlungen</h3>
-                                            <p className="text-xs text-zinc-500 mt-0.5">Passende Hopfensorten für deinen Stil und dein IBU-Ziel.</p>
+                                    {/* ── Hopfen-Empfehlungen ── */}
+                                    <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+                                        <div className="flex items-start gap-2.5">
+                                            <Leaf size={15} className="text-accent-purple flex-shrink-0 mt-0.5" />
+                                            <div>
+                                                <BotlGuidePersonaPill persona="BotlGuide Architect" className="mb-1" />
+                                                <p className="text-sm font-bold text-text-primary leading-tight">Hopfen-Empfehlungen</p>
+                                                <p className="text-xs text-text-muted mt-0.5">Passende Sorten für deinen Stil & dein IBU-Ziel.</p>
+                                            </div>
                                         </div>
                                         <button
                                             onClick={handleSuggestHops}
                                             disabled={suggestingHops || !brew.style || premiumStatus?.features.aiGenerationsRemaining === 0}
-                                            className="bg-blue-900/50 hover:bg-blue-900 border border-blue-900 text-blue-100 font-medium px-4 py-2 rounded-md transition disabled:opacity-50 text-sm flex items-center gap-2"
+                                            className="w-full bg-gradient-to-r from-accent-purple/40 to-brand-bg border border-accent-purple/30 text-text-primary font-medium px-4 py-2.5 rounded-xl hover:shadow-lg hover:shadow-accent-purple/20 transition disabled:opacity-60 flex items-center justify-center gap-2 text-sm min-h-[40px]"
                                         >
-                                            {suggestingHops ? <><Search size={16} className="animate-spin" /> Analysiere...</> : <><Leaf size={16} /> Hopfen vorschlagen</>}
-                                            <AICreditBadge />
+                                            {suggestingHops
+                                                ? <><Loader2 size={14} className="animate-spin" /><span>Lade...</span></>
+                                                : <><Leaf size={14} /><span>Empfehlungen generieren</span></>
+                                            }
                                         </button>
-                                    </div>
-                                    {suggestingHops && (
-                                        <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-5 space-y-3 animate-pulse">
-                                            <div className="h-3 bg-zinc-800 rounded w-1/3" />
-                                            <div className="h-3 bg-zinc-800 rounded w-full" />
-                                            <div className="h-3 bg-zinc-800 rounded w-5/6" />
-                                            <div className="h-3 bg-zinc-800 rounded w-2/3" />
-                                            <div className="h-3 bg-zinc-800 rounded w-full" />
-                                            <div className="h-3 bg-zinc-800 rounded w-4/5" />
-                                        </div>
-                                    )}
-                                    {hopSuggestions && !suggestingHops && (
-                                        <div className="bg-black border border-blue-900/30 rounded-xl p-5 space-y-4">
-                                            <div className="prose prose-invert prose-sm max-w-none
-                                                prose-p:text-zinc-300 prose-p:leading-relaxed prose-p:my-0
-                                                prose-strong:text-blue-300 prose-strong:font-semibold
-                                                prose-headings:text-white prose-headings:font-bold
-                                                prose-ol:text-zinc-300 prose-ol:space-y-4 prose-ol:pl-4
-                                                prose-ul:text-zinc-300 prose-ul:pl-4
-                                                prose-li:text-zinc-300 prose-li:leading-relaxed
-                                                [&_ol>li]:border-b [&_ol>li]:border-zinc-800/60 [&_ol>li]:pb-4 [&_ol>li:last-child]:border-0 [&_ol>li:last-child]:pb-0">
-                                                <ReactMarkdown>{hopSuggestions}</ReactMarkdown>
+                                        {suggestingHops && (
+                                            <div className="space-y-2 animate-pulse">
+                                                <div className="h-2.5 bg-surface-hover rounded w-1/3" />
+                                                <div className="h-2.5 bg-surface-hover rounded w-full" />
+                                                <div className="h-2.5 bg-surface-hover rounded w-4/5" />
+                                                <div className="h-2.5 bg-surface-hover rounded w-2/3" />
                                             </div>
-                                        </div>
-                                    )}
-                                    {!hopSuggestions && !suggestingHops && (
-                                        <div className="bg-black border border-dashed border-zinc-800 rounded-lg p-4 text-center">
-                                            <p className="text-xs text-zinc-600">Stil oder IBU-Ziel hinterlegen, dann Empfehlungen generieren.</p>
-                                        </div>
-                                    )}
-                                </div>
+                                        )}
+                                        {hopSuggestions && !suggestingHops && (
+                                            <div className="pt-1 border-t border-border">
+                                                <div className="prose prose-sm max-w-none
+                                                    prose-p:text-text-secondary prose-p:leading-relaxed prose-p:my-0
+                                                    prose-strong:text-text-primary prose-strong:font-semibold
+                                                    prose-headings:text-text-primary prose-headings:font-bold
+                                                    prose-ol:text-text-secondary prose-ol:space-y-4 prose-ol:pl-4
+                                                    prose-ul:text-text-secondary prose-ul:pl-4
+                                                    prose-li:text-text-secondary prose-li:leading-relaxed
+                                                    [&_ol>li]:border-b [&_ol>li]:border-border/60 [&_ol>li]:pb-4 [&_ol>li:last-child]:border-0 [&_ol>li:last-child]:pb-0">
+                                                    <ReactMarkdown>{hopSuggestions}</ReactMarkdown>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
 
-                                {/* ── BotlGuide Sommelier: Food Pairing ────────────────────────────────── */}
-                                <div className="border-t border-zinc-800/50 pt-6 space-y-4">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <BotlGuidePersonaPill persona="BotlGuide Sommelier" className="mb-2" />
-                                            <h3 className="text-base font-bold text-white">Food Pairing</h3>
-                                            <p className="text-xs text-zinc-500 mt-0.5">Welche Gerichte passen am besten zu diesem Getränk?</p>
+                                    {/* ── Food Pairing ── */}
+                                    <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+                                        <div className="flex items-start gap-2.5">
+                                            <Sparkles size={15} className="text-accent-purple flex-shrink-0 mt-0.5" />
+                                            <div>
+                                                <BotlGuidePersonaPill persona="BotlGuide Sommelier" className="mb-1" />
+                                                <p className="text-sm font-bold text-text-primary leading-tight">Food Pairing</p>
+                                                <p className="text-xs text-text-muted mt-0.5">Welche Gerichte passen am besten zu diesem Getränk?</p>
+                                            </div>
                                         </div>
                                         <button
                                             onClick={handleFoodPairing}
                                             disabled={loadingPairing || !brew.style || premiumStatus?.features.aiGenerationsRemaining === 0}
-                                            className="bg-rose-900/40 hover:bg-rose-900/70 border border-rose-900 text-rose-100 font-medium px-4 py-2 rounded-md transition disabled:opacity-50 text-sm flex items-center gap-2"
+                                            className="w-full bg-gradient-to-r from-accent-purple/40 to-brand-bg border border-accent-purple/30 text-text-primary font-medium px-4 py-2.5 rounded-xl hover:shadow-lg hover:shadow-accent-purple/20 transition disabled:opacity-60 flex items-center justify-center gap-2 text-sm min-h-[40px]"
                                         >
-                                            {loadingPairing ? <><Search size={16} className="animate-spin" /> Analysiere...</> : <><Sparkles size={16} /> Pairings generieren</>}
-                                            <AICreditBadge />
+                                            {loadingPairing
+                                                ? <><Loader2 size={14} className="animate-spin" /><span>Lade...</span></>
+                                                : <><Sparkles size={14} /><span>Pairing generieren</span></>
+                                            }
                                         </button>
-                                    </div>
-                                    {pairingResult && (
-                                        <div className="bg-black border border-zinc-800 rounded-lg p-4 space-y-3">
-                                            <p className="text-xs text-zinc-400 italic">{pairingResult.intro}</p>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                        {loadingPairing && (
+                                            <div className="space-y-2 animate-pulse">
+                                                <div className="h-2.5 bg-surface-hover rounded w-1/3" />
+                                                <div className="h-2.5 bg-surface-hover rounded w-full" />
+                                                <div className="h-2.5 bg-surface-hover rounded w-4/5" />
+                                            </div>
+                                        )}
+                                        {pairingResult && !loadingPairing && (
+                                            <div className="pt-1 border-t border-border space-y-2">
+                                                {pairingResult.intro && (
+                                                    <p className="text-xs text-text-secondary italic">{pairingResult.intro}</p>
+                                                )}
                                                 {pairingResult.pairings.map((p, i) => (
-                                                    <div key={i} className="flex items-start gap-3 bg-zinc-900/50 border border-zinc-800 rounded-lg p-3">
-                                                        <span className="text-xl flex-shrink-0">{p.emoji}</span>
+                                                    <div key={i} className="flex items-start gap-2.5 bg-background border border-border rounded-lg p-2.5">
+                                                        <span className="text-base flex-shrink-0">{p.emoji}</span>
                                                         <div>
-                                                            <p className="text-sm font-bold text-white">{p.food}</p>
-                                                            <p className="text-xs text-zinc-400 mt-0.5">{p.why}</p>
+                                                            <p className="text-xs font-bold text-text-primary">{p.food}</p>
+                                                            <p className="text-xs text-text-secondary mt-0.5">{p.why}</p>
                                                         </div>
                                                     </div>
                                                 ))}
                                             </div>
-                                        </div>
-                                    )}
-                                    {!pairingResult && !loadingPairing && (
-                                        <div className="bg-black border border-dashed border-zinc-800 rounded-lg p-4 text-center">
-                                            <p className="text-xs text-zinc-600">Stil und Name hinterlegen, dann Pairing-Vorschläge generieren.</p>
-                                        </div>
-                                    )}
-                                </div>
+                                        )}
+                                    </div>
 
-                                {/* ── BotlGuide Copywriter: Social-Media ───────────────────────────────── */}
-                                <div className="border-t border-zinc-800/50 pt-6 space-y-4">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <BotlGuidePersonaPill persona="BotlGuide Copywriter" className="mb-2" />
-                                            <h3 className="text-base font-bold text-white">Social-Media-Posts</h3>
-                                            <p className="text-xs text-zinc-500 mt-0.5">Instagram- und Facebook-Post für dein Getränk.</p>
+                                    {/* ── Social-Media-Posts ── */}
+                                    <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+                                        <div className="flex items-start gap-2.5">
+                                            <Sparkles size={15} className="text-accent-purple flex-shrink-0 mt-0.5" />
+                                            <div>
+                                                <BotlGuidePersonaPill persona="BotlGuide Copywriter" className="mb-1" />
+                                                <p className="text-sm font-bold text-text-primary leading-tight">Social-Media-Posts</p>
+                                                <p className="text-xs text-text-muted mt-0.5">Instagram- & Facebook-Post für dein Getränk.</p>
+                                            </div>
                                         </div>
                                         <button
                                             onClick={handleGenerateSocial}
                                             disabled={generatingSocial || !brew.name || !brew.style || premiumStatus?.features.aiGenerationsRemaining === 0}
-                                            className="bg-amber-900/40 hover:bg-amber-900/70 border border-amber-900 text-amber-100 font-medium px-4 py-2 rounded-md transition disabled:opacity-50 text-sm flex items-center gap-2"
+                                            className="w-full bg-gradient-to-r from-accent-purple/40 to-brand-bg border border-accent-purple/30 text-text-primary font-medium px-4 py-2.5 rounded-xl hover:shadow-lg hover:shadow-accent-purple/20 transition disabled:opacity-60 flex items-center justify-center gap-2 text-sm min-h-[40px]"
                                         >
-                                            {generatingSocial ? <><Search size={16} className="animate-spin" /> Schreibe...</> : <><Sparkles size={16} /> Posts generieren</>}
-                                            <AICreditBadge />
+                                            {generatingSocial
+                                                ? <><Loader2 size={14} className="animate-spin" /><span>Generiere...</span></>
+                                                : <><Sparkles size={14} /><span>Posts generieren</span></>
+                                            }
                                         </button>
+                                        {generatingSocial && (
+                                            <div className="space-y-2 animate-pulse">
+                                                <div className="h-2.5 bg-surface-hover rounded w-1/3" />
+                                                <div className="h-2.5 bg-surface-hover rounded w-full" />
+                                                <div className="h-2.5 bg-surface-hover rounded w-4/5" />
+                                            </div>
+                                        )}
+                                        {socialResult && !generatingSocial && (
+                                            <div className="pt-1 border-t border-border space-y-2">
+                                                <div className="bg-background border border-border rounded-lg p-3">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <span className="text-[10px] font-bold uppercase tracking-widest text-like">Instagram</span>
+                                                        <button
+                                                            onClick={() => navigator.clipboard.writeText(socialResult.instagram)}
+                                                            className="text-[10px] text-text-muted hover:text-text-primary transition flex items-center gap-1"
+                                                        >
+                                                            <Check size={10} /> Kopieren
+                                                        </button>
+                                                    </div>
+                                                    <p className="text-xs text-text-secondary whitespace-pre-wrap">{socialResult.instagram}</p>
+                                                </div>
+                                                <div className="bg-background border border-border rounded-lg p-3">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <span className="text-[10px] font-bold uppercase tracking-widest text-brand">Facebook</span>
+                                                        <button
+                                                            onClick={() => navigator.clipboard.writeText(socialResult.facebook)}
+                                                            className="text-[10px] text-text-muted hover:text-text-primary transition flex items-center gap-1"
+                                                        >
+                                                            <Check size={10} /> Kopieren
+                                                        </button>
+                                                    </div>
+                                                    <p className="text-xs text-text-secondary whitespace-pre-wrap">{socialResult.facebook}</p>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
-                                    {socialResult && (
-                                        <div className="space-y-3">
-                                            <div className="bg-black border border-zinc-800 rounded-lg p-4">
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <span className="text-[10px] font-bold uppercase tracking-widest text-pink-400">Instagram</span>
-                                                    <button
-                                                        onClick={() => navigator.clipboard.writeText(socialResult.instagram)}
-                                                        className="text-[10px] text-zinc-500 hover:text-white transition flex items-center gap-1"
-                                                    >
-                                                        <Check size={10} /> Kopieren
-                                                    </button>
-                                                </div>
-                                                <p className="text-sm text-zinc-300 whitespace-pre-wrap">{socialResult.instagram}</p>
-                                            </div>
-                                            <div className="bg-black border border-zinc-800 rounded-lg p-4">
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <span className="text-[10px] font-bold uppercase tracking-widest text-blue-400">Facebook</span>
-                                                    <button
-                                                        onClick={() => navigator.clipboard.writeText(socialResult.facebook)}
-                                                        className="text-[10px] text-zinc-500 hover:text-white transition flex items-center gap-1"
-                                                    >
-                                                        <Check size={10} /> Kopieren
-                                                    </button>
-                                                </div>
-                                                <p className="text-sm text-zinc-300 whitespace-pre-wrap">{socialResult.facebook}</p>
-                                            </div>
-                                        </div>
-                                    )}
-                                    {!socialResult && !generatingSocial && (
-                                        <div className="bg-black border border-dashed border-zinc-800 rounded-lg p-4 text-center">
-                                            <p className="text-xs text-zinc-600">Name und Stil hinterlegen, dann Posts generieren.</p>
-                                        </div>
-                                    )}
-                                </div>
 
-                                {/* ── BotlGuide Architect: BJCP-Konformität prüfen (Stage 3 RAG) ──────────────── */}
-                                <div className="border-t border-zinc-800/50 pt-6 space-y-4">
-                                    <div className="flex items-start justify-between">
-                                        <div>
-                                            <BotlGuidePersonaPill persona="BotlGuide Architect" className="mb-2" />
-                                            <h3 className="text-base font-bold text-white">BJCP-Konformität prüfen</h3>
-                                            <p className="text-xs text-zinc-500 mt-0.5">Rezept gegen BJCP 2021 Stilrichtlinien validieren (nur Brewery+).</p>
+                                    {/* ── BJCP-Konformität (full width) ── */}
+                                    <div className="bg-surface border border-border rounded-xl p-4 space-y-3 sm:col-span-2">
+                                        <div className="flex items-start gap-2.5">
+                                            <ShieldCheck size={15} className="text-accent-purple flex-shrink-0 mt-0.5" />
+                                            <div>
+                                                <BotlGuidePersonaPill persona="BotlGuide Architect" className="mb-1" />
+                                                <p className="text-sm font-bold text-text-primary leading-tight">BJCP-Konformität</p>
+                                                <p className="text-xs text-text-muted mt-0.5">Rezept gegen BJCP 2021 Stilrichtlinien validieren (nur Brewery+).</p>
+                                            </div>
                                         </div>
                                         <button
                                             onClick={handleCheckBjcp}
                                             disabled={checkingBjcp || !brew.style || premiumStatus?.features.aiGenerationsRemaining === 0}
-                                            className="bg-indigo-900/50 hover:bg-indigo-900 border border-indigo-800 text-indigo-100 font-medium px-4 py-2 rounded-lg transition disabled:opacity-50 text-sm flex items-center gap-2 flex-shrink-0"
+                                            className="w-full bg-gradient-to-r from-accent-purple/40 to-brand-bg border border-accent-purple/30 text-text-primary font-medium px-4 py-2.5 rounded-xl hover:shadow-lg hover:shadow-accent-purple/20 transition disabled:opacity-60 flex items-center justify-center gap-2 text-sm min-h-[40px]"
                                         >
-                                            {checkingBjcp ? <><Search size={14} className="animate-spin" /> Prüfe...</> : <><ShieldCheck size={14} /> Prüfen</>}
-                                            <AICreditBadge />
+                                            {checkingBjcp
+                                                ? <><Loader2 size={14} className="animate-spin" /><span>Prüfe...</span></>
+                                                : <><ShieldCheck size={14} /><span>BJCP prüfen</span></>
+                                            }
                                         </button>
+                                        {checkingBjcp && (
+                                            <div className="space-y-2 animate-pulse">
+                                                <div className="h-2.5 bg-surface-hover rounded w-1/3" />
+                                                <div className="h-2.5 bg-surface-hover rounded w-full" />
+                                                <div className="h-2.5 bg-surface-hover rounded w-2/3" />
+                                            </div>
+                                        )}
+                                        {bjcpResult && !checkingBjcp && (
+                                            <div className="pt-3 border-t border-border space-y-4">
+                                                {/* Style + Score */}
+                                                <div className="flex items-center justify-between">
+                                                    <div>
+                                                        <span className="text-[10px] font-bold uppercase tracking-widest text-accent-purple/80">BJCP {bjcpResult.bjcpStyle.code}</span>
+                                                        <p className="text-sm font-bold text-text-primary mt-0.5">{bjcpResult.bjcpStyle.nameDe}</p>
+                                                    </div>
+                                                    <div className="text-center">
+                                                        <div className={`text-3xl font-black tabular-nums ${
+                                                            bjcpResult.conformityScore >= 80 ? 'text-success'
+                                                            : bjcpResult.conformityScore >= 55 ? 'text-rating' : 'text-error'
+                                                        }`}>
+                                                            {bjcpResult.conformityScore}
+                                                        </div>
+                                                        <div className="text-[9px] text-text-muted uppercase tracking-wider">/100</div>
+                                                    </div>
+                                                </div>
+                                                {/* Parameter Checks */}
+                                                {bjcpResult.parameterChecks?.length > 0 && (
+                                                    <div>
+                                                        <p className="text-[10px] font-bold uppercase tracking-widest text-text-disabled mb-2">Parameter</p>
+                                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                                                            {bjcpResult.parameterChecks.map((p, i) => (
+                                                                <div key={i} className="flex items-center gap-2 text-xs">
+                                                                    <span className={`text-[10px] font-bold w-4 flex-shrink-0 ${p.status === 'ok' ? 'text-success' : 'text-rating'}`}>
+                                                                        {p.status === 'ok' ? '✓' : p.status === 'high' ? '↑' : p.status === 'low' ? '↓' : '?'}
+                                                                    </span>
+                                                                    <span className="text-text-secondary w-10 flex-shrink-0">{p.param}</span>
+                                                                    <span className="font-mono text-text-primary">{p.value}</span>
+                                                                    <span className="text-text-disabled truncate">→ {p.range}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {/* Strengths / Deviations / Improvements */}
+                                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                                    {bjcpResult.strengths?.length > 0 && (
+                                                        <div>
+                                                            <p className="text-[10px] font-bold uppercase tracking-widest text-success/80 mb-1.5">Stärken</p>
+                                                            <ul className="space-y-1.5">
+                                                                {bjcpResult.strengths.map((s, i) => (
+                                                                    <li key={i} className="flex items-start gap-1.5">
+                                                                        <span className="text-success mt-0.5 flex-shrink-0">+</span>
+                                                                        <span className="text-xs text-text-secondary leading-relaxed [&_strong]:text-text-primary [&_strong]:font-semibold">
+                                                                            <ReactMarkdown>{s}</ReactMarkdown>
+                                                                        </span>
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                        </div>
+                                                    )}
+                                                    {bjcpResult.deviations?.length > 0 && (
+                                                        <div>
+                                                            <p className="text-[10px] font-bold uppercase tracking-widest text-rating/80 mb-1.5">Abweichungen</p>
+                                                            <ul className="space-y-1.5">
+                                                                {bjcpResult.deviations.map((d, i) => (
+                                                                    <li key={i} className="flex items-start gap-1.5">
+                                                                        <span className="text-rating mt-0.5 flex-shrink-0">⚠</span>
+                                                                        <span className="text-xs text-text-secondary leading-relaxed [&_strong]:text-text-primary [&_strong]:font-semibold">
+                                                                            <ReactMarkdown>{d}</ReactMarkdown>
+                                                                        </span>
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                        </div>
+                                                    )}
+                                                    {bjcpResult.improvements?.length > 0 && (
+                                                        <div>
+                                                            <p className="text-[10px] font-bold uppercase tracking-widest text-brand/80 mb-1.5">Verbesserungen</p>
+                                                            <ul className="space-y-1.5">
+                                                                {bjcpResult.improvements.map((imp, i) => (
+                                                                    <li key={i} className="flex items-start gap-1.5">
+                                                                        <span className="text-brand mt-0.5 flex-shrink-0">→</span>
+                                                                        <span className="text-xs text-text-secondary leading-relaxed [&_strong]:text-text-primary [&_strong]:font-semibold">
+                                                                            <ReactMarkdown>{imp}</ReactMarkdown>
+                                                                        </span>
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                {bjcpResult.verdict && (
+                                                    <div className="bg-background border border-border rounded-lg p-3">
+                                                        <p className="text-xs text-text-secondary leading-relaxed italic [&_strong]:text-text-primary [&_strong]:font-semibold not-italic">
+                                                            <ReactMarkdown>{bjcpResult.verdict}</ReactMarkdown>
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
 
-                                    {checkingBjcp && (
-                                        <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-5 space-y-3 animate-pulse">
-                                            <div className="h-3 bg-zinc-800 rounded w-1/3" />
-                                            <div className="h-3 bg-zinc-800 rounded w-full" />
-                                            <div className="h-3 bg-zinc-800 rounded w-2/3" />
-                                        </div>
-                                    )}
-
-                                    {bjcpResult && !checkingBjcp && (
-                                        <div className="bg-black border border-indigo-900/30 rounded-xl p-5 space-y-5">
-                                            {/* Header: Style + Score */}
-                                            <div className="flex items-center justify-between">
-                                                <div>
-                                                    <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-400/80">BJCP {bjcpResult.bjcpStyle.code}</span>
-                                                    <p className="text-sm font-bold text-white mt-0.5">{bjcpResult.bjcpStyle.nameDe}</p>
-                                                </div>
-                                                <div className="text-center">
-                                                    <div className={`text-3xl font-black tabular-nums ${
-                                                        bjcpResult.conformityScore >= 80 ? 'text-emerald-400'
-                                                        : bjcpResult.conformityScore >= 55 ? 'text-amber-400' : 'text-red-400'
-                                                    }`}>
-                                                        {bjcpResult.conformityScore}
-                                                    </div>
-                                                    <div className="text-[9px] text-zinc-500 uppercase tracking-wider">/100</div>
-                                                </div>
-                                            </div>
-
-                                            {/* Parameter Checks */}
-                                            {bjcpResult.parameterChecks?.length > 0 && (
-                                                <div>
-                                                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-2">Parameter</p>
-                                                    <div className="space-y-1.5">
-                                                        {bjcpResult.parameterChecks.map((p, i) => (
-                                                            <div key={i} className="flex items-center gap-2 text-xs">
-                                                                <span className={`text-[10px] font-bold w-4 ${p.status === 'ok' ? 'text-emerald-400' : 'text-amber-400'}`}>
-                                                                    {p.status === 'ok' ? '✓' : p.status === 'high' ? '↑' : p.status === 'low' ? '↓' : '?'}
-                                                                </span>
-                                                                <span className="text-zinc-400 w-10 flex-shrink-0">{p.param}</span>
-                                                                <span className="font-mono text-white">{p.value}</span>
-                                                                <span className="text-zinc-600">→ {p.range}</span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* Strengths */}
-                                            {bjcpResult.strengths?.length > 0 && (
-                                                <div>
-                                                    <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400/80 mb-2">Stärken</p>
-                                                    <ul className="space-y-1">
-                                                        {bjcpResult.strengths.map((s, i) => (
-                                                            <li key={i} className="text-xs text-zinc-300 flex items-start gap-2">
-                                                                <span className="text-emerald-400 mt-0.5">+</span>{s}
-                                                            </li>
-                                                        ))}
-                                                    </ul>
-                                                </div>
-                                            )}
-
-                                            {/* Deviations */}
-                                            {bjcpResult.deviations?.length > 0 && (
-                                                <div>
-                                                    <p className="text-[10px] font-bold uppercase tracking-widest text-amber-400/80 mb-2">Abweichungen</p>
-                                                    <ul className="space-y-1">
-                                                        {bjcpResult.deviations.map((d, i) => (
-                                                            <li key={i} className="text-xs text-zinc-300 flex items-start gap-2">
-                                                                <span className="text-amber-400 mt-0.5">⚠️</span>{d}
-                                                            </li>
-                                                        ))}
-                                                    </ul>
-                                                </div>
-                                            )}
-
-                                            {/* Improvements */}
-                                            {bjcpResult.improvements?.length > 0 && (
-                                                <div>
-                                                    <p className="text-[10px] font-bold uppercase tracking-widest text-blue-400/80 mb-2">Verbesserungen</p>
-                                                    <ul className="space-y-1">
-                                                        {bjcpResult.improvements.map((imp, i) => (
-                                                            <li key={i} className="text-xs text-zinc-300 flex items-start gap-2">
-                                                                <span className="text-blue-400 mt-0.5">→</span>{imp}
-                                                            </li>
-                                                        ))}
-                                                    </ul>
-                                                </div>
-                                            )}
-
-                                            {/* Verdict */}
-                                            {bjcpResult.verdict && (
-                                                <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-3">
-                                                    <p className="text-xs text-zinc-400 leading-relaxed italic">{bjcpResult.verdict}</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {!bjcpResult && !checkingBjcp && (
-                                        <div className="bg-black border border-dashed border-zinc-800 rounded-lg p-4 text-center">
-                                            <p className="text-xs text-zinc-600">Bierstil hinterlegen, dann BJCP-Konformität prüfen.</p>
-                                        </div>
-                                    )}
                                 </div>
                             </div>
                         )}
@@ -2834,11 +2842,11 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                             <div className="space-y-6">
                                 {/* Moderation Banner */}
                                 {brew.moderation_status === 'rejected' && (
-                                    <div className="bg-red-950/20 border border-red-900/30 rounded-lg p-4 flex gap-4 items-start">
-                                        <AlertTriangle className="text-red-500 mt-1 flex-shrink-0" />
+                                    <div className="bg-error/20 border border-error/30 rounded-lg p-4 flex gap-4 items-start">
+                                        <AlertTriangle className="text-error mt-1 flex-shrink-0" />
                                         <div>
-                                            <h3 className="text-red-500 font-bold text-sm uppercase tracking-wider mb-1">Bild wurde abgelehnt</h3>
-                                            <p className="text-zinc-300 text-sm">{brew.moderation_rejection_reason || 'Verstoß gegen die Richtlinien'}</p>
+                                            <h3 className="text-error font-bold text-sm uppercase tracking-wider mb-1">Bild wurde abgelehnt</h3>
+                                            <p className="text-text-secondary text-sm">{brew.moderation_rejection_reason || 'Verstoß gegen die Richtlinien'}</p>
                                         </div>
                                     </div>
                                 )}
@@ -2846,14 +2854,14 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 
                                 <div className="flex items-center justify-between gap-4">
                                     <div>
-                                        <p className="text-xs uppercase tracking-[0.2em] text-purple-600 font-medium mb-1">Label Design</p>
-                                        <h2 className="text-lg font-bold text-white">Vorschau & Generator</h2>
+                                        <p className="text-xs uppercase tracking-[0.2em] text-accent-purple font-medium mb-1">Label Design</p>
+                                        <h2 className="text-lg font-bold text-text-primary">Vorschau & Generator</h2>
                                     </div>
                                     {brew.id && (
                                         <Link
                                             href={`/brew/${brew.id}`}
                                             target="_blank"
-                                            className="h-9 w-9 sm:w-auto sm:px-3 flex items-center justify-center gap-2 bg-black border border-zinc-800 rounded-md hover:bg-zinc-900 hover:text-white text-zinc-400 transition disabled:opacity-50"
+                                            className="h-9 w-9 sm:w-auto sm:px-3 flex items-center justify-center gap-2 bg-background border border-border rounded-md hover:bg-surface hover:text-text-primary text-text-secondary transition disabled:opacity-50"
                                             title="Öffentlich ansehen"
                                         >
                                             <Globe size={16} />
@@ -2862,75 +2870,82 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                     )}
                                 </div>
 
-                                <div className="aspect-square bg-black border border-zinc-800 rounded-lg overflow-hidden flex items-center justify-center max-w-sm mx-auto p-1">
-                                    {brew.image_url ? (
-                                        <img src={brew.image_url} alt={brew.name} className="w-full h-full object-cover rounded" />
-                                    ) : (
-                                        <div className="text-center text-zinc-600 flex flex-col items-center">
-                                            <Tag size={48} className="mb-2 opacity-50" />
-                                            <p className="text-sm font-medium uppercase tracking-wider">Noch kein Label generiert</p>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="space-y-2 bg-black border border-zinc-800 rounded-lg p-6">
-                                    <div className="flex items-center justify-between">
-                                        <label className="text-xs uppercase font-medium tracking-wider text-purple-500">Zusatz-Prompt (optional)</label>
-                                        <button
-                                            onClick={handleGenerateLabelPrompt}
-                                            disabled={generatingLabelPrompt || !brew.name || premiumStatus?.features.aiGenerationsRemaining === 0}
-                                            className="text-[10px] uppercase font-bold text-purple-600 hover:text-purple-400 disabled:opacity-50 flex items-center gap-1 transition"
-                                        >
-                                            {generatingLabelPrompt ? <Loader2 className="animate-spin" size={14} /> : <Sparkles size={14} />}
-                                            KI-Vorschlag
-                                            <AICreditBadge />
-                                        </button>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                                    {/* Image Preview */}
+                                    <div className="aspect-square bg-background border border-border rounded-lg overflow-hidden flex items-center justify-center p-1">
+                                        {brew.image_url ? (
+                                            <img src={brew.image_url} alt={brew.name} className="w-full h-full object-cover rounded" />
+                                        ) : (
+                                            <div className="text-center text-text-disabled flex flex-col items-center">
+                                                <Tag size={48} className="mb-2 opacity-50" />
+                                                <p className="text-sm font-medium uppercase tracking-wider">Noch kein Label generiert</p>
+                                            </div>
+                                        )}
                                     </div>
-                                    <textarea
-                                        value={extraPrompt}
-                                        onChange={(e) => setExtraPrompt(e.target.value)}
-                                        className="w-full bg-black border border-zinc-800 rounded-md px-3 py-2 text-white min-h-[80px] focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20 transition"
-                                        placeholder="z.B. Illustrativer Retro-Stil, satten Farben, florale Ornamente"
-                                    />
-                                    <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                                        <button
-                                            onClick={handleGenerate}
-                                            disabled={generating || uploading || premiumStatus?.features.aiGenerationsRemaining === 0}
-                                            className="flex-1 bg-gradient-to-r from-purple-900 to-pink-900 text-white border border-purple-500/30 font-medium tracking-wide px-6 py-3 rounded-md hover:shadow-lg hover:shadow-purple-900/20 transition disabled:opacity-60 flex items-center justify-center gap-2 min-h-[44px]"
-                                        >
-                                            {generating ? (
-                                                <>
-                                                    <Loader2 className="animate-spin" />
-                                                    <span>Wird generiert...</span>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Sparkles />
-                                                    <span>KI-Label generieren</span>
+
+                                    {/* Controls */}
+                                    <div className="space-y-4">
+                                        <div className="space-y-1.5">
+                                            <div className="flex items-center justify-between">
+                                                <label className="text-[10px] uppercase font-bold tracking-widest text-text-disabled">Zusatz-Prompt (optional)</label>
+                                                <button
+                                                    onClick={handleGenerateLabelPrompt}
+                                                    disabled={generatingLabelPrompt || !brew.name || premiumStatus?.features.aiGenerationsRemaining === 0}
+                                                    className="flex items-center gap-1.5 bg-accent-purple/10 hover:bg-accent-purple/20 border border-accent-purple/30 text-accent-purple px-2.5 py-1.5 rounded-full text-[10px] font-bold tracking-wide transition disabled:opacity-50"
+                                                >
+                                                    {generatingLabelPrompt ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                                                    BotlGuide
                                                     <AICreditBadge />
-                                                </>
-                                            )}
-                                        </button>
-                                        <div className="grid grid-cols-2 sm:flex gap-3 w-full sm:w-auto">
+                                                </button>
+                                            </div>
+                                            <textarea
+                                                value={extraPrompt}
+                                                onChange={(e) => setExtraPrompt(e.target.value)}
+                                                className="w-full bg-surface border border-border rounded-xl px-3 py-2.5 text-text-primary min-h-[100px] focus:border-accent-purple focus:ring-1 focus:ring-accent-purple/20 transition resize-none"
+                                                placeholder="z.B. Illustrativer Retro-Stil, satten Farben, florale Ornamente"
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
                                             <button
-                                                onClick={() => {
-                                                    setLegalModalType('label');
-                                                    setLegalModalOpen(true);
-                                                }}
-                                                disabled={uploading || generating}
-                                                className="px-4 py-3 bg-zinc-900 border border-zinc-800 text-zinc-300 rounded-md text-sm font-medium hover:bg-zinc-800 hover:text-white transition disabled:opacity-60 flex items-center justify-center gap-2 min-h-[44px] whitespace-nowrap"
+                                                onClick={handleGenerate}
+                                                disabled={generating || uploading || premiumStatus?.features.aiGenerationsRemaining === 0}
+                                                className="w-full bg-gradient-to-r from-accent-purple/40 to-like/40 text-text-primary border border-accent-purple/30 font-medium tracking-wide px-6 py-3 rounded-xl hover:shadow-lg hover:shadow-accent-purple/20 transition disabled:opacity-60 flex items-center justify-center gap-2 min-h-[44px]"
                                             >
-                                                {uploading ? <Loader2 className="animate-spin" /> : <Upload />}
-                                                {uploading ? 'Upload...' : 'Upload'}
+                                                {generating ? (
+                                                    <>
+                                                        <Loader2 className="animate-spin" />
+                                                        <span>Wird generiert...</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Sparkles />
+                                                        <span>BotlGuide — Label generieren</span>
+                                                        <AICreditBadge />
+                                                    </>
+                                                )}
                                             </button>
-                                            <button
-                                                onClick={() => setBrew(prev => ({ ...prev, image_url: '/default_label/default.png' }))}
-                                                disabled={uploading || generating || !brew.image_url || brew.image_url === '/default_label/default.png'}
-                                                className="px-4 py-3 bg-black border border-zinc-800 rounded-md text-sm text-zinc-500 hover:text-red-400 hover:border-red-900/50 transition disabled:opacity-50 flex items-center justify-center gap-2 min-h-[44px]"
-                                                title="Label entfernen"
-                                            >
-                                                <Trash2 size={18} /> <span className="sm:hidden lg:inline">Reset</span>
-                                            </button>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <button
+                                                    onClick={() => {
+                                                        setLegalModalType('label');
+                                                        setLegalModalOpen(true);
+                                                    }}
+                                                    disabled={uploading || generating}
+                                                    className="px-4 py-3 bg-surface border border-border text-text-secondary rounded-xl text-sm font-medium hover:bg-surface-hover hover:text-text-primary transition disabled:opacity-60 flex items-center justify-center gap-2 min-h-[44px]"
+                                                >
+                                                    {uploading ? <Loader2 className="animate-spin" /> : <Upload size={16} />}
+                                                    {uploading ? 'Upload...' : 'Upload'}
+                                                </button>
+                                                <button
+                                                    onClick={() => setBrew(prev => ({ ...prev, image_url: '/default_label/default.png' }))}
+                                                    disabled={uploading || generating || !brew.image_url || brew.image_url === '/default_label/default.png'}
+                                                    className="px-4 py-3 bg-surface border border-border rounded-xl text-sm text-text-muted hover:text-error hover:border-error/50 transition disabled:opacity-50 flex items-center justify-center gap-2 min-h-[44px]"
+                                                    title="Label entfernen"
+                                                >
+                                                    <Trash2 size={16} /> Reset
+                                                </button>
+                                            </div>
                                         </div>
                                         <input
                                             ref={fileInputRef}
@@ -2945,18 +2960,10 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                         )}
 
                         {activeTab === 'caps' && (
-                            <div className="space-y-6 text-center text-white">
-                                <div className="space-y-8 relative overflow-hidden">
-                                    {/* Header Info */}
-                                    <div className="text-left">
-                                        <p className="text-xs uppercase tracking-[0.2em] text-cyan-500 font-medium mb-1">Digitale Abzeichen</p>
-                                        <h2 className="text-lg font-bold text-white">Kronkorken-Designer</h2>
-                                        <p className="text-zinc-500 text-sm mt-1 max-w-md leading-relaxed">
-                                            Wähle ein Symbol für dein digitales Sammlerstück. Dieses Abzeichen wird an User vergeben, die deine Flaschen scannen.
-                                        </p>
-                                    </div>
-
-                                    <div className="flex justify-center py-6 bg-black rounded-lg border border-zinc-800">
+                            <div className="space-y-6 text-text-primary">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                                    {/* Cap Preview */}
+                                    <div className="aspect-square bg-background border border-border rounded-lg overflow-hidden flex items-center justify-center p-1">
                                         <CrownCap
                                             content={brew.cap_url}
                                             tier="gold"
@@ -2965,43 +2972,52 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                         />
                                     </div>
 
-                                    <div className="space-y-8 relative z-10 text-left">
+                                    {/* Controls */}
+                                    <div className="space-y-4">
                                         <div>
-                                            <p className="text-[10px] uppercase font-black text-zinc-500 tracking-widest mb-4">Farbe</p>
-                                            <div className="flex items-center gap-4 p-2 -ml-2">
-                                                <div className="w-12 h-12 rounded-full border border-zinc-800" style={{ background: brew.cap_url || '#111827' }} />
+                                            <p className="text-xs uppercase tracking-[0.2em] text-brand font-medium mb-1">Digitale Abzeichen</p>
+                                            <h2 className="text-lg font-bold text-text-primary">Kronkorken-Designer</h2>
+                                            <p className="text-text-muted text-sm mt-1 leading-relaxed">
+                                                Wähle ein Symbol für dein digitales Sammlerstück. Dieses Abzeichen wird an User vergeben, die deine Flaschen scannen.
+                                            </p>
+                                        </div>
+
+                                        <div>
+                                            <p className="text-[10px] uppercase font-bold tracking-widest text-text-disabled mb-2">Farbe</p>
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-full border border-border flex-shrink-0" style={{ background: brew.cap_url || '#111827' }} />
                                                 <div className="flex flex-col">
-                                                    <span className="text-sm font-bold text-white">Automatisch zugewiesen</span>
+                                                    <span className="text-sm font-bold text-text-primary">Automatisch zugewiesen</span>
                                                     <button
                                                         onClick={() => setBrew(prev => ({ ...prev, cap_url: pickRandomCapColor() }))}
-                                                        className="text-xs mt-1 px-3 py-1 rounded-md bg-black border border-zinc-800 text-zinc-300 hover:text-white transition"
+                                                        className="text-xs mt-1 px-3 py-1 rounded-full bg-surface border border-border text-text-secondary hover:text-text-primary transition w-fit"
                                                     >Neue Farbe</button>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-2">
                                             <button
-                                                className="w-full bg-gradient-to-r from-purple-900 to-pink-900 border border-purple-500/30 text-white font-medium px-6 py-4 rounded-lg hover:shadow-lg hover:shadow-purple-900/20 transition disabled:opacity-60 flex items-center justify-center gap-3 min-h-[60px]"
+                                                className="w-full bg-gradient-to-r from-accent-purple/40 to-like/40 border border-accent-purple/30 text-text-primary font-medium px-6 py-3 rounded-xl hover:shadow-lg hover:shadow-accent-purple/20 transition disabled:opacity-60 flex items-center justify-center gap-2 min-h-[44px]"
                                                 onClick={handleGenerateCap}
                                                 disabled={generatingCap || uploadingCap || premiumStatus?.features.aiGenerationsRemaining === 0}
                                             >
                                                 {generatingCap ? (
                                                     <>
-                                                        <Loader2 className="animate-spin" size={20} />
-                                                        <span className="uppercase text-xs font-black tracking-widest">Generiere...</span>
+                                                        <Loader2 className="animate-spin" size={18} />
+                                                        <span className="text-sm font-medium">Generiere...</span>
                                                     </>
                                                 ) : (
                                                     <>
-                                                        <Sparkles size={20} />
-                                                        <span className="text-xs font-black uppercase tracking-wider">mit KI generieren</span>
+                                                        <Sparkles size={18} />
+                                                        <span className="text-sm font-medium">BotlGuide — Kronkorken generieren</span>
                                                         <AICreditBadge />
                                                     </>
                                                 )}
                                             </button>
 
                                             <button
-                                                className="bg-black border border-zinc-800 hover:border-zinc-700 p-4 rounded-lg transition-all group flex items-center justify-center gap-3 text-zinc-400 hover:text-white disabled:opacity-50"
+                                                className="w-full bg-surface border border-border hover:border-border-hover px-6 py-3 rounded-xl transition flex items-center justify-center gap-2 text-text-secondary hover:text-text-primary disabled:opacity-50 min-h-[44px] text-sm font-medium"
                                                 onClick={() => {
                                                     setLegalModalType('cap');
                                                     setLegalModalOpen(true);
@@ -3009,11 +3025,11 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                 disabled={generatingCap || uploadingCap}
                                             >
                                                 {uploadingCap ? (
-                                                    <Loader2 className="animate-spin" size={20} />
+                                                    <Loader2 className="animate-spin" size={18} />
                                                 ) : (
                                                     <>
-                                                        <Upload size={20} />
-                                                        <span className="text-xs font-bold uppercase tracking-wider text-inherit">Eigener Icon-Upload</span>
+                                                        <Upload size={18} />
+                                                        <span>Eigener Icon-Upload</span>
                                                     </>
                                                 )}
                                             </button>
@@ -3034,13 +3050,13 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                             <div className="space-y-6">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="text-xs uppercase tracking-[0.2em] text-green-500 font-medium mb-1">Bewertungen</p>
-                                        <h2 className="text-lg font-bold text-white">Verwalten & Moderieren</h2>
+                                        <p className="text-xs uppercase tracking-[0.2em] text-success font-medium mb-1">Bewertungen</p>
+                                        <h2 className="text-lg font-bold text-text-primary">Verwalten & Moderieren</h2>
                                     </div>
                                     <button
                                         onClick={() => loadRatings(brew.id!)}
                                         disabled={ratingsLoading}
-                                        className="h-9 w-9 sm:w-auto sm:px-3 flex items-center justify-center gap-2 bg-black border border-zinc-800 rounded-md hover:bg-zinc-900 hover:text-white text-zinc-400 transition disabled:opacity-50"
+                                        className="h-9 w-9 sm:w-auto sm:px-3 flex items-center justify-center gap-2 bg-background border border-border rounded-md hover:bg-surface hover:text-text-primary text-text-secondary transition disabled:opacity-50"
                                         title="Bewertungen aktualisieren"
                                     >
                                         <RefreshCw size={14} className={`${ratingsLoading ? 'animate-spin' : ''}`} />
@@ -3049,54 +3065,54 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                 </div>
 
                                 {ratingsMessage && (
-                                    <div className="bg-black border border-zinc-800 rounded-lg px-4 py-3 text-sm text-zinc-200">
+                                    <div className="bg-background border border-border rounded-lg px-4 py-3 text-sm text-text-primary">
                                         {ratingsMessage}
                                     </div>
                                 )}
 
                                 {ratingsLoading ? (
-                                    <div className="text-zinc-500 text-sm">Lade Bewertungen…</div>
+                                    <div className="text-text-muted text-sm">Lade Bewertungen…</div>
                                 ) : ratings.length === 0 ? (
-                                    <div className="text-zinc-500 text-sm">Noch keine Bewertungen vorhanden.</div>
+                                    <div className="text-text-muted text-sm">Noch keine Bewertungen vorhanden.</div>
                                 ) : (
                                     <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
                                         {ratings.map((r) => (
-                                            <div key={r.id} className="bg-black border border-zinc-800 rounded-lg p-4">
+                                            <div key={r.id} className="bg-background border border-border rounded-lg p-4">
                                                 <div className="flex items-start justify-between">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-900 to-blue-900 border border-zinc-700 flex items-center justify-center text-white font-bold text-sm">
+                                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-bg to-brand-bg border border-border-hover flex items-center justify-center text-text-primary font-bold text-sm">
                                                             {((r.author_name || r.name || 'A') as string)[0].toUpperCase()}
                                                         </div>
                                                         <div>
-                                                            <p className="font-bold text-white text-sm">{r.author_name || r.name || 'Anonym'}</p>
-                                                            <p className="text-[11px] text-zinc-500 uppercase tracking-wide font-medium">
+                                                            <p className="font-bold text-text-primary text-sm">{r.author_name || r.name || 'Anonym'}</p>
+                                                            <p className="text-[11px] text-text-muted uppercase tracking-wide font-medium">
                                                                 {new Date(r.created_at).toLocaleDateString('de-DE')}
                                                             </p>
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center gap-2">
-                                                        <div className="flex text-yellow-600">
+                                                        <div className="flex text-rating">
                                                             {[1, 2, 3, 4, 5].map(s => (
                                                                 <Star key={s} className={`w-3.5 h-3.5 ${r.rating >= s ? 'opacity-100' : 'opacity-30'}`} fill="currentColor" />
                                                             ))}
                                                         </div>
-                                                        <span className="text-sm font-bold text-white">{r.rating}</span>
+                                                        <span className="text-sm font-bold text-text-primary">{r.rating}</span>
                                                     </div>
                                                 </div>
 
                                                 {r.comment && (
-                                                    <p className="text-zinc-400 text-sm leading-relaxed mt-3">{r.comment}</p>
+                                                    <p className="text-text-secondary text-sm leading-relaxed mt-3">{r.comment}</p>
                                                 )}
 
-                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-6 gap-4 pt-4 border-t border-zinc-900">
+                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-6 gap-4 pt-4 border-t border-border">
                                                     <div className="flex items-center gap-2">
                                                         <div className={`w-2 h-2 rounded-full ${r.moderation_status === 'auto_approved' || r.moderation_status === 'approved'
-                                                                ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]'
+                                                                ? 'bg-success shadow-[0_0_8px_rgba(16,185,129,0.5)]'
                                                                 : r.moderation_status === 'rejected'
-                                                                    ? 'bg-red-500'
-                                                                    : 'bg-amber-500 animate-pulse'
+                                                                    ? 'bg-error'
+                                                                    : 'bg-rating animate-pulse'
                                                             }`} />
-                                                        <span className="text-[10px] uppercase font-bold tracking-widest text-zinc-500">
+                                                        <span className="text-[10px] uppercase font-bold tracking-widest text-text-muted">
                                                             {r.moderation_status || 'pending'}
                                                         </span>
                                                     </div>
@@ -3104,8 +3120,8 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                         <button
                                                             onClick={() => moderateRating(r.id, 'approved')}
                                                             className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-2 px-3 py-2 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all duration-300 border ${r.moderation_status === 'approved' || r.moderation_status === 'auto_approved'
-                                                                    ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30'
-                                                                    : 'bg-zinc-900 text-zinc-500 border-zinc-800 hover:border-emerald-500/50 hover:text-emerald-400'
+                                                                    ? 'bg-success/10 text-success border-success/30'
+                                                                    : 'bg-surface text-text-muted border-border hover:border-success/50 hover:text-success'
                                                                 }`}
                                                         >
                                                             <Check className="w-3.5 h-3.5" />
@@ -3114,8 +3130,8 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                         <button
                                                             onClick={() => moderateRating(r.id, 'rejected')}
                                                             className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-2 px-3 py-2 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all duration-300 border ${r.moderation_status === 'rejected'
-                                                                    ? 'bg-zinc-900 text-red-500 border-red-900/50'
-                                                                    : 'bg-zinc-900 text-zinc-500 border-zinc-800 hover:border-red-500/50 hover:text-red-400'
+                                                                    ? 'bg-surface text-error border-error/50'
+                                                                    : 'bg-surface text-text-muted border-border hover:border-error/30 hover:text-error'
                                                                 }`}
                                                         >
                                                             <X className="w-3.5 h-3.5" />
@@ -3125,7 +3141,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                                             onClick={() => {
                                                                 if (confirm('Möchtest du diese Bewertung wirklich permanent löschen?')) removeRating(r.id);
                                                             }}
-                                                            className="flex-1 flex flex-col sm:flex-row items-center justify-center gap-2 px-3 py-2 bg-zinc-900 text-zinc-600 border border-zinc-800 rounded-md text-[10px] font-bold uppercase tracking-wider hover:bg-red-950/20 hover:text-red-500 hover:border-red-900/50 transition-all duration-300"
+                                                            className="flex-1 flex flex-col sm:flex-row items-center justify-center gap-2 px-3 py-2 bg-surface text-text-disabled border border-border rounded-md text-[10px] font-bold uppercase tracking-wider hover:bg-error/20 hover:text-error hover:border-error/50 transition-all duration-300"
                                                         >
                                                             <Trash2 className="w-3.5 h-3.5" />
                                                             <span>Löschen</span>
@@ -3142,9 +3158,9 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                         {activeTab === 'flavor' && (
                             <div className="space-y-6">
                                 <div>
-                                    <p className="text-xs uppercase tracking-[0.2em] text-cyan-400 font-medium mb-1">Gamification</p>
-                                    <h2 className="text-lg font-bold text-white">Beat the Brewer — Geschmacksprofil</h2>
-                                    <p className="text-sm text-zinc-400 mt-1 max-w-xl">Definiere, wie dein Bier schmecken soll. Trinker können dann versuchen, dein Profil blind zu treffen — und du erhältst wertvolle Sensorik-Daten.</p>
+                                    <p className="text-xs uppercase tracking-[0.2em] text-brand font-medium mb-1">Gamification</p>
+                                    <h2 className="text-lg font-bold text-text-primary">Beat the Brewer — Geschmacksprofil</h2>
+                                    <p className="text-sm text-text-secondary mt-1 max-w-xl">Definiere, wie dein Bier schmecken soll. Trinker können dann versuchen, dein Profil blind zu treffen — und du erhältst wertvolle Sensorik-Daten.</p>
                                 </div>
                                 <FlavorProfileEditor
                                     value={brew.flavor_profile ?? null}
@@ -3172,19 +3188,19 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                         {activeTab === 'settings' && (
                             <div className="space-y-6">
                                 <div>
-                                    <p className="text-xs uppercase tracking-[0.2em] text-zinc-500 font-medium mb-1">Konfiguration</p>
-                                    <h2 className="text-lg font-bold text-white">Einstellungen & Aktionen</h2>
+                                    <p className="text-xs uppercase tracking-[0.2em] text-text-muted font-medium mb-1">Konfiguration</p>
+                                    <h2 className="text-lg font-bold text-text-primary">Einstellungen & Aktionen</h2>
                                 </div>
 
-                                <div className="bg-[#0B0C10] border border-zinc-800/60 rounded-3xl p-6 sm:p-8 shadow-lg mb-8">
-                                    <h3 className="text-lg font-semibold tracking-tight text-white flex items-center gap-4 mb-8 pb-4 border-b border-zinc-800/50">
-                                        <div className="h-8 w-8 rounded-full bg-zinc-900 flex items-center justify-center border border-zinc-700"><Eye className="w-4 h-4 text-zinc-400" /></div>
+                                <div className="space-y-6 pt-6 border-t border-border">
+                                    <h3 className="text-sm font-bold uppercase tracking-widest text-text-primary border-l-2 border-brand pl-3 flex items-center gap-3 mb-6">
+                                        <span className="text-text-secondary"><Eye className="w-4 h-4" /></span>
                                         Sichtbarkeit
                                     </h3>
-                                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-zinc-900/20 border border-zinc-800 rounded-lg p-4">
+                                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-surface/20 border border-border rounded-lg p-4">
                                         <div className="flex-1">
-                                            <div className="text-sm font-bold text-white mb-0.5">{brew.is_public ? 'Status: Öffentlich' : 'Status: Privat'}</div>
-                                            <div className="text-xs text-zinc-500">Öffentliche Rezepte sind für alle Nutzer & Brauereien sichtbar.</div>
+                                            <div className="text-sm font-bold text-text-primary mb-0.5">{brew.is_public ? 'Status: Öffentlich' : 'Status: Privat'}</div>
+                                            <div className="text-xs text-text-muted">Öffentliche Rezepte sind für alle Nutzer & Brauereien sichtbar.</div>
                                         </div>
                                         <div className="w-full sm:w-auto">
                                             <Toggle label="Öffentlich" checked={brew.is_public} onChange={(val) => setBrew(prev => ({ ...prev, is_public: val }))} />
@@ -3193,13 +3209,15 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                 </div>
 
                                 {brew.id && (
-                                    <div className="bg-red-950/10 border border-red-900/20 rounded-2xl p-6">
-                                        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                                    <div className="bg-surface border border-error/20 rounded-2xl p-6 space-y-4">
+                                        <h3 className="text-error text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                                            <AlertTriangle className="w-3.5 h-3.5" />
+                                            Danger Zone
+                                        </h3>
+                                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                             <div>
-                                                <h3 className="text-lg font-bold text-red-500 flex items-center gap-2">
-                                                    <Trash2 className="w-5 h-5" /> Rezept löschen
-                                                </h3>
-                                                <p className="text-sm text-zinc-400 mt-1">
+                                                <h4 className="text-text-primary font-bold text-sm mb-1">Rezept löschen</h4>
+                                                <p className="text-text-muted text-xs max-w-md">
                                                     Diese Aktion kann nicht rückgängig gemacht werden. Alle verknüpften Flaschen werden zurückgesetzt.
                                                     Label-Bilder und Kronkorken werden ebenfalls vom Server gelöscht.
                                                 </p>
@@ -3207,10 +3225,9 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                                             <button
                                                 onClick={deleteBrew}
                                                 disabled={saving}
-                                                className="px-6 py-3 bg-red-950/30 border border-red-900/50 hover:bg-red-900/30 text-red-500 rounded-xl text-sm font-bold transition flex items-center gap-2 whitespace-nowrap w-full md:w-auto justify-center"
+                                                className="bg-red-900 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg text-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
                                             >
-                                                <Trash2 className="w-4 h-4" />
-                                                <span>Rezept unwiderruflich löschen</span>
+                                                {saving ? 'Lösche...' : 'Rezept löschen'}
                                             </button>
                                         </div>
                                     </div>

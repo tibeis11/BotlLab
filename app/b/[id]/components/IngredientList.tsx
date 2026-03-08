@@ -114,10 +114,10 @@ export default function IngredientList({ items, mode = 'absolute' }: Props) {
 
             return (
               <div key={idx} className="flex justify-between items-start text-sm group">
-                <span className="text-zinc-300 font-medium leading-tight">{item.name}</span>
+                <span className="text-text-secondary font-medium leading-tight">{item.name}</span>
                 {details && (
                   <span
-                    className={`text-zinc-500 text-xs font-mono ml-3 shrink-0 whitespace-nowrap ${highlight ? 'text-cyan-500 font-bold' : ''}`}
+                    className={`text-text-muted text-xs font-mono ml-3 shrink-0 whitespace-nowrap ${highlight ? 'text-brand font-bold' : ''}`}
                   >
                     {details}
                   </span>
@@ -138,15 +138,15 @@ export default function IngredientList({ items, mode = 'absolute' }: Props) {
       if (mode === 'name_only') {
         return (
           <div className="flex justify-between items-center text-sm">
-            <span className="text-zinc-300 font-medium">{item.name}</span>
+            <span className="text-text-secondary font-medium">{item.name}</span>
           </div>
         );
       }
       return (
         <div className="flex justify-between items-center text-sm">
-          <span className="text-zinc-300 font-medium">{item.name}</span>
+          <span className="text-text-secondary font-medium">{item.name}</span>
           {(item.amount || item.unit) && mode === 'absolute' && (
-            <span className="text-zinc-500 text-xs font-mono ml-3 shrink-0">
+            <span className="text-text-muted text-xs font-mono ml-3 shrink-0">
               {item.amount && `${item.amount}`}
               {item.unit && ` ${item.unit}`}
             </span>

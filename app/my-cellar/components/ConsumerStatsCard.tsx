@@ -24,8 +24,8 @@ function formatMemberSince(isoDate: string): string {
 
 export default function ConsumerStatsCard({ stats }: { stats: ConsumerStats }) {
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
-      <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-4">
+    <div className="bg-surface border border-border rounded-2xl p-5">
+      <h3 className="text-[10px] font-bold uppercase tracking-widest text-text-disabled mb-4">
         Meine Statistiken
       </h3>
 
@@ -101,19 +101,19 @@ function StatItem({
     amber: 'text-amber-500',
     emerald: 'text-emerald-500',
     purple: 'text-purple-500',
-    zinc: 'text-zinc-400',
+    zinc: 'text-text-muted',
   };
 
   return (
-    <div className="flex items-center gap-3 p-2.5 rounded-xl bg-zinc-800/30 border border-zinc-800/50">
-      <div className={`w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center flex-shrink-0 ${colorMap[color] || 'text-zinc-400'}`}>
+    <div className="flex items-center gap-3 p-2.5 rounded-xl bg-surface-hover/30 border border-border/50">
+      <div className={`w-8 h-8 rounded-lg bg-surface-hover flex items-center justify-center flex-shrink-0 ${colorMap[color] || 'text-text-muted'}`}>
         <Icon className="w-4 h-4" />
       </div>
       <div className="min-w-0">
-        <p className={`font-extrabold text-white leading-tight ${small ? 'text-sm' : 'text-lg'}`}>
+        <p className={`font-bold text-text-primary leading-tight ${small ? 'text-sm' : 'text-lg'}`}>
           {value}
         </p>
-        <p className="text-[10px] text-zinc-500 uppercase tracking-wider">{label}</p>
+        <p className="text-[10px] text-text-disabled uppercase tracking-wider">{label}</p>
       </div>
     </div>
   );

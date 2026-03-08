@@ -11,6 +11,7 @@
     "true": true,
     "npm i": true,
     "tsx": true,
-    "npx supabase": true
+    "npx supabase": true,
+    "awk": true
   }
 }

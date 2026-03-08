@@ -381,7 +381,7 @@ export default function LabelsPage({ params }: { params: Promise<{ breweryId: st
     }
 
     if (loading) {
-        return <div className="p-12 text-center text-zinc-500">Lade Designs...</div>;
+        return <div className="p-12 text-center text-text-muted">Lade Designs...</div>;
     }
 
     // Limits & Progressbar: Dynamisch aus tier-system + subscription bypass
@@ -397,24 +397,24 @@ export default function LabelsPage({ params }: { params: Promise<{ breweryId: st
     return (
         <div className="space-y-12 pb-24">
                 {/* HEADER SECTION */}
-                <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-zinc-900 pb-8">
+                <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-border pb-8">
                      <div>
                         <div className="flex items-center gap-3 mb-1">
-                            <h1 className="text-2xl font-bold text-white tracking-tight">Etiketten Studio</h1>
+                            <h1 className="text-2xl font-bold text-text-primary tracking-tight">Etiketten Studio</h1>
                              {limitReached && (
                                 <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded text-amber-500 bg-amber-500/10 border border-amber-500/20">
                                     Limit erreicht
                                 </span>
                             )}
                         </div>
-                        <p className="text-sm text-zinc-500">Verwalte deine Etiketten-Designs, dokumentiere Vorlagen und behalte den Überblick.</p>
+                        <p className="text-sm text-text-muted">Verwalte deine Etiketten-Designs, dokumentiere Vorlagen und behalte den Überblick.</p>
                      </div>
 
                      <div className="flex items-center gap-4">
                          {limitReached ? (
                              <button 
                                 disabled
-                                className="px-4 py-2 rounded-lg font-bold text-sm bg-zinc-900 text-zinc-500 cursor-not-allowed border border-zinc-800 flex items-center gap-2"
+                                className="px-4 py-2 rounded-lg font-bold text-sm bg-surface text-text-muted cursor-not-allowed border border-border flex items-center gap-2"
                                 title="Limit erreicht oder Upgrade nötig"
                             >
                                 <Lock className="w-4 h-4 text-amber-500" />
@@ -424,21 +424,21 @@ export default function LabelsPage({ params }: { params: Promise<{ breweryId: st
                              <button
                                 onClick={() => setShowFormatModal(true)}
                                 disabled={creating}
-                                className="px-4 py-2 rounded-md font-bold text-sm bg-white hover:bg-zinc-200 text-black border border-transparent transition-all shadow-sm flex items-center gap-2 disabled:opacity-50"
+                                className="px-4 py-2 rounded-md font-bold text-sm bg-text-primary hover:bg-text-secondary text-background border border-transparent transition-all shadow-sm flex items-center gap-2 disabled:opacity-50"
                             >
-                                {creating ? <div className="animate-spin w-4 h-4 border-2 border-black border-t-transparent rounded-full"/> : <Plus size={16} />}
+                                {creating ? <div className="animate-spin w-4 h-4 border-2 border-background border-t-transparent rounded-full"/> : <Plus size={16} />}
                                 <span>Neues Etikett</span>
                             </button>
                          )}
 
-                         <div className="h-8 w-px bg-zinc-800 hidden md:block"></div>
+                         <div className="h-8 w-px bg-border hidden md:block"></div>
                          <div className="text-right hidden md:block">
-                            <p className="text-[10px] uppercase font-bold text-zinc-600 tracking-wider mb-0.5">Kapazität</p>
-                            <div className="text-zinc-300 font-mono text-xs text-right flex items-center justify-end gap-2">
+                            <p className="text-[10px] uppercase font-bold text-text-disabled tracking-wider mb-0.5">Kapazität</p>
+                            <div className="text-text-secondary font-mono text-xs text-right flex items-center justify-end gap-2">
                                 {premiumStatus?.features.bypassLabelLimits ? (
                                     <span className="text-emerald-500"><InfinityIcon size={14} /></span>
                                 ) : (
-                                    <span className={limitReached ? "text-amber-500" : ""}>{labelCount} / {LABEL_LIMIT}</span>
+                                    <span className={limitReached ? "text-rating" : ""}>{labelCount} / {LABEL_LIMIT}</span>
                                 )}
                             </div>
                          </div>
@@ -451,84 +451,84 @@ export default function LabelsPage({ params }: { params: Promise<{ breweryId: st
                     {/* LEFT COLUMN: Sidebar (Sticky) */}
                     <div className="space-y-6 lg:sticky lg:top-8 z-20">
                         {/* Templates Stats */}
-                         <div className="bg-zinc-900/30 border border-zinc-800 p-4 rounded-xl flex flex-col justify-between h-24 relative overflow-hidden group hover:border-cyan-500/30 transition-colors">
+                         <div className="bg-surface border border-border p-4 rounded-2xl h-24 flex flex-col justify-between relative overflow-hidden group hover:border-brand/30 transition-colors">
                             <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-transparent opacity-50 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                            <div className="text-cyan-500 text-xs font-bold uppercase tracking-wider relative z-10">Vorlagen</div>
-                            <div className="text-2xl font-mono font-bold text-cyan-400 relative z-10">{templates.length}</div>
+                            <div className="text-brand text-xs font-bold uppercase tracking-wider relative z-10">Vorlagen</div>
+                            <div className="text-2xl font-mono font-bold text-brand relative z-10">{templates.length}</div>
                         </div>
 
                         {/* Sortieren - Sidebar */}
-                        <div className="hidden lg:block md:bg-black border border-zinc-800 rounded-lg overflow-hidden">
-                            <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
-                                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                                    <Filter className="w-4 h-4 text-zinc-400" />
+                        <div className="hidden lg:block md:bg-surface border border-border rounded-2xl overflow-hidden">
+                            <div className="p-4 border-b border-border flex items-center justify-between">
+                                <h3 className="text-sm font-bold text-text-primary flex items-center gap-2">
+                                    <Filter className="w-4 h-4 text-text-muted" />
                                     Sortieren
                                 </h3>
                             </div>
                             <div className="p-2 space-y-1">
                                 <button
                                     onClick={() => setSortOrder('newest')}
-                                    className={`w-full flex items-center justify-between p-2.5 rounded text-xs font-bold transition-all ${sortOrder === 'newest' ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                    className={`w-full flex items-center justify-between p-2.5 rounded-lg text-xs font-bold transition-all ${sortOrder === 'newest' ? 'bg-surface-hover text-text-primary' : 'text-text-muted hover:text-text-secondary'}`}
                                 >
                                     <div className="flex items-center gap-3">
                                         <Calendar className="w-3.5 h-3.5" />
                                         Neueste zuerst
                                     </div>
-                                    {sortOrder === 'newest' && <div className="w-1.5 h-1.5 rounded-full bg-cyan-500"></div>}
+                                    {sortOrder === 'newest' && <div className="w-1.5 h-1.5 rounded-full bg-accent-purple"></div>}
                                 </button>
                                 <button
                                     onClick={() => setSortOrder('oldest')}
-                                    className={`w-full flex items-center justify-between p-2.5 rounded text-xs font-bold transition-all ${sortOrder === 'oldest' ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                    className={`w-full flex items-center justify-between p-2.5 rounded-lg text-xs font-bold transition-all ${sortOrder === 'oldest' ? 'bg-surface-hover text-text-primary' : 'text-text-muted hover:text-text-secondary'}`}
                                 >
                                     <div className="flex items-center gap-3">
                                         <Calendar className="w-3.5 h-3.5" />
                                         Älteste zuerst
                                     </div>
-                                    {sortOrder === 'oldest' && <div className="w-1.5 h-1.5 rounded-full bg-cyan-500"></div>}
+                                    {sortOrder === 'oldest' && <div className="w-1.5 h-1.5 rounded-full bg-accent-purple"></div>}
                                 </button>
                                 <button
                                     onClick={() => setSortOrder('name')}
-                                    className={`w-full flex items-center justify-between p-2.5 rounded text-xs font-bold transition-all ${sortOrder === 'name' ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                    className={`w-full flex items-center justify-between p-2.5 rounded-lg text-xs font-bold transition-all ${sortOrder === 'name' ? 'bg-surface-hover text-text-primary' : 'text-text-muted hover:text-text-secondary'}`}
                                 >
                                     <div className="flex items-center gap-3">
                                         <ArrowUpDown className="w-3.5 h-3.5" />
                                         Name (A-Z)
                                     </div>
-                                    {sortOrder === 'name' && <div className="w-1.5 h-1.5 rounded-full bg-cyan-500"></div>}
+                                    {sortOrder === 'name' && <div className="w-1.5 h-1.5 rounded-full bg-accent-purple"></div>}
                                 </button>
                             </div>
                         </div>
 
                          {/* Filter - Sidebar */}
-                        <div className="hidden lg:block md:bg-black border border-zinc-800 rounded-lg overflow-hidden">
-                            <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
-                                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                                    <Tag className="w-4 h-4 text-zinc-400" />
+                        <div className="hidden lg:block bg-surface border border-border rounded-xl overflow-hidden">
+                            <div className="p-4 border-b border-border-subtle flex items-center justify-between">
+                                <h3 className="text-sm font-bold text-text-primary flex items-center gap-2">
+                                    <Tag className="w-4 h-4 text-text-muted" />
                                     Formate
                                 </h3>
                             </div>
                             <div className="p-2 space-y-1 max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-700">
                                 <button
                                     onClick={() => setFilterFormat('ALL')}
-                                    className={`w-full flex items-center justify-between p-2.5 rounded text-xs font-bold transition-all ${filterFormat === 'ALL' ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                    className={`w-full flex items-center justify-between p-2.5 rounded-lg text-xs font-bold transition-all ${filterFormat === 'ALL' ? 'bg-surface-hover text-text-primary' : 'text-text-muted hover:text-text-secondary'}`}
                                 >
                                     <div className="flex items-center gap-3">
                                         <RectangleVertical className="w-3.5 h-3.5" />
                                         Alle Formate
                                     </div>
-                                    {filterFormat === 'ALL' && <div className="w-1.5 h-1.5 rounded-full bg-cyan-500"></div>}
+                                    {filterFormat === 'ALL' && <div className="w-1.5 h-1.5 rounded-full bg-accent-purple"></div>}
                                 </button>
                                 {Object.entries(LABEL_FORMATS).map(([id, fmt]) => (
                                     <button
                                         key={id}
                                         onClick={() => setFilterFormat(id)}
-                                        className={`w-full flex items-center justify-between p-2.5 rounded text-xs font-bold transition-all ${filterFormat === id ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                        className={`w-full flex items-center justify-between p-2.5 rounded-lg text-xs font-bold transition-all ${filterFormat === id ? 'bg-surface-hover text-text-primary' : 'text-text-muted hover:text-text-secondary'}`}
                                     >
                                         <div className="flex items-center gap-3 truncate">
                                             <RectangleHorizontal className="w-3.5 h-3.5 flex-shrink-0" />
                                             <span className="truncate">{fmt.name}</span>
                                         </div>
-                                        {filterFormat === id && <div className="w-1.5 h-1.5 rounded-full bg-cyan-500"></div>}
+                                        {filterFormat === id && <div className="w-1.5 h-1.5 rounded-full bg-accent-purple"></div>}
                                     </button>
                                 ))}
                             </div>
@@ -540,22 +540,22 @@ export default function LabelsPage({ params }: { params: Promise<{ breweryId: st
                     <div className="space-y-6">
 
                         {/* Toolbar */}
-                        <div className="flex flex-col gap-4 bg-zinc-900/30 p-1 rounded-xl border border-zinc-800/50">
+                        <div className="flex flex-col gap-4">
                             <div className="flex flex-col sm:flex-row gap-4 items-center">
                                 <div className="relative group w-full">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within:text-white transition-colors" />
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted group-focus-within:text-text-primary transition-colors" />
                                     <input 
                                         type="text" 
                                         placeholder="Design suchen..." 
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="w-full bg-transparent text-sm text-white pl-9 pr-3 py-2 focus:outline-none placeholder:text-zinc-600 rounded-lg"
+                                        className="w-full bg-surface border border-border rounded-2xl py-2 pl-9 pr-4 text-sm text-text-primary focus:border-brand/50 focus:ring-1 focus:ring-brand/20 focus:outline-none transition-all placeholder:text-text-disabled"
                                     />
                                 </div>
                             </div>
                             
                              {/* Mobile Filters */}
-                            <div className="grid grid-cols-2 gap-2 lg:hidden px-1 pb-1">
+                            <div className="grid grid-cols-2 gap-2 lg:hidden">
                                 <CustomSelect
                                     value={sortOrder}
                                     onChange={(val: any) => setSortOrder(val)}
@@ -580,24 +580,24 @@ export default function LabelsPage({ params }: { params: Promise<{ breweryId: st
                         </div>
 
             {templates.length === 0 ? (
-                <div className="bg-zinc-900/50 border border-zinc-800 border-dashed rounded-3xl p-16 text-center flex flex-col items-center justify-center gap-4">
-                    <div className="w-20 h-20 bg-zinc-900 rounded-full flex items-center justify-center text-4xl mb-2">
-                        <Palette className="w-10 h-10 text-cyan-500" />
+                <div className="bg-surface border border-border border-dashed rounded-3xl p-16 text-center flex flex-col items-center justify-center gap-4">
+                    <div className="w-20 h-20 bg-surface-hover rounded-full flex items-center justify-center mb-2">
+                        <Palette className="w-10 h-10 text-brand" />
                     </div>
-                    <h3 className="text-xl font-bold text-white">Noch keine Designs</h3>
-                    <p className="text-zinc-500 max-w-sm">
+                    <h3 className="text-xl font-bold text-text-primary">Noch keine Designs</h3>
+                    <p className="text-text-muted max-w-sm">
                         Erstelle deine erste Vorlage, um beim nächsten Abfüllen Zeit zu sparen.
                     </p>
                     {isFreeTier ? (
-                        <div className="mt-4 p-4 bg-zinc-950/80 rounded-xl border border-amber-900/30 max-w-sm">
+                        <div className="mt-4 p-4 bg-background rounded-xl border border-amber-900/30 max-w-sm">
                             <p className="text-amber-500 font-bold text-sm mb-1">Upgrade benötigt</p>
-                            <p className="text-zinc-400 text-xs">
+                            <p className="text-text-muted text-xs">
                                 Im Free-Tier kannst du nur das Standard-Design nutzen. 
-                                <Link href="/pricing" className="text-white hover:underline ml-1">Zum Upgrade →</Link>
+                                <Link href="/pricing" className="text-text-primary hover:underline ml-1">Zum Upgrade →</Link>
                             </p>
                         </div>
                     ) : (
-                        <button onClick={() => setShowFormatModal(true)} className="text-cyan-500 hover:underline font-bold mt-2">
+                        <button onClick={() => setShowFormatModal(true)} className="text-brand hover:underline font-bold mt-2">
                             Jetzt erstellen →
                         </button>
                     )}
@@ -629,9 +629,9 @@ export default function LabelsPage({ params }: { params: Promise<{ breweryId: st
                         const formatName = `${config.width} x ${config.height} mm`;
 
                         return (
-                            <div key={template.id} className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden group hover:border-zinc-600 transition flex flex-col relative">
+                            <div key={template.id} className="bg-surface border border-border rounded-2xl overflow-hidden group hover:border-border-hover transition flex flex-col relative">
                                 {/* Preview Area (Mini Canvas) */}
-                                <div className="aspect-[4/3] bg-zinc-950 relative p-6 flex items-center justify-center overflow-hidden border-b border-zinc-800/50">
+                                <div className="aspect-[4/3] bg-background relative p-6 flex items-center justify-center overflow-hidden border-b border-border/50">
                                     <div 
                                         className="relative shadow-2xl origin-center transition-transform group-hover:scale-105 duration-500 pointer-events-none"
                                         style={{
@@ -649,7 +649,7 @@ export default function LabelsPage({ params }: { params: Promise<{ breweryId: st
                                     </div>
                                     
                                     {template.is_default && (
-                                        <div className="absolute top-3 right-3 bg-cyan-500 text-black text-[10px] font-black uppercase px-2 py-1 rounded shadow-md z-10">
+                                        <div className="absolute top-3 right-3 bg-brand text-background text-[10px] font-black uppercase px-2 py-1 rounded shadow-md z-10">
                                             Standard
                                         </div>
                                     )}
@@ -657,14 +657,14 @@ export default function LabelsPage({ params }: { params: Promise<{ breweryId: st
 
                                 <div className="p-5 flex-1 flex flex-col">
                                     <div className="mb-4">
-                                        <h3 className="font-bold text-white text-lg group-hover:text-cyan-400 transition truncate" title={template.name}>
+                                        <h3 className="font-bold text-text-primary text-lg group-hover:text-brand transition truncate" title={template.name}>
                                             {template.name}
                                         </h3>
                                         <div className="flex items-center gap-2 mt-1">
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 bg-zinc-950 px-2 py-1 rounded border border-zinc-800">
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-text-muted bg-background px-2 py-1 rounded border border-border">
                                                 {formatName}
                                             </span>
-                                            <span className="text-[10px] text-zinc-600">
+                                            <span className="text-[10px] text-text-disabled">
                                                 {new Date(template.updated_at).toLocaleDateString()}
                                             </span>
                                         </div>
@@ -673,7 +673,7 @@ export default function LabelsPage({ params }: { params: Promise<{ breweryId: st
                                     <div className="mt-auto grid grid-cols-3 gap-2">
                                         <Link 
                                             href={`/team/${breweryId}/labels/editor/${template.id}`}
-                                            className="col-span-2 bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-bold py-2 rounded-lg flex items-center justify-center gap-2 transition"
+                                            className="col-span-2 bg-surface-hover hover:bg-surface text-text-primary text-sm font-bold py-2 rounded-lg flex items-center justify-center gap-2 transition"
                                         >
                                             <Edit3 size={14} /> Bearbeiten
                                         </Link>
@@ -682,7 +682,7 @@ export default function LabelsPage({ params }: { params: Promise<{ breweryId: st
                                                 <button 
                                                     onClick={() => handleSetDefault(template.id)}
                                                     title="Als Standard setzen"
-                                                    className="flex-1 bg-zinc-950 border border-zinc-800 hover:border-cyan-500 text-zinc-500 hover:text-cyan-500 rounded-lg flex items-center justify-center transition"
+                                                    className="flex-1 bg-background border border-border hover:border-brand text-text-muted hover:text-brand rounded-lg flex items-center justify-center transition"
                                                 >
                                                     <Check size={14} />
                                                 </button>
@@ -691,7 +691,7 @@ export default function LabelsPage({ params }: { params: Promise<{ breweryId: st
                                                 onClick={() => handleDelete(template.id)}
                                                 disabled={template.is_default}
                                                 title={template.is_default ? "Standard-Design kann nicht gelöscht werden" : "Löschen"}
-                                                className={`flex-1 bg-zinc-950 border border-zinc-800 rounded-lg flex items-center justify-center transition ${template.is_default ? 'text-zinc-700 cursor-not-allowed border-zinc-800/50' : 'hover:border-red-500 text-zinc-500 hover:text-red-500'}`}
+                                                className={`flex-1 bg-background border border-border rounded-lg flex items-center justify-center transition ${template.is_default ? 'text-text-disabled cursor-not-allowed border-border/50' : 'hover:border-error text-text-muted hover:text-error'}`}
                                             >
                                                 <Trash2 size={14} />
                                             </button>
@@ -709,24 +709,24 @@ export default function LabelsPage({ params }: { params: Promise<{ breweryId: st
             {/* Format Selection Modal */}
             {showFormatModal && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-200" onClick={() => setShowFormatModal(false)}>
-                    <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 md:p-8 max-w-2xl w-full relative overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
+                    <div className="bg-surface border border-border rounded-3xl p-6 md:p-8 max-w-2xl w-full relative overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
                         
                         {/* Decorative Background Element */}
                         <div className="absolute -top-20 -right-20 w-64 h-64 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none"></div>
 
                         <div className="mb-8 text-center relative z-10">
-                            <h2 className="text-2xl font-black text-white mb-2">Format wählen</h2>
-                            <p className="text-zinc-400">Welches Etiketten-Format möchtest du verwenden?</p>
+                            <h2 className="text-2xl font-black text-text-primary mb-2">Format wählen</h2>
+                            <p className="text-text-muted">Welches Etiketten-Format möchtest du verwenden?</p>
                         </div>
 
                         {/* Orientation Toggle */}
-                        <div className="relative z-10 grid grid-cols-2 gap-2 bg-zinc-950/50 p-1.5 rounded-xl border border-zinc-800/50 mb-8">
+                        <div className="relative z-10 grid grid-cols-2 gap-2 bg-background/50 p-1.5 rounded-xl border border-border/50 mb-8">
                             <button 
                                 onClick={() => setForceOrientation('p')}
                                 className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-bold transition-all duration-200 ${
                                     forceOrientation === 'p' 
-                                    ? 'bg-zinc-800 text-white shadow-lg ring-1 ring-white/10' 
-                                    : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/50'
+                                    ? 'bg-surface-hover text-text-primary shadow-lg ring-1 ring-border' 
+                                    : 'text-text-muted hover:text-text-secondary hover:bg-surface/50'
                                 }`}
                             >
                                 <RectangleVertical size={16} />
@@ -737,8 +737,8 @@ export default function LabelsPage({ params }: { params: Promise<{ breweryId: st
                                 onClick={() => setForceOrientation('l')}
                                 className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-bold transition-all duration-200 ${
                                     forceOrientation === 'l' 
-                                    ? 'bg-zinc-800 text-white shadow-lg ring-1 ring-white/10' 
-                                    : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/50'
+                                    ? 'bg-surface-hover text-text-primary shadow-lg ring-1 ring-border' 
+                                    : 'text-text-muted hover:text-text-secondary hover:bg-surface/50'
                                 }`}
                             >
                                 <RectangleHorizontal size={16} />
@@ -763,19 +763,19 @@ export default function LabelsPage({ params }: { params: Promise<{ breweryId: st
                                         key={fmt.id}
                                         onClick={() => handleCreate(fmt.id)}
                                         disabled={creating}
-                                        className="group relative flex flex-col p-5 bg-zinc-950 border border-zinc-800 hover:border-cyan-500/50 hover:bg-zinc-900/80 rounded-2xl transition-all duration-200 text-left"
+                                        className="group relative flex flex-col p-5 bg-background border border-border hover:border-brand/50 hover:bg-surface rounded-2xl transition-all duration-200 text-left"
                                     >
                                         <div className="flex justify-between items-start w-full mb-4">
                                             <div>
-                                                <h3 className="font-bold text-white group-hover:text-cyan-400 transition-colors">{displayName}</h3>
-                                                <span className="text-[10px] font-mono text-zinc-500 bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-800 mt-1 inline-block">ID: {fmt.id}</span>
+                                                <h3 className="font-bold text-text-primary group-hover:text-brand transition-colors">{displayName}</h3>
+                                                <span className="text-[10px] font-mono text-text-muted bg-surface px-1.5 py-0.5 rounded border border-border mt-1 inline-block">ID: {fmt.id}</span>
                                             </div>
                                             <div className="text-right">
-                                                <div className="text-sm font-bold text-zinc-300">{w} × {h} mm</div>
+                                                <div className="text-sm font-bold text-text-secondary">{w} × {h} mm</div>
                                             </div>
                                         </div>
 
-                                        <div className="mt-auto flex items-center justify-between text-xs text-zinc-500 group-hover:text-zinc-400">
+                                        <div className="mt-auto flex items-center justify-between text-xs text-text-muted group-hover:text-text-secondary">
                                             <div className="flex items-center gap-1.5">
                                                 <Tag size={12} />
                                                 {fmt.rows * fmt.cols} / Bogen
@@ -800,7 +800,7 @@ export default function LabelsPage({ params }: { params: Promise<{ breweryId: st
                         <div className="mt-8 flex justify-center relative z-10">
                             <button 
                                 onClick={() => setShowFormatModal(false)}
-                                className="px-6 py-2 text-zinc-500 hover:text-white text-sm font-bold transition-colors hover:bg-zinc-800 rounded-full"
+                                className="px-6 py-2 text-text-muted hover:text-text-primary text-sm font-bold transition-colors hover:bg-surface-hover rounded-full"
                             >
                                 Abbrechen
                             </button>

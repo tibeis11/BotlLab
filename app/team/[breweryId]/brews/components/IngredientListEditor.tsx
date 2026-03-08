@@ -65,21 +65,21 @@ export function IngredientListEditor({ label, value, onChange }: IngredientListE
     return (
         <div className="space-y-2">
              <div className="flex justify-between items-end mb-2">
-                <label className="text-xs font-bold text-zinc-500 uppercase ml-1 block">{label}</label>
+                <label className="text-xs font-bold text-text-muted uppercase ml-1 block">{label}</label>
             </div>
             
-            <div className="space-y-2 bg-zinc-900 border border-zinc-800 rounded-xl p-3">
+            <div className="space-y-2 bg-surface border border-border rounded-xl p-3">
                 {items.length === 0 && (
                     <div className="text-center py-4">
-                        <p className="text-sm text-zinc-600 mb-2">Keine Zutaten eingetragen.</p>
-                        <button onClick={addRow} className="text-xs font-bold bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-3 py-1.5 rounded-lg transition">
+                        <p className="text-sm text-text-disabled mb-2">Keine Zutaten eingetragen.</p>
+                        <button onClick={addRow} className="text-xs font-bold bg-surface-hover hover:bg-surface-hover text-text-secondary px-3 py-1.5 rounded-lg transition">
                             + Erste Zutat hinzufügen
                         </button>
                     </div>
                 )}
                 
                 {items.length > 0 && (
-                    <div className="grid grid-cols-[80px_70px_1fr_30px] gap-2 mb-2 text-[10px] uppercase font-bold text-zinc-600 px-1">
+                    <div className="grid grid-cols-[80px_70px_1fr_30px] gap-2 mb-2 text-[10px] uppercase font-bold text-text-disabled px-1">
                         <div>Menge</div>
                         <div>Einh.</div>
                         <div>Name</div>
@@ -92,14 +92,14 @@ export function IngredientListEditor({ label, value, onChange }: IngredientListE
                         <input 
                             type="text"
                             inputMode="decimal"
-                            className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-2 text-sm text-white focus:border-cyan-500 outline-none text-right placeholder:text-zinc-700"
+                            className="w-full bg-background border border-border rounded-lg px-2 py-2 text-sm text-text-primary focus:border-brand outline-none text-right placeholder:text-text-disabled"
                             placeholder="0"
                             value={item.amount}
                             onChange={(e) => updateRow(idx, 'amount', e.target.value.replace(',', '.'))}
                         />
                         <div className="relative">
                              <input 
-                                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-2 text-sm text-white focus:border-cyan-500 outline-none placeholder:text-zinc-700"
+                                className="w-full bg-background border border-border rounded-lg px-2 py-2 text-sm text-text-primary focus:border-brand outline-none placeholder:text-text-disabled"
                                 placeholder="g"
                                 value={item.unit}
                                 list={`units-${label.replace(/\s/g, '')}-${idx}`}
@@ -110,7 +110,7 @@ export function IngredientListEditor({ label, value, onChange }: IngredientListE
                             </datalist>
                         </div>
                         <input 
-                            className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-2 text-sm text-white focus:border-cyan-500 outline-none placeholder:text-zinc-700"
+                            className="w-full bg-background border border-border rounded-lg px-2 py-2 text-sm text-text-primary focus:border-brand outline-none placeholder:text-text-disabled"
                             placeholder="Zutat..."
                             value={item.name}
                             onChange={(e) => updateRow(idx, 'name', e.target.value)}
@@ -119,7 +119,7 @@ export function IngredientListEditor({ label, value, onChange }: IngredientListE
                         />
                         <button 
                             onClick={() => removeRow(idx)}
-                            className="text-zinc-600 hover:text-red-400 transition flex justify-center w-8"
+                            className="text-text-disabled hover:text-error transition flex justify-center w-8"
                             title="Entfernen"
                             tabIndex={-1}
                         >
@@ -129,7 +129,7 @@ export function IngredientListEditor({ label, value, onChange }: IngredientListE
                 ))}
 
                 {items.length > 0 && (
-                     <button onClick={addRow} className="w-full py-2 mt-2 flex items-center justify-center gap-2 text-xs font-bold text-zinc-500 hover:text-cyan-400 hover:bg-zinc-800/50 rounded-lg border border-dashed border-zinc-800 hover:border-cyan-500/30 transition-all">
+                     <button onClick={addRow} className="w-full py-2 mt-2 flex items-center justify-center gap-2 text-xs font-bold text-text-muted hover:text-brand hover:bg-surface-hover/50 rounded-lg border border-dashed border-border hover:border-brand/30 transition-all">
                         <span>+ Weitere Zeile</span>
                     </button>
                 )}

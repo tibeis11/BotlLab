@@ -83,10 +83,10 @@ export default function QuickSessionForm({ breweryId, brews }: Props) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-5">
       {/* Recipe Selection */}
       <div>
-        <label className="block text-sm font-medium mb-2 text-white">Rezept</label>
+        <label className="block text-[10px] font-bold uppercase tracking-widest text-text-muted mb-2">Rezept wählen</label>
         <CustomSelect
           value={selectedBrewId}
           onChange={setSelectedBrewId}
@@ -101,31 +101,31 @@ export default function QuickSessionForm({ breweryId, brews }: Props) {
 
       {/* Brew Date */}
       <div>
-        <label className="block text-sm font-medium mb-2 text-white">Brautag</label>
+        <label className="block text-[10px] font-bold uppercase tracking-widest text-text-muted mb-2">Brautag</label>
         <input
           type="date"
           value={brewedAt}
           onChange={(e) => setBrewedAt(e.target.value)}
-          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-white outline-none focus:border-cyan-600 transition"
+          className="w-full bg-surface border border-border rounded-xl px-4 py-3 text-sm text-text-primary outline-none focus:border-brand transition"
           required
         />
       </div>
 
       {/* Optional Measurements */}
-      <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6">
-        <h3 className="font-semibold mb-3 text-white">Messwerte (Optional)</h3>
-        <p className="text-sm text-zinc-400 mb-4">
-          Überschreibe die Rezeptwerte falls nötig.
-        </p>
+      <div className="bg-surface border border-border rounded-2xl p-6">
+        <div className="flex items-center gap-3 mb-5">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted shrink-0">Messwerte</span>
+          <span className="text-[10px] font-bold text-text-disabled shrink-0">— Optional</span>
+          <div className="h-px bg-border flex-1" />
+        </div>
+        <p className="text-sm text-text-muted mb-5">Überschreibe die Rezeptwerte falls nötig.</p>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div>
-            <label className="block text-xs mb-1 text-zinc-400 min-h-[2.5rem]">
-              OG (Stammwürze)
+            <label className="block min-h-[2.5rem] mb-2">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">OG</span>
               {getRecipeOGinSG() && (
-                <span className="text-zinc-600 ml-1">
-                  (Rezept: {getRecipeOGinSG()!.toFixed(3)})
-                </span>
+                <span className="block text-[10px] text-text-disabled mt-0.5">Rezept: {getRecipeOGinSG()!.toFixed(3)}</span>
               )}
             </label>
             <input
@@ -136,17 +136,15 @@ export default function QuickSessionForm({ breweryId, brews }: Props) {
               value={overrideOG}
               onChange={(e) => setOverrideOG(e.target.value)}
               placeholder={getRecipeOGinSG()?.toFixed(3) || "1.050"}
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-white outline-none focus:border-cyan-600 transition"
+              className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm font-mono text-text-primary outline-none focus:border-brand focus:ring-1 focus:ring-brand/20 transition"
             />
           </div>
 
           <div>
-            <label className="block text-xs mb-1 text-zinc-400 min-h-[2.5rem]">
-              FG (Endvergärung)
+            <label className="block min-h-[2.5rem] mb-2">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">FG</span>
               {getRecipeFGinSG() && (
-                <span className="text-zinc-600 ml-1">
-                  (Rezept: {getRecipeFGinSG()!.toFixed(3)})
-                </span>
+                <span className="block text-[10px] text-text-disabled mt-0.5">Rezept: {getRecipeFGinSG()!.toFixed(3)}</span>
               )}
             </label>
             <input
@@ -157,17 +155,15 @@ export default function QuickSessionForm({ breweryId, brews }: Props) {
               value={overrideFG}
               onChange={(e) => setOverrideFG(e.target.value)}
               placeholder={getRecipeFGinSG()?.toFixed(3) || "1.012"}
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-white outline-none focus:border-cyan-600 transition"
+              className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm font-mono text-text-primary outline-none focus:border-brand focus:ring-1 focus:ring-brand/20 transition"
             />
           </div>
 
           <div>
-            <label className="block text-xs mb-1 text-zinc-400 min-h-[2.5rem]">
-              ABV (Alkohol %)
+            <label className="block min-h-[2.5rem] mb-2">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">ABV %</span>
               {recipeData?.abv && (
-                <span className="text-zinc-600 ml-1">
-                  (Rezept: {recipeData.abv})
-                </span>
+                <span className="block text-[10px] text-text-disabled mt-0.5">Rezept: {recipeData.abv}</span>
               )}
             </label>
             <input
@@ -178,17 +174,15 @@ export default function QuickSessionForm({ breweryId, brews }: Props) {
               value={overrideABV}
               onChange={(e) => setOverrideABV(e.target.value)}
               placeholder={recipeData?.abv || "5.0"}
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-white outline-none focus:border-cyan-600 transition"
+              className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm font-mono text-text-primary outline-none focus:border-brand focus:ring-1 focus:ring-brand/20 transition"
             />
           </div>
 
           <div>
-            <label className="block text-xs mb-1 text-zinc-400 min-h-[2.5rem]">
-              Volumen (L)
+            <label className="block min-h-[2.5rem] mb-2">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Volumen L</span>
               {recipeData?.batchSize && (
-                <span className="text-zinc-600 ml-1">
-                  (Rezept: {recipeData.batchSize})
-                </span>
+                <span className="block text-[10px] text-text-disabled mt-0.5">Rezept: {recipeData.batchSize}</span>
               )}
             </label>
             <input
@@ -199,7 +193,7 @@ export default function QuickSessionForm({ breweryId, brews }: Props) {
               value={overrideVolume}
               onChange={(e) => setOverrideVolume(e.target.value)}
               placeholder={recipeData?.batchSize || "20"}
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-white outline-none focus:border-cyan-600 transition"
+              className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm font-mono text-text-primary outline-none focus:border-brand focus:ring-1 focus:ring-brand/20 transition"
             />
           </div>
         </div>
@@ -207,11 +201,13 @@ export default function QuickSessionForm({ breweryId, brews }: Props) {
 
       {/* Notes */}
       <div>
-        <label className="block text-sm font-medium mb-2 text-white">Notizen (Optional)</label>
+        <label className="block text-[10px] font-bold uppercase tracking-widest text-text-muted mb-2">
+          Notizen <span className="text-text-disabled normal-case tracking-normal font-normal">— Optional</span>
+        </label>
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-white outline-none focus:border-cyan-600 transition"
+          className="w-full bg-surface border border-border rounded-xl px-4 py-3 text-sm text-text-primary placeholder:text-text-disabled outline-none focus:border-brand focus:ring-1 focus:ring-brand/20 transition resize-none"
           rows={4}
           maxLength={5000}
           placeholder="Zusätzliche Infos zu dieser Session..."
@@ -229,7 +225,7 @@ export default function QuickSessionForm({ breweryId, brews }: Props) {
       <button
         type="submit"
         disabled={isPending}
-        className="w-full bg-cyan-600 hover:bg-cyan-500 text-white py-3 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="w-full bg-gradient-to-br from-cyan-500 to-blue-600 hover:opacity-90 text-white py-3.5 rounded-xl font-bold text-sm shadow-lg shadow-cyan-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
       >
         {isPending ? "Erstelle Session..." : "Quick Session erstellen"}
       </button>

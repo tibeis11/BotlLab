@@ -31,14 +31,14 @@ export default function AdminPlanSwitcher({ breweryId }: { breweryId: string }) 
   }
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 mt-8">
-      <h3 className="text-lg font-bold text-white mb-2">Admin: Subscription-Plan wechseln</h3>
+    <div className="bg-surface border border-border rounded-2xl p-6 mt-8">
+      <h3 className="text-lg font-bold text-text-primary mb-2">Admin: Subscription-Plan wechseln</h3>
       <div className="flex flex-wrap gap-3 mb-2">
         {plans.map((plan) => (
           <button
             key={plan.key}
             onClick={() => handleSwitchPlan(plan.key)}
-            className="bg-cyan-700 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded disabled:opacity-50"
+            className="bg-brand hover:bg-brand-hover text-white font-bold py-2 px-4 rounded disabled:opacity-50"
             disabled={loading}
           >
             {plan.label}
@@ -47,7 +47,7 @@ export default function AdminPlanSwitcher({ breweryId }: { breweryId: string }) 
       </div>
       {error && <div className="text-red-500 text-sm mt-2">{error}</div>}
       {success && <div className="text-emerald-400 text-sm mt-2">{success}</div>}
-      <p className="text-xs text-zinc-400 mt-2">Nur für Admins sichtbar.</p>
+      <p className="text-xs text-text-muted mt-2">Nur für Admins sichtbar.</p>
     </div>
   );
 }

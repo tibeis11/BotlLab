@@ -1,4 +1,4 @@
-import { impressumConfig } from '@/lib/site-config';
+import { Lock } from 'lucide-react';
 
 export const metadata = {
   robots: 'noindex, nofollow',
@@ -11,7 +11,7 @@ export default function PrivacyPage() {
       <div className="bg-surface border-b border-border py-8">
         <div className="max-w-3xl mx-auto px-6">
           <h1 className="text-4xl font-black text-foreground mb-2">Datenschutzerklärung</h1>
-          <p className="text-zinc-400">BotlLab – Stand: Januar 2026</p>
+          <p className="text-text-secondary">BotlLab – Stand: Januar 2026</p>
         </div>
       </div>
 
@@ -21,7 +21,7 @@ export default function PrivacyPage() {
         {/* 1. Verantwortlicher */}
         <section>
           <h2 className="text-2xl font-bold text-foreground mb-4">1. Verantwortlicher</h2>
-          <div className="text-zinc-300 space-y-2">
+          <div className="text-text-secondary space-y-2">
             <p><strong>{impressumConfig.companyName}</strong></p>
             <p>
               {impressumConfig.ownerName}<br />
@@ -44,7 +44,7 @@ export default function PrivacyPage() {
         {/* 2. Allgemeine Informationen */}
         <section>
           <h2 className="text-2xl font-bold text-foreground mb-4">2. Allgemeine Informationen</h2>
-          <p className="text-zinc-300 leading-relaxed">
+          <p className="text-text-secondary leading-relaxed">
             Diese Datenschutzerklärung informiert dich über die Verarbeitung personenbezogener Daten bei der Nutzung der Plattform BotlLab 
             gemäß der Europäischen Datenschutz-Grundverordnung (DSGVO) und des Bundesdatenschutzgesetzes (BDSG).
           </p>
@@ -53,7 +53,7 @@ export default function PrivacyPage() {
         {/* 3. Arten und Umfang */}
         <section>
           <h2 className="text-2xl font-bold text-foreground mb-4">3. Welche Daten erheben wir?</h2>
-          <div className="text-zinc-300 space-y-4">
+          <div className="text-text-secondary space-y-4">
             <div>
               <h3 className="font-bold text-foreground mb-2">3.1 Registrierung & Authentifizierung</h3>
               <ul className="list-disc list-inside space-y-1 text-sm">
@@ -90,7 +90,7 @@ export default function PrivacyPage() {
             </div>
             <div>
               <h3 className="font-bold text-foreground mb-2">3.4 QR-Scans & Brauerei-Analytics</h3>
-              <p className="text-zinc-300 text-sm mb-2">
+              <p className="text-text-secondary text-sm mb-2">
                 Beim Scannen von Flaschen-QR-Codes erfassen wir kurzzeitig technische Daten (IP-Adresse, User-Agent), um Herkunftsland und Gerätetyp zu bestimmen.
               </p>
               <ul className="list-disc list-inside space-y-1 text-sm">
@@ -112,21 +112,21 @@ export default function PrivacyPage() {
         {/* 4. Zweck der Verarbeitung */}
         <section>
           <h2 className="text-2xl font-bold text-foreground mb-4">4. Wofür nutzen wir deine Daten?</h2>
-          <div className="text-zinc-300 space-y-2">
-            <p>✓ <strong>Kontoverwaltung:</strong> Authentifizierung, Sicherheit, Account-Recovery</p>
-            <p>✓ <strong>Servicebereitstellung:</strong> Rezept- und Flaschenmanagement, QR-Code-Generierung</p>
-            <p>✓ <strong>Personalisierung:</strong> Anpassung des Discover-Feeds an deine Interessen basierend auf deinem Nutzungsverhalten (z.B. angesehene oder gelikte Rezepte).</p>
-            <p>✓ <strong>Kommunikation:</strong> Support, wichtige Mitteilungen über Änderungen</p>
-            <p>✓ <strong>Verbesserung:</strong> Analyse von Nutzerverhalten zur Optimierung (anonym/aggregiert)</p>
-            <p>✓ <strong>Sicherheit:</strong> Betrugsprävention, Missbrauchserkennung</p>
-            <p>✓ <strong>Rechtliche Compliance:</strong> Erfüllung gesetzlicher Anforderungen</p>
-          </div>
+          <ul className="text-text-secondary space-y-2 list-none">
+            <li><strong>Kontoverwaltung:</strong> Authentifizierung, Sicherheit, Account-Recovery</li>
+            <li><strong>Servicebereitstellung:</strong> Rezept- und Flaschenmanagement, QR-Code-Generierung</li>
+            <li><strong>Personalisierung:</strong> Anpassung des Discover-Feeds an deine Interessen basierend auf deinem Nutzungsverhalten (z.B. angesehene oder gelikte Rezepte).</li>
+            <li><strong>Kommunikation:</strong> Support, wichtige Mitteilungen über Änderungen</li>
+            <li><strong>Verbesserung:</strong> Analyse von Nutzerverhalten zur Optimierung (anonym/aggregiert)</li>
+            <li><strong>Sicherheit:</strong> Betrugsprävention, Missbrauchserkennung</li>
+            <li><strong>Rechtliche Compliance:</strong> Erfüllung gesetzlicher Anforderungen</li>
+          </ul>
         </section>
 
         {/* 5. Rechtsgrundlagen */}
         <section>
           <h2 className="text-2xl font-bold text-foreground mb-4">5. Rechtsgrundlagen (DSGVO)</h2>
-          <div className="text-zinc-300 space-y-3">
+          <div className="text-text-secondary space-y-3">
             <p>
               <strong>Art. 6 Abs. 1 DSGVO (Vertragserfüllung):</strong> Datenverarbeitung zur Erfüllung deines Nutzungsvertrags mit BotlLab.
             </p>
@@ -145,7 +145,7 @@ export default function PrivacyPage() {
         {/* 6. Speicherdauer */}
         <section>
           <h2 className="text-2xl font-bold text-foreground mb-4">6. Wie lange speichern wir deine Daten?</h2>
-          <div className="text-zinc-300 space-y-3">
+          <div className="text-text-secondary space-y-3">
             <p>
               <strong>Kontodaten:</strong> Solange dein Konto aktiv ist. Nach Löschung werden Daten innerhalb von 30 Tagen gelöscht, 
               sofern keine gesetzliche Aufbewahrungspflicht besteht.
@@ -169,7 +169,7 @@ export default function PrivacyPage() {
         {/* 7. Empfänger von Daten */}
         <section>
           <h2 className="text-2xl font-bold text-foreground mb-4">7. Wer erhält deine Daten?</h2>
-          <div className="text-zinc-300 space-y-3">
+          <div className="text-text-secondary space-y-3">
             <p>
               <strong>Supabase:</strong> Datenbankhosting und Authentifizierung (Supabase, Inc. – EU-konform per Standardvertragsklauseln)
             </p>
@@ -188,21 +188,21 @@ export default function PrivacyPage() {
         {/* 8. Deine Rechte */}
         <section>
           <h2 className="text-2xl font-bold text-foreground mb-4">8. Deine Rechte als Nutzer</h2>
-          <div className="text-zinc-300 space-y-2">
-            <p>✓ <strong>Auskunftsrecht (Art. 15 DSGVO):</strong> Erfrage, welche Daten wir über dich speichern.</p>
-            <p>✓ <strong>Berichtigungsrecht (Art. 16 DSGVO):</strong> Lass fehlerhafte Daten korrigieren.</p>
-            <p>✓ <strong>Löschungsrecht (Art. 17 DSGVO):</strong> „Recht auf Vergessenwerden" – Lösche dein Konto und deine Daten.</p>
-            <p>✓ <strong>Einschränkungsrecht (Art. 18 DSGVO):</strong> Fordere an, dass Daten nicht verarbeitet werden.</p>
-            <p>✓ <strong>Datenportabilität (Art. 20 DSGVO):</strong> Erhalte deine Daten in maschinenlesbarem Format.</p>
-            <p>✓ <strong>Widerspruchsrecht (Art. 21 DSGVO):</strong> Widerspreche der Verarbeitung für bestimmte Zwecke.</p>
-            <p>✓ <strong>Beschwerde (Art. 77 DSGVO):</strong> Wende dich an deine zuständige Datenschutzbehörde.</p>
-          </div>
+          <ul className="text-text-secondary space-y-2 list-none">
+            <li><strong>Auskunftsrecht (Art. 15 DSGVO):</strong> Erfrage, welche Daten wir über dich speichern.</li>
+            <li><strong>Berichtigungsrecht (Art. 16 DSGVO):</strong> Lass fehlerhafte Daten korrigieren.</li>
+            <li><strong>Löschungsrecht (Art. 17 DSGVO):</strong> „Recht auf Vergessenwerden“ – Lösche dein Konto und deine Daten.</li>
+            <li><strong>Einschränkungsrecht (Art. 18 DSGVO):</strong> Fordere an, dass Daten nicht verarbeitet werden.</li>
+            <li><strong>Datenportabilität (Art. 20 DSGVO):</strong> Erhalte deine Daten in maschinenlesbarem Format.</li>
+            <li><strong>Widerspruchsrecht (Art. 21 DSGVO):</strong> Widerspreche der Verarbeitung für bestimmte Zwecke.</li>
+            <li><strong>Beschwerde (Art. 77 DSGVO):</strong> Wende dich an deine zuständige Datenschutzbehörde.</li>
+          </ul>
         </section>
 
         {/* 9. Cookies und Tracking */}
         <section>
           <h2 className="text-2xl font-bold text-foreground mb-4">9. Cookies, Lokaler Speicher und Personalisierung</h2>
-          <div className="text-zinc-300 leading-relaxed space-y-4">
+          <div className="text-text-secondary leading-relaxed space-y-4">
             <div>
               <p className="font-bold text-foreground mb-2">9.1 Essenzielle Cookies & Lokaler Speicher</p>
               <ul className="list-disc list-inside space-y-1">
@@ -232,19 +232,19 @@ export default function PrivacyPage() {
         {/* 10. Sicherheitsmaßnahmen */}
         <section>
           <h2 className="text-2xl font-bold text-foreground mb-4">10. Wie schützen wir deine Daten?</h2>
-          <div className="text-zinc-300 space-y-2">
-            <p>🔒 <strong>Verschlüsselung:</strong> HTTPS/TLS für alle Übertragungen</p>
-            <p>🔒 <strong>Passwörter:</strong> Mit starken Algorithmen gehashed (bcrypt)</p>
-            <p>🔒 <strong>Zugriffskontrolle:</strong> Row-Level Security (RLS) in der Datenbank</p>
-            <p>🔒 <strong>Regelmäßige Backups:</strong> Automatische Sicherungen durch Supabase</p>
-            <p>🔒 <strong>Monitoring:</strong> Überwachung auf verdächtige Aktivitäten</p>
-          </div>
+          <ul className="text-text-secondary space-y-2 list-none">
+            <li className="flex items-start gap-2"><Lock className="w-3.5 h-3.5 mt-0.5 shrink-0 text-text-muted" /><span><strong>Verschlüsselung:</strong> HTTPS/TLS für alle Übertragungen</span></li>
+            <li className="flex items-start gap-2"><Lock className="w-3.5 h-3.5 mt-0.5 shrink-0 text-text-muted" /><span><strong>Passwörter:</strong> Mit starken Algorithmen gehashed (bcrypt)</span></li>
+            <li className="flex items-start gap-2"><Lock className="w-3.5 h-3.5 mt-0.5 shrink-0 text-text-muted" /><span><strong>Zugriffskontrolle:</strong> Row-Level Security (RLS) in der Datenbank</span></li>
+            <li className="flex items-start gap-2"><Lock className="w-3.5 h-3.5 mt-0.5 shrink-0 text-text-muted" /><span><strong>Regelmäßige Backups:</strong> Automatische Sicherungen durch Supabase</span></li>
+            <li className="flex items-start gap-2"><Lock className="w-3.5 h-3.5 mt-0.5 shrink-0 text-text-muted" /><span><strong>Monitoring:</strong> Überwachung auf verdächtige Aktivitäten</span></li>
+          </ul>
         </section>
 
         {/* 11. Drittanbieter */}
         <section>
           <h2 className="text-2xl font-bold text-foreground mb-4">11. Externe Dienstleister</h2>
-          <div className="text-zinc-300 space-y-3">
+          <div className="text-text-secondary space-y-3">
             <p>
               <strong>Supabase (Datenbankhosting):</strong> <a href="https://supabase.com/privacy" className="text-brand underline">Datenschutz</a>
             </p>
@@ -263,7 +263,7 @@ export default function PrivacyPage() {
         {/* 12. Änderungen */}
         <section>
           <h2 className="text-2xl font-bold text-foreground mb-4">12. Änderungen dieser Datenschutzerklärung</h2>
-          <p className="text-zinc-300 leading-relaxed">
+          <p className="text-text-secondary leading-relaxed">
             Wir können diese Datenschutzerklärung jederzeit ändern. Bedeutsame Änderungen teilen wir dir per E-Mail mit.
           </p>
         </section>
@@ -271,7 +271,7 @@ export default function PrivacyPage() {
         {/* 13. Kontakt */}
         <section>
           <h2 className="text-2xl font-bold text-foreground mb-4">13. Kontakt & Fragen</h2>
-          <p className="text-zinc-300 leading-relaxed">
+          <p className="text-text-secondary leading-relaxed">
             Bei Fragen zu dieser Datenschutzerklärung oder zur Ausübung deiner Rechte, kontaktiere uns unter:<br />
             <strong>E-Mail:</strong> {impressumConfig.contact.email}
           </p>

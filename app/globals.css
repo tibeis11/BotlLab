@@ -22,40 +22,226 @@
 */
 
 :root {
-  /* Default Branding (Dark Mode First) */
-  --background: var(--color-zinc-950);
-  --foreground: var(--color-zinc-100);
-  
-  --brand: var(--color-cyan-500);
-  --brand-dim: var(--color-cyan-900);
-  
-  --surface: var(--color-zinc-900);
-  --surface-hover: var(--color-zinc-800);
-  --border: var(--color-zinc-800);
+  /* ====================================================
+     DARK MODE TOKENS (Default)
+     ==================================================== */
+
+  /* Backgrounds */
+  --background:         var(--color-zinc-950);
+  --foreground:         var(--color-zinc-100);
+  --surface:            var(--color-zinc-900);
+  --surface-hover:      var(--color-zinc-800);
+  --surface-raised:     var(--color-zinc-800);
+  --surface-overlay:    rgba(9, 9, 11, 0.95);
+  --surface-sunken:     #000000;
+
+  /* Text */
+  --text-primary:       var(--color-white);
+  --text-secondary:     var(--color-zinc-400);
+  --text-muted:         var(--color-zinc-500);
+  --text-disabled:      var(--color-zinc-600);
+
+  /* Borders */
+  --border:             var(--color-zinc-800);
+  --border-subtle:      rgba(39, 39, 42, 0.5);
+  --border-hover:       var(--color-zinc-700);
+  --border-active:      var(--color-zinc-600);
+
+  /* Brand */
+  --brand:              var(--color-cyan-500);
+  --brand-hover:        var(--color-cyan-400);
+  --brand-dim:          var(--color-cyan-900);
+  --brand-bg:           var(--color-cyan-950);
+  --brand-bg-hover:     rgba(8, 51, 68, 0.4);
+
+  /* Accent */
+  --accent-orange:      var(--color-orange-400);
+  --accent-purple:      var(--color-purple-400);
+
+  /* Signals */
+  --success:            var(--color-emerald-500);
+  --success-bg:         rgba(6, 78, 59, 0.1);
+  --warning:            var(--color-yellow-400);
+  --warning-bg:         rgba(234, 179, 8, 0.1);
+  --error:              var(--color-red-400);
+  --error-bg:           rgba(239, 68, 68, 0.1);
+  --rating:             var(--color-amber-400);
+  --like:               var(--color-red-500);
+
+  /* Scrollbar */
+  --scrollbar-track:    var(--color-zinc-950);
+  --scrollbar-thumb:    var(--color-zinc-800);
+  --scrollbar-thumb-hover: var(--color-zinc-600);
+}
+
+/* ====================================================
+   LIGHT MODE — System-Präferenz
+   ==================================================== */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --background:         #f8f7f5;
+    --foreground:         var(--color-zinc-900);
+    --surface:            var(--color-white);
+    --surface-hover:      #e8e4e0;
+    --surface-raised:     var(--color-white);
+    --surface-overlay:    rgba(248, 247, 245, 0.95);
+    --surface-sunken:     var(--color-zinc-100);
+
+    --text-primary:       var(--color-zinc-950);
+    --text-secondary:     var(--color-zinc-600);
+    --text-muted:         var(--color-zinc-500);
+    --text-disabled:      var(--color-zinc-400);
+
+    --border:             var(--color-zinc-200);
+    --border-subtle:      var(--color-zinc-100);
+    --border-hover:       var(--color-zinc-300);
+    --border-active:      var(--color-zinc-400);
+
+    --brand:              var(--color-cyan-600);
+    --brand-hover:        var(--color-cyan-700);
+    --brand-dim:          var(--color-cyan-100);
+    --brand-bg:           var(--color-cyan-50);
+    --brand-bg-hover:     var(--color-cyan-100);
+
+    --accent-orange:      var(--color-orange-600);
+    --accent-purple:      var(--color-purple-600);
+
+    --success:            var(--color-emerald-600);
+    --success-bg:         var(--color-emerald-50);
+    --warning:            var(--color-yellow-600);
+    --warning-bg:         var(--color-yellow-50);
+    --error:              var(--color-red-600);
+    --error-bg:           var(--color-red-50);
+    --rating:             var(--color-amber-500);
+    --like:               var(--color-red-500);
+
+    --scrollbar-track:    var(--color-zinc-50);
+    --scrollbar-thumb:    var(--color-zinc-300);
+    --scrollbar-thumb-hover: var(--color-zinc-400);
+  }
+}
+
+/* ====================================================
+   EXPLIZITE OVERRIDES (User-Präferenz via Toggle)
+   ==================================================== */
+[data-theme="dark"] {
+  --background:         var(--color-zinc-950);
+  --foreground:         var(--color-zinc-100);
+  --surface:            var(--color-zinc-900);
+  --surface-hover:      var(--color-zinc-800);
+  --surface-raised:     var(--color-zinc-800);
+  --surface-overlay:    rgba(9, 9, 11, 0.95);
+  --surface-sunken:     #000000;
+  --text-primary:       var(--color-white);
+  --text-secondary:     var(--color-zinc-400);
+  --text-muted:         var(--color-zinc-500);
+  --text-disabled:      var(--color-zinc-600);
+  --border:             var(--color-zinc-800);
+  --border-subtle:      rgba(39, 39, 42, 0.5);
+  --border-hover:       var(--color-zinc-700);
+  --border-active:      var(--color-zinc-600);
+  --brand:              var(--color-cyan-500);
+  --brand-hover:        var(--color-cyan-400);
+  --brand-dim:          var(--color-cyan-900);
+  --brand-bg:           var(--color-cyan-950);
+  --brand-bg-hover:     rgba(8, 51, 68, 0.4);
+  --accent-orange:      var(--color-orange-400);
+  --accent-purple:      var(--color-purple-400);
+  --success:            var(--color-emerald-500);
+  --success-bg:         rgba(6, 78, 59, 0.1);
+  --warning:            var(--color-yellow-400);
+  --warning-bg:         rgba(234, 179, 8, 0.1);
+  --error:              var(--color-red-400);
+  --error-bg:           rgba(239, 68, 68, 0.1);
+  --rating:             var(--color-amber-400);
+  --like:               var(--color-red-500);
+  --scrollbar-track:    var(--color-zinc-950);
+  --scrollbar-thumb:    var(--color-zinc-800);
+  --scrollbar-thumb-hover: var(--color-zinc-600);
+}
+
+[data-theme="light"] {
+  --background:         #f8f7f5;
+  --foreground:         var(--color-zinc-900);
+  --surface:            var(--color-white);
+  --surface-hover:      #e8e4e0;
+  --surface-raised:     var(--color-white);
+  --surface-overlay:    rgba(248, 247, 245, 0.95);
+  --surface-sunken:     var(--color-zinc-100);
+  --text-primary:       var(--color-zinc-950);
+  --text-secondary:     var(--color-zinc-600);
+  --text-muted:         var(--color-zinc-500);
+  --text-disabled:      var(--color-zinc-400);
+  --border:             var(--color-zinc-200);
+  --border-subtle:      var(--color-zinc-100);
+  --border-hover:       var(--color-zinc-300);
+  --border-active:      var(--color-zinc-400);
+  --brand:              var(--color-cyan-600);
+  --brand-hover:        var(--color-cyan-700);
+  --brand-dim:          var(--color-cyan-100);
+  --brand-bg:           var(--color-cyan-50);
+  --brand-bg-hover:     var(--color-cyan-100);
+  --accent-orange:      var(--color-orange-600);
+  --accent-purple:      var(--color-purple-600);
+  --success:            var(--color-emerald-600);
+  --success-bg:         var(--color-emerald-50);
+  --warning:            var(--color-yellow-600);
+  --warning-bg:         var(--color-yellow-50);
+  --error:              var(--color-red-600);
+  --error-bg:           var(--color-red-50);
+  --rating:             var(--color-amber-500);
+  --like:               var(--color-red-500);
+  --scrollbar-track:    var(--color-zinc-50);
+  --scrollbar-thumb:    var(--color-zinc-300);
+  --scrollbar-thumb-hover: var(--color-zinc-400);
 }
 
 @theme inline {
-  /* Map CSS Variables to Tailwind Classes */
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  
-  --color-brand: var(--brand);
-  --color-brand-dim: var(--brand-dim);
-  
-  --color-surface: var(--surface);
-  --color-surface-hover: var(--surface-hover);
-  --color-border: var(--border);
+  /* Semantic Color Tokens → Tailwind-Klassen */
+  --color-background:     var(--background);
+  --color-foreground:     var(--foreground);
+  --color-surface:        var(--surface);
+  --color-surface-hover:  var(--surface-hover);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-overlay: var(--surface-overlay);
+  --color-surface-sunken: var(--surface-sunken);
+
+  --color-text-primary:   var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted:     var(--text-muted);
+  --color-text-disabled:  var(--text-disabled);
+
+  --color-border:         var(--border);
+  --color-border-subtle:  var(--border-subtle);
+  --color-border-hover:   var(--border-hover);
+  --color-border-active:  var(--border-active);
+
+  --color-brand:          var(--brand);
+  --color-brand-hover:    var(--brand-hover);
+  --color-brand-dim:      var(--brand-dim);
+  --color-brand-bg:       var(--brand-bg);
+  --color-brand-bg-hover: var(--brand-bg-hover);
+
+  --color-accent-orange:  var(--accent-orange);
+  --color-accent-purple:  var(--accent-purple);
+
+  --color-success:        var(--success);
+  --color-success-bg:     var(--success-bg);
+  --color-warning:        var(--warning);
+  --color-warning-bg:     var(--warning-bg);
+  --color-error:          var(--error);
+  --color-error-bg:       var(--error-bg);
+  --color-rating:         var(--rating);
+  --color-like:           var(--like);
 
   /* Radius Tokens */
-  --radius-xl: 0.75rem;   /* Buttons */
+  --radius-xl:  0.75rem;  /* Buttons */
   --radius-2xl: 1rem;     /* Small Cards */
   --radius-3xl: 1.5rem;   /* Large Cards */
 
-  /* Typography Tokens */
+  /* Font Family Tokens */
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  
-  /* Font Family Tokens */
   --font-family-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-family-mono: var(--font-geist-mono), ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, monospace;
 }
@@ -74,14 +260,79 @@ body {
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--color-zinc-950);
+  background: var(--scrollbar-track);
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--color-zinc-800);
+  background: var(--scrollbar-thumb);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-zinc-600);
+  background: var(--scrollbar-thumb-hover);
+}
+
+/* ====================================================
+   SONNER TOAST OVERRIDES — Design System Tokens
+   Sonner injects its own --normal-bg etc. variables;
+   we override them here so dark/light mode works correctly.
+   ==================================================== */
+[data-sonner-toaster] {
+  --normal-bg:     var(--surface) !important;
+  --normal-border: var(--border) !important;
+  --normal-text:   var(--text-primary) !important;
+  --success-bg:    var(--surface) !important;
+  --success-border:var(--success) !important;
+  --success-text:  var(--text-primary) !important;
+  --error-bg:      var(--surface) !important;
+  --error-border:  var(--error) !important;
+  --error-text:    var(--text-primary) !important;
+  --warning-bg:    var(--surface) !important;
+  --warning-border:var(--accent-orange) !important;
+  --warning-text:  var(--text-primary) !important;
+  --info-bg:       var(--surface) !important;
+  --info-border:   var(--brand) !important;
+  --info-text:     var(--text-primary) !important;
+}
+
+[data-sonner-toast] {
+  background: var(--surface) !important;
+  border-color: var(--border) !important;
+  border-radius: 1rem !important;
+  font-family: var(--font-family-sans) !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15) !important;
+}
+
+[data-sonner-toast][data-type="success"] {
+  border-left: 4px solid var(--success) !important;
+}
+[data-sonner-toast][data-type="error"] {
+  border-left: 4px solid var(--error) !important;
+}
+[data-sonner-toast][data-type="warning"] {
+  border-left: 4px solid var(--accent-orange) !important;
+}
+[data-sonner-toast][data-type="info"] {
+  border-left: 4px solid var(--brand) !important;
+}
+
+[data-sonner-toast] [data-title] {
+  color: var(--text-primary) !important;
+  font-weight: 600 !important;
+  font-size: 0.875rem !important;
+}
+
+[data-sonner-toast] [data-description] {
+  color: var(--text-secondary) !important;
+  font-size: 0.75rem !important;
+}
+
+[data-sonner-toast] [data-close-button] {
+  background: var(--surface-hover) !important;
+  border-color: var(--border) !important;
+  color: var(--text-muted) !important;
+}
+
+[data-sonner-toast] [data-close-button]:hover {
+  color: var(--text-primary) !important;
 }
 
 /* Hide number input spin buttons */

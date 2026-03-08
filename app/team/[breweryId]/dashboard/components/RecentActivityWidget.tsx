@@ -22,13 +22,13 @@ interface FeedEntry {
 }
 
 const EVENT_CONFIG: Record<string, { icon: React.ElementType; color: string; label: string }> = {
-  POST:                  { icon: MessageSquare, color: 'text-blue-400',    label: 'Post' },
-  BREW_CREATED:          { icon: Beer,          color: 'text-cyan-400',    label: 'Neues Rezept' },
-  BREW_UPDATED:          { icon: Beer,          color: 'text-cyan-400',    label: 'Rezept aktualisiert' },
-  BREW_RATED:            { icon: Star,          color: 'text-yellow-400',  label: 'Bewertung' },
-  MEMBER_JOINED:         { icon: UserPlus,      color: 'text-emerald-400', label: 'Neues Mitglied' },
-  ACHIEVEMENT:           { icon: Trophy,        color: 'text-purple-400',  label: 'Achievement' },
-  FORUM_THREAD_CREATED:  { icon: Newspaper,     color: 'text-orange-400',  label: 'Forum-Thread' },
+  POST:                  { icon: MessageSquare, color: 'text-blue-400',        label: 'Post' },
+  BREW_CREATED:          { icon: Beer,          color: 'text-brand',           label: 'Neues Rezept' },
+  BREW_UPDATED:          { icon: Beer,          color: 'text-brand',           label: 'Rezept aktualisiert' },
+  BREW_RATED:            { icon: Star,          color: 'text-rating',          label: 'Bewertung' },
+  MEMBER_JOINED:         { icon: UserPlus,      color: 'text-success',         label: 'Neues Mitglied' },
+  ACHIEVEMENT:           { icon: Trophy,        color: 'text-accent-purple',   label: 'Achievement' },
+  FORUM_THREAD_CREATED:  { icon: Newspaper,     color: 'text-accent-orange',   label: 'Forum-Thread' },
 };
 
 export default function RecentActivityWidget({ breweryId }: { breweryId: string }) {
@@ -89,11 +89,11 @@ export default function RecentActivityWidget({ breweryId }: { breweryId: string 
 
   if (loading) {
     return (
-      <div className="bg-zinc-900/30 border border-zinc-800 rounded-2xl p-5 animate-pulse">
-        <div className="h-4 w-40 bg-zinc-800 rounded mb-4" />
+      <div className="bg-surface border border-border rounded-2xl p-5 animate-pulse">
+        <div className="h-4 w-40 bg-surface-hover rounded mb-4" />
         <div className="space-y-3">
           {[1, 2, 3].map(i => (
-            <div key={i} className="h-10 bg-zinc-800/50 rounded-lg" />
+            <div key={i} className="h-10 bg-surface-hover/50 rounded-lg" />
           ))}
         </div>
       </div>
@@ -101,15 +101,15 @@ export default function RecentActivityWidget({ breweryId }: { breweryId: string 
   }
 
   return (
-    <div className="bg-zinc-900/30 border border-zinc-800 rounded-2xl overflow-hidden">
-      <div className="p-4 border-b border-zinc-800/50 bg-zinc-900/50 flex justify-between items-center">
-        <h3 className="text-sm font-bold text-white flex items-center gap-2">
-          <Activity className="w-4 h-4 text-cyan-400" />
+    <div className="bg-surface border border-border rounded-2xl overflow-hidden">
+      <div className="p-4 border-b border-border-subtle bg-surface-hover/50 flex justify-between items-center">
+        <h3 className="text-sm font-bold text-text-primary flex items-center gap-2">
+          <Activity className="w-4 h-4 text-brand" />
           Letzte Aktivitäten
         </h3>
         <Link 
           href={`/team/${breweryId}/feed`}
-          className="text-[10px] text-cyan-400 hover:text-cyan-300 font-bold uppercase tracking-wider transition-colors"
+          className="text-[10px] text-brand hover:text-brand-hover font-bold uppercase tracking-wider transition-colors"
         >
           Alle anzeigen
         </Link>
@@ -117,30 +117,30 @@ export default function RecentActivityWidget({ breweryId }: { breweryId: string 
 
       {entries.length === 0 ? (
         <div className="p-6 text-center">
-          <Activity className="w-8 h-8 text-zinc-700 mx-auto mb-2" />
-          <p className="text-xs text-zinc-600">Noch keine Aktivitäten</p>
+          <Activity className="w-8 h-8 text-text-disabled mx-auto mb-2" />
+          <p className="text-xs text-text-disabled">Noch keine Aktivitäten</p>
         </div>
       ) : (
-        <div className="divide-y divide-zinc-800/50">
+        <div className="divide-y divide-border-subtle">
           {entries.map((entry) => {
             const config = EVENT_CONFIG[entry.event_type] || { 
-              icon: Activity, color: 'text-zinc-400', label: entry.event_type 
+              icon: Activity, color: 'text-text-muted', label: entry.event_type 
             };
             const Icon = config.icon;
 
             return (
               <div 
                 key={entry.id} 
-                className="px-4 py-3 flex items-start gap-3 hover:bg-zinc-800/20 transition-colors"
+                className="px-4 py-3 flex items-start gap-3 hover:bg-surface-hover/50 transition-colors"
               >
-                <div className={`mt-0.5 w-7 h-7 rounded-lg bg-zinc-900 flex items-center justify-center border border-zinc-800 shrink-0`}>
+                <div className={`mt-0.5 w-7 h-7 rounded-lg bg-surface-sunken flex items-center justify-center border border-border shrink-0`}>
                   <Icon className={`w-3.5 h-3.5 ${config.color}`} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs text-zinc-300 leading-relaxed line-clamp-2">
+                  <p className="text-xs text-text-secondary leading-relaxed line-clamp-2">
                     {getEventText(entry)}
                   </p>
-                  <span className="text-[10px] text-zinc-600 mt-0.5 block">
+                  <span className="text-[10px] text-text-disabled mt-0.5 block">
                     {timeAgo(entry.created_at)}
                   </span>
                 </div>

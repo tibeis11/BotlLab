@@ -30,14 +30,14 @@ function InfoBubble({ text }: { text: string }) {
         onMouseEnter={() => setOpen(true)}
         onMouseLeave={() => setOpen(false)}
         onBlur={() => setOpen(false)}
-        className="w-5 h-5 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-500 hover:text-cyan-400 hover:border-zinc-600 transition-colors flex-shrink-0"
+        className="w-5 h-5 rounded-full bg-surface-hover border border-border-hover flex items-center justify-center text-text-muted hover:text-brand hover:border-border-active transition-colors flex-shrink-0"
         aria-label="Info"
       >
         <Info className="w-3 h-3" />
       </button>
       {open && (
-        <div className="absolute left-0 top-full mt-2 w-64 z-50 bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 shadow-xl pointer-events-none">
-          <p className="text-xs text-zinc-400 leading-relaxed">{text}</p>
+        <div className="absolute left-0 top-full mt-2 w-64 z-50 bg-surface border border-border-hover rounded-xl px-4 py-3 shadow-xl pointer-events-none">
+          <p className="text-xs text-text-secondary leading-relaxed">{text}</p>
         </div>
       )}
     </div>
@@ -73,19 +73,19 @@ export function SectionHeader({
       {tabSlot ? (
         <div className="flex items-center gap-2">{tabSlot}</div>
       ) : (
-        <h2 className="flex items-center gap-2 text-xl md:text-2xl font-bold text-white">
+        <h2 className="flex items-center gap-2 text-xl md:text-2xl font-bold text-text-primary">
           {title}
           {infoBubble && <InfoBubble text={infoBubble} />}
         </h2>
       )}
       <div className="flex items-center gap-2 ml-auto">
-        <span className="text-xs bg-zinc-900 border border-zinc-800 text-zinc-500 px-2 py-0.5 rounded font-mono uppercase tracking-wider">
+        <span className="text-xs bg-surface border border-border text-text-muted px-2 py-0.5 rounded font-mono uppercase tracking-wider">
           Top {count}
         </span>
         {onMore && (
           <button
             onClick={onMore}
-            className="flex items-center gap-0.5 text-xs font-bold text-zinc-400 hover:text-cyan-400 transition-colors"
+            className="flex items-center gap-0.5 text-xs font-bold text-text-secondary hover:text-brand transition-colors"
           >
             Mehr <ChevronRight className="w-3.5 h-3.5" />
           </button>
@@ -94,14 +94,14 @@ export function SectionHeader({
           <div className="hidden md:flex items-center gap-1">
             <button
               onClick={onScrollLeft}
-              className="p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-600 text-zinc-400 hover:text-white transition-colors"
+              className="p-1.5 rounded-lg bg-surface border border-border hover:border-border-active text-text-secondary hover:text-text-primary transition-colors"
               aria-label="Links scrollen"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={onScrollRight}
-              className="p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-600 text-zinc-400 hover:text-white transition-colors"
+              className="p-1.5 rounded-lg bg-surface border border-border hover:border-border-active text-text-secondary hover:text-text-primary transition-colors"
               aria-label="Rechts scrollen"
             >
               <ChevronRight className="w-4 h-4" />
@@ -167,25 +167,25 @@ function RankedRow({ brew, rank, trend, currentUserId, likedBrewIds, onLikeToggl
   return (
     <a
       href={`/brew/${brew.id}`}
-      className="group flex items-center gap-3 py-2.5 px-3 rounded-xl hover:bg-zinc-900/60 transition-colors border border-transparent hover:border-zinc-800"
+      className="group flex items-center gap-3 py-2.5 px-3 rounded-xl hover:bg-surface/60 transition-colors border border-transparent hover:border-border"
     >
       <div className="w-5 text-center flex-shrink-0">
-        <span className="text-sm font-black text-zinc-500 group-hover:text-zinc-300 transition-colors tabular-nums">{rank}</span>
+        <span className="text-sm font-black text-text-muted group-hover:text-text-secondary transition-colors tabular-nums">{rank}</span>
       </div>
       <div className="w-4 flex-shrink-0 text-center leading-none">
         {trend === 'up'      && <span className="text-[13px] font-black text-green-400" style={{ lineHeight: 1 }}>&#9650;</span>}
         {trend === 'down'    && <span className="text-[13px] font-black text-red-500"   style={{ lineHeight: 1 }}>&#9660;</span>}
-        {trend === 'neutral' && <span className="text-[13px] text-zinc-700"             style={{ lineHeight: 1 }}>&bull;</span>}
+          {trend === 'neutral' && <span className="text-[13px] text-border-hover"             style={{ lineHeight: 1 }}>&bull;</span>}
       </div>
-      <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-zinc-800 border border-zinc-700/50">
+      <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-surface-hover border border-border/50">
         {brew.image_url
           ? <img src={brew.image_url} alt={brew.name} className="w-full h-full object-cover" />
-          : <div className="w-full h-full flex items-center justify-center text-zinc-600 text-xs">🍺</div>
+          : <div className="w-full h-full flex items-center justify-center text-text-disabled text-xs">🍺</div>
         }
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-bold text-white truncate group-hover:text-cyan-300 transition-colors leading-tight">{brew.name}</p>
-        <p className="text-xs text-zinc-500 truncate leading-tight mt-0.5">
+        <p className="text-sm font-bold text-text-primary truncate group-hover:text-brand-hover transition-colors leading-tight">{brew.name}</p>
+        <p className="text-xs text-text-muted truncate leading-tight mt-0.5">
           {[brew.brewery?.team_name || brew.brewery?.name, brew.style].filter(Boolean).join(' · ')}
         </p>
       </div>
@@ -204,10 +204,10 @@ function RankedRow({ brew, rank, trend, currentUserId, likedBrewIds, onLikeToggl
         >
           <Heart
             size={13}
-            className={`transition-colors ${isLiked ? 'fill-red-500 stroke-red-500' : 'stroke-zinc-500 group-hover/like:stroke-red-400'}`}
+            className={`transition-colors ${isLiked ? 'fill-red-500 stroke-red-500' : 'stroke-text-muted group-hover/like:stroke-red-400'}`}
           />
           {likeCount > 0 && (
-            <span className={`text-xs font-semibold tabular-nums transition-colors ${isLiked ? 'text-red-400' : 'text-zinc-500 group-hover/like:text-red-400'}`}>
+              <span className={`text-xs font-semibold tabular-nums transition-colors ${isLiked ? 'text-red-400' : 'text-text-muted group-hover/like:text-red-400'}`}>
               {likeCount}
             </span>
           )}
@@ -309,7 +309,7 @@ export function Section({
             ))}
             <div className="min-w-6 flex-shrink-0 md:min-w-[40px]" aria-hidden="true" />
           </div>
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-zinc-950 to-transparent" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-background to-transparent" />
         </div>
       </div>
     );
@@ -362,7 +362,7 @@ export function Section({
             ))}
             <div className="min-w-[40px] flex-shrink-0" aria-hidden="true" />
           </div>
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-zinc-950 to-transparent" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-background to-transparent" />
         </div>
       </div>
     </div>

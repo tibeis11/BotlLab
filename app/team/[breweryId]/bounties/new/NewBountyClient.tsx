@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, Trophy, Target, Zap, Star,
-  Clock, Hash, ChevronRight, Tag,
+  Clock, Hash, ChevronRight, Tag, Beer, Percent, Package, Gift, AlertCircle,
 } from 'lucide-react';
 import {
   createBounty,
@@ -23,11 +23,11 @@ interface Props {
   brews: { id: string; name: string }[];
 }
 
-const REWARD_OPTIONS: { value: RewardType; label: string; icon: string; desc: string }[] = [
-  { value: 'free_beer', label: 'Freibier',   icon: '🍺', desc: 'Gratis Bier' },
-  { value: 'discount',  label: 'Rabatt',     icon: '💰', desc: 'Rabatt-Code' },
-  { value: 'merchandise', label: 'Merch',    icon: '👕', desc: 'Merchandise' },
-  { value: 'other',     label: 'Sonstiges',  icon: '🎁', desc: 'Eigener Reward' },
+const REWARD_OPTIONS: { value: RewardType; label: string; icon: React.ReactNode; desc: string }[] = [
+  { value: 'free_beer',   label: 'Freibier',  icon: <Beer    className="w-5 h-5" />, desc: 'Gratis Bier' },
+  { value: 'discount',   label: 'Rabatt',    icon: <Percent className="w-5 h-5" />, desc: 'Rabatt-Code' },
+  { value: 'merchandise', label: 'Merch',    icon: <Package className="w-5 h-5" />, desc: 'Merchandise' },
+  { value: 'other',      label: 'Sonstiges', icon: <Gift    className="w-5 h-5" />, desc: 'Eigener Reward' },
 ];
 
 const CONDITION_OPTIONS: {
@@ -58,7 +58,7 @@ const DEFAULT_FORM: CreateBountyInput = {
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <section className="space-y-4">
-      <p className="text-[10px] font-black uppercase tracking-[0.15em] text-zinc-600">{label}</p>
+      <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-text-disabled">{label}</p>
       {children}
     </section>
   );
@@ -67,16 +67,16 @@ function Section({ label, children }: { label: string; children: React.ReactNode
 function Field({ label, optional, children }: { label: string; optional?: boolean; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <label className="flex items-center gap-2 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+      <label className="flex items-center gap-2 text-[10px] font-bold text-text-disabled uppercase tracking-wider">
         {label}
-        {optional && <span className="text-zinc-700 font-normal normal-case tracking-normal">optional</span>}
+        {optional && <span className="text-text-disabled/60 font-normal normal-case tracking-normal">optional</span>}
       </label>
       {children}
     </div>
   );
 }
 
-const INPUT = 'w-full bg-black border border-zinc-800 rounded-lg px-3 py-3 text-white text-sm focus:border-zinc-600 focus:outline-none transition-colors placeholder:text-zinc-700';
+const INPUT = 'w-full bg-surface/60 border border-border rounded-lg px-3 py-3 text-text-primary text-sm focus:border-border-hover focus:outline-none transition-colors placeholder:text-text-disabled';
 
 export default function NewBountyClient({ breweryId, brews }: Props) {
   const router = useRouter();
@@ -107,10 +107,10 @@ export default function NewBountyClient({ breweryId, brews }: Props) {
     <div className="max-w-2xl mx-auto space-y-8 pb-32 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
       {/* PAGE HEADER */}
-      <header className="space-y-4 border-b border-zinc-900 pb-6">
+      <header className="space-y-4 border-b border-border-subtle pb-6">
         <Link
           href={`/team/${breweryId}/bounties`}
-          className="inline-flex items-center gap-1.5 text-xs text-zinc-600 hover:text-zinc-300 transition-colors group"
+          className="inline-flex items-center gap-1.5 text-xs text-text-disabled hover:text-text-secondary transition-colors group"
         >
           <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
           Zurück zu Bounties
@@ -120,7 +120,7 @@ export default function NewBountyClient({ breweryId, brews }: Props) {
             <Trophy className="w-5 h-5 text-amber-500" />
             <h1 className="text-2xl font-bold text-white tracking-tight">Neue Bounty</h1>
           </div>
-          <p className="text-sm text-zinc-500">Definiere eine Challenge und belohne die besten Taster mit einem echten Reward.</p>
+          <p className="text-sm text-text-muted">Definiere eine Challenge und belohne die besten Taster mit einem echten Reward.</p>
         </div>
       </header>
 
@@ -161,12 +161,12 @@ export default function NewBountyClient({ breweryId, brews }: Props) {
                   <option key={b.id} value={b.id}>{b.name}</option>
                 ))}
               </select>
-              <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-600 rotate-90 pointer-events-none" />
+              <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-disabled rotate-90 pointer-events-none" />
             </div>
           </Field>
         </Section>
 
-        <div className="border-t border-zinc-800/50" />
+        <div className="border-t border-border/50" />
 
         {/* SECTION: Bedingung */}
         <Section label="Bedingung">
@@ -178,18 +178,18 @@ export default function NewBountyClient({ breweryId, brews }: Props) {
                 onClick={() => set('conditionType', opt.value)}
                 className={`flex flex-col items-start gap-3 p-4 rounded-xl border text-left transition-all ${
                   form.conditionType === opt.value
-                    ? 'bg-zinc-900 border-cyan-500/50 text-white'
-                    : 'bg-zinc-900/30 border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300'
+                    ? 'bg-surface border-brand/50 text-text-primary'
+                    : 'bg-surface/30 border-border text-text-disabled hover:border-border-hover hover:text-text-secondary'
                 }`}
               >
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                  form.conditionType === opt.value ? 'bg-cyan-500/20 text-cyan-400' : 'bg-zinc-800 text-zinc-600'
+                  form.conditionType === opt.value ? 'bg-brand/20 text-brand' : 'bg-surface-hover text-text-disabled'
                 }`}>
                   {opt.icon}
                 </div>
                 <div>
                   <div className="text-xs font-bold leading-none mb-1">{opt.label}</div>
-                  <div className="text-[10px] text-zinc-600 leading-tight">{opt.desc}</div>
+                  <div className="text-[10px] text-text-disabled leading-tight">{opt.desc}</div>
                 </div>
               </button>
             ))}
@@ -207,7 +207,7 @@ export default function NewBountyClient({ breweryId, brews }: Props) {
                   onChange={e => set('conditionValue', Number(e.target.value))}
                   className={`${INPUT} font-mono pr-20`}
                 />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-zinc-600 uppercase tracking-wider">
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-text-disabled uppercase tracking-wider">
                   {form.conditionType === 'match_score' ? '% Match' : 'Stück'}
                 </span>
               </div>
@@ -215,7 +215,7 @@ export default function NewBountyClient({ breweryId, brews }: Props) {
           )}
         </Section>
 
-        <div className="border-t border-zinc-800/50" />
+        <div className="border-t border-border/50" />
 
         {/* SECTION: Reward */}
         <Section label="Reward">
@@ -225,13 +225,17 @@ export default function NewBountyClient({ breweryId, brews }: Props) {
                 key={opt.value}
                 type="button"
                 onClick={() => set('rewardType', opt.value)}
-                className={`flex flex-col items-center gap-2 p-4 rounded-xl border text-center transition-all ${
+                className={`flex flex-col items-center gap-2.5 p-4 rounded-xl border text-center transition-all ${
                   form.rewardType === opt.value
-                    ? 'bg-zinc-900 border-amber-500/50 text-white'
-                    : 'bg-zinc-900/30 border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300'
+                    ? 'bg-surface border-warning/50 text-text-primary'
+                    : 'bg-surface/30 border-border text-text-disabled hover:border-border-hover hover:text-text-secondary'
                 }`}
               >
-                <span className="text-2xl">{opt.icon}</span>
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                  form.rewardType === opt.value ? 'bg-warning/20 text-warning' : 'bg-surface-hover text-text-disabled'
+                }`}>
+                  {opt.icon}
+                </div>
                 <span className="text-[11px] font-bold leading-none">{opt.label}</span>
               </button>
             ))}
@@ -250,7 +254,7 @@ export default function NewBountyClient({ breweryId, brews }: Props) {
             </Field>
             <Field label="Einlöse-Code" optional>
               <div className="relative">
-                <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-700 pointer-events-none" />
+                <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-disabled pointer-events-none" />
                 <input
                   type="text"
                   value={form.rewardCode ?? ''}
@@ -263,14 +267,14 @@ export default function NewBountyClient({ breweryId, brews }: Props) {
           </div>
         </Section>
 
-        <div className="border-t border-zinc-800/50" />
+        <div className="border-t border-border/50" />
 
         {/* SECTION: Limits */}
         <Section label="Limits">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Max. Einlösungen" optional>
               <div className="relative">
-                <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-700 pointer-events-none" />
+                <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-disabled pointer-events-none" />
                 <input
                   type="number"
                   min={1}
@@ -283,7 +287,7 @@ export default function NewBountyClient({ breweryId, brews }: Props) {
             </Field>
             <Field label="Ablaufdatum" optional>
               <div className="relative">
-                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-700 pointer-events-none" />
+                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-disabled pointer-events-none" />
                 <input
                   type="date"
                   value={form.expiresAt ? form.expiresAt.split('T')[0] : ''}
@@ -298,23 +302,23 @@ export default function NewBountyClient({ breweryId, brews }: Props) {
         {/* ERROR */}
         {error && (
           <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 text-red-400 text-sm px-4 py-3 rounded-xl">
-            <span>⚠️</span>
+            <AlertCircle className="w-4 h-4 shrink-0" />
             {error}
           </div>
         )}
 
         {/* ACTIONS — sticky on mobile, inline on desktop */}
-        <div className="fixed sm:relative bottom-0 left-0 right-0 sm:bottom-auto p-4 sm:p-0 bg-black/95 sm:bg-transparent backdrop-blur-sm sm:backdrop-blur-none border-t border-zinc-900 sm:border-none z-30 flex gap-3">
+        <div className="fixed sm:relative bottom-0 left-0 right-0 sm:bottom-auto p-4 sm:p-0 bg-background/95 sm:bg-transparent backdrop-blur-sm sm:backdrop-blur-none border-t border-border-subtle sm:border-none z-30 flex gap-3">
           <Link
             href={`/team/${breweryId}/bounties`}
-            className="flex-1 sm:flex-none border border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-white rounded-lg py-3 sm:py-2.5 px-6 text-sm font-bold transition-all text-center"
+            className="flex-1 sm:flex-none border border-border hover:border-border-hover text-text-muted hover:text-text-primary rounded-lg py-3 sm:py-2.5 px-6 text-sm font-bold transition-all text-center"
           >
             Abbrechen
           </Link>
           <button
             type="submit"
             disabled={isPending}
-            className="flex-1 sm:flex-none bg-white hover:bg-zinc-100 text-black font-bold rounded-lg py-3 sm:py-2.5 px-8 text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="flex-1 sm:flex-none bg-white hover:opacity-90 text-black font-bold rounded-lg py-3 sm:py-2.5 px-8 text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {isPending ? (
               <>

@@ -40,9 +40,9 @@ export default function FlavorTagSelector({
     return (
       <div>
         <div className="flex items-center justify-between mb-2">
-          <span className="text-[10px] uppercase font-bold tracking-widest text-zinc-500">Quick Impressions</span>
+          <span className="text-[10px] uppercase font-bold tracking-widest text-text-muted">Quick Impressions</span>
           {selectedTags.length > 0 && (
-            <span className="text-[10px] text-zinc-600">{selectedTags.length}/{maxSelection}</span>
+            <span className="text-[10px] text-text-disabled">{selectedTags.length}/{maxSelection}</span>
           )}
         </div>
         <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
@@ -59,8 +59,8 @@ export default function FlavorTagSelector({
                 className={`
                   flex-shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-lg border text-xs transition-all
                   ${isSelected
-                    ? 'bg-cyan-500/20 border-cyan-500/60 text-cyan-400'
-                    : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-zinc-600 hover:text-zinc-400'
+                    ? 'bg-brand/20 border-brand/60 text-brand'
+                    : 'bg-surface border-border text-text-muted hover:border-border-hover hover:text-text-secondary'
                   }
                   ${isDisabled ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}
                 `}
@@ -78,17 +78,17 @@ export default function FlavorTagSelector({
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h4 className="text-sm font-bold text-white">
+        <h4 className="text-sm font-bold text-text-primary">
           Geschmacksnoten auswählen
         </h4>
-        <span className="text-xs text-zinc-500">
+        <span className="text-xs text-text-muted">
           {selectedTags.length}/{maxSelection} ausgewählt
         </span>
       </div>
 
       {Object.entries(groupedTags).map(([category, tags]) => (
         <div key={category}>
-          <div className="text-[10px] uppercase font-bold text-zinc-600 tracking-wider mb-2">
+          <div className="text-[10px] uppercase font-bold text-text-disabled tracking-wider mb-2">
             {category === "fruity" && "🍇 Fruchtig"}
             {category === "malty" && "🌾 Malzig"}
             {category === "hoppy" && "🌿 Hopfig"}
@@ -115,8 +115,8 @@ export default function FlavorTagSelector({
                     flex items-center gap-2
                     ${
                       isSelected
-                        ? "bg-cyan-500/20 border-cyan-500 text-cyan-400"
-                        : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-600"
+                        ? "bg-brand/20 border-brand text-brand"
+                        : "bg-surface border-border text-text-secondary hover:border-border-hover"
                     }
                     ${isDisabled ? "opacity-30 cursor-not-allowed" : "cursor-pointer"}
                   `}

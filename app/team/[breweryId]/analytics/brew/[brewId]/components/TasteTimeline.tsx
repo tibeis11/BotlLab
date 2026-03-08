@@ -9,7 +9,7 @@ export default function TasteTimeline({
 }) {
   if (!data || data.length < 2) {
     return (
-      <div className="flex flex-col items-center justify-center p-8 text-zinc-500 text-sm h-64 border border-dashed border-zinc-800 rounded-xl">
+      <div className="flex flex-col items-center justify-center p-8 text-text-muted text-sm h-64 border border-dashed border-border rounded-xl">
         <span className="text-2xl mb-2">📉</span>
         <p>Nicht genügend Daten für eine Zeitachse.</p>
         <p className="text-xs mt-1">Es werden Ratings aus mindestens 2 verschiedenen Monaten benötigt.</p>
@@ -54,11 +54,11 @@ export default function TasteTimeline({
                  <line 
                     x1={padding.left} y1={y} 
                     x2={width - padding.right} y2={y} 
-                    stroke="#27272a" strokeDasharray="4 4" 
+                    stroke="var(--border)" strokeDasharray="4 4" 
                  />
                  <text 
                     x={padding.left - 10} y={y + 4} 
-                    fill="#52525b" textAnchor="end" fontSize="10"
+                    fill="var(--text-disabled)" textAnchor="end" fontSize="10"
                  >
                     {val}
                  </text>
@@ -103,7 +103,7 @@ export default function TasteTimeline({
                        cx={getX(i)}
                        cy={getY(val)}
                        r="4"
-                       fill="#18181b" // zinc-950
+                       fill="var(--background)" // theme-aware
                        stroke={line.color}
                        strokeWidth="2"
                     />
@@ -117,7 +117,7 @@ export default function TasteTimeline({
                key={d.date}
                x={getX(i)} 
                y={height - 10} 
-               fill="#a1a1aa" 
+               fill="var(--text-secondary)" 
                fontSize="10" 
                textAnchor="middle"
              >
@@ -131,7 +131,7 @@ export default function TasteTimeline({
              {lines.map(line => (
                  <div key={line.key} className="flex items-center gap-2">
                      <span className="w-3 h-1 rounded-full" style={{ backgroundColor: line.color }}></span>
-                     <span className="text-sm font-medium text-zinc-400">{line.label}</span>
+                     <span className="text-sm font-bold text-text-secondary">{line.label}</span>
                  </div>
              ))}
         </div>

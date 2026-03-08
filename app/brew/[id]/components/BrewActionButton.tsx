@@ -24,7 +24,7 @@ export default function BrewActionButton({
   href,
   accent = false,
   active = false,
-  activeColor = 'text-cyan-400',
+  activeColor = 'text-brand',
   disabled = false,
   loading = false,
   title,
@@ -34,10 +34,10 @@ export default function BrewActionButton({
     'flex flex-col items-center justify-center gap-1.5 px-2 py-2 rounded-xl transition-all group w-full',
     'disabled:opacity-40 disabled:cursor-not-allowed',
     accent
-      ? 'bg-gradient-to-br from-cyan-500 to-blue-600 text-white hover:opacity-90 shadow-lg shadow-cyan-500/20 lg:bg-none lg:bg-transparent lg:text-cyan-400 lg:border lg:border-cyan-500/40 lg:hover:bg-cyan-950/40 lg:shadow-none'
+      ? 'bg-gradient-to-br from-brand to-blue-600 text-white hover:opacity-90 shadow-lg shadow-brand/20 lg:bg-none lg:bg-transparent lg:text-brand lg:border lg:border-brand/40 lg:hover:bg-brand-bg lg:shadow-none'
       : active
-        ? `bg-zinc-900/60 ${activeColor}`
-        : 'bg-zinc-900/0 text-zinc-400 hover:text-white hover:bg-zinc-900/60',
+        ? `bg-surface/60 ${activeColor}`
+        : 'bg-surface/0 text-text-secondary hover:text-text-primary hover:bg-surface/60',
     className,
   ].join(' ');
 
@@ -52,7 +52,7 @@ export default function BrewActionButton({
       </div>
       <span className={[
         'text-[10px] font-bold uppercase tracking-wider leading-none',
-        accent ? 'text-white lg:text-cyan-400' : active ? activeColor : 'text-zinc-500 group-hover:text-zinc-300',
+        accent ? 'text-white lg:text-brand' : active ? activeColor : 'text-text-muted group-hover:text-text-secondary',
       ].join(' ')}>
         {label}
       </span>

@@ -48,20 +48,20 @@ function FlavorSlider({
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className={`inline-block w-2.5 h-2.5 rounded-full ${dimension.color.replace('text-', 'bg-')}`} />
-          <span className="text-sm font-bold text-white">{dimension.label}</span>
+          <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: dimension.hexColor }} />
+          <span className="text-sm font-bold text-text-primary">{dimension.label}</span>
         </div>
         <span className={`text-sm font-mono font-bold ${dimension.color}`}>
           {percentage}%
         </span>
       </div>
-      <p className="text-[11px] text-zinc-500 -mt-1">{dimension.description}</p>
+      <p className="text-[11px] text-text-muted -mt-1">{dimension.description}</p>
       <div className="relative h-8 flex items-center group">
         {/* Track background */}
-        <div className="absolute w-full h-2 bg-zinc-800 rounded-full overflow-hidden">
+        <div className="absolute w-full h-2 bg-surface-hover rounded-full overflow-hidden">
           <div
-            className="h-full bg-cyan-800 transition-all duration-100 ease-out rounded-full"
-            style={{ width: `${percentage}%` }}
+            className="h-full transition-all duration-100 ease-out rounded-full"
+            style={{ width: `${percentage}%`, backgroundColor: `${dimension.hexColor}66` }}
           />
         </div>
         {/* Native range input */}
@@ -76,11 +76,11 @@ function FlavorSlider({
         />
         {/* Visual thumb */}
         <div
-          className="absolute w-4 h-4 rounded-full bg-cyan-400 border-2 border-zinc-900 shadow-lg pointer-events-none transition-all duration-100 ease-out"
-          style={{ left: `calc(${percentage}% - 8px)` }}
+          className="absolute w-4 h-4 rounded-full border-2 border-background shadow-lg pointer-events-none transition-all duration-100 ease-out"
+          style={{ left: `calc(${percentage}% - 8px)`, backgroundColor: dimension.hexColor }}
         />
       </div>
-      <div className="flex justify-between text-[10px] text-zinc-600 uppercase tracking-wide">
+      <div className="flex justify-between text-[10px] text-text-disabled uppercase tracking-wide">
         <span>{dimension.minLabel}</span>
         <span>{dimension.maxLabel}</span>
       </div>
@@ -172,9 +172,9 @@ function MiniRadarPreview({ profile }: { profile: FlavorProfile }) {
             y={p.y}
             textAnchor="middle"
             dominantBaseline="central"
-            className="fill-zinc-400 text-[8px] font-bold"
+            className="fill-text-secondary text-[8px] font-bold"
           >
-            {labelDim?.icon} {labelDim?.labelShort}
+            {labelDim?.labelShort}
           </text>
         );
       })}
@@ -311,10 +311,11 @@ export default function FlavorProfileEditor({
         <div className="w-16 h-16">
           <MiniRadarPreview profile={value} />
         </div>
-        <div className="text-xs text-zinc-400">
+        <div className="text-xs text-text-secondary">
           {FLAVOR_DIMENSIONS.map((d) => (
-            <span key={d.id} className="inline-block mr-2">
-              {d.icon} {Math.round((value[d.id] ?? 0.5) * 100)}%
+            <span key={d.id} className="inline-flex items-center gap-1 mr-2">
+              <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: d.hexColor }} />
+              {Math.round((value[d.id] ?? 0.5) * 100)}%
             </span>
           ))}
         </div>
@@ -325,18 +326,18 @@ export default function FlavorProfileEditor({
   // ── No profile yet — CTA to enable ────────────────────────────────────
   if (!isEditing || !value) {
     return (
-      <div className="bg-zinc-900/50 border border-dashed border-zinc-700 rounded-2xl p-8 text-center">
+      <div className="bg-surface/50 border border-dashed border-border rounded-2xl p-8 text-center">
         <div className="w-16 h-16 bg-cyan-950/40 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-cyan-800/30">
           <Sparkles className="w-7 h-7 text-cyan-400" />
         </div>
-        <h3 className="text-lg font-black text-white mb-2">Beat the Brewer aktivieren</h3>
-        <p className="text-sm text-zinc-400 max-w-md mx-auto mb-6">
+        <h3 className="text-lg font-black text-text-primary mb-2">Beat the Brewer aktivieren</h3>
+        <p className="text-sm text-text-secondary max-w-md mx-auto mb-6">
           Hinterlege dein gewünschtes Geschmacksprofil für dieses Bier. Trinker können dann versuchen,
           dein Profil blind zu treffen — und du erhältst wertvolle &quot;Perceived vs. Intended&quot;-Daten.
         </p>
         {brewStyle && (
-          <p className="text-xs text-zinc-500 mb-4">
-            Bierstil: <span className="text-white font-bold">{brewStyle}</span>
+          <p className="text-xs text-text-muted mb-4">
+            Bierstil: <span className="text-text-primary font-bold">{brewStyle}</span>
           </p>
         )}
 
@@ -346,7 +347,7 @@ export default function FlavorProfileEditor({
             type="button"
             onClick={handleSuggest}
             disabled={isSuggesting}
-            className="px-6 py-3 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 disabled:from-zinc-700 disabled:to-zinc-700 text-white font-bold rounded-xl transition-all duration-200 flex items-center gap-2 disabled:opacity-60"
+            className="px-6 py-3 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 disabled:from-surface disabled:to-surface text-text-primary font-bold rounded-xl transition-all duration-200 flex items-center gap-2 disabled:opacity-60"
           >
             {isSuggesting ? (
               <>
@@ -364,14 +365,14 @@ export default function FlavorProfileEditor({
             type="button"
             onClick={handleEnable}
             disabled={isSuggesting}
-            className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold rounded-xl transition border border-zinc-700 flex items-center gap-2"
+            className="px-6 py-3 bg-surface-hover hover:bg-surface-hover text-text-secondary font-bold rounded-xl transition border border-border flex items-center gap-2"
           >
             <Pencil className="w-4 h-4" />
             Manuell anlegen
           </button>
         </div>
 
-        <p className="text-[10px] text-zinc-600 mt-4 max-w-sm mx-auto">
+        <p className="text-[10px] text-text-disabled mt-4 max-w-sm mx-auto">
           &quot;Profil vorschlagen&quot; analysiert vorhandene Daten ähnlicher Biere oder nutzt BotlGuide
           um ein Geschmacksprofil aus deinem Rezept abzuleiten. Du kannst es danach frei anpassen.
         </p>
@@ -391,21 +392,21 @@ export default function FlavorProfileEditor({
     ? { icon: <Database className="w-3 h-3" />, text: 'Daten-Vorschlag', cls: 'bg-emerald-950/40 text-emerald-400 border-emerald-800/30' }
     : value?.source === 'botlguide'
     ? { icon: <Bot className="w-3 h-3" />, text: 'BotlGuide', cls: 'bg-purple-950/40 text-purple-400 border-purple-800/30' }
-    : { icon: <Pencil className="w-3 h-3" />, text: 'Manuell', cls: 'bg-zinc-800 text-zinc-400 border-zinc-700' };
+    : { icon: <Pencil className="w-3 h-3" />, text: 'Manuell', cls: 'bg-surface-hover text-text-secondary border-border' };
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h3 className="text-sm font-black text-white uppercase tracking-wide flex items-center gap-2">
+          <h3 className="text-sm font-black text-text-primary uppercase tracking-wide flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-cyan-400" />
             Geschmacksprofil
             <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-full border ${sourceLabel.cls}`}>
               {sourceLabel.icon} {sourceLabel.text}
             </span>
           </h3>
-          <p className="text-xs text-zinc-500 mt-1">
+          <p className="text-xs text-text-muted mt-1">
             Definiere, wie dein Bier schmecken <em>soll</em>. Trinker treten mit ihrem Gaumen dagegen an.
           </p>
         </div>
@@ -414,7 +415,7 @@ export default function FlavorProfileEditor({
             type="button"
             onClick={handleSuggest}
             disabled={isSuggesting}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-cyan-400 hover:text-cyan-300 bg-cyan-950/30 hover:bg-cyan-950/50 border border-cyan-800/30 rounded-lg transition disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-cyan-400 hover:text-brand bg-cyan-950/30 hover:bg-cyan-950/50 border border-cyan-800/30 rounded-lg transition disabled:opacity-50"
           >
             {isSuggesting ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
             Neu vorschlagen
@@ -446,7 +447,7 @@ export default function FlavorProfileEditor({
       )}
 
       {/* Live preview card */}
-      <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-5 flex flex-col sm:flex-row items-center gap-6">
+      <div className="bg-surface/60 border border-border rounded-xl p-5 flex flex-col sm:flex-row items-center gap-6">
         <div className="w-44 h-44 flex-shrink-0">
           <MiniRadarPreview profile={value} />
         </div>
@@ -454,11 +455,11 @@ export default function FlavorProfileEditor({
           <div className="grid grid-cols-5 gap-2 mb-3">
             {FLAVOR_DIMENSIONS.map((dim) => (
               <div key={dim.id} className="flex flex-col items-center gap-1.5 text-center">
-                <span className={`inline-block w-2.5 h-2.5 rounded-full ${dim.color.replace('text-', 'bg-')}`} />
+                <span className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: dim.hexColor }} />
                 <span className={`text-sm font-black font-mono ${dim.color}`}>
                   {Math.round((value[dim.id] ?? 0.5) * 100)}%
                 </span>
-                <span className="text-[9px] text-zinc-500 uppercase tracking-wide leading-tight">
+                <span className="text-[9px] text-text-muted uppercase tracking-wide leading-tight">
                   {dim.labelShort}
                 </span>
               </div>

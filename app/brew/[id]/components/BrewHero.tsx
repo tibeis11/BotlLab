@@ -64,27 +64,27 @@ export default function BrewHero({
       {/* ──── MOBILE: stacked layout ──── */}
       <div className="lg:hidden">
         {/* Full-width image */}
-        <div className="relative w-full aspect-square bg-zinc-950">
+        <div className="relative w-full aspect-square bg-background">
           {imageVisible ? (
             <img src={brew.image_url} alt={brew.name} className="w-full h-full object-cover" />
           ) : imagePending ? (
-            <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-zinc-900 to-zinc-950">
+            <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-surface to-background">
               <span className="text-5xl">⏳</span>
-              <p className="text-yellow-500 font-bold uppercase tracking-wider text-xs">Wird geprüft</p>
+              <p className="text-warning font-bold uppercase tracking-wider text-xs">Wird geprüft</p>
             </div>
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-zinc-900 to-zinc-950 flex items-center justify-center">
+            <div className="w-full h-full bg-gradient-to-br from-surface to-background flex items-center justify-center">
               <span className="text-8xl opacity-10">🍺</span>
             </div>
           )}
           {/* Bottom gradient for readability */}
-          <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-background to-transparent" />
         </div>
 
         {/* Meta below image */}
         <div className="px-4 pt-5 pb-2 space-y-3">
           <HeroBadges brew={brew} brewTypeLabel={brewTypeLabel} />
-          <h1 className="text-3xl font-black text-white leading-tight tracking-tight">{brew.name}</h1>
+          <h1 className="text-3xl font-black text-text-primary leading-tight tracking-tight">{brew.name}</h1>
           <HeroStats avgRating={avgRating} ratingsCount={ratingsCount} brew={brew} brewId={brew.id} likesCount={likesCount} userHasLiked={userHasLiked} />
           <HeroActionBar
             brew={brew}
@@ -104,16 +104,16 @@ export default function BrewHero({
       {/* ──── DESKTOP: side-by-side ──── */}
       <div className="hidden lg:flex gap-10 px-6 py-10 items-start">
         {/* Image — fixed square */}
-        <div className="group/hero relative shrink-0 w-72 xl:w-80 aspect-square rounded-2xl overflow-hidden shadow-2xl bg-zinc-950">
+        <div className="group/hero relative shrink-0 w-72 xl:w-80 aspect-square rounded-2xl overflow-hidden shadow-2xl bg-background">
           {imageVisible ? (
             <img src={brew.image_url} alt={brew.name} className="w-full h-full object-cover transition-transform duration-700 group-hover/hero:scale-105" />
           ) : imagePending ? (
-            <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-zinc-900 to-zinc-950">
+            <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-surface to-background">
               <span className="text-5xl">⏳</span>
-              <p className="text-yellow-500 font-bold uppercase tracking-wider text-xs">Wird geprüft</p>
+              <p className="text-warning font-bold uppercase tracking-wider text-xs">Wird geprüft</p>
             </div>
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-zinc-900 to-zinc-950 flex items-center justify-center">
+            <div className="w-full h-full bg-gradient-to-br from-surface to-background flex items-center justify-center">
               <span className="text-8xl opacity-10">🍺</span>
             </div>
           )}
@@ -122,7 +122,7 @@ export default function BrewHero({
         {/* Content right */}
         <div className="flex-1 min-w-0 flex flex-col justify-center gap-4">
           <HeroBadges brew={brew} brewTypeLabel={brewTypeLabel} />
-          <h1 className="text-5xl xl:text-6xl font-black text-white leading-none tracking-tight">{brew.name}</h1>
+          <h1 className="text-5xl xl:text-6xl font-black text-text-primary leading-none tracking-tight">{brew.name}</h1>
           {profile?.display_name && <BreweryLink profile={profile} />}
           <HeroStats avgRating={avgRating} ratingsCount={ratingsCount} brew={brew} brewId={brew.id} likesCount={likesCount} userHasLiked={userHasLiked} />
           <HeroActionBar
@@ -156,20 +156,20 @@ export default function BrewHero({
 function HeroBadges({ brew, brewTypeLabel }: { brew: any; brewTypeLabel: string }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 px-2.5 py-1 rounded-full bg-zinc-900">
+      <span className="text-[10px] font-bold uppercase tracking-widest text-text-secondary px-2.5 py-1 rounded-full bg-surface">
         {brewTypeLabel}
       </span>
       {brew.remix_parent_id && (
-        <span className="text-[10px] font-black uppercase tracking-widest text-purple-400 px-2.5 py-1 rounded-full bg-purple-950/30 border border-purple-900/30">
+        <span className="text-[10px] font-black uppercase tracking-widest text-purple-600 dark:text-purple-400 px-2.5 py-1 rounded-full bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-900/30">
           Remix
         </span>
       )}
       {brew.style && (
-        <span className="text-[10px] font-black tracking-normal text-cyan-400 px-2.5 py-1 rounded-full bg-cyan-950/20">
+        <span className="text-[10px] font-black tracking-normal text-brand px-2.5 py-1 rounded-full bg-brand-bg">
           {brew.style.toUpperCase()}
         </span>
       )}
-      <span className="ml-auto text-[10px] text-zinc-600 shrink-0">
+      <span className="ml-auto text-[10px] text-text-disabled shrink-0">
         {new Date(brew.created_at).toLocaleDateString('de-DE', { year: 'numeric', month: 'short', day: 'numeric' })}
       </span>
       <ReportButton targetId={brew.id} targetType="brew" />
@@ -190,11 +190,11 @@ function HeroStats({ avgRating, ratingsCount, brew, brewId, likesCount, userHasL
       {avgRating ? (
         <>
           <div className="flex items-center gap-1.5">
-            <Star className="text-amber-400 fill-amber-400 shrink-0" size={16} />
-            <span className="font-black text-white text-lg tabular-nums leading-none">{avgRating}</span>
-            <span className="text-zinc-600 text-sm">({ratingsCount})</span>
+            <Star className="text-rating fill-rating shrink-0" size={16} />
+            <span className="font-black text-text-primary text-lg tabular-nums leading-none">{avgRating}</span>
+            <span className="text-text-disabled text-sm">({ratingsCount})</span>
           </div>
-          <span className="text-zinc-800" aria-hidden>·</span>
+          <span className="text-border" aria-hidden>·</span>
         </>
       ) : null}
 
@@ -206,17 +206,17 @@ function HeroStats({ avgRating, ratingsCount, brew, brewId, likesCount, userHasL
 
       {(brew.times_brewed ?? 0) > 0 && (
         <>
-          <span className="text-zinc-800" aria-hidden>·</span>
-          <span className="text-sm text-zinc-400">
-            <span className="font-bold text-white tabular-nums">{brew.times_brewed}×</span> gebraut
+          <span className="text-border" aria-hidden>·</span>
+          <span className="text-sm text-text-secondary">
+            <span className="font-bold text-text-primary tabular-nums">{brew.times_brewed}×</span> gebraut
           </span>
         </>
       )}
 
       {(brew.view_count ?? 0) > 0 && (
         <>
-          <span className="text-zinc-800" aria-hidden>·</span>
-          <span className="text-zinc-600 text-sm tabular-nums">{brew.view_count} Aufrufe</span>
+          <span className="text-border" aria-hidden>·</span>
+          <span className="text-text-disabled text-sm tabular-nums">{brew.view_count} Aufrufe</span>
         </>
       )}
     </div>
@@ -260,7 +260,7 @@ function HeroActionBar({
         onClick={canSave ? handleSaveToTeam : undefined}
         loading={saveLoading}
         active={isSaved}
-        activeColor="text-emerald-400"
+        activeColor="text-emerald-600 dark:text-emerald-400"
         disabled={!canSave && !isSaved}
         title={
           isSaved ? 'Bereits in der Bibliothek' :
@@ -273,7 +273,7 @@ function HeroActionBar({
         label={copied ? 'Kopiert!' : 'Teilen'}
         onClick={handleShare}
         active={copied}
-        activeColor="text-cyan-400"
+        activeColor="text-brand"
         title="Rezept teilen"
       />
       <BrewActionButton
@@ -293,18 +293,18 @@ function BreweryLink({ profile }: { profile: any }) {
       href={`/brewery/${profile.id}`}
       className="inline-flex items-center gap-2.5 group w-fit"
     >
-      <div className="w-7 h-7 rounded-full border border-zinc-800 overflow-hidden shrink-0 bg-zinc-800 flex items-center justify-center group-hover:border-cyan-700 transition-colors">
+      <div className="w-7 h-7 rounded-full border border-border overflow-hidden shrink-0 bg-surface-hover flex items-center justify-center group-hover:border-brand transition-colors">
         {profile.logo_url ? (
           <img src={profile.logo_url} alt={profile.display_name} className="w-full h-full object-cover" />
         ) : (
           <span className="text-sm">🏭</span>
         )}
       </div>
-      <span className="text-sm font-semibold text-zinc-400 group-hover:text-cyan-400 transition-colors">
+      <span className="text-sm font-semibold text-text-secondary group-hover:text-brand transition-colors">
         {profile.display_name}
       </span>
       {profile.bio && (
-        <span className="text-xs text-zinc-600 truncate max-w-[180px] hidden sm:block">
+        <span className="text-xs text-text-disabled truncate max-w-[180px] hidden sm:block">
           {profile.bio}
         </span>
       )}
@@ -314,16 +314,16 @@ function BreweryLink({ profile }: { profile: any }) {
 
 function RemixBadge({ parent }: { parent: any }) {
   return (
-    <div className="flex items-center gap-3 py-3 px-4 rounded-xl bg-purple-950/20 border border-purple-900/20">
+    <div className="flex items-center gap-3 py-3 px-4 rounded-xl bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-900/20">
       <span className="text-lg shrink-0">♻️</span>
-      <p className="text-sm text-zinc-400">
+      <p className="text-sm text-text-secondary">
         Basiert auf{' '}
-        <Link href={`/brew/${parent.id}`} className="text-purple-400 hover:text-purple-300 transition underline decoration-purple-400/30">
+        <Link href={`/brew/${parent.id}`} className="text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition underline decoration-purple-300/30 dark:decoration-purple-400/30">
           {parent.name}
         </Link>
         {parent.profiles?.display_name && (
           <> von{' '}
-            <Link href={`/brewer/${parent.user_id}`} className="text-zinc-300 hover:underline">
+            <Link href={`/brewer/${parent.user_id}`} className="text-text-secondary hover:underline">
               {parent.profiles.display_name}
             </Link>
           </>

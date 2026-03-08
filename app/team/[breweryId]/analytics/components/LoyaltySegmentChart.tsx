@@ -22,8 +22,8 @@ interface Props {
 function DonutChart({ segments }: { segments: LoyaltyBreakdown['segments'] }) {
   const total = segments.reduce((a, s) => a + s.userCount, 0);
   if (total === 0) return (
-    <div className="w-32 h-32 rounded-full border-4 border-zinc-800 flex items-center justify-center">
-      <p className="text-[10px] text-zinc-600 text-center px-3">Keine Daten</p>
+    <div className="w-32 h-32 rounded-full border-4 border-border flex items-center justify-center">
+      <p className="text-[10px] text-text-disabled text-center px-3">Keine Daten</p>
     </div>
   );
 
@@ -43,7 +43,7 @@ function DonutChart({ segments }: { segments: LoyaltyBreakdown['segments'] }) {
   return (
     <svg width={128} height={128} viewBox="0 0 128 128" className="flex-shrink-0">
       {/* Background ring */}
-      <circle cx={cx} cy={cy} r={r} fill="none" stroke="#27272a" strokeWidth={strokeW} />
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--border)" strokeWidth={strokeW} />
       {slices.map((s) => (
         <circle
           key={s.segment}
@@ -60,8 +60,8 @@ function DonutChart({ segments }: { segments: LoyaltyBreakdown['segments'] }) {
         />
       ))}
       {/* Center label */}
-      <text x={cx} y={cy - 6} textAnchor="middle" fill="white" fontSize={18} fontWeight="900">{total}</text>
-      <text x={cx} y={cy + 10} textAnchor="middle" fill="#71717a" fontSize={9}>Nutzer</text>
+      <text x={cx} y={cy - 6} textAnchor="middle" fill="var(--text-primary)" fontSize={18} fontWeight="900">{total}</text>
+      <text x={cx} y={cy + 10} textAnchor="middle" fill="var(--text-muted)" fontSize={9}>Nutzer</text>
     </svg>
   );
 }
@@ -95,13 +95,13 @@ function LoyaltyInsight({ breakdown }: { breakdown: LoyaltyBreakdown }) {
   if (insights.length === 0) return null;
 
   return (
-    <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 space-y-1.5">
+    <div className="bg-warning-bg border border-warning/20 rounded-xl p-3 space-y-1.5">
       <div className="flex items-center gap-1.5 mb-1">
-        <Lightbulb size={13} className="text-amber-400 flex-shrink-0" />
-        <span className="text-[10px] font-black uppercase tracking-widest text-amber-400">Insights</span>
+        <Lightbulb size={13} className="text-warning flex-shrink-0" />
+        <span className="text-[10px] font-black uppercase tracking-widest text-warning">Insights</span>
       </div>
       {insights.map((ins, i) => (
-        <p key={i} className="text-xs text-amber-200/80">{ins}</p>
+        <p key={i} className="text-xs text-text-secondary">{ins}</p>
       ))}
     </div>
   );
@@ -124,16 +124,16 @@ export default function LoyaltySegmentChart({ brews, breweryId, userTier }: Prop
 
   if (!tierOk) {
     return (
-      <div className="bg-black border border-zinc-800 rounded-lg p-8 text-center space-y-3">
+      <div className="bg-surface border border-border rounded-2xl p-8 text-center space-y-3">
         <Lock className="mx-auto text-amber-400" size={28} />
-        <p className="text-sm font-medium text-zinc-300">Verfügbar ab Brewer-Plan</p>
-        <p className="text-xs text-zinc-500">Loyalty-Analyse für deine Trinker.</p>
+        <p className="text-sm font-bold text-text-secondary">Verfügbar ab Brewer-Plan</p>
+        <p className="text-xs text-text-muted">Loyalty-Analyse für deine Trinker.</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-black border border-zinc-800 rounded-lg p-5 space-y-5">
+    <div className="bg-surface border border-border rounded-2xl p-5 space-y-5">
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
@@ -141,8 +141,8 @@ export default function LoyaltySegmentChart({ brews, breweryId, userTier }: Prop
             <Users size={18} className="text-emerald-400" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-white">Trinker-Treue</h3>
-            <p className="text-xs text-zinc-500">Wie loyal sind deine Trinker?</p>
+            <h3 className="text-sm font-bold text-text-primary">Trinker-Treue</h3>
+            <p className="text-xs text-text-muted">Wie loyal sind deine Trinker?</p>
           </div>
         </div>
 
@@ -150,7 +150,7 @@ export default function LoyaltySegmentChart({ brews, breweryId, userTier }: Prop
         <select
           value={selectedBrewId}
           onChange={(e) => setSelectedBrewId(e.target.value)}
-          className="bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500/50 max-w-[160px]"
+          className="bg-surface-hover border border-border-hover rounded-lg px-2 py-1.5 text-xs text-text-primary focus:outline-none focus:border-emerald-500/50 max-w-[160px]"
         >
           {brews.map((b) => (
             <option key={b.id} value={b.id}>{b.name}</option>
@@ -178,8 +178,8 @@ export default function LoyaltySegmentChart({ brews, breweryId, userTier }: Prop
                     style={{ backgroundColor: seg.color }}
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-white truncate">{seg.label}</p>
-                    <p className="text-[10px] text-zinc-500">
+                    <p className="text-xs font-semibold text-text-primary truncate">{seg.label}</p>
+                    <p className="text-[10px] text-text-muted">
                       {seg.userCount} Nutzer
                       {seg.avgRating != null ? ` · ⌀ ${seg.avgRating}★` : ''}
                       {` · ${seg.scanCount} Scans`}
@@ -189,9 +189,9 @@ export default function LoyaltySegmentChart({ brews, breweryId, userTier }: Prop
               ))}
 
               {breakdown.anonymousScans > 0 && (
-                <div className="flex items-center gap-2 pt-1 border-t border-zinc-800">
-                  <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 bg-zinc-700 border border-zinc-600" />
-                  <p className="text-[10px] text-zinc-600">
+                <div className="flex items-center gap-2 pt-1 border-t border-border">
+                  <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 bg-surface-hover border border-border-hover" />
+                  <p className="text-[10px] text-text-disabled">
                     {breakdown.anonymousScans} anonyme Scans (kein Tracking)
                   </p>
                 </div>
@@ -205,7 +205,7 @@ export default function LoyaltySegmentChart({ brews, breweryId, userTier }: Prop
       )}
 
       {!isPending && breakdown && breakdown.totalTrackedUsers === 0 && breakdown.anonymousScans === 0 && (
-        <p className="text-xs text-zinc-600 text-center py-4">
+        <p className="text-xs text-text-disabled text-center py-4">
           Noch keine Scan-Daten für dieses Bier.
         </p>
       )}

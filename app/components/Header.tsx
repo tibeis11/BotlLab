@@ -14,10 +14,12 @@ import {
   LogOut, 
   Menu, 
   MessageSquare, 
+  Moon,
   Package,
   Rocket,
   Search, 
   Settings, 
+  Sun,
   Tag,
   Thermometer,
   TrendingUp,
@@ -32,12 +34,15 @@ import { usePathname } from "next/navigation";
 import { getUserBreweries, getActiveBrewery } from "@/lib/supabase";
 import { useSupabase } from "@/lib/hooks/useSupabase";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import { getBreweryBranding } from "@/lib/actions/premium-actions";
 import { getTierBorderColor } from "@/lib/premium-config";
+import UserAvatar from "./UserAvatar";
 
 export default function Header({ breweryId, discoverSearchSlot, discoverMobileActions, forumSearchSlot, forumMobileActions }: { breweryId?: string; discoverSearchSlot?: React.ReactNode; discoverMobileActions?: React.ReactNode; forumSearchSlot?: React.ReactNode; forumMobileActions?: React.ReactNode }) {
   const supabase = useSupabase();
   const { user, loading, signOut } = useAuth();
+  const { theme, setTheme, resolved } = useTheme();
   const [profile, setProfile] = useState<any>(null);
   const [showMenu, setShowMenu] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -163,12 +168,11 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
 
   const isDrinker = profile?.app_mode === 'drinker';
   const homeUrl = isDrinker ? '/my-cellar' : '/dashboard';
-  const avatarUrl = profile?.logo_url || profile?.avatar_url || '/tiers/lehrling.png';
   const tierBorderClass = getTierBorderColor(profile?.subscription_tier);
 
   return (
     <>
-    <nav className="border-b border-zinc-900 bg-zinc-950/80 p-3 sticky top-0 z-50 backdrop-blur-md">
+    <nav className="border-b border-border-subtle bg-background/80 p-3 sticky top-0 z-50 backdrop-blur-md">
       <div className="max-w-[1920px] w-full mx-auto px-6 flex justify-between items-center">
         <Link href="/" className="flex-shrink-0">
           <Logo />
@@ -186,7 +190,7 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
 
           <Link 
             href="/pricing"
-            className="px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 text-zinc-500 hover:text-white hover:bg-zinc-800/50"
+            className="px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 text-text-muted hover:text-text-primary hover:bg-surface-hover/50"
           >
             <Gem className="w-4 h-4" />
             <span className="hidden xl:inline">Preise</span>
@@ -195,7 +199,7 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
           {!forumSearchSlot && (
             <Link 
               href="/forum"
-              className="px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 text-zinc-500 hover:text-white hover:bg-zinc-800/50"
+              className="px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 text-text-muted hover:text-text-primary hover:bg-surface-hover/50"
             >
               <MessageSquare className="w-4 h-4" />
               <span className="hidden xl:inline">Forum</span>
@@ -205,17 +209,27 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
           {!discoverSearchSlot && (
             <Link 
               href="/discover" 
-              className="px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 text-zinc-500 hover:text-white hover:bg-zinc-800/50"
+              className="px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 text-text-muted hover:text-text-primary hover:bg-surface-hover/50"
             >
               <Globe className="w-4 h-4" />
               <span className="hidden xl:inline">Entdecken</span>
             </Link>
           )}
           
-          <div className="h-4 w-px bg-zinc-800 mx-2"></div>
+          <div className="h-4 w-px bg-border mx-2"></div>
 
+          {/* Theme Toggle */}
+          <button
+            onClick={() => setTheme(resolved === 'dark' ? 'light' : 'dark')}
+            className="p-2 rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-hover/50 transition-all"
+            title={resolved === 'dark' ? 'Light Mode' : 'Dark Mode'}
+          >
+            {resolved === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </button>
+
+          <div className="h-4 w-px bg-border mx-2"></div>
           {loading ? (
-            <div className="w-10 h-10 bg-zinc-800 rounded-full animate-pulse"></div>
+            <div className="w-10 h-10 bg-surface-hover rounded-full animate-pulse"></div>
           ) : user ? (
             <>
             <NotificationBell />
@@ -226,15 +240,11 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
             >
               <Link 
                 href={homeUrl} 
-                className="group flex items-center gap-3 pl-1 pr-4 py-1 rounded-full bg-zinc-900 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800 transition"
+                className="group flex items-center gap-3 pl-1 pr-4 py-1 rounded-full bg-surface border border-border hover:border-border-hover hover:bg-surface-hover transition"
               >
-                <div 
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs overflow-hidden relative shadow-lg bg-zinc-900 border-2 ${tierBorderClass}`}
-                >
-                    <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-                </div>
+                <UserAvatar src={profile?.logo_url} name={profile?.display_name} userId={profile?.id} tier={profile?.subscription_tier} sizeClass="w-8 h-8" className="shadow-lg" />
                 <div className="flex flex-col items-start leading-none">
-                    <span className="truncate max-w-[120px] font-bold text-white text-sm">
+                    <span className="truncate max-w-[120px] font-bold text-text-primary text-sm">
                         {profile?.display_name || 'Profil'}
                     </span>
                 </div>
@@ -242,31 +252,31 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
 
               {showMenu && (
                 <div className="absolute top-full right-0 pt-2 w-48 z-50">
-                  <div className="bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden">
+                  <div className="bg-surface border border-border rounded-xl shadow-2xl overflow-hidden">
                     <Link
                       href={homeUrl}
-                      className="block px-4 py-3 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition flex items-center gap-2"
+                      className="block px-4 py-3 text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary transition flex items-center gap-2"
                     >
                       <LayoutDashboard className="w-4 h-4" /> {isDrinker ? 'Mein Keller' : 'Dashboard'}
                     </Link>
                     {isDrinker && (
                       <Link
                         href="/team/create"
-                        className="block px-4 py-3 text-sm text-cyan-400 hover:bg-zinc-800 hover:text-cyan-300 transition flex items-center gap-2 font-medium"
+                        className="block px-4 py-3 text-sm text-brand hover:bg-surface-hover hover:text-brand-hover transition flex items-center gap-2 font-medium"
                       >
                         <Beaker className="w-4 h-4" /> Brauer werden →
                       </Link>
                     )}
                     <Link
                       href="/account"
-                      className="block px-4 py-3 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition flex items-center gap-2"
+                      className="block px-4 py-3 text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary transition flex items-center gap-2"
                     >
                       <Settings className="w-4 h-4" /> Einstellungen
                     </Link>
-                    <div className="border-t border-zinc-800"></div>
+                    <div className="border-t border-border"></div>
                     <button
                       onClick={handleLogout}
-                      className="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-zinc-800 hover:text-red-300 transition flex items-center gap-2"
+                      className="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-surface-hover hover:text-red-300 transition flex items-center gap-2"
                     >
                       <LogOut className="w-4 h-4" /> Abmelden
                     </button>
@@ -278,13 +288,13 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
           ) : (
             <>
               <Link 
-                href="/login" 
-                className="text-sm font-bold text-zinc-400 hover:text-white px-4 py-2 transition"
+                href="/login?intent=brew" 
+                className="text-sm font-bold text-text-secondary hover:text-text-primary px-4 py-2 transition"
               >
                 Login
               </Link>
               <Link 
-                href="/login" 
+                href="/login?intent=brew" 
                 className="text-sm font-bold bg-white text-black px-6 py-2 rounded-full hover:bg-cyan-400 hover:scale-105 transition transform"
               >
                 Starten
@@ -299,7 +309,7 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
           {forumMobileActions}
           {user && <NotificationBell />}
           <button 
-            className="p-2 text-zinc-400 hover:text-white"
+            className="p-2 text-text-secondary hover:text-text-primary"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
             {isMobileMenuOpen ? (
@@ -319,12 +329,12 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
       {/* Mobile Menu Content - Redesigned Smart Drawer */}
       {isMobileMenuOpen && (
         <div 
-            className="lg:hidden fixed inset-0 z-[100] bg-zinc-950/95 backdrop-blur-3xl flex flex-col animate-in slide-in-from-right duration-200 supports-[backdrop-filter]:bg-zinc-950/80"
+            className="lg:hidden fixed inset-0 z-[100] bg-background/95 backdrop-blur-3xl flex flex-col animate-in slide-in-from-right duration-200 supports-[backdrop-filter]:bg-background/80"
         >
             <div className="flex flex-col h-full w-full" style={{ paddingRight: `${scrollbarCompensation}px` }}>
             
             {/* 1. Header with Close (Aligned with Main Header) */}
-            <div className="border-b border-zinc-900 bg-zinc-950 p-3">
+            <div className="border-b border-border-subtle bg-background p-3">
                <div className="max-w-[1920px] w-full mx-auto flex justify-between items-center px-6">
                    <div className="flex items-center gap-6" onClick={() => setIsMobileMenuOpen(false)}>
                       <Logo /> 
@@ -333,7 +343,7 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
                      {user && <NotificationBell />}
                      <button 
                        onClick={() => setIsMobileMenuOpen(false)}
-                       className="p-2 text-zinc-400 hover:text-white"
+                       className="p-2 text-text-secondary hover:text-text-primary"
                      >
                        <X className="w-6 h-6" />
                      </button>
@@ -343,11 +353,11 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
 
             {/* Segmented Control Area (Only if logged in) */}
             {user && (
-            <div className="p-4 border-b border-zinc-900 bg-zinc-950">
-               <div className="flex bg-zinc-900 p-1 rounded-xl overflow-x-auto no-scrollbar">
+            <div className="p-4 border-b border-border-subtle bg-background">
+               <div className="flex bg-surface p-1 rounded-xl overflow-x-auto no-scrollbar">
                     <button 
                       onClick={() => setMobileTab('personal')}
-                      className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${mobileTab === 'personal' ? 'bg-zinc-800 text-white shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
+                      className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${mobileTab === 'personal' ? 'bg-surface-hover text-text-primary shadow-lg' : 'text-text-muted hover:text-text-secondary'}`}
                     >
                       <FlaskConical className={`w-4 h-4 ${mobileTab === 'personal' ? 'grayscale-0' : 'grayscale'}`} />
                       {isDrinker ? 'Mein Keller' : 'Labor'}
@@ -355,7 +365,7 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
                     {!isDrinker && (
                       <button 
                         onClick={() => setMobileTab('team')}
-                        className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${mobileTab === 'team' ? 'bg-cyan-950 text-cyan-400 shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
+                        className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${mobileTab === 'team' ? 'bg-brand-bg text-brand shadow-lg' : 'text-text-muted hover:text-text-secondary'}`}
                       >
                         <Factory className="w-4 h-4" />
                         Brauerei
@@ -363,7 +373,7 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
                     )}
                     <button 
                       onClick={() => setMobileTab('discover')}
-                      className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${mobileTab === 'discover' ? 'bg-purple-900/50 text-purple-300 shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
+                      className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${mobileTab === 'discover' ? 'bg-purple-900/50 text-purple-300 shadow-lg' : 'text-text-muted hover:text-text-secondary'}`}
                     >
                       <Globe className="w-4 h-4" />
                       Entdecken
@@ -379,7 +389,7 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
                 {!user && (
                     <div className="space-y-6 flex flex-col items-center justify-center h-full">
                         <Link 
-                            href="/login"
+                            href="/login?intent=brew"
                             onClick={() => setIsMobileMenuOpen(false)}
                             className="bg-white text-black font-bold px-8 py-3 rounded-full hover:bg-cyan-400 transition"
                         >
@@ -389,29 +399,29 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
                                 <Link
                                     href="/discover"
                                     onClick={() => setIsMobileMenuOpen(false)}
-                                    className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition border-b border-zinc-900"
+                                    className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition border-b border-border-subtle"
                                 >
-                                    <Globe className="w-5 h-5 text-zinc-400" />
-                                    <span className="font-bold text-sm text-zinc-200">Entdecken</span>
-                                    <span className="ml-auto text-zinc-600">→</span>
+                                    <Globe className="w-5 h-5 text-text-secondary" />
+                                    <span className="font-bold text-sm text-text-primary">Entdecken</span>
+                                    <span className="ml-auto text-text-disabled">→</span>
                                 </Link>
                                 <Link
                                     href="/pricing"
                                     onClick={() => setIsMobileMenuOpen(false)}
-                                    className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition border-b border-zinc-900"
+                                    className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition border-b border-border-subtle"
                                 >
-                                    <Gem className="w-5 h-5 text-zinc-400" />
-                                    <span className="font-bold text-sm text-zinc-200">Preise</span>
-                                    <span className="ml-auto text-zinc-600">→</span>
+                                    <Gem className="w-5 h-5 text-text-secondary" />
+                                    <span className="font-bold text-sm text-text-primary">Preise</span>
+                                    <span className="ml-auto text-text-disabled">→</span>
                                 </Link>
                                 <Link
                                     href="/forum"
                                     onClick={() => setIsMobileMenuOpen(false)}
-                                    className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition border-b border-zinc-900"
+                                    className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition border-b border-border-subtle"
                                 >
-                                    <MessageSquare className="w-5 h-5 text-zinc-400" />
-                                    <span className="font-bold text-sm text-zinc-200">Forum</span>
-                                    <span className="ml-auto text-zinc-600">→</span>
+                                    <MessageSquare className="w-5 h-5 text-text-secondary" />
+                                    <span className="font-bold text-sm text-text-primary">Forum</span>
+                                    <span className="ml-auto text-text-disabled">→</span>
                                 </Link>
                         </div>
                     </div>
@@ -425,14 +435,14 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
                        <Link 
                           href={homeUrl}
                           onClick={() => setIsMobileMenuOpen(false)}
-                          className="block bg-gradient-to-br from-zinc-800 to-zinc-900 border border-zinc-700 p-5 rounded-2xl relative overflow-hidden group"
+                          className="block bg-gradient-to-br from-surface-hover to-surface border border-border-hover p-5 rounded-2xl relative overflow-hidden group"
                        >
                           <div className="absolute right-0 top-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                              <LayoutDashboard className="w-16 h-16" />
                           </div>
-                          <p className="text-xs text-zinc-400 uppercase font-black tracking-widest mb-1">Übersicht</p>
-                          <h3 className="text-2xl font-black text-white mb-2">{isDrinker ? 'Mein Keller' : 'Dashboard'}</h3>
-                          <div className="flex items-center gap-2 text-sm text-zinc-300">
+                          <p className="text-xs text-text-secondary uppercase font-black tracking-widest mb-1">Übersicht</p>
+                          <h3 className="text-2xl font-black text-text-primary mb-2">{isDrinker ? 'Mein Keller' : 'Dashboard'}</h3>
+                          <div className="flex items-center gap-2 text-sm text-text-secondary">
                              <span>Alles im Blick</span>
                              <span>→</span>
                           </div>
@@ -440,21 +450,21 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
 
                        {/* List for Tools */}
                        <div>
-                          <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest px-1 mb-1">Aktionen</p>
-                          <div className="divide-y divide-zinc-900/50">
-                             <Link href={isDrinker ? '/my-cellar/collection' : '/dashboard/collection'} onClick={() => setIsMobileMenuOpen(false)} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition">
-                                <FlaskConical className="w-5 h-5" /> <span className="font-bold text-sm text-zinc-200">Sammlung</span> <span className="ml-auto text-zinc-600">→</span>
+                          <p className="text-xs text-text-muted font-bold uppercase tracking-widest px-1 mb-1">Aktionen</p>
+                          <div className="divide-y divide-border/50">
+                             <Link href={isDrinker ? '/my-cellar/collection' : '/dashboard/collection'} onClick={() => setIsMobileMenuOpen(false)} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition">
+                                <FlaskConical className="w-5 h-5" /> <span className="font-bold text-sm text-text-primary">Sammlung</span> <span className="ml-auto text-text-disabled">→</span>
                              </Link>
-                             <Link href={isDrinker ? '/my-cellar/favorites' : '/dashboard/favorites'} onClick={() => setIsMobileMenuOpen(false)} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition">
-                                <Heart className="w-5 h-5" /> <span className="font-bold text-sm text-zinc-200">Favoriten</span> <span className="ml-auto text-zinc-600">→</span>
+                             <Link href={isDrinker ? '/my-cellar/favorites' : '/dashboard/favorites'} onClick={() => setIsMobileMenuOpen(false)} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition">
+                                <Heart className="w-5 h-5" /> <span className="font-bold text-sm text-text-primary">Favoriten</span> <span className="ml-auto text-text-disabled">→</span>
                              </Link>
                              {!isDrinker && (
-                               <Link href="/dashboard/achievements" onClick={() => setIsMobileMenuOpen(false)} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition">
-                                  <Trophy className="w-5 h-5" /> <span className="font-bold text-sm text-zinc-200">Achievements</span> <span className="ml-auto text-zinc-600">→</span>
+                               <Link href="/dashboard/achievements" onClick={() => setIsMobileMenuOpen(false)} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition">
+                                  <Trophy className="w-5 h-5" /> <span className="font-bold text-sm text-text-primary">Achievements</span> <span className="ml-auto text-text-disabled">→</span>
                                </Link>
                              )}
                              {isDrinker && (
-                               <Link href="/team/create" onClick={() => setIsMobileMenuOpen(false)} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition text-cyan-400 hover:text-cyan-300">
+                               <Link href="/team/create" onClick={() => setIsMobileMenuOpen(false)} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition text-brand hover:text-brand-hover">
                                   <Beaker className="w-5 h-5" /> <span className="font-bold text-sm">Brauer werden</span> <span className="ml-auto">→</span>
                                </Link>
                              )}
@@ -490,80 +500,80 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
 
                                {/* Team Quick Actions */}
                                <div>
-                                  <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest px-1 mb-1">Aktionen</p>
-                                  <div className="divide-y divide-zinc-900/50">
+                                  <p className="text-xs text-text-muted font-bold uppercase tracking-widest px-1 mb-1">Aktionen</p>
+                                  <div className="divide-y divide-border/50">
                                      <Link
                                       href={`/team/${activeBreweryId}/feed`}
                                       onClick={() => setIsMobileMenuOpen(false)}
-                                      className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
+                                      className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition"
                                      >
-                                        <MessageSquare className="w-5 h-5 text-zinc-400" />
-                                        <span className="font-bold text-sm text-zinc-200">Feed</span>
-                                        <span className="ml-auto text-zinc-600">→</span>
+                                        <MessageSquare className="w-5 h-5 text-text-secondary" />
+                                        <span className="font-bold text-sm text-text-primary">Feed</span>
+                                        <span className="ml-auto text-text-disabled">→</span>
                                      </Link>
                                      <Link
                                       href={`/team/${activeBreweryId}/brews`}
                                       onClick={() => setIsMobileMenuOpen(false)}
-                                      className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
+                                      className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition"
                                      >
-                                        <Beer className="w-5 h-5 text-zinc-400" />
-                                        <span className="font-bold text-sm text-zinc-200">Rezepte</span>
-                                        <span className="ml-auto text-zinc-600">→</span>
+                                        <Beer className="w-5 h-5 text-text-secondary" />
+                                        <span className="font-bold text-sm text-text-primary">Rezepte</span>
+                                        <span className="ml-auto text-text-disabled">→</span>
                                      </Link>
                                      <Link
                                       href={`/team/${activeBreweryId}/sessions`}
                                       onClick={() => setIsMobileMenuOpen(false)}
-                                      className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
+                                      className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition"
                                      >
-                                        <Thermometer className="w-5 h-5 text-zinc-400" />
-                                        <span className="font-bold text-sm text-zinc-200">Sessions</span>
-                                        <span className="ml-auto text-zinc-600">→</span>
+                                        <Thermometer className="w-5 h-5 text-text-secondary" />
+                                        <span className="font-bold text-sm text-text-primary">Sessions</span>
+                                        <span className="ml-auto text-text-disabled">→</span>
                                      </Link>
                                      <Link
                                       href={`/team/${activeBreweryId}/inventory`}
                                       onClick={() => setIsMobileMenuOpen(false)}
-                                      className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
+                                      className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition"
                                      >
-                                        <Package className="w-5 h-5 text-zinc-400" />
-                                        <span className="font-bold text-sm text-zinc-200">Inventar</span>
-                                        <span className="ml-auto text-zinc-600">→</span>
+                                        <Package className="w-5 h-5 text-text-secondary" />
+                                        <span className="font-bold text-sm text-text-primary">Inventar</span>
+                                        <span className="ml-auto text-text-disabled">→</span>
                                      </Link>
                                      <Link
                                       href={`/team/${activeBreweryId}/labels`}
                                       onClick={() => setIsMobileMenuOpen(false)}
-                                      className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
+                                      className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition"
                                       title="Etiketten"
                                      >
-                                        <Tag className="w-5 h-5 text-zinc-400" />
-                                        <span className="font-bold text-sm text-zinc-200">Etiketten</span>
-                                        <span className="ml-auto text-zinc-600">→</span>
+                                        <Tag className="w-5 h-5 text-text-secondary" />
+                                        <span className="font-bold text-sm text-text-primary">Etiketten</span>
+                                        <span className="ml-auto text-text-disabled">→</span>
                                      </Link>
                                      <Link
                                       href={`/team/${activeBreweryId}/analytics`}
                                       onClick={() => setIsMobileMenuOpen(false)}
-                                      className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
+                                      className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition"
                                      >
-                                        <TrendingUp className="w-5 h-5 text-zinc-400" />
-                                        <span className="font-bold text-sm text-zinc-200">Analytics</span>
-                                        <span className="ml-auto text-zinc-600">→</span>
+                                        <TrendingUp className="w-5 h-5 text-text-secondary" />
+                                        <span className="font-bold text-sm text-text-primary">Analytics</span>
+                                        <span className="ml-auto text-text-disabled">→</span>
                                      </Link>
                                      <Link
                                       href={`/team/${activeBreweryId}/members`}
                                       onClick={() => setIsMobileMenuOpen(false)}
-                                      className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
+                                      className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition"
                                      >
-                                        <Users className="w-5 h-5 text-zinc-400" />
-                                        <span className="font-bold text-sm text-zinc-200">Mitglieder</span>
-                                        <span className="ml-auto text-zinc-600">→</span>
+                                        <Users className="w-5 h-5 text-text-secondary" />
+                                        <span className="font-bold text-sm text-text-primary">Mitglieder</span>
+                                        <span className="ml-auto text-text-disabled">→</span>
                                      </Link>
                                      <Link
                                       href={`/team/${activeBreweryId}/settings`}
                                       onClick={() => setIsMobileMenuOpen(false)}
-                                      className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
+                                      className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition"
                                      >
-                                        <Settings className="w-5 h-5 text-zinc-400" />
-                                        <span className="font-bold text-sm text-zinc-200">Einstellungen</span>
-                                        <span className="ml-auto text-zinc-600">→</span>
+                                        <Settings className="w-5 h-5 text-text-secondary" />
+                                        <span className="font-bold text-sm text-text-primary">Einstellungen</span>
+                                        <span className="ml-auto text-text-disabled">→</span>
                                      </Link>
                                   </div>
                                </div>
@@ -571,17 +581,17 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
                                {/* Switchable Teams */}
                                {userBreweries.length > 1 && (
                                    <div>
-                                      <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest px-1 mb-3">Team wechseln</p>
+                                      <p className="text-xs text-text-muted font-bold uppercase tracking-widest px-1 mb-3">Team wechseln</p>
                                       <div className="space-y-2">
                                          {userBreweries.filter(b => b.id !== activeBreweryId).map(b => (
                                              <Link
                                                 key={b.id}
                                                 href={`/team/${b.id}`}
                                                 onClick={() => setIsMobileMenuOpen(false)}
-                                                className="w-full text-left bg-zinc-900/30 border border-zinc-800/50 p-3 rounded-xl flex items-center justify-between hover:bg-zinc-900 transition"
+                                                className="w-full text-left bg-surface/30 border border-border/50 p-3 rounded-xl flex items-center justify-between hover:bg-surface transition"
                                              >
-                                                <span className="text-sm font-bold text-zinc-400">{b.name}</span>
-                                                <span className="text-[10px] bg-zinc-800 text-zinc-500 px-2 py-1 rounded">Zu diesem Team</span>
+                                                <span className="text-sm font-bold text-text-secondary">{b.name}</span>
+                                                <span className="text-[10px] bg-surface-hover text-text-muted px-2 py-1 rounded">Zu diesem Team</span>
                                              </Link>
                                          ))}
                                       </div>
@@ -589,10 +599,10 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
                                )}
                              </>
                          ) : (
-                             <div className="text-center py-12 px-6 bg-zinc-900/30 rounded-2xl border border-zinc-800 border-dashed flex flex-col items-center">
+                             <div className="text-center py-12 px-6 bg-surface/30 rounded-2xl border border-border border-dashed flex flex-col items-center">
                                  <Factory className="w-10 h-10 opacity-50 mb-4" />
-                                 <h3 className="font-bold text-white mb-2">Kein Team</h3>
-                                 <p className="text-sm text-zinc-500 mb-6">Du bist aktuell keinem Brauerei-Team zugeordnet.</p>
+                                 <h3 className="font-bold text-text-primary mb-2">Kein Team</h3>
+                                 <p className="text-sm text-text-muted mb-6">Du bist aktuell keinem Brauerei-Team zugeordnet.</p>
                                  <Link
                                     href="/dashboard/team/create"
                                     onClick={() => setIsMobileMenuOpen(false)}
@@ -618,29 +628,29 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
                                     <Globe className="w-5 h-5" />
                                  </div>
                               </div>
-                              <p className="text-sm text-zinc-400 mb-4">Finde Inspiration, tausche dich aus und entdecke neue Rezepte.</p>
+                              <p className="text-sm text-text-secondary mb-4">Finde Inspiration, tausche dich aus und entdecke neue Rezepte.</p>
                         </div>
 
                          <div>
-                            <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest px-1 mb-1">Community</p>
-                            <div className="divide-y divide-zinc-900/50">
+                            <p className="text-xs text-text-muted font-bold uppercase tracking-widest px-1 mb-1">Community</p>
+                            <div className="divide-y divide-border/50">
                                 <Link
                                     href="/discover"
                                     onClick={() => setIsMobileMenuOpen(false)}
-                                    className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
+                                    className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition"
                                 >
-                                    <Globe className="w-5 h-5 text-zinc-400" />
-                                    <span className="font-bold text-sm text-zinc-200">Rezepte</span>
-                                    <span className="ml-auto text-zinc-600">→</span>
+                                    <Globe className="w-5 h-5 text-text-secondary" />
+                                    <span className="font-bold text-sm text-text-primary">Rezepte</span>
+                                    <span className="ml-auto text-text-disabled">→</span>
                                 </Link>
                                 <Link
                                     href="/forum"
                                     onClick={() => setIsMobileMenuOpen(false)}
-                                    className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
+                                    className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition"
                                 >
-                                    <MessageSquare className="w-5 h-5 text-zinc-400" />
-                                    <span className="font-bold text-sm text-zinc-200">Forum</span>
-                                    <span className="ml-auto text-zinc-600">→</span>
+                                    <MessageSquare className="w-5 h-5 text-text-secondary" />
+                                    <span className="font-bold text-sm text-text-primary">Forum</span>
+                                    <span className="ml-auto text-text-disabled">→</span>
                                 </Link>
                             </div>
                          </div>
@@ -651,14 +661,11 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
 
              {/* 3. Footer (Fixed) */}
              {user && (
-                 <div className="p-4 border-t border-zinc-900 bg-zinc-950 pb-8">
+                 <div className="p-4 border-t border-border bg-background pb-8">
                {profile && (
-                <div className="flex items-center justify-between bg-zinc-900/50 p-3 rounded-2xl mb-3">
+                <div className="flex items-center justify-between bg-surface/50 p-3 rounded-2xl mb-3">
                     <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs overflow-hidden relative border border-zinc-700 bg-zinc-800`}>
-                             <div className={`absolute inset-0 border-2 rounded-full opacity-50 ${tierBorderClass}`}></div>
-                            <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-                        </div>
+                        <UserAvatar src={profile?.logo_url} name={profile?.display_name} userId={profile?.id} tier={profile?.subscription_tier} sizeClass="w-10 h-10" />
                         <div>
                             <p className="text-sm font-bold text-white leading-tight">{profile.display_name}</p>
                         </div>
@@ -666,13 +673,24 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
                     <Link
                        href="/account"
                        onClick={() => setIsMobileMenuOpen(false)}
-                       className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-white transition"
+                       className="p-2 bg-surface-hover hover:bg-surface-hover/70 rounded-lg text-text-secondary hover:text-text-primary transition"
                     >
                        <Settings className="w-5 h-5" />
                     </Link>
                 </div>
                )}
                
+               {/* Theme Toggle */}
+               <button
+                onClick={() => setTheme(resolved === 'dark' ? 'light' : 'dark')}
+                className="w-full flex items-center justify-center gap-2 p-3 rounded-xl text-xs font-bold text-text-muted hover:bg-surface-hover hover:text-text-primary transition"
+               >
+                {resolved === 'dark'
+                  ? <><Sun className="w-4 h-4" /> Light Mode</>
+                  : <><Moon className="w-4 h-4" /> Dark Mode</>
+                }
+               </button>
+
                <button
                 onClick={() => { handleLogout(); setIsMobileMenuOpen(false); }}
                 className="w-full flex items-center justify-center gap-2 p-3 rounded-xl text-xs font-bold text-red-400/80 hover:bg-red-500/10 hover:text-red-400 transition"

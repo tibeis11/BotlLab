@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useId } from 'react';
 
 type Tier = 'gold' | 'silver' | 'bronze' | 'zinc';
 
@@ -13,7 +13,7 @@ interface CrownCapProps {
 
 export default function CrownCap({ 
   content, 
-  tier = 'zinc', 
+  tier = 'gold', 
   size = 'md',
   className = "" 
 }: CrownCapProps) {
@@ -32,29 +32,34 @@ export default function CrownCap({
       from: '#FDE047', // yellow-300
       via: '#CA8A04',  // yellow-600
       to: '#854D0E',   // yellow-800
-      border: '#FEF08A'
+      border: '#FEF08A',
+      inner: '#1a1407'  // warm near-black
     },
     silver: {
       from: '#E2E8F0', // slate-200
       via: '#94A3B8',  // slate-400
       to: '#475569',   // slate-600
-      border: '#F1F5F9'
+      border: '#F1F5F9',
+      inner: '#0F172A'  // cool dark slate
     },
     bronze: {
       from: '#FB923C', // orange-400
       via: '#C2410C',  // orange-700
       to: '#7C2D12',   // orange-900
-      border: '#FFEDD5'
+      border: '#FFEDD5',
+      inner: '#1c0907'  // deep warm rust
     },
     zinc: {
-      from: '#3F3F46', // zinc-700
-      via: '#18181B',  // zinc-900
-      to: '#09090B',   // zinc-950
-      border: '#71717A'
+      from: '#71717A', // zinc-500 — brighter for light-mode visibility
+      via: '#3F3F46',  // zinc-700
+      to: '#27272A',   // zinc-800
+      border: '#A1A1AA',
+      inner: '#18181B'
     }
   };
 
   const g = gradients[tier];
+  const uid = useId().replace(/:/g, ''); // unique ID per instance — prevents SVG defs collision
 
   // Generating the 21 rounded teeth path for a realistic crown cap
   const generateSerratedPath = () => {
@@ -98,18 +103,18 @@ export default function CrownCap({
       <div className={`absolute inset-0 rounded-full blur-xl opacity-20 transition-all duration-700 ${
         tier === 'gold' ? 'bg-yellow-500' : 
         tier === 'silver' ? 'bg-blue-300' : 
-        tier === 'bronze' ? 'bg-orange-600' : 'bg-zinc-500'
+        tier === 'bronze' ? 'bg-orange-600' : 'bg-zinc-400'
       }`} />
 
       <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-2xl overflow-visible">
         <defs>
-          <linearGradient id={`grad-${tier}`} x1="0%" y1="0%" x2="100%" y2="100%">
+          <linearGradient id={`grad-${uid}`} x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor={g.from} />
             <stop offset="50%" stopColor={g.via} />
             <stop offset="100%" stopColor={g.to} />
           </linearGradient>
           
-          <filter id="innerShadow">
+          <filter id={`innerShadow-${uid}`}>
             <feOffset dx="0" dy="2" />
             <feGaussianBlur stdDeviation="2" result="offset-blur" />
             <feComposite operator="out" in="SourceGraphic" in2="offset-blur" result="inverse" />
@@ -122,7 +127,7 @@ export default function CrownCap({
         {/* Outer Serrated Edge */}
         <path 
           d={serratedPath} 
-          fill={`url(#grad-${tier})`}
+          fill={`url(#grad-${uid})`}
           stroke={g.border}
           strokeWidth="0.5"
           className="transition-all duration-500"
@@ -131,10 +136,10 @@ export default function CrownCap({
         {/* Central Inlay Area */}
         <circle 
           cx="50" cy="50" r="36" 
-          fill="#09090B" 
+          fill={g.inner}
           stroke={g.border}
           strokeWidth="0.5"
-          filter="url(#innerShadow)"
+          filter={`url(#innerShadow-${uid})`}
         />
         
         {/* Subtle highlights on teeth */}
@@ -146,7 +151,7 @@ export default function CrownCap({
         {content ? (
           // If content is a hex color string, render a filled circle with that color.
           (typeof content === 'string' && content.startsWith('#')) ? (
-            <div className="w-full h-full rounded-full overflow-hidden border border-zinc-800 shadow-inner">
+            <div className="w-full h-full rounded-full overflow-hidden shadow-inner">
               <div className="w-full h-full" style={{ background: content }} />
             </div>
           ) : content.length < 5 ? (
@@ -157,13 +162,18 @@ export default function CrownCap({
               {content}
             </span>
           ) : (
-            <div className="w-full h-full rounded-full overflow-hidden border border-zinc-800 shadow-inner">
+            <div className="relative w-full h-full rounded-full overflow-hidden shadow-inner">
               <img src={content} alt="Cap Icon" className="w-full h-full object-cover" />
+              {/* Dark vignette to blend image into the crown cap ring */}
+              <div
+                className="absolute inset-0 rounded-full pointer-events-none"
+                style={{ background: 'radial-gradient(circle, transparent 45%, rgba(0,0,0,0.55) 75%, rgba(0,0,0,0.9) 100%)' }}
+              />
             </div>
           )
         ) : (
-          <div className="w-full h-full rounded-full bg-zinc-900/50 flex items-center justify-center border border-zinc-800/30">
-            <span className="text-zinc-800 font-black text-[8px] uppercase tracking-tighter">Empty</span>
+          <div className="w-full h-full rounded-full bg-surface-sunken flex items-center justify-center border border-border-subtle">
+            <span className="text-text-disabled font-black text-[8px] uppercase tracking-tighter">Empty</span>
           </div>
         )}
       </div>

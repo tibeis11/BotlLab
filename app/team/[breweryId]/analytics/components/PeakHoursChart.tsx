@@ -51,12 +51,12 @@ export default function PeakHoursChart({ data }: PeakHoursChartProps) {
   }, [chartData, maxScans]);
 
   return (
-    <div className="bg-black rounded-lg p-6 border border-zinc-800 flex flex-col">
+    <div className="bg-surface rounded-2xl p-6 border border-border flex flex-col">
       <div className="flex justify-between items-start mb-6">
         <div>
-            <h3 className="text-zinc-400 text-xs font-medium uppercase tracking-wider">Aktivität nach Uhrzeit</h3>
+            <h3 className="text-text-muted text-[10px] font-black uppercase tracking-widest">Aktivität nach Uhrzeit</h3>
             {activePeriod && (
-                <p className="text-zinc-500 text-xs mt-1">
+                <p className="text-text-muted text-xs mt-1">
                     Hauptzeit: <span className="text-cyan-400 font-medium">{activePeriod[0]}</span> ({activePeriod[1]} Scans)
                 </p>
             )}
@@ -65,37 +65,37 @@ export default function PeakHoursChart({ data }: PeakHoursChartProps) {
       
       <div className="h-[250px] w-full">
          {maxScans === 0 ? (
-            <div className="flex items-center justify-center h-full text-zinc-600 text-sm italic">
+            <div className="flex items-center justify-center h-full text-text-disabled text-sm italic">
                 Noch keine Zeitdaten
             </div>
          ) : (
             <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                 <XAxis 
                     dataKey="hour" 
-                    tick={{ fill: '#71717a', fontSize: 10 }}
+                    tick={{ fill: 'var(--text-muted)', fontSize: 10 }}
                     axisLine={false}
                     tickLine={false}
                     tickFormatter={(val) => val % 3 === 0 ? `${val}` : ''} // Show every 3rd hour label
                 />
                 <YAxis 
-                    tick={{ fill: '#71717a', fontSize: 10 }}
+                    tick={{ fill: 'var(--text-muted)', fontSize: 10 }}
                     axisLine={false}
                     tickLine={false}
                     allowDecimals={false}
                 />
                 <Tooltip 
-                    cursor={{ fill: '#18181b', opacity: 0.5 }}
+                    cursor={{ fill: 'var(--surface)', opacity: 0.5 }}
                     content={({ active, payload }) => {
                         if (active && payload && payload.length) {
                             const data = payload[0].payload;
                             return (
-                                <div className="bg-zinc-900 border border-zinc-800 p-2 rounded shadow-xl">
+                                <div className="bg-surface-hover border border-border p-2 rounded-xl shadow-xl">
                                     <div className="text-center">
-                                        <p className="text-white font-bold text-lg">{data.label}</p>
+                                        <p className="text-text-primary font-bold text-lg">{data.label}</p>
                                         <p className="text-cyan-400 text-sm font-medium">{data.scans} Scans</p>
-                                        <p className="text-zinc-500 text-[10px] uppercase mt-1 tracking-wide">{data.period}</p>
+                                        <p className="text-text-muted text-[10px] uppercase mt-1 tracking-wide">{data.period}</p>
                                     </div>
                                 </div>
                             );

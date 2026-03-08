@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { MapPin } from 'lucide-react';
 import { updateScanWithGeoData } from '@/lib/actions/geo-actions';
 
 /**
@@ -109,15 +110,15 @@ export default function GeoConsentPrompt({ bottleId, onClose }: GeoConsentPrompt
       aria-label="Standort-Freigabe"
       className="fixed bottom-0 inset-x-0 z-50 animate-in slide-in-from-bottom-4 duration-300 px-4 pb-4"
     >
-      <div className="max-w-md mx-auto bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-2xl shadow-black/60">
+      <div className="max-w-md mx-auto bg-surface border border-border rounded-2xl p-6 shadow-2xl">
         {/* ── Asking State ── */}
         {state === 'asking' && (
           <>
             <div className="flex items-start gap-3 mb-4">
-              <span className="text-2xl shrink-0 mt-0.5">📍</span>
+              <MapPin className="w-6 h-6 shrink-0 mt-0.5 text-brand" />
               <div>
-                <h3 className="font-bold text-white text-sm mb-1">Standort teilen?</h3>
-                <p className="text-xs text-zinc-400 leading-relaxed">
+                <h3 className="font-bold text-text-primary text-sm mb-1">Standort teilen?</h3>
+                <p className="text-xs text-text-secondary leading-relaxed">
                   Hilft dem Brauer zu sehen, wo seine Biere getrunken werden.
                   Kein GPS-Track — nur Stadt &amp; Region werden gespeichert.
                 </p>
@@ -127,13 +128,13 @@ export default function GeoConsentPrompt({ bottleId, onClose }: GeoConsentPrompt
             <div className="flex gap-3">
               <button
                 onClick={handleConsent}
-                className="flex-1 bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-sm py-2.5 rounded-xl transition"
+                className="flex-1 bg-brand hover:bg-brand-hover text-black font-bold text-sm py-2.5 rounded-xl transition"
               >
                 Ja, gerne
               </button>
               <button
                 onClick={handleDeny}
-                className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium text-sm py-2.5 rounded-xl transition"
+                className="flex-1 bg-surface-hover hover:bg-border text-text-secondary font-medium text-sm py-2.5 rounded-xl transition"
               >
                 Nein danke
               </button>
@@ -144,8 +145,8 @@ export default function GeoConsentPrompt({ bottleId, onClose }: GeoConsentPrompt
         {/* ── Resolving State ── */}
         {state === 'resolving' && (
           <div className="flex items-center gap-3 py-2">
-            <div className="w-5 h-5 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin shrink-0" />
-            <p className="text-sm text-zinc-400">Standort wird ermittelt…</p>
+            <div className="w-5 h-5 border-2 border-brand border-t-transparent rounded-full animate-spin shrink-0" />
+            <p className="text-sm text-text-secondary">Standort wird ermittelt…</p>
           </div>
         )}
 
@@ -161,7 +162,7 @@ export default function GeoConsentPrompt({ bottleId, onClose }: GeoConsentPrompt
         {state === 'error' && (
           <div className="flex items-center gap-3 py-2">
             <span className="text-xl">⚠️</span>
-            <p className="text-sm text-zinc-400">Standort konnte nicht ermittelt werden — kein Problem.</p>
+            <p className="text-sm text-text-secondary">Standort konnte nicht ermittelt werden — kein Problem.</p>
           </div>
         )}
 
@@ -169,7 +170,7 @@ export default function GeoConsentPrompt({ bottleId, onClose }: GeoConsentPrompt
         {state === 'denied' && (
           <div className="flex items-center gap-3 py-2">
             <span className="text-xl">👍</span>
-            <p className="text-sm text-zinc-400">Alles klar — wird nicht nochmal gefragt.</p>
+            <p className="text-sm text-text-secondary">Alles klar — wird nicht nochmal gefragt.</p>
           </div>
         )}
       </div>

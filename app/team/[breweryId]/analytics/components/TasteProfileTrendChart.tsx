@@ -41,12 +41,12 @@ type DimKey = typeof DIMENSIONS[number]['key'];
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-xs shadow-lg min-w-[140px]">
-      <p className="text-zinc-400 font-medium mb-2">{label}</p>
+    <div className="bg-surface border border-border-hover rounded px-3 py-2 text-xs shadow-lg min-w-[140px]">
+      <p className="text-text-secondary font-bold mb-2">{label}</p>
       {payload.map((p: { name: string; value: number; color: string }) => (
         <div key={p.name} className="flex items-center gap-2 justify-between">
           <span style={{ color: p.color }}>{p.name}</span>
-          <span className="text-white font-mono">{p.value?.toFixed(1)}</span>
+          <span className="text-text-primary font-mono">{p.value?.toFixed(1)}</span>
         </div>
       ))}
     </div>
@@ -103,33 +103,33 @@ export default function TasteProfileTrendChart({
   const hasEnoughData = timeline.length >= 3;
 
   return (
-    <div className="bg-black border border-zinc-800 rounded-lg overflow-hidden">
+    <div className="bg-surface border border-border rounded-2xl overflow-hidden">
       {/* Accordion header */}
       <button
         onClick={() => setIsOpen(o => !o)}
-        className="w-full flex items-center justify-between px-6 py-4 hover:bg-zinc-900/30 transition-colors"
+        className="w-full flex items-center justify-between px-6 py-4 hover:bg-surface/30 transition-colors"
       >
         <div className="flex items-center gap-2">
           <TrendingUp size={16} className="text-emerald-400" />
-          <span className="text-sm font-semibold text-white">Geschmackstrend</span>
+          <span className="text-sm font-bold text-text-primary">Geschmackstrend</span>
           {selectedBrewId && brewOptions.length > 0 && (
-            <span className="text-[10px] text-zinc-500 bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded ml-1">
+            <span className="text-[10px] text-text-muted bg-surface border border-border px-2 py-0.5 rounded ml-1">
               {brewOptions.find(b => b.id === selectedBrewId)?.name ?? ''}
             </span>
           )}
         </div>
-        {isOpen ? <ChevronUp size={16} className="text-zinc-500" /> : <ChevronDown size={16} className="text-zinc-500" />}
+        {isOpen ? <ChevronUp size={16} className="text-text-muted" /> : <ChevronDown size={16} className="text-text-muted" />}
       </button>
 
       {/* Accordion body */}
       {isOpen && (
-        <div className="px-6 pb-6 border-t border-zinc-800">
+        <div className="px-6 pb-6 border-t border-border">
           {/* Tier lock */}
           {isLocked ? (
             <div className="flex flex-col items-center justify-center py-12 gap-3">
               <Lock size={20} className="text-amber-400 mt-4" />
-              <p className="text-sm font-medium text-zinc-300">Verfügbar ab Brewer-Plan</p>
-              <p className="text-xs text-zinc-500 text-center max-w-xs">
+              <p className="text-sm font-bold text-text-secondary">Verfügbar ab Brewer-Plan</p>
+              <p className="text-xs text-text-muted text-center max-w-xs">
                 Geschmackstrend-Analyse für deine Biere.
               </p>
             </div>
@@ -141,7 +141,7 @@ export default function TasteProfileTrendChart({
                 <select
                   value={selectedBrewId}
                   onChange={e => setSelectedBrewId(e.target.value)}
-                  className="bg-zinc-900 border border-zinc-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500 transition max-w-xs"
+                  className="bg-surface border border-border-hover rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-emerald-500 transition max-w-xs"
                 >
                   <option value="">— Brew auswählen —</option>
                   {brewOptions.map(b => (
@@ -159,14 +159,14 @@ export default function TasteProfileTrendChart({
                       onClick={() => toggleDim(dim.key)}
                       className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] border transition ${
                         activeDims.has(dim.key)
-                          ? 'border-transparent text-white'
-                          : 'border-zinc-700 text-zinc-600 bg-transparent'
+                          ? 'border-transparent text-text-primary'
+                          : 'border-border-hover text-text-disabled bg-transparent'
                       }`}
                       style={activeDims.has(dim.key) ? { backgroundColor: `${dim.color}25`, borderColor: dim.color, color: dim.color } : {}}
                     >
                       <span
                         className="w-2 h-2 rounded-full flex-shrink-0"
-                        style={{ backgroundColor: activeDims.has(dim.key) ? dim.color : '#52525b' }}
+                        style={{ backgroundColor: activeDims.has(dim.key) ? dim.color : 'var(--text-disabled)' }}
                       />
                       {dim.label}
                     </button>
@@ -176,22 +176,22 @@ export default function TasteProfileTrendChart({
 
               {/* Chart area */}
               {!selectedBrewId ? (
-                <div className="h-52 flex items-center justify-center text-zinc-600 text-sm italic border border-dashed border-zinc-800 rounded-lg">
+                <div className="h-52 flex items-center justify-center text-text-disabled text-sm italic border border-dashed border-border rounded-lg">
                   Wähle ein Brew aus, um den Trend zu sehen.
                 </div>
               ) : loading ? (
-                <div className="h-52 bg-zinc-900/30 rounded-lg animate-pulse" />
+                <div className="h-52 bg-surface/30 rounded-lg animate-pulse" />
               ) : !hasEnoughData ? (
-                <div className="h-52 flex items-center justify-center text-zinc-600 text-sm italic border border-dashed border-zinc-800 rounded-lg">
+                <div className="h-52 flex items-center justify-center text-text-disabled text-sm italic border border-dashed border-border rounded-lg">
                   Noch zu wenige Bewertungen für einen Trend (mindestens 3 Monate erforderlich).
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height={240}>
                   <LineChart data={timeline} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                     <XAxis
                       dataKey="date"
-                      tick={{ fill: '#71717a', fontSize: 10 }}
+                      tick={{ fill: 'var(--text-muted)', fontSize: 10 }}
                       tickFormatter={d => {
                         const [y, m] = d.split('-');
                         return `${m}/${y.slice(2)}`;
@@ -199,12 +199,12 @@ export default function TasteProfileTrendChart({
                     />
                     <YAxis
                       domain={[0, 10]}
-                      tick={{ fill: '#71717a', fontSize: 10 }}
+                      tick={{ fill: 'var(--text-muted)', fontSize: 10 }}
                       tickCount={6}
                     />
                     <Tooltip content={<CustomTooltip />} />
                     <Legend
-                      formatter={v => <span className="text-[10px] text-zinc-400">{v}</span>}
+                      formatter={v => <span className="text-[10px] text-text-secondary">{v}</span>}
                       iconSize={8}
                     />
                     {DIMENSIONS.filter(d => activeDims.has(d.key)).map(dim => (
@@ -225,7 +225,7 @@ export default function TasteProfileTrendChart({
               )}
 
               {hasEnoughData && (
-                <p className="text-[10px] text-zinc-600 mt-3">
+                <p className="text-[10px] text-text-disabled mt-3">
                   Basierend auf {timeline.reduce((a, b) => a + b.counts, 0)} Bewertungen über {timeline.length} Monate
                 </p>
               )}

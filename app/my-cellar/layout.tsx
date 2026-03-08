@@ -14,8 +14,8 @@ export default async function MyCellarLayout({ children }: { children: React.Rea
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white flex flex-col">
-      <Suspense fallback={<div className="h-14 bg-zinc-950 border-b border-zinc-900" />}>
+    <div className="min-h-screen bg-background text-text-primary flex flex-col">
+      <Suspense fallback={<div className="h-14 bg-background border-b border-border-subtle" />}>
         <ConsumerHeader />
       </Suspense>
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-6">

@@ -67,37 +67,37 @@ export default function NotificationBell() {
           case 'brew_like':
               return (
                   <span>
-                      <span className="font-bold text-white">{n.actor?.display_name || 'Jemand'}</span> gefällt dein Rezept <span className="text-cyan-400">"{n.data.brew_name}"</span>.
+                      <span className="font-bold text-text-primary">{n.actor?.display_name || 'Jemand'}</span> gefällt dein Rezept <span className="text-brand">"{n.data.brew_name}"</span>.
                   </span>
               );
           case 'forum_reply':
               return (
                   <span>
-                      <span className="font-bold text-white">{n.actor?.display_name || 'Jemand'}</span> hat auf deine Diskussion <span className="text-emerald-400">"{n.data.thread_title || 'Unbekannt'}"</span> geantwortet.
+                      <span className="font-bold text-text-primary">{n.actor?.display_name || 'Jemand'}</span> hat auf deine Diskussion <span className="text-success">"{n.data.thread_title || 'Unbekannt'}"</span> geantwortet.
                   </span>
               );
           case 'forum_mention':
               return (
                   <span>
-                       <span className="font-bold text-white">{n.actor?.display_name || 'Jemand'}</span> hat dich in <span className="text-emerald-400">"{n.data.thread_title || 'Unbekannt'}"</span> <span className="text-blue-400 font-bold">erw&auml;hnt</span>.
+                       <span className="font-bold text-text-primary">{n.actor?.display_name || 'Jemand'}</span> hat dich in <span className="text-success">"{n.data.thread_title || 'Unbekannt'}"</span> <span className="text-brand font-bold">erwähnt</span>.
                   </span>
               );
           case 'image_approved':
               return (
                   <span>
-                      🎉 Dein Bild für <span className="font-bold text-white">{n.data.name}</span> wurde genehmigt und ist jetzt live.
+                      Dein Bild für <span className="font-bold text-text-primary">{n.data.name}</span> wurde genehmigt und ist jetzt live.
                   </span>
               );
           case 'image_rejected':
               return (
                   <span>
-                      ⚠️ Dein Bild für <span className="font-bold text-white">{n.data.name}</span> wurde abgelehnt: <span className="text-amber-500 italic">"{n.data.reason}"</span>.
+                      Dein Bild für <span className="font-bold text-text-primary">{n.data.name}</span> wurde abgelehnt: <span className="text-accent-orange italic">"{n.data.reason}"</span>.
                   </span>
               );
           case 'report_resolved':
               return (
                   <span>
-                      👮 Update zu deiner Meldung: Wir haben den Fall geprüft und Maßnahmen ergriffen. Danke für deine Mithilfe!
+                      Update zu deiner Meldung: Wir haben den Fall geprüft und Maßnahmen ergriffen. Danke für deine Mithilfe!
                   </span>
               );
           case 'content_moderated':
@@ -105,15 +105,15 @@ export default function NotificationBell() {
                   const isAccepted = n.data.appeal_decision === 'accepted';
                   return (
                       <span>
-                          {isAccepted ? '✅' : '❌'} Dein Widerspruch {n.data.target_title ? <>zu <span className="font-bold text-white">&quot;{n.data.target_title}&quot;</span> </> : ''}wurde <span className={isAccepted ? 'text-emerald-400 font-bold' : 'text-red-400 font-bold'}>
+                          Dein Widerspruch {n.data.target_title ? <>zu <span className="font-bold text-text-primary">&quot;{n.data.target_title}&quot;</span> </> : ''}wurde <span className={isAccepted ? 'text-success font-bold' : 'text-error font-bold'}>
                               {isAccepted ? 'stattgegeben' : 'abgelehnt'}
-                          </span>.{n.data.admin_response ? <> Begründung: <span className="text-zinc-400 italic">&quot;{n.data.admin_response}&quot;</span></> : ''}
+                          </span>.{n.data.admin_response ? <> Begründung: <span className="text-text-muted italic">&quot;{n.data.admin_response}&quot;</span></> : ''}
                       </span>
                   );
               }
               return (
                   <span>
-                      ⚠️ Dein Inhalt {n.data.target_title ? <><span className="font-bold text-white">&quot;{n.data.target_title}&quot;</span> </> : ''}wurde entfernt. Grund: <span className="text-amber-500 italic">&quot;{n.data.reason_label || 'Verstoß gegen die Nutzungsbedingungen'}&quot;</span>.{n.data.can_appeal ? <> <span className="text-cyan-400 font-bold underline">Widerspruch einlegen →</span></> : ' Bei Fragen wende dich an unser Team.'}
+                      Dein Inhalt {n.data.target_title ? <><span className="font-bold text-text-primary">&quot;{n.data.target_title}&quot;</span> </> : ''}wurde entfernt. Grund: <span className="text-accent-orange italic">&quot;{n.data.reason_label || 'Verstoß gegen die Nutzungsbedingungen'}&quot;</span>.{n.data.can_appeal ? <> <span className="text-brand font-bold underline">Widerspruch einlegen →</span></> : ' Bei Fragen wende dich an unser Team.'}
                   </span>
               );
           default:
@@ -127,25 +127,25 @@ export default function NotificationBell() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-zinc-400 hover:text-white transition rounded-full hover:bg-zinc-800"
+        className="relative p-2 text-text-muted hover:text-text-primary transition rounded-full hover:bg-surface-hover"
         title="Benachrichtigungen"
       >
         <Bell size={20} />
         {totalBadge > 0 && (
-          <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full shadow-lg border border-black">
+          <span className="absolute top-0 right-0 w-4 h-4 bg-error text-background text-[10px] font-bold flex items-center justify-center rounded-full shadow-lg border border-background">
             {totalBadge > 9 ? '9+' : totalBadge}
           </span>
         )}
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 md:w-96 bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-          <div className="p-3 border-b border-zinc-900 flex items-center justify-between bg-zinc-900/50">
-            <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Benachrichtigungen</h3>
+        <div className="absolute right-0 mt-2 w-80 md:w-96 bg-surface border border-border rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="p-3 border-b border-border-subtle flex items-center justify-between bg-surface-hover/50">
+            <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider">Benachrichtigungen</h3>
             {unreadCount > 0 && (
                 <button 
                     onClick={() => markAllAsRead()}
-                    className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
+                    className="text-xs text-brand hover:text-brand-hover flex items-center gap-1"
                 >
                     <Check size={12} /> Alles gelesen
                 </button>
@@ -155,10 +155,10 @@ export default function NotificationBell() {
           <div className="max-h-[60vh] overflow-y-auto">
             {/* BotlGuide Insights Section */}
             {insights.length > 0 && (
-              <div className="p-3 space-y-2 border-b border-zinc-900">
+              <div className="p-3 space-y-2 border-b border-border-subtle">
                 <div className="flex items-center gap-1.5 mb-2">
-                  <Sparkles size={11} className="text-purple-400" />
-                  <span className="text-[9px] font-bold uppercase tracking-widest text-purple-400">BotlGuide</span>
+                  <Sparkles size={11} className="text-accent-purple" />
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-accent-purple">BotlGuide</span>
                 </div>
                 {insights.map(insight => (
                   <BotlGuideInsightBanner
@@ -173,19 +173,19 @@ export default function NotificationBell() {
 
             {/* Regular notifications */}
             {notifications.length === 0 ? (
-                <div className="p-8 text-center text-zinc-500 text-sm">
+                <div className="p-8 text-center text-text-muted text-sm">
                     Keine Benachrichtigungen.
                 </div>
             ) : (
-                <div className="divide-y divide-zinc-900">
+                <div className="divide-y divide-border-subtle">
                     {notifications.map((n) => (
-                        <div key={n.id} className={`group relative p-4 hover:bg-zinc-900/50 transition ${!n.is_read ? 'bg-zinc-900/20' : ''}`}>
+                        <div key={n.id} className={`group relative p-4 hover:bg-surface-hover/50 transition ${!n.is_read ? 'bg-brand-bg/30' : ''}`}>
                             <div className="flex gap-3">
                                 <div className="mt-1 min-w-[32px]">
                                     {n.actor?.logo_url ? (
-                                        <img src={n.actor.logo_url} className="w-8 h-8 rounded-full bg-zinc-800 object-cover" alt="" />
+                                        <img src={n.actor.logo_url} className="w-8 h-8 rounded-full bg-surface-hover object-cover" alt="" />
                                     ) : (
-                                        <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-xs font-bold text-zinc-500">
+                                        <div className="w-8 h-8 rounded-full bg-surface-hover flex items-center justify-center text-xs font-bold text-text-muted">
                                             ?
                                         </div>
                                     )}
@@ -194,11 +194,11 @@ export default function NotificationBell() {
                                     <Link 
                                         href={getNotificationLink(n)} 
                                         onClick={() => handleNotificationClick(n)}
-                                        className="block text-sm text-zinc-300 leading-snug mb-1"
+                                        className="block text-sm text-text-secondary leading-snug mb-1"
                                     >
                                         {renderNotificationContent(n)}
                                     </Link>
-                                    <p className="text-xs text-zinc-600">
+                                    <p className="text-xs text-text-disabled">
                                         {formatDistanceToNow(new Date(n.created_at), { addSuffix: true, locale: de })}
                                     </p>
                                 </div>
@@ -208,14 +208,14 @@ export default function NotificationBell() {
                                         e.stopPropagation();
                                         deleteNotification(n.id);
                                     }}
-                                    className="opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-red-400 transition p-1"
+                                    className="opacity-0 group-hover:opacity-100 text-text-disabled hover:text-error transition p-1"
                                     title="Löschen"
                                 >
                                     <Trash2 size={14} />
                                 </button>
                             </div>
                             {!n.is_read && (
-                                <div className="absolute right-2 top-2 w-2 h-2 bg-cyan-500 rounded-full"></div>
+                                <div className="absolute right-2 top-2 w-2 h-2 bg-brand rounded-full"></div>
                             )}
                         </div>
                     ))}

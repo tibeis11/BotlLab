@@ -170,7 +170,7 @@ export default function DiscoverBrewCard({ brew, currentUserId, isAdmin = false,
       <Link
         ref={cardRef}
         href={`/brew/${brew.id}`}
-        className="group relative flex flex-col h-full rounded-2xl overflow-hidden border border-zinc-800 hover:border-zinc-600 transition-all duration-300"
+        className="group relative flex flex-col h-full rounded-2xl overflow-hidden border border-border hover:border-border-active transition-all duration-300"
         onTouchEnd={handleCardTouchEnd}
         onClick={handleCardClick}
       >
@@ -183,7 +183,7 @@ export default function DiscoverBrewCard({ brew, currentUserId, isAdmin = false,
               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
             />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-orange-950 via-zinc-900 to-zinc-950" />
+            <div className="w-full h-full bg-gradient-to-br from-orange-950 via-surface-hover to-surface" />
           )}
         </div>
 
@@ -309,8 +309,8 @@ export default function DiscoverBrewCard({ brew, currentUserId, isAdmin = false,
         {/* ── Image + Stats wrapper — shared rounded corners ── */}
         <div className={`relative w-full flex-shrink-0 overflow-hidden ${hasStats ? 'rounded-xl' : 'rounded-xl'}`}>
 
-          {/* Image — no own rounding, parent clips */}
-          <div className="relative w-full aspect-square">
+          {/* Image — overflow-hidden clips scale zoom */}
+          <div className="relative w-full aspect-square overflow-hidden">
             {brew.image_url ? (
               <img
                 src={brew.image_url}
@@ -318,7 +318,7 @@ export default function DiscoverBrewCard({ brew, currentUserId, isAdmin = false,
                 className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
               />
             ) : (
-              <div className="absolute inset-0 bg-gradient-to-br from-zinc-800 to-zinc-900" />
+              <div className="absolute inset-0 bg-gradient-to-br from-surface-hover to-surface" />
             )}
 
             {/* Style badge — top left */}
@@ -346,32 +346,32 @@ export default function DiscoverBrewCard({ brew, currentUserId, isAdmin = false,
 
           {/* Stats strip — sits directly below image, same width, no overlap */}
           {hasStats && (
-            <div className="flex items-center justify-around py-2.5 bg-zinc-900">
+            <div className="flex items-center justify-around py-2.5 bg-surface-hover border-t border-border">
               {brew.abv != null && (
                 <span className="flex flex-col items-center leading-none min-w-0">
-                  <span className="text-[13px] font-black text-white tabular-nums">{Number(brew.abv).toFixed(1)}</span>
-                  <span className="text-[9px] text-zinc-500 mt-0.5">%</span>
+                  <span className="text-[13px] font-black text-text-primary tabular-nums">{Number(brew.abv).toFixed(1)}</span>
+                  <span className="text-[9px] text-text-muted mt-0.5">%</span>
                 </span>
               )}
               {brew.ebc != null && (
                 <span className="flex flex-col items-center leading-none min-w-0">
                   <span className="flex items-center gap-1">
-                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0 border border-white/15" style={{ backgroundColor: ebcColor }} />
-                    <span className="text-[13px] font-black text-white tabular-nums">{Number(brew.ebc).toFixed(0)}</span>
+                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0 border border-border" style={{ backgroundColor: ebcColor }} />
+                    <span className="text-[13px] font-black text-text-primary tabular-nums">{Number(brew.ebc).toFixed(0)}</span>
                   </span>
-                  <span className="text-[9px] text-zinc-500 mt-0.5">EBC</span>
+                  <span className="text-[9px] text-text-muted mt-0.5">EBC</span>
                 </span>
               )}
               {brew.ibu != null && (
                 <span className="flex flex-col items-center leading-none min-w-0">
-                  <span className="text-[13px] font-black text-white tabular-nums">{Number(brew.ibu).toFixed(0)}</span>
-                  <span className="text-[9px] text-zinc-500 mt-0.5">IBU</span>
+                  <span className="text-[13px] font-black text-text-primary tabular-nums">{Number(brew.ibu).toFixed(0)}</span>
+                  <span className="text-[9px] text-text-muted mt-0.5">IBU</span>
                 </span>
               )}
               {brew.original_gravity != null && (
                 <span className="flex flex-col items-center leading-none min-w-0">
-                  <span className="text-[13px] font-black text-white tabular-nums">{Number(brew.original_gravity).toFixed(1)}</span>
-                  <span className="text-[9px] text-zinc-500 mt-0.5">°P</span>
+                  <span className="text-[13px] font-black text-text-primary tabular-nums">{Number(brew.original_gravity).toFixed(1)}</span>
+                  <span className="text-[9px] text-text-muted mt-0.5">°P</span>
                 </span>
               )}
             </div>
@@ -380,37 +380,37 @@ export default function DiscoverBrewCard({ brew, currentUserId, isAdmin = false,
 
         {/* ── Text area — minimal ── */}
         <div className="flex flex-col gap-0.5 px-0.5">
-          <p className="text-[11px] text-zinc-400 truncate leading-snug">
+          <p className="text-[11px] text-text-secondary truncate leading-snug">
             {brew.brewery?.team_name || brew.brewery?.name || '\u00A0'}
           </p>
-          <h3 className="font-bold text-white text-sm leading-snug line-clamp-2 group-hover:text-cyan-300 transition-colors">
+          <h3 className="font-bold text-text-primary text-sm leading-snug line-clamp-2 group-hover:text-brand-hover transition-colors">
             {brew.name}
           </h3>
           {brew.recommendation_reason && (
-            <p className="text-[10px] text-cyan-500/70 truncate leading-snug">✦ {brew.recommendation_reason}</p>
+            <p className="text-[10px] text-brand/70 truncate leading-snug">✦ {brew.recommendation_reason}</p>
           )}
           {/* Age + community stats — single line, no wrap */}
           <div className="flex items-center gap-1.5 mt-0.5 overflow-hidden">
-            {ageLabel && <span className="text-[10px] text-zinc-600 shrink truncate min-w-0">{ageLabel}</span>}
+            {ageLabel && <span className="text-[10px] text-text-disabled shrink truncate min-w-0">{ageLabel}</span>}
             <div className="flex items-center gap-2 ml-auto shrink-0">
               {avgRating && (
-                <span className="flex items-center gap-0.5 text-[10px] text-zinc-500">
+                <span className="flex items-center gap-0.5 text-[10px] text-text-muted">
                   <Star size={9} className="fill-yellow-400 stroke-yellow-400 flex-shrink-0" />{avgRating}
                 </span>
               )}
               {likeCount > 0 && (
-                <span className="flex items-center gap-0.5 text-[10px] text-zinc-500">
+                <span className="flex items-center gap-0.5 text-[10px] text-text-muted">
                   <Heart size={9} className="fill-red-500 stroke-red-500 flex-shrink-0" />{likeCount}
                 </span>
               )}
               {(brew.times_brewed ?? 0) > 0 && (
-                <span className="flex items-center gap-0.5 text-[10px] text-zinc-500">
-                  <Repeat size={9} className="stroke-zinc-500 flex-shrink-0" />{brew.times_brewed}
+                <span className="flex items-center gap-0.5 text-[10px] text-text-muted">
+                  <Repeat size={9} className="stroke-text-muted flex-shrink-0" />{brew.times_brewed}
                 </span>
               )}
               {(brew.view_count ?? 0) > 0 && (
-                <span className="flex items-center gap-0.5 text-[10px] text-zinc-500">
-                  <Eye size={9} className="stroke-zinc-500 flex-shrink-0" />{brew.view_count}
+                <span className="flex items-center gap-0.5 text-[10px] text-text-muted">
+                  <Eye size={9} className="stroke-text-muted flex-shrink-0" />{brew.view_count}
                 </span>
               )}
             </div>
@@ -454,7 +454,7 @@ export default function DiscoverBrewCard({ brew, currentUserId, isAdmin = false,
       <Link
         ref={cardRef}
         href={`/brew/${brew.id}`}
-        className="group flex flex-col md:flex-row gap-6 items-center bg-zinc-900/40 border border-zinc-800 rounded-2xl p-5 md:p-6 hover:bg-zinc-900/80 transition-colors"
+        className="group flex flex-col md:flex-row gap-6 items-center bg-surface/40 border border-border rounded-2xl p-5 md:p-6 hover:bg-surface/80 transition-colors"
         onTouchEnd={handleCardTouchEnd}
         onClick={handleCardClick}
       >
@@ -463,25 +463,25 @@ export default function DiscoverBrewCard({ brew, currentUserId, isAdmin = false,
           {avgRating && ratingCount > 0 && (
             <div className="flex items-center gap-1">
               {[1, 2, 3, 4, 5].map(i => (
-                <Star key={i} className={`w-4 h-4 ${i <= Math.round(avgRating) ? 'text-yellow-400 fill-yellow-400' : 'text-zinc-700 fill-zinc-700'}`} />
+                <Star key={i} className={`w-4 h-4 ${i <= Math.round(avgRating) ? 'text-yellow-400 fill-yellow-400' : 'text-border fill-border'}`} />
               ))}
-              <span className="text-xs text-zinc-400 ml-1">{ratingCount} Bewertung{ratingCount !== 1 ? 'en' : ''}</span>
+              <span className="text-xs text-text-secondary ml-1">{ratingCount} Bewertung{ratingCount !== 1 ? 'en' : ''}</span>
             </div>
           )}
 
           {/* Brewery */}
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm text-text-secondary">
             {brew.brewery?.team_name || brew.brewery?.name || 'Community Brauer'}
             {brew.style ? ` · ${brew.style}` : ''}
           </p>
 
-          <h3 className="text-xl md:text-2xl font-black text-white group-hover:text-cyan-300 transition-colors leading-tight">
+          <h3 className="text-xl md:text-2xl font-black text-text-primary group-hover:text-brand-hover transition-colors leading-tight">
             {brew.name}
           </h3>
 
           {/* Real character description */}
           {charParts.length > 0 && (
-            <p className="text-zinc-400 text-sm md:text-base leading-relaxed">
+            <p className="text-text-secondary text-sm md:text-base leading-relaxed">
               {charParts.join(' · ')}
             </p>
           )}
@@ -490,24 +490,24 @@ export default function DiscoverBrewCard({ brew, currentUserId, isAdmin = false,
           {hasStats && (
             <div className="flex items-center gap-3 flex-wrap">
               {avgRating && ratingCount > 0 && (
-                <span className="flex items-center gap-1 text-xs text-zinc-400">
+                <span className="flex items-center gap-1 text-xs text-text-secondary">
                   <Star size={13} className="fill-yellow-400 stroke-yellow-400 flex-shrink-0" />
-                  <span>{avgRating} <span className="text-zinc-600">({ratingCount})</span></span>
+                  <span>{avgRating} <span className="text-text-disabled">({ratingCount})</span></span>
                 </span>
               )}
               {likesCount > 0 && (
-                <span className="flex items-center gap-1 text-xs text-zinc-400">
-                  <Heart size={13} className="stroke-zinc-400 flex-shrink-0" />{likesCount}
+                <span className="flex items-center gap-1 text-xs text-text-secondary">
+                  <Heart size={13} className="stroke-text-secondary flex-shrink-0" />{likesCount}
                 </span>
               )}
               {timesBrewedCount > 0 && (
-                <span className="flex items-center gap-1 text-xs text-zinc-400">
-                  <Repeat size={13} className="stroke-zinc-400 flex-shrink-0" />{timesBrewedCount}
+                <span className="flex items-center gap-1 text-xs text-text-secondary">
+                  <Repeat size={13} className="stroke-text-secondary flex-shrink-0" />{timesBrewedCount}
                 </span>
               )}
               {viewCount > 0 && (
-                <span className="flex items-center gap-1 text-xs text-zinc-400">
-                  <Eye size={13} className="stroke-zinc-400 flex-shrink-0" />{viewCount}
+                <span className="flex items-center gap-1 text-xs text-text-secondary">
+                  <Eye size={13} className="stroke-text-secondary flex-shrink-0" />{viewCount}
                 </span>
               )}
             </div>
@@ -526,11 +526,11 @@ export default function DiscoverBrewCard({ brew, currentUserId, isAdmin = false,
           {/* Like button */}
           <button
             onClick={handleLike}
-            className="self-start flex items-center gap-1.5 mt-1 border border-zinc-700 hover:border-red-500/40 px-3 py-1.5 rounded-full transition-all group/like"
+            className="self-start flex items-center gap-1.5 mt-1 border border-border hover:border-red-500/40 px-3 py-1.5 rounded-full transition-all group/like"
             title={isLiked ? 'Unlike' : 'Like'}
           >
-            <Heart size={14} className={`transition-colors ${isLiked ? 'fill-red-500 stroke-red-500' : 'stroke-zinc-400 group-hover/like:stroke-red-400'}`} />
-            <span className="text-xs text-zinc-400">{isLiked ? 'Geliked' : 'Liken'}</span>
+            <Heart size={14} className={`transition-colors ${isLiked ? 'fill-red-500 stroke-red-500' : 'stroke-text-disabled group-hover/like:stroke-red-400'}`} />
+            <span className="text-xs text-text-secondary">{isLiked ? 'Geliked' : 'Liken'}</span>
           </button>
         </div>
 
@@ -539,7 +539,7 @@ export default function DiscoverBrewCard({ brew, currentUserId, isAdmin = false,
           {brew.image_url ? (
             <img src={brew.image_url} alt={brew.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center">
+            <div className="w-full h-full bg-gradient-to-br from-surface-hover to-surface flex items-center justify-center">
               <span className="text-4xl">🍺</span>
             </div>
           )}
@@ -570,8 +570,8 @@ export default function DiscoverBrewCard({ brew, currentUserId, isAdmin = false,
               className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
           ) : (
-            <div className="absolute inset-0 bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center">
-              <span className="text-zinc-600 text-xl">🍺</span>
+            <div className="absolute inset-0 bg-gradient-to-br from-surface-hover to-surface flex items-center justify-center">
+              <span className="text-text-disabled text-xl">🍺</span>
             </div>
           )}
           {/* Style badge on image */}
@@ -586,58 +586,58 @@ export default function DiscoverBrewCard({ brew, currentUserId, isAdmin = false,
         <div className="flex flex-col justify-center gap-0.5 min-w-0 flex-1">
 
           {/* Line 1: Brewery */}
-          <p className="text-[11px] text-zinc-400 truncate leading-snug">
+          <p className="text-[11px] text-text-secondary truncate leading-snug">
             {brew.brewery?.team_name || brew.brewery?.name || '\u00A0'}
           </p>
 
           {/* Line 2: Name */}
-          <h3 className="font-bold text-white text-sm leading-snug line-clamp-1 group-hover:text-cyan-300 transition-colors">
+          <h3 className="font-bold text-text-primary text-sm leading-snug line-clamp-1 group-hover:text-brand-hover transition-colors">
             {brew.name}
           </h3>
 
           {/* Line 3: Key specs */}
           <div className="flex items-center gap-2 flex-wrap mt-0.5">
             {brew.abv != null && (
-              <span className="text-sm font-bold text-cyan-400">
+              <span className="text-sm font-bold text-brand-hover">
                 {Number(brew.abv).toFixed(1)}%
               </span>
             )}
             {brew.ebc != null && (
-              <span className="inline-flex items-center gap-1 text-[11px] text-zinc-400">
+              <span className="inline-flex items-center gap-1 text-[11px] text-text-secondary">
                 <span className="w-2 h-2 rounded-full flex-shrink-0 border border-white/10" style={{ backgroundColor: ebcColor }} />
                 {Number(brew.ebc).toFixed(0)} EBC
               </span>
             )}
             {brew.ibu != null && (
-              <span className="text-[11px] text-zinc-500">{Number(brew.ibu).toFixed(0)} IBU</span>
+              <span className="text-[11px] text-text-muted">{Number(brew.ibu).toFixed(0)} IBU</span>
             )}
             {brew.original_gravity != null && (
-              <span className="text-[11px] text-zinc-500">{Number(brew.original_gravity).toFixed(1)}°P</span>
+              <span className="text-[11px] text-text-muted">{Number(brew.original_gravity).toFixed(1)}°P</span>
             )}
           </div>
 
           {/* Line 4: age + rating + community stats — all in one row */}
           <div className="flex items-center gap-2 mt-0.5 overflow-hidden">
-            {ageLabel && <span className="text-[10px] text-zinc-600 shrink truncate min-w-0">{ageLabel}</span>}
+            {ageLabel && <span className="text-[10px] text-text-disabled shrink truncate min-w-0">{ageLabel}</span>}
             <div className="flex items-center gap-2 ml-auto shrink-0">
               {avgRating && (
-                <span className="flex items-center gap-0.5 text-[10px] text-zinc-500">
+                <span className="flex items-center gap-0.5 text-[10px] text-text-muted">
                   <Star size={9} className="fill-yellow-400 stroke-yellow-400 flex-shrink-0" />{avgRating}
                 </span>
               )}
               {likeCount > 0 && (
-                <span className="flex items-center gap-0.5 text-[10px] text-zinc-500">
+                <span className="flex items-center gap-0.5 text-[10px] text-text-muted">
                   <Heart size={9} className="fill-red-500 stroke-red-500 flex-shrink-0" />{likeCount}
                 </span>
               )}
               {(brew.times_brewed ?? 0) > 0 && (
-                <span className="flex items-center gap-0.5 text-[10px] text-zinc-500">
-                  <Repeat size={9} className="stroke-zinc-500 flex-shrink-0" />{brew.times_brewed}
+                <span className="flex items-center gap-0.5 text-[10px] text-text-muted">
+                  <Repeat size={9} className="stroke-text-muted flex-shrink-0" />{brew.times_brewed}
                 </span>
               )}
               {(brew.view_count ?? 0) > 0 && (
-                <span className="flex items-center gap-0.5 text-[10px] text-zinc-500">
-                  <Eye size={9} className="stroke-zinc-500 flex-shrink-0" />{brew.view_count}
+                <span className="flex items-center gap-0.5 text-[10px] text-text-muted">
+                  <Eye size={9} className="stroke-text-muted flex-shrink-0" />{brew.view_count}
                 </span>
               )}
             </div>
@@ -660,7 +660,7 @@ export default function DiscoverBrewCard({ brew, currentUserId, isAdmin = false,
             className="flex-shrink-0 p-2 -mr-1 transition-transform hover:scale-125"
             title={isLiked ? 'Unlike' : 'Like'}
           >
-            <Heart size={18} className={isLiked ? 'fill-red-500 stroke-red-500' : 'stroke-zinc-600'} />
+            <Heart size={18} className={isLiked ? 'fill-red-500 stroke-red-500' : 'stroke-text-disabled'} />
           </button>
         )}
       </Link>

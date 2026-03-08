@@ -92,14 +92,14 @@ export default function ThreadListLoadMore({
             {hasMore && (
                 <div ref={sentinelRef} className="flex justify-center py-4">
                     {loading ? (
-                        <div className="flex items-center gap-2 text-zinc-500 text-sm">
+                        <div className="flex items-center gap-2 text-text-muted text-sm">
                             <Loader2 className="w-4 h-4 animate-spin" />
                             <span>Threads laden…</span>
                         </div>
                     ) : (
                         <button
                             onClick={loadMore}
-                            className="px-4 py-2 text-sm text-zinc-400 hover:text-white border border-zinc-700 hover:border-zinc-500 rounded-xl transition-colors bg-zinc-900/40"
+                            className="px-4 py-2 text-sm text-text-secondary hover:text-text-primary border border-border-hover hover:border-border-active rounded-xl transition-colors bg-surface/40"
                         >
                             Mehr laden
                         </button>

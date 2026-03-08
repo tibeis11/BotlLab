@@ -13,7 +13,7 @@ export default function BecomeBrewerCTA({ variant = 'banner', className = '' }: 
     return (
       <Link
         href="/team/create"
-        className={`inline-flex items-center gap-1.5 text-cyan-400 hover:text-cyan-300 text-sm font-medium transition-colors group ${className}`}
+        className={`inline-flex items-center gap-1.5 text-brand hover:text-brand-hover text-sm font-medium transition-colors group ${className}`}
       >
         <Beaker className="w-4 h-4" />
         Brauer werden
@@ -26,19 +26,19 @@ export default function BecomeBrewerCTA({ variant = 'banner', className = '' }: 
     return (
       <Link
         href="/team/create"
-        className={`block p-5 rounded-2xl bg-gradient-to-br from-cyan-950/40 to-zinc-900 border border-cyan-800/30 hover:border-cyan-600/50 transition group ${className}`}
+        className={`block p-5 rounded-2xl bg-brand-bg border border-brand/30 hover:border-brand/60 transition group ${className}`}
       >
         <div className="flex items-start gap-4">
-          <div className="w-10 h-10 rounded-xl bg-cyan-900/40 border border-cyan-800/40 flex items-center justify-center flex-shrink-0 group-hover:bg-cyan-900/60 transition">
-            <Beaker className="w-5 h-5 text-cyan-400" />
+          <div className="w-10 h-10 rounded-xl bg-brand-bg border border-brand/30 flex items-center justify-center flex-shrink-0 group-hover:opacity-80 transition">
+            <Beaker className="w-5 h-5 text-brand" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-bold text-white text-sm mb-1">Brauer werden</p>
-            <p className="text-xs text-zinc-400 leading-relaxed">
+            <p className="font-bold text-text-primary text-sm mb-1">Brauer werden</p>
+            <p className="text-xs text-text-muted leading-relaxed">
               Gründe deine eigene Brauerei-Seite, veröffentliche Rezepte und bau deine Community auf.
             </p>
           </div>
-          <ArrowRight className="w-4 h-4 text-cyan-500 flex-shrink-0 mt-0.5 group-hover:translate-x-0.5 transition-transform" />
+          <ArrowRight className="w-4 h-4 text-brand flex-shrink-0 mt-0.5 group-hover:translate-x-0.5 transition-transform" />
         </div>
       </Link>
     );
@@ -46,18 +46,18 @@ export default function BecomeBrewerCTA({ variant = 'banner', className = '' }: 
 
   // banner (default)
   return (
-    <div className={`w-full rounded-2xl overflow-hidden bg-gradient-to-r from-cyan-950/50 via-zinc-900 to-zinc-900 border border-cyan-800/30 ${className}`}>
+    <div className={`w-full rounded-2xl overflow-hidden bg-surface border border-border ${className}`}>
       <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 p-6">
         {/* Icon + Text */}
         <div className="flex items-center gap-4 flex-1 min-w-0">
-          <div className="w-12 h-12 rounded-2xl bg-cyan-900/40 border border-cyan-700/40 flex items-center justify-center flex-shrink-0">
-            <Rocket className="w-6 h-6 text-cyan-400" />
+          <div className="w-12 h-12 rounded-2xl bg-brand-bg border border-brand/30 flex items-center justify-center flex-shrink-0">
+            <Rocket className="w-6 h-6 text-brand" />
           </div>
           <div className="min-w-0">
-            <p className="font-extrabold text-white text-base sm:text-lg leading-tight">
+            <p className="font-bold text-text-primary text-base sm:text-lg leading-tight">
               Vom Genießer zum Macher
             </p>
-            <p className="text-sm text-zinc-400 mt-0.5 leading-snug">
+            <p className="text-sm text-text-muted mt-0.5 leading-snug">
               Gründe deine Brauerei, publiziere Rezepte und baue deine Craft-Beer-Community auf.
             </p>
             {/* Social proof */}
@@ -65,7 +65,7 @@ export default function BecomeBrewerCTA({ variant = 'banner', className = '' }: 
               {[...Array(5)].map((_, i) => (
                 <Star key={i} className="w-3 h-3 fill-amber-400 text-amber-400" />
               ))}
-              <span className="text-xs text-zinc-500 ml-1">Kostenlos starten</span>
+              <span className="text-xs text-text-disabled ml-1">Kostenlos starten</span>
             </div>
           </div>
         </div>
@@ -73,7 +73,7 @@ export default function BecomeBrewerCTA({ variant = 'banner', className = '' }: 
         {/* CTA Button */}
         <Link
           href="/team/create"
-          className="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-cyan-700 hover:bg-cyan-600 text-white font-bold text-sm transition-colors group whitespace-nowrap"
+          className="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand hover:bg-brand-hover text-white font-bold text-sm transition-colors group whitespace-nowrap"
         >
           Jetzt gründen
           <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />

@@ -769,7 +769,7 @@ export default function DiscoverClient({
   // ── Desktop search input (rendered inside Header via slot) ──────────────
   const desktopSearchSlot = (
     <div className="relative w-full max-w-sm lg:max-w-md" ref={searchContainerRef}>
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none" />
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" />
       <input
         ref={searchRef}
         value={search}
@@ -802,22 +802,22 @@ export default function DiscoverClient({
           }
         }}
         placeholder="Rezept, Stil oder Zutat suchen…"
-        className="w-full bg-zinc-900/50 border border-zinc-800 focus:border-zinc-600 rounded-lg pl-9 pr-8 py-2 outline-none text-sm text-white transition-all placeholder:text-zinc-600"
+        className="w-full bg-surface/50 border border-border focus:border-border-active rounded-lg pl-9 pr-8 py-2 outline-none text-sm text-text-primary transition-all placeholder:text-text-disabled"
       />
       {search && (
         <button
           onClick={() => { setSearch(''); setShowSuggestions(false); searchRef.current?.focus(); }}
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors"
           aria-label="Suche löschen"
         >
           <X className="w-3.5 h-3.5" />
         </button>
       )}
       {showSuggestions && (autocompleteSuggestions.length > 0 || !search) && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl overflow-hidden z-[60]">
+        <div className="absolute top-full left-0 right-0 mt-1 bg-surface border border-border rounded-lg shadow-2xl overflow-hidden z-[60]">
           {!search && recentSearches.length > 0 && (
             <>
-              <p className="px-3 pt-3 pb-1 text-[10px] font-semibold text-zinc-600 uppercase tracking-wider">Letzte Suchen</p>
+              <p className="px-3 pt-3 pb-1 text-[10px] font-semibold text-text-disabled uppercase tracking-wider">Letzte Suchen</p>
               {recentSearches.map(s => (
                 <button
                   key={s}
@@ -828,9 +828,9 @@ export default function DiscoverClient({
                     setSuggestionIndex(-1);
                     searchRef.current?.focus();
                   }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary transition-colors"
                 >
-                  <Clock className="w-3 h-3 text-zinc-600 flex-shrink-0" />
+                  <Clock className="w-3 h-3 text-text-disabled flex-shrink-0" />
                   <span className="flex-1 truncate">{s}</span>
                 </button>
               ))}
@@ -838,7 +838,7 @@ export default function DiscoverClient({
           )}
           {!search && recentSearches.length === 0 && (
             <div className="px-3 py-3">
-              <p className="text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-2">Beliebte Suchen</p>
+              <p className="text-[10px] font-semibold text-text-disabled uppercase tracking-wider mb-2">Beliebte Suchen</p>
               {POPULAR_SEARCHES.slice(0, 6).map(s => (
                 <button
                   key={s}
@@ -849,7 +849,7 @@ export default function DiscoverClient({
                     setShowSuggestions(false);
                     searchRef.current?.focus();
                   }}
-                  className="w-full flex items-center gap-2 px-2 py-2 text-left text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 rounded transition-colors"
+                  className="w-full flex items-center gap-2 px-2 py-2 text-left text-sm text-text-secondary hover:text-text-primary hover:bg-surface-hover rounded transition-colors"
                 >
                   <TrendingUp className="w-3 h-3 text-cyan-600" />
                   {s}
@@ -870,17 +870,17 @@ export default function DiscoverClient({
               }}
               className={`w-full flex items-center gap-2 px-3 py-2 text-left text-sm transition-colors ${
                 i === suggestionIndex
-                  ? 'bg-zinc-800 text-white'
-                  : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
+                  ? 'bg-surface-hover text-text-primary'
+                  : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
               }`}
             >
-              <span className="flex-shrink-0 text-zinc-600">
+              <span className="flex-shrink-0 text-text-disabled">
                 {s.type === 'recipe'     && <Search className="w-3 h-3" />}
                 {s.type === 'style'      && <span className="text-xs">🍺</span>}
                 {s.type === 'ingredient' && <span className="text-xs">🌿</span>}
               </span>
               <span className="flex-1 truncate">{s.label}</span>
-              <span className="text-[10px] text-zinc-600 flex-shrink-0">
+              <span className="text-[10px] text-text-disabled flex-shrink-0">
                 {s.type === 'recipe' ? 'Rezept' : s.type === 'style' ? 'Stil' : 'Zutat'}
               </span>
             </button>
@@ -895,14 +895,14 @@ export default function DiscoverClient({
     <>
       <button
         onClick={() => setShowSearchOverlay(true)}
-        className="p-2 text-zinc-400 hover:text-white transition-colors"
+        className="p-2 text-text-secondary hover:text-text-primary transition-colors"
         aria-label="Suche öffnen"
       >
         <Search className="w-5 h-5" />
       </button>
       <button
         onClick={() => setShowBottomSheet(true)}
-        className={`p-2 transition-colors ${isFiltering ? 'text-cyan-400' : 'text-zinc-400 hover:text-white'}`}
+        className={`p-2 transition-colors ${isFiltering ? 'text-brand' : 'text-text-secondary hover:text-text-primary'}`}
         aria-label="Filter öffnen"
       >
         <Filter className="w-5 h-5" />
@@ -917,7 +917,7 @@ export default function DiscoverClient({
       {/* Full-width outer shell — no max-width cap */}
       <div className="w-full pt-0 pb-20">
         {/* Hero Banner - full bleed */}
-        <div className="relative overflow-hidden mb-0 md:min-h-[300px] bg-zinc-900 border-b border-zinc-800">
+        <div className="relative overflow-hidden mb-0 md:min-h-[300px] bg-surface border-b border-border">
           {/* Background image from first trending brew — using Next Image for LCP priority */}
           {trending[0]?.image_url && (
             <Image
@@ -929,7 +929,7 @@ export default function DiscoverClient({
               className="object-cover opacity-[0.18]"
             />
           )}
-          <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/95 via-zinc-950/80 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/80 to-transparent" />
 
           <div className="relative flex items-center gap-8 px-6 md:px-12 lg:px-16 py-6 md:py-12 max-w-screen-2xl mx-auto">
             {/* Left: Text */}
@@ -939,7 +939,7 @@ export default function DiscoverClient({
                 Entdecke neue<br />
                 <span className="text-cyan-400">Braukreationen</span>
               </h1>
-              <p className="hidden md:block text-zinc-400 max-w-md text-sm md:text-base mb-6">
+              <p className="hidden md:block text-text-secondary max-w-md text-sm md:text-base mb-6">
                 Die besten Rezepte der Community — sortiert nach Bewertung, Trend und Neuheit.
               </p>
               <button
@@ -962,7 +962,7 @@ export default function DiscoverClient({
               {(trending.slice(0, 3)).map((brew, i) => (
                 <div
                   key={brew.id}
-                  className="rounded-xl overflow-hidden border border-zinc-700/60 shadow-xl flex-shrink-0 bg-zinc-800"
+                  className="rounded-xl overflow-hidden border border-border shadow-xl flex-shrink-0 bg-surface-hover"
                   style={{
                     width: i === 0 ? 200 : i === 1 ? 160 : 130,
                     height: i === 0 ? 200 : i === 1 ? 160 : 130,
@@ -973,8 +973,8 @@ export default function DiscoverClient({
                   {brew.image_url ? (
                     <img src={brew.image_url} alt={brew.name} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-zinc-700 to-zinc-800 flex items-center justify-center">
-                      <span className="text-zinc-500 text-3xl">🍺</span>
+                    <div className="w-full h-full bg-gradient-to-br from-surface-hover to-surface flex items-center justify-center">
+                      <span className="text-text-muted text-3xl">🍺</span>
                     </div>
                   )}
                 </div>
@@ -985,21 +985,21 @@ export default function DiscoverClient({
           {/* Stats strip */}
           <div className="relative flex items-center gap-6 px-6 md:px-12 lg:px-16 pb-5 flex-wrap max-w-screen-2xl mx-auto">
             {trending.length > 0 && (
-              <div className="flex items-center gap-1.5 text-xs text-zinc-400">
+              <div className="flex items-center gap-1.5 text-xs text-text-secondary">
                 <Flame className="w-3.5 h-3.5 text-orange-400" />
-                <span className="font-bold text-white">{trending.length}</span> Trending Rezepte
+                <span className="font-bold text-text-primary">{trending.length}</span> Trending Rezepte
               </div>
             )}
             {featured.length > 0 && (
-              <div className="flex items-center gap-1.5 text-xs text-zinc-400">
+              <div className="flex items-center gap-1.5 text-xs text-text-secondary">
                 <BadgeCheck className="w-3.5 h-3.5 text-purple-400" />
-                <span className="font-bold text-white">{featured.length}</span> Empfehlungen
+                <span className="font-bold text-text-primary">{featured.length}</span> Empfehlungen
               </div>
             )}
             {topRated.length > 0 && (
-              <div className="flex items-center gap-1.5 text-xs text-zinc-400">
+              <div className="flex items-center gap-1.5 text-xs text-text-secondary">
                 <Star className="w-3.5 h-3.5 text-yellow-400" />
-                <span className="font-bold text-white">{topRated.length}</span> Top-Bewertet
+                <span className="font-bold text-text-primary">{topRated.length}</span> Top-Bewertet
               </div>
             )}
           </div>
@@ -1008,11 +1008,11 @@ export default function DiscoverClient({
         {/* Main Layout: Sidebar + Content */}
         <div className="flex gap-0 max-w-screen-2xl mx-auto">
           {/* Left Sidebar - always visible on desktop, scrolls naturally with page */}
-          <aside className="hidden md:flex w-56 lg:w-64 xl:w-72 flex-shrink-0 flex-col border-r border-zinc-800/60 sticky top-14 self-start pt-8 pb-10 pl-6 md:pl-8 lg:pl-12 xl:pl-16 pr-6 space-y-8">
+          <aside className="hidden md:flex w-56 lg:w-64 xl:w-72 flex-shrink-0 flex-col border-r border-border/60 sticky top-14 self-start pt-8 pb-10 pl-6 md:pl-8 lg:pl-12 xl:pl-16 pr-6 space-y-8">
 
             {/* Sortierung */}
             <div>
-              <h3 className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-2">Sortierung</h3>
+              <h3 className="text-[10px] font-bold text-text-disabled uppercase tracking-widest mb-2">Sortierung</h3>
               <div className="flex flex-col">
                 {sortOptions.map(({ value, label }) => (
                   <button
@@ -1020,8 +1020,8 @@ export default function DiscoverClient({
                     onClick={() => setSort(value as any)}
                     className={`relative text-left py-1.5 text-sm transition-colors ${
                       sort === value
-                        ? 'text-white font-semibold'
-                        : 'text-zinc-500 hover:text-zinc-300'
+                        ? 'text-text-primary font-semibold'
+                        : 'text-text-muted hover:text-text-secondary'
                     }`}
                   >
                     {sort === value && (
@@ -1035,12 +1035,12 @@ export default function DiscoverClient({
 
             {/* Bierstil */}
             <div>
-              <h3 className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-2">Bierstil</h3>
+              <h3 className="text-[10px] font-bold text-text-disabled uppercase tracking-widest mb-2">Bierstil</h3>
               <div className="flex flex-col">
                 <button
                   onClick={() => setStyleFilter('all')}
                   className={`relative text-left py-1.5 text-sm transition-colors ${
-                    styleFilter === 'all' ? 'text-white font-semibold' : 'text-zinc-500 hover:text-zinc-300'
+                    styleFilter === 'all' ? 'text-text-primary font-semibold' : 'text-text-muted hover:text-text-secondary'
                   }`}
                 >
                   {styleFilter === 'all' && <span className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 w-0.5 h-4 bg-cyan-500 rounded-full" />}
@@ -1051,7 +1051,7 @@ export default function DiscoverClient({
                     key={style}
                     onClick={() => setStyleFilter(style)}
                     className={`relative text-left py-1.5 text-sm transition-colors ${
-                      styleFilter === style ? 'text-white font-semibold' : 'text-zinc-500 hover:text-zinc-300'
+                      styleFilter === style ? 'text-text-primary font-semibold' : 'text-text-muted hover:text-text-secondary'
                     }`}
                   >
                     {styleFilter === style && <span className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 w-0.5 h-4 bg-cyan-500 rounded-full" />}
@@ -1063,14 +1063,14 @@ export default function DiscoverClient({
 
             {/* Braumethode */}
             <div>
-              <h3 className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-2">Braumethode</h3>
+              <h3 className="text-[10px] font-bold text-text-disabled uppercase tracking-widest mb-2">Braumethode</h3>
               <div className="flex flex-col">
                 {BREW_TYPES.map(({ value, label }) => (
                   <button
                     key={value}
                     onClick={() => setBrewTypeFilter(value as any)}
                     className={`relative text-left py-1.5 text-sm transition-colors ${
-                      brewTypeFilter === value ? 'text-white font-semibold' : 'text-zinc-500 hover:text-zinc-300'
+                      brewTypeFilter === value ? 'text-text-primary font-semibold' : 'text-text-muted hover:text-text-secondary'
                     }`}
                   >
                     {brewTypeFilter === value && <span className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 w-0.5 h-4 bg-cyan-500 rounded-full" />}
@@ -1082,14 +1082,14 @@ export default function DiscoverClient({
 
             {/* Gärungstyp */}
             <div>
-              <h3 className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-2">Gärungstyp</h3>
+              <h3 className="text-[10px] font-bold text-text-disabled uppercase tracking-widest mb-2">Gärungstyp</h3>
               <div className="flex flex-col">
                 {FERMENTATION_TYPES.map(({ value, label }) => (
                   <button
                     key={value}
                     onClick={() => setFermentationFilter(value as any)}
                     className={`relative text-left py-1.5 text-sm transition-colors ${
-                      fermentationFilter === value ? 'text-white font-semibold' : 'text-zinc-500 hover:text-zinc-300'
+                      fermentationFilter === value ? 'text-text-primary font-semibold' : 'text-text-muted hover:text-text-secondary'
                     }`}
                   >
                     {fermentationFilter === value && <span className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 w-0.5 h-4 bg-cyan-500 rounded-full" />}
@@ -1101,14 +1101,14 @@ export default function DiscoverClient({
 
             {/* Alkohol (ABV) */}
             <div>
-              <h3 className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-2">Alkohol (ABV)</h3>
+              <h3 className="text-[10px] font-bold text-text-disabled uppercase tracking-widest mb-2">Alkohol (ABV)</h3>
               <div className="flex flex-col">
                 {ABV_PRESETS.map(({ value, label }) => (
                   <button
                     key={value}
                     onClick={() => setAbvPreset(value as any)}
                     className={`relative text-left py-1.5 text-sm transition-colors ${
-                      abvPreset === value ? 'text-white font-semibold' : 'text-zinc-500 hover:text-zinc-300'
+                      abvPreset === value ? 'text-text-primary font-semibold' : 'text-text-muted hover:text-text-secondary'
                     }`}
                   >
                     {abvPreset === value && <span className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 w-0.5 h-4 bg-cyan-500 rounded-full" />}
@@ -1120,14 +1120,14 @@ export default function DiscoverClient({
 
             {/* Bitterkeit (IBU) */}
             <div>
-              <h3 className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-2">Bitterkeit (IBU)</h3>
+              <h3 className="text-[10px] font-bold text-text-disabled uppercase tracking-widest mb-2">Bitterkeit (IBU)</h3>
               <div className="flex flex-col">
                 {IBU_PRESETS.map(({ value, label }) => (
                   <button
                     key={value}
                     onClick={() => setIbuPreset(value as any)}
                     className={`relative text-left py-1.5 text-sm transition-colors ${
-                      ibuPreset === value ? 'text-white font-semibold' : 'text-zinc-500 hover:text-zinc-300'
+                      ibuPreset === value ? 'text-text-primary font-semibold' : 'text-text-muted hover:text-text-secondary'
                     }`}
                   >
                     {ibuPreset === value && <span className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 w-0.5 h-4 bg-cyan-500 rounded-full" />}
@@ -1139,7 +1139,7 @@ export default function DiscoverClient({
 
             {/* Zutat (Hopfen/Malz) */}
             <div>
-              <h3 className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-2">Zutat</h3>
+              <h3 className="text-[10px] font-bold text-text-disabled uppercase tracking-widest mb-2">Zutat</h3>
               <div className="relative">
                 <input
                   type="text"
@@ -1147,12 +1147,12 @@ export default function DiscoverClient({
                   value={hopFilter}
                   onChange={(e) => setHopFilter(e.target.value)}
                   placeholder="z. B. Citra…"
-                  className="w-full bg-zinc-900/50 border border-zinc-800 focus:border-zinc-600 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none transition-colors"
+                  className="w-full bg-surface/50 border border-border focus:border-border-active rounded-lg px-3 py-2 text-sm text-text-primary placeholder:text-text-disabled focus:outline-none transition-colors"
                 />
                 {hopFilter && (
                   <button
                     onClick={() => setHopFilter('')}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -1165,11 +1165,11 @@ export default function DiscoverClient({
 
             {/* Einsteiger-Modus */}
             <div>
-              <h3 className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-2">Schwierigkeitsgrad</h3>
+              <h3 className="text-[10px] font-bold text-text-disabled uppercase tracking-widest mb-2">Schwierigkeitsgrad</h3>
               <button
                 onClick={() => setBeginnerMode(v => !v)}
                 className={`relative text-left py-1.5 text-sm transition-colors w-full ${
-                  beginnerMode ? 'text-white font-semibold' : 'text-zinc-500 hover:text-zinc-300'
+                  beginnerMode ? 'text-text-primary font-semibold' : 'text-text-muted hover:text-text-secondary'
                 }`}
               >
                 {beginnerMode && <span className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 w-0.5 h-4 bg-cyan-500 rounded-full" />}
@@ -1181,7 +1181,7 @@ export default function DiscoverClient({
             {isFiltering && (
               <button
                 onClick={resetFilters}
-                className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors text-left"
+                className="text-xs text-text-disabled hover:text-text-muted transition-colors text-left"
               >
                 ← Alle Filter zurücksetzen
               </button>
@@ -1192,18 +1192,18 @@ export default function DiscoverClient({
           <main className="flex-1 min-w-0 px-6 md:px-8 lg:px-10 xl:px-12 pt-8">
             {/* Mobile Fullscreen Search Overlay */}
             {showSearchOverlay && (
-              <div className="md:hidden fixed inset-0 z-[60] bg-zinc-950 flex flex-col">
+              <div className="md:hidden fixed inset-0 z-[60] bg-background flex flex-col">
                 {/* Header */}
-                <div className="flex items-center gap-3 px-4 py-3 border-b border-zinc-800 flex-shrink-0">
+                <div className="flex items-center gap-3 px-4 py-3 border-b border-border flex-shrink-0">
                   <button
                     onClick={() => setShowSearchOverlay(false)}
-                    className="p-2 -ml-1 text-zinc-400 hover:text-white rounded-lg transition-colors"
+                    className="p-2 -ml-1 text-text-secondary hover:text-text-primary rounded-lg transition-colors"
                     aria-label="Suche schließen"
                   >
                     <ArrowLeft className="w-5 h-5" />
                   </button>
                   <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary pointer-events-none" />
                     <input
                       ref={overlaySearchRef}
                       autoFocus
@@ -1230,12 +1230,12 @@ export default function DiscoverClient({
                         }
                       }}
                       placeholder="Suchen…"
-                      className="w-full bg-zinc-900 border border-zinc-800 focus:border-cyan-500 rounded-xl pl-9 pr-9 py-2.5 outline-none text-sm text-white placeholder:text-zinc-500 transition-colors"
+                      className="w-full bg-surface border border-border focus:border-brand rounded-xl pl-9 pr-9 py-2.5 outline-none text-sm text-text-primary placeholder:text-text-muted transition-colors"
                     />
                     {search && (
                       <button
                         onClick={() => setSearch('')}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors"
                         aria-label="Eingabe löschen"
                       >
                         <X className="w-4 h-4" />
@@ -1250,13 +1250,13 @@ export default function DiscoverClient({
                   {!search && recentSearches.length > 0 && (
                     <div className="px-4 pt-5 pb-2">
                       <div className="flex items-center justify-between mb-3">
-                        <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Letzte Suchen</p>
+                        <p className="text-xs font-semibold text-text-muted uppercase tracking-wider">Letzte Suchen</p>
                         <button
                           onClick={() => {
                             setRecentSearches([]);
                             try { localStorage.removeItem('botllab_recent_searches'); } catch {}
                           }}
-                          className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors"
+                          className="text-xs text-text-disabled hover:text-text-muted transition-colors"
                         >
                           Alle löschen
                         </button>
@@ -1265,9 +1265,9 @@ export default function DiscoverClient({
                         <button
                           key={s}
                           onClick={() => { setSearch(s); saveRecentSearch(s); setShowSearchOverlay(false); }}
-                          className="w-full flex items-center gap-3 py-3.5 text-left text-sm text-zinc-300 hover:text-white border-b border-zinc-800/40 last:border-0 transition-colors"
+                          className="w-full flex items-center gap-3 py-3.5 text-left text-sm text-text-secondary hover:text-text-primary border-b border-border/40 last:border-0 transition-colors"
                         >
-                          <Clock className="w-4 h-4 text-zinc-600 flex-shrink-0" />
+                          <Clock className="w-4 h-4 text-text-disabled flex-shrink-0" />
                           <span className="flex-1">{s}</span>
                         </button>
                       ))}
@@ -1277,13 +1277,13 @@ export default function DiscoverClient({
                   {/* Hint when no searches yet */}
                   {!search && recentSearches.length === 0 && (
                     <div className="px-4 pt-6 pb-2">
-                      <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">Beliebte Suchen</p>
+                      <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-3">Beliebte Suchen</p>
                       <div className="flex flex-wrap gap-2">
                         {POPULAR_SEARCHES.map(s => (
                           <button
                             key={s}
                             onClick={() => { setSearch(s); saveRecentSearch(s); setShowSearchOverlay(false); }}
-                            className="flex items-center gap-1.5 bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 hover:text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+                            className="flex items-center gap-1.5 bg-surface-hover/80 hover:bg-surface-hover text-text-secondary hover:text-text-primary text-sm font-medium px-4 py-2 rounded-lg transition-colors"
                           >
                             <TrendingUp className="w-3.5 h-3.5 text-cyan-500" />
                             {s}
@@ -1304,17 +1304,17 @@ export default function DiscoverClient({
                             saveRecentSearch(s.label);
                             setShowSearchOverlay(false);
                           }}
-                          className={`w-full flex items-center gap-3 py-3.5 text-left text-sm border-b border-zinc-800/40 last:border-0 transition-colors ${
-                            i === suggestionIndex ? 'text-cyan-400' : 'text-zinc-300 hover:text-white'
+                          className={`w-full flex items-center gap-3 py-3.5 text-left text-sm border-b border-border/40 last:border-0 transition-colors ${
+                            i === suggestionIndex ? 'text-brand' : 'text-text-secondary hover:text-text-primary'
                           }`}
                         >
                           <span className="flex-shrink-0 w-5 text-center">
-                            {s.type === 'recipe'     && <Search className="w-4 h-4 text-zinc-500 inline" />}
+                            {s.type === 'recipe'     && <Search className="w-4 h-4 text-text-muted inline" />}
                             {s.type === 'style'      && <span className="text-base leading-none">🍺</span>}
                             {s.type === 'ingredient' && <span className="text-base leading-none">🌿</span>}
                           </span>
                           <span className="flex-1 truncate">{s.label}</span>
-                          <span className="text-xs text-zinc-600 flex-shrink-0">{s.type === 'recipe' ? 'Rezept' : s.type === 'style' ? 'Stil' : 'Zutat'}</span>
+                          <span className="text-xs text-text-disabled flex-shrink-0">{s.type === 'recipe' ? 'Rezept' : s.type === 'style' ? 'Stil' : 'Zutat'}</span>
                         </button>
                       ))}
                     </div>
@@ -1322,7 +1322,7 @@ export default function DiscoverClient({
 
                   {/* No suggestions while typing */}
                   {search && autocompleteSuggestions.length === 0 && (
-                    <p className="px-4 py-12 text-center text-zinc-600 text-sm">Keine Vorschläge für „{search}"</p>
+                    <p className="px-4 py-12 text-center text-text-disabled text-sm">Keine Vorschläge für „{search}"</p>
                   )}
                 </div>
               </div>
@@ -1331,14 +1331,14 @@ export default function DiscoverClient({
         {/* Live Active Filter Summary */}
         {isFiltering && (
           <div className="flex items-center gap-3 mb-6 text-sm">
-            <span className="text-zinc-300 font-medium">
+            <span className="text-text-secondary font-medium">
               {list.length === 0
                 ? 'Keine Treffer'
                 : `${list.length} Rezept${list.length === 1 ? '' : 'e'} gefunden`}
             </span>
             <button
               onClick={resetFilters}
-              className="flex items-center gap-1 text-zinc-500 hover:text-white transition-colors"
+              className="flex items-center gap-1 text-text-muted hover:text-text-primary transition-colors"
             >
               <X className="w-3 h-3" /> Alles zurücksetzen
             </button>
@@ -1346,7 +1346,7 @@ export default function DiscoverClient({
             <div className="flex items-center ml-auto md:hidden">
               <button
                 onClick={() => setViewMode(v => v === 'compact' ? 'portrait' : 'compact')}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-600 transition-all text-xs"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-surface border border-border text-text-secondary hover:text-text-primary hover:border-border-active transition-all text-xs"
                 title={viewMode === 'compact' ? 'Raster-Ansicht' : 'Listen-Ansicht'}
               >
                 {viewMode === 'compact'
@@ -1360,7 +1360,7 @@ export default function DiscoverClient({
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-72 bg-zinc-900/40 rounded-2xl border border-zinc-800 animate-pulse" />
+              <div key={i} className="h-72 bg-surface/40 rounded-2xl border border-border animate-pulse" />
             ))}
           </div>
         ) : (
@@ -1371,13 +1371,13 @@ export default function DiscoverClient({
                 <div className="flex items-center gap-3 mb-6">
                   <button
                     onClick={() => setMoreSection(null)}
-                    className="flex items-center gap-1.5 text-zinc-400 hover:text-white text-sm font-medium transition-colors shrink-0"
+                    className="flex items-center gap-1.5 text-text-secondary hover:text-text-primary text-sm font-medium transition-colors shrink-0"
                   >
                     <ChevronLeft className="w-4 h-4" /> Zurück
                   </button>
                   <div className="flex-1 min-w-0 text-center">
-                    <span className="text-white font-bold truncate">{moreSection.title}</span>
-                    <span className="text-zinc-500 text-sm ml-1.5">({moreSection.items.length})</span>
+                    <span className="text-text-primary font-bold truncate">{moreSection.title}</span>
+                    <span className="text-text-muted text-sm ml-1.5">({moreSection.items.length})</span>
                   </div>
                   <div className="w-16 shrink-0" />
                 </div>
@@ -1448,10 +1448,10 @@ export default function DiscoverClient({
                    </>
                  )}
                  {currentUserId && personalizedBrews.length === 0 && (
-                   <div className="mb-10 flex items-start gap-3 rounded-2xl border border-zinc-800 bg-zinc-900/50 px-5 py-4">
-                     <Sparkles className="w-4 h-4 text-cyan-500 mt-0.5 flex-shrink-0" />
-                     <p className="text-sm text-zinc-400 leading-relaxed">
-                       <span className="font-semibold text-zinc-200">Dein persönlicher Feed wartet auf dich.</span>{' '}
+                   <div className="mb-10 flex items-start gap-3 rounded-2xl border border-border bg-surface/50 px-5 py-4">
+                     <Sparkles className="w-4 h-4 text-brand mt-0.5 flex-shrink-0" />
+                     <p className="text-sm text-text-secondary leading-relaxed">
+                       <span className="font-semibold text-text-primary">Dein persönlicher Feed wartet auf dich.</span>{' '}
                        Like mindestens {NEEDS_MORE_DATA_THRESHOLD} Rezepte oder erstelle eigene Brews — dann zeigen wir dir hier Empfehlungen, die wirklich zu dir passen.
                      </p>
                    </div>
@@ -1495,12 +1495,12 @@ export default function DiscoverClient({
                    const charLine = charParts.length > 0 ? `Mit ${charParts.join(' und ')} passt es zu vielen Geschmäckern.` : '';
 
                    return (
-                     <div className="mb-12 relative rounded-3xl overflow-hidden bg-zinc-900 border border-zinc-800">
-                       <div className="absolute inset-0 bg-gradient-to-br from-cyan-950/30 to-zinc-900/80 pointer-events-none" />
+                     <div className="mb-12 relative rounded-3xl overflow-hidden bg-surface border border-border">
+                       <div className="absolute inset-0 bg-gradient-to-br from-cyan-950/30 to-surface/80 pointer-events-none" />
                        
                        {/* Mobile Layout (Compact) */}
                        <div className="md:hidden relative z-10 p-4 flex gap-4 items-start">
-                         <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-zinc-800">
+                         <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-surface-hover">
                            {t.image_url ? (
                              <img src={t.image_url} alt={t.name} className="w-full h-full object-cover" />
                            ) : (
@@ -1512,10 +1512,10 @@ export default function DiscoverClient({
                              <TrendingUp className="w-3.5 h-3.5" />
                              <span className="text-[10px] font-bold uppercase tracking-wider">Rezept Insight</span>
                            </div>
-                           <h3 className="text-base font-black text-white leading-tight mb-1.5">
+                           <h3 className="text-base font-black text-text-primary leading-tight mb-1.5">
                              Warum ist &ldquo;{t.name}&rdquo; so beliebt?
                            </h3>
-                           <p className="text-zinc-400 text-xs leading-relaxed line-clamp-2 mb-2">
+                           <p className="text-text-secondary text-xs leading-relaxed line-clamp-2 mb-2">
                              {statsLine}Mit {charParts.join(' und ')} passt es zu vielen Geschmäckern.
                            </p>
                            <button
@@ -1534,15 +1534,15 @@ export default function DiscoverClient({
                              <TrendingUp className="w-5 h-5" />
                              <span className="text-sm font-bold uppercase tracking-wider">Rezept Insight</span>
                            </div>
-                           <h3 className="text-3xl font-black text-white mb-3">
+                           <h3 className="text-3xl font-black text-text-primary mb-3">
                              Warum ist &ldquo;{t.name}&rdquo; so beliebt?
                            </h3>
-                           <p className="text-zinc-400 text-base leading-relaxed mb-6">
+                           <p className="text-text-secondary text-base leading-relaxed mb-6">
                              {statsLine}dieses {t.style || 'Rezept'} trendet gerade in der Community. {charLine} Schau dir Zutaten und Maischeschritte selbst an.
                            </p>
                            <button
                              onClick={() => router.push(`/brew/${t.id}`)}
-                             className="inline-flex items-center gap-2 border border-zinc-600 hover:border-cyan-500 text-zinc-300 hover:text-cyan-400 font-bold px-6 py-3 rounded-xl transition-all duration-200"
+                             className="inline-flex items-center gap-2 border border-border-active hover:border-brand text-text-secondary hover:text-brand font-bold px-6 py-3 rounded-xl transition-all duration-200"
                            >
                              Rezept ansehen
                              <ChevronRight className="w-4 h-4" />
@@ -1552,7 +1552,7 @@ export default function DiscoverClient({
                            {t.image_url ? (
                              <img src={t.image_url} alt={t.name} className="w-full h-full object-cover" />
                            ) : (
-                             <div className="w-full h-full bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center">
+                             <div className="w-full h-full bg-gradient-to-br from-surface-hover to-surface flex items-center justify-center">
                                <span className="text-4xl">🍺</span>
                              </div>
                            )}
@@ -1586,11 +1586,11 @@ export default function DiscoverClient({
                  )}
 
                  {/* Alle Rezepte CTA */}
-                 <div className="mt-8 pt-8 border-t border-zinc-900 flex flex-col items-center gap-3 text-center">
-                    <p className="text-zinc-500 text-sm">{brews.length}{hasMore ? '+' : ''} Rezepte in der Community</p>
+                 <div className="mt-8 pt-8 border-t border-border-subtle flex flex-col items-center gap-3 text-center">
+                    <p className="text-text-muted text-sm">{brews.length}{hasMore ? '+' : ''} Rezepte in der Community</p>
                     <button
                       onClick={() => setShowAllGrid(true)}
-                      className="flex items-center gap-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 hover:border-zinc-600 text-white font-semibold px-6 py-3 rounded-xl transition-all"
+                      className="flex items-center gap-2 bg-surface hover:bg-surface-hover border border-border-hover hover:border-border-active text-text-primary font-semibold px-6 py-3 rounded-xl transition-all"
                     >
                       <Filter className="w-4 h-4" />
                       Alle Rezepte durchsuchen
@@ -1604,11 +1604,11 @@ export default function DiscoverClient({
                   <div className="flex items-center justify-between mb-6">
                     <button
                       onClick={() => setShowAllGrid(false)}
-                      className="flex items-center gap-2 text-zinc-400 hover:text-white text-sm font-medium transition-colors"
+                      className="flex items-center gap-2 text-text-secondary hover:text-text-primary text-sm font-medium transition-colors"
                     >
                       ← Zurück zur Übersicht
                     </button>
-                    <span className="text-zinc-500 text-sm">{list.length} Rezepte</span>
+                    <span className="text-text-muted text-sm">{list.length} Rezepte</span>
                   </div>
                 )}
                 <div className="animate-in fade-in duration-500">
@@ -1639,24 +1639,24 @@ export default function DiscoverClient({
                     </>
                   ) : (
                     <div className="col-span-full py-16 flex flex-col items-center gap-6 text-center">
-                      <div className="w-16 h-16 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center">
-                        <SearchX className="w-7 h-7 text-zinc-500" />
+                      <div className="w-16 h-16 rounded-full bg-surface border border-border flex items-center justify-center">
+                        <SearchX className="w-7 h-7 text-text-muted" />
                       </div>
                       <div>
-                        <p className="text-white font-semibold text-lg mb-1">Keine Rezepte gefunden</p>
-                        <p className="text-zinc-500 text-sm max-w-sm">
+                        <p className="text-text-primary font-semibold text-lg mb-1">Keine Rezepte gefunden</p>
+                        <p className="text-text-muted text-sm max-w-sm">
                           Versuch einen anderen Suchbegriff oder setze die Filter zurück.
                         </p>
                       </div>
                       <button
                         onClick={resetFilters}
-                        className="bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 hover:border-zinc-600 text-white font-semibold px-5 py-2.5 rounded-xl transition-all text-sm"
+                        className="bg-surface hover:bg-surface-hover border border-border-hover hover:border-border-active text-text-primary font-semibold px-5 py-2.5 rounded-xl transition-all text-sm"
                       >
                         Filter zurücksetzen
                       </button>
                       {suggestions.length > 0 && (
                         <div className="w-full mt-4">
-                          <p className="text-zinc-500 text-xs font-medium uppercase tracking-wider mb-4">
+                          <p className="text-text-muted text-xs font-medium uppercase tracking-wider mb-4">
                             {styleFilter !== 'all' ? `Diese ${styleFilter}-Rezepte passen vielleicht:` : 'Diese Rezepte könnten dich interessieren:'}
                           </p>
                           <div className="flex flex-col gap-2">
@@ -1675,13 +1675,13 @@ export default function DiscoverClient({
                   <>
                     <div ref={sentinelRef} className="h-1" aria-hidden="true" />
                     {loadingMore && (
-                      <div className="flex justify-center items-center py-10 gap-3 text-zinc-500 text-sm">
+                      <div className="flex justify-center items-center py-10 gap-3 text-text-muted text-sm">
                         <Loader2 className="w-5 h-5 animate-spin" />
                         Weitere Rezepte laden…
                       </div>
                     )}
                     {!hasMore && !loadingMore && (
-                      <p className="text-center text-zinc-700 text-xs py-8">
+                      <p className="text-center text-text-disabled text-xs py-8">
                         Alle {brews.length} Rezepte geladen
                       </p>
                     )}
@@ -1705,7 +1705,7 @@ export default function DiscoverClient({
           />
           {/* Panel */}
           <div
-            className="fixed bottom-0 left-0 right-0 z-50 bg-zinc-950 border-t border-zinc-800 rounded-t-xl shadow-2xl max-h-[90dvh] flex flex-col animate-in slide-in-from-bottom duration-300"
+            className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border rounded-t-xl shadow-2xl max-h-[90dvh] flex flex-col animate-in slide-in-from-bottom duration-300"
             style={{ transform: `translateY(${sheetDragY}px)`, transition: sheetDragY > 0 ? 'none' : 'transform 0.3s ease' }}
           >
             {/* Drag handle — pointer events only on this area */}
@@ -1727,24 +1727,24 @@ export default function DiscoverClient({
                 sheetIsDragging.current = false;
               }}
             >
-              <div className="w-8 h-1 rounded-full bg-zinc-700" />
+              <div className="w-8 h-1 rounded-full bg-border-hover" />
             </div>
             {/* Header */}
-            <div className="flex items-center justify-between px-4 pt-2 pb-3 flex-shrink-0 border-b border-zinc-800">
-              <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Filter &amp; Sortierung</span>
+            <div className="flex items-center justify-between px-4 pt-2 pb-3 flex-shrink-0 border-b border-border">
+              <span className="text-xs font-semibold uppercase tracking-wider text-text-muted">Filter &amp; Sortierung</span>
               <button
                 onClick={() => { setShowBottomSheet(false); setSheetDragY(0); }}
-                className="p-1.5 rounded text-zinc-500 hover:text-white hover:bg-zinc-800 transition-colors"
+                className="p-1.5 rounded text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors"
                 aria-label="Schließen"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
             {/* Scrollable content */}
-            <div className="overflow-y-auto flex-1 touch-auto overscroll-contain divide-y divide-zinc-800/60">
+            <div className="overflow-y-auto flex-1 touch-auto overscroll-contain divide-y divide-border/60">
               {/* Sortierung */}
               <div className="px-4 py-4">
-                <p className="text-[10px] font-medium text-zinc-600 uppercase tracking-wider mb-3">Sortierung</p>
+                <p className="text-[10px] font-medium text-text-disabled uppercase tracking-wider mb-3">Sortierung</p>
                 <div className="flex flex-wrap gap-2">
                   {sortOptions.map(({ value, label }) => (
                     <button
@@ -1753,7 +1753,7 @@ export default function DiscoverClient({
                       className={`text-sm px-3 py-2 rounded-lg border transition-all min-h-[38px] ${
                         sort === value
                           ? 'bg-white text-black font-semibold border-white'
-                          : 'bg-zinc-900 border-zinc-700 text-zinc-300 font-medium hover:bg-zinc-800 hover:text-white'
+                          : 'bg-surface border-border text-text-secondary font-medium hover:bg-surface-hover hover:text-text-primary'
                       }`}
                     >
                       {label}
@@ -1763,7 +1763,7 @@ export default function DiscoverClient({
               </div>
               {/* Brautyp */}
               <div className="px-4 py-4">
-                <p className="text-[10px] font-medium text-zinc-600 uppercase tracking-wider mb-3">Brautyp</p>
+                <p className="text-[10px] font-medium text-text-disabled uppercase tracking-wider mb-3">Brautyp</p>
                 <div className="flex flex-wrap gap-2">
                   {BREW_TYPES.map(({ value, label }) => (
                     <button
@@ -1772,7 +1772,7 @@ export default function DiscoverClient({
                       className={`text-sm px-3 py-2 rounded-lg border transition-all min-h-[38px] ${
                         brewTypeFilter === value
                           ? 'bg-white text-black font-semibold border-white'
-                          : 'bg-zinc-900 border-zinc-700 text-zinc-300 font-medium hover:bg-zinc-800 hover:text-white'
+                          : 'bg-surface border-border text-text-secondary font-medium hover:bg-surface-hover hover:text-text-primary'
                       }`}
                     >
                       {label}
@@ -1782,7 +1782,7 @@ export default function DiscoverClient({
               </div>
               {/* Gärungstyp */}
               <div className="px-4 py-4">
-                <p className="text-[10px] font-medium text-zinc-600 uppercase tracking-wider mb-3">Gärungstyp</p>
+                <p className="text-[10px] font-medium text-text-disabled uppercase tracking-wider mb-3">Gärungstyp</p>
                 <div className="flex flex-wrap gap-2">
                   {FERMENTATION_TYPES.map(({ value, label }) => (
                     <button
@@ -1791,7 +1791,7 @@ export default function DiscoverClient({
                       className={`text-sm px-3 py-2 rounded-lg border transition-all min-h-[38px] ${
                         fermentationFilter === value
                           ? 'bg-white text-black font-semibold border-white'
-                          : 'bg-zinc-900 border-zinc-700 text-zinc-300 font-medium hover:bg-zinc-800 hover:text-white'
+                          : 'bg-surface border-border text-text-secondary font-medium hover:bg-surface-hover hover:text-text-primary'
                       }`}
                     >
                       {label}
@@ -1801,7 +1801,7 @@ export default function DiscoverClient({
               </div>
               {/* Alkohol (ABV) */}
               <div className="px-4 py-4">
-                <p className="text-[10px] font-medium text-zinc-600 uppercase tracking-wider mb-3">Alkohol (ABV)</p>
+                <p className="text-[10px] font-medium text-text-disabled uppercase tracking-wider mb-3">Alkohol (ABV)</p>
                 <div className="flex flex-wrap gap-2">
                   {ABV_PRESETS.map(({ value, label }) => (
                     <button
@@ -1810,7 +1810,7 @@ export default function DiscoverClient({
                       className={`text-sm px-3 py-2 rounded-lg border transition-all min-h-[38px] ${
                         abvPreset === value
                           ? 'bg-white text-black font-semibold border-white'
-                          : 'bg-zinc-900 border-zinc-700 text-zinc-300 font-medium hover:bg-zinc-800 hover:text-white'
+                          : 'bg-surface border-border text-text-secondary font-medium hover:bg-surface-hover hover:text-text-primary'
                       }`}
                     >
                       {label}
@@ -1820,7 +1820,7 @@ export default function DiscoverClient({
               </div>
               {/* Bitterkeit (IBU) */}
               <div className="px-4 py-4">
-                <p className="text-[10px] font-medium text-zinc-600 uppercase tracking-wider mb-3">Bitterkeit (IBU)</p>
+                <p className="text-[10px] font-medium text-text-disabled uppercase tracking-wider mb-3">Bitterkeit (IBU)</p>
                 <div className="flex flex-wrap gap-2">
                   {IBU_PRESETS.map(({ value, label }) => (
                     <button
@@ -1829,7 +1829,7 @@ export default function DiscoverClient({
                       className={`text-sm px-3 py-2 rounded-lg border transition-all min-h-[38px] ${
                         ibuPreset === value
                           ? 'bg-white text-black font-semibold border-white'
-                          : 'bg-zinc-900 border-zinc-700 text-zinc-300 font-medium hover:bg-zinc-800 hover:text-white'
+                          : 'bg-surface border-border text-text-secondary font-medium hover:bg-surface-hover hover:text-text-primary'
                       }`}
                     >
                       {label}
@@ -1839,7 +1839,7 @@ export default function DiscoverClient({
               </div>
               {/* Zutat */}
               <div className="px-4 py-4">
-                <p className="text-[10px] font-medium text-zinc-600 uppercase tracking-wider mb-3">Zutat (Hopfen oder Malz)</p>
+                <p className="text-[10px] font-medium text-text-disabled uppercase tracking-wider mb-3">Zutat (Hopfen oder Malz)</p>
                 <div className="relative">
                   <input
                     type="text"
@@ -1847,12 +1847,12 @@ export default function DiscoverClient({
                     value={hopFilter}
                     onChange={(e) => setHopFilter(e.target.value)}
                     placeholder="z. B. Citra, Hallertau, Pilsner Malz…"
-                    className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors min-h-[38px]"
+                    className="w-full bg-surface border border-border rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder:text-text-disabled focus:outline-none focus:border-border-active transition-colors min-h-[38px]"
                   />
                   {hopFilter && (
                     <button
                       onClick={() => setHopFilter('')}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary"
                       aria-label="Löschen"
                     >
                       <X className="w-4 h-4" />
@@ -1865,16 +1865,16 @@ export default function DiscoverClient({
               </div>
               {/* Einsteiger-Modus */}
               <div className="px-4 py-4">
-                <p className="text-[10px] font-medium text-zinc-600 uppercase tracking-wider mb-3">Schwierigkeitsgrad</p>
+                <p className="text-[10px] font-medium text-text-disabled uppercase tracking-wider mb-3">Schwierigkeitsgrad</p>
                 <button
                   onClick={() => setBeginnerMode(v => !v)}
                   className={`flex items-center gap-2 text-sm px-3 py-2 rounded-lg border transition-all min-h-[38px] text-left ${
                     beginnerMode
                       ? 'bg-white text-black font-semibold border-white'
-                      : 'bg-zinc-900 border-zinc-700 text-zinc-300 font-medium hover:bg-zinc-800 hover:text-white'
+                      : 'bg-surface border-border text-text-secondary font-medium hover:bg-surface-hover hover:text-text-primary'
                   }`}
                 >
-                  <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${beginnerMode ? 'border-black bg-black/10' : 'border-zinc-500'}`}>
+                  <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${beginnerMode ? 'border-foreground bg-foreground/10' : 'border-border-active'}`}>
                     {beginnerMode && <Check className="w-2.5 h-2.5" />}
                   </div>
                   Nur Einsteiger-Rezepte
@@ -1882,16 +1882,16 @@ export default function DiscoverClient({
               </div>
             </div>
             {/* Sticky footer */}
-            <div className="flex gap-2 px-4 py-3 border-t border-zinc-800 flex-shrink-0">
+            <div className="flex gap-2 px-4 py-3 border-t border-border flex-shrink-0">
               <button
                 onClick={() => { resetFilters(); setShowBottomSheet(false); setSheetDragY(0); }}
-                className="flex-1 py-2.5 rounded-lg border border-zinc-700 bg-zinc-900 text-white font-medium text-sm hover:bg-zinc-800 transition-all"
+                className="flex-1 py-2.5 rounded-lg border border-border bg-surface text-text-primary font-medium text-sm hover:bg-surface-hover transition-all"
               >
                 Zurücksetzen
               </button>
               <button
                 onClick={() => { setShowBottomSheet(false); setSheetDragY(0); }}
-                className="flex-1 py-2.5 rounded-lg bg-white text-black font-semibold text-sm hover:bg-zinc-100 transition-all"
+                className="flex-1 py-2.5 rounded-lg bg-foreground text-background font-semibold text-sm hover:opacity-90 transition-all"
               >
                 Anwenden
               </button>

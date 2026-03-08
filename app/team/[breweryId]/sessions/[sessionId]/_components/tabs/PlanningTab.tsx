@@ -138,23 +138,23 @@ export function PlanningTab() {
             onClick={() => toggleItem(id)}
             className={`flex justify-between items-center px-4 py-3 rounded-lg border transition-all cursor-pointer group ${
                 isChecked 
-                ? 'bg-zinc-900/50 border-zinc-800/50 opacity-50' 
-                : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'
+                ? 'bg-surface/50 border-border/50 opacity-50' 
+                : 'bg-surface border-border hover:border-border'
             }`}
         >
             <div className="flex items-center gap-3">
                 <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${
                     isChecked 
-                    ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-500' 
-                    : 'border-zinc-700 group-hover:border-zinc-500'
+                    ? 'bg-success/20 border-success/50 text-success' 
+                    : 'border-border group-hover:border-text-muted'
                 }`}>
                     {isChecked && <Check className="w-3 h-3" strokeWidth={3} />}
                 </div>
-                <span className={`font-medium text-sm transition-colors ${isChecked ? 'line-through text-zinc-500' : 'text-zinc-200'}`}>
+                <span className={`font-medium text-sm transition-colors ${isChecked ? 'line-through text-text-disabled' : 'text-text-primary'}`}>
                     {name}
                 </span>
             </div>
-            <span className={`font-mono text-sm font-bold ${isChecked ? 'text-zinc-600' : 'text-zinc-400'}`}>
+            <span className={`font-mono text-sm font-bold ${isChecked ? 'text-text-disabled' : 'text-text-secondary'}`}>
                 {amount}
             </span>
         </div>
@@ -166,21 +166,21 @@ export function PlanningTab() {
       <div className="flex justify-between items-start mb-8">
         <div>
            <PhaseTitle>Vorbereitung</PhaseTitle>
-           <p className="text-zinc-400 text-sm">Prüfe deine Zutaten für <span className="text-cyan-400 font-bold">{session?.brew?.name || 'dieses Rezept'}</span></p>
+           <p className="text-text-muted text-sm">Prüfe deine Zutaten für <span className="text-brand font-bold">{session?.brew?.name || 'dieses Rezept'}</span></p>
         </div>
       </div>
 
       {/* Water Profile */}
-      <div className="md:bg-zinc-900/40 md:border md:border-zinc-800 md:rounded-xl md:p-5 mb-8">
-          <div className="flex items-center justify-between mb-4 border-b border-zinc-800 pb-2">
-            <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
-                    <Droplets className="w-3 h-3 text-cyan-500" /> 
+      <div className="bg-surface border border-border rounded-xl p-5 mb-8">
+          <div className="flex items-center justify-between mb-4 border-b border-border pb-2">
+            <h3 className="text-[10px] font-bold text-text-muted uppercase tracking-widest flex items-center gap-2">
+                    <Droplets className="w-3 h-3 text-brand" /> 
                     Wasser-Planung
                     <BotlGuideTrigger guideKey="wasser.restalkalitaet" />
             </h3>
             <button
                 onClick={() => openModal('MEASUREMENT_VOLUME')}
-                className="text-[10px] font-bold text-cyan-400 hover:text-cyan-300 uppercase tracking-wider flex items-center gap-1 bg-cyan-950/30 px-2 py-1 rounded border border-cyan-900/50 hover:border-cyan-500/50 transition-colors"
+                className="text-[10px] font-bold text-brand hover:text-brand/80 uppercase tracking-wider flex items-center gap-1 bg-brand-bg px-2 py-1 rounded border border-brand/20 hover:border-brand/50 transition-colors"
             >
                 <Plus className="w-3 h-3" />
                 Messen
@@ -188,21 +188,21 @@ export function PlanningTab() {
           </div>
           
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-zinc-950 p-3 rounded-lg border border-zinc-800/50 flex flex-col items-center text-center">
-                    <span className="text-[10px] text-zinc-500 uppercase font-bold mb-1">Hauptguss</span>
-                    <span className="text-xl font-bold text-white">{waterProfile.mashWater} <span className="text-sm text-zinc-600">L</span></span>
+                <div className="bg-background p-3 rounded-lg border border-border flex flex-col items-center text-center">
+                    <span className="text-[10px] text-text-muted uppercase font-bold mb-1">Hauptguss</span>
+                    <span className="text-xl font-bold text-text-primary">{waterProfile.mashWater} <span className="text-sm text-text-disabled">L</span></span>
                 </div>
-                <div className="bg-zinc-950 p-3 rounded-lg border border-zinc-800/50 flex flex-col items-center text-center">
-                    <span className="text-[10px] text-zinc-500 uppercase font-bold mb-1">Nachguss</span>
-                    <span className="text-xl font-bold text-white">{waterProfile.spargeWater} <span className="text-sm text-zinc-600">L</span></span>
+                <div className="bg-background p-3 rounded-lg border border-border flex flex-col items-center text-center">
+                    <span className="text-[10px] text-text-muted uppercase font-bold mb-1">Nachguss</span>
+                    <span className="text-xl font-bold text-text-primary">{waterProfile.spargeWater} <span className="text-sm text-text-disabled">L</span></span>
                 </div>
-                <div className="bg-zinc-950 p-3 rounded-lg border border-zinc-800/50 flex flex-col items-center text-center opacity-70">
-                    <span className="text-[10px] text-zinc-500 uppercase font-bold mb-1">Gesamt</span>
-                    <span className="text-lg font-bold text-zinc-300">{waterProfile.totalWater} <span className="text-sm text-zinc-600">L</span></span>
+                <div className="bg-background p-3 rounded-lg border border-border flex flex-col items-center text-center opacity-70">
+                    <span className="text-[10px] text-text-muted uppercase font-bold mb-1">Gesamt</span>
+                    <span className="text-lg font-bold text-text-secondary">{waterProfile.totalWater} <span className="text-sm text-text-disabled">L</span></span>
                 </div>
-                 <div className="bg-zinc-950 p-3 rounded-lg border border-zinc-800/50 flex flex-col items-center text-center opacity-70">
-                    <span className="text-[10px] text-zinc-500 uppercase font-bold mb-1">Pfanne voll</span>
-                    <span className="text-lg font-bold text-zinc-300">{waterProfile.preBoilVolume} <span className="text-sm text-zinc-600">L</span></span>
+                 <div className="bg-background p-3 rounded-lg border border-border flex flex-col items-center text-center opacity-70">
+                    <span className="text-[10px] text-text-muted uppercase font-bold mb-1">Pfanne voll</span>
+                    <span className="text-lg font-bold text-text-secondary">{waterProfile.preBoilVolume} <span className="text-sm text-text-disabled">L</span></span>
                 </div>
           </div>
       </div>
@@ -212,7 +212,7 @@ export function PlanningTab() {
           {/* Malts */}
           {ingredients.malts.length > 0 && (
               <div>
-                  <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-4 flex items-center justify-between border-b border-zinc-800 pb-2">
+                  <h3 className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-4 flex items-center justify-between border-b border-border pb-2 min-h-[40px]">
                        <div className="flex items-center gap-2">
                             <Wheat className="w-3 h-3" /> 
                             Malz & Getreide
@@ -235,8 +235,9 @@ export function PlanningTab() {
           {/* Hops */}
             {ingredients.hops.length > 0 && (
               <div>
-                  <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-4 flex items-center gap-2 border-b border-zinc-800 pb-2">
-                      <Leaf className="w-3 h-3" /> Hopfen
+                  <h3 className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-4 flex items-center justify-between border-b border-border pb-2 min-h-[40px]">
+                      <div className="flex items-center gap-2"><Leaf className="w-3 h-3" /> Hopfen</div>
+                      <div />
                   </h3>
                   <div className="space-y-2">
                        {ingredients.hops.map((h: any, i: number) => (

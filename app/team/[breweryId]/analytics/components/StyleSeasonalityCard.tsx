@@ -33,15 +33,15 @@ function StyleBars({ distribution, peakMonth }: { distribution: MonthlyDistribut
           <div key={d.month} className="flex-1 flex flex-col items-center gap-0.5 group relative">
             {/* Tooltip */}
             <div className="absolute bottom-full mb-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
-              <div className="bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-[10px] text-zinc-200 whitespace-nowrap shadow-lg">
+              <div className="bg-surface border border-border-hover rounded px-2 py-1 text-[10px] text-text-primary whitespace-nowrap shadow-lg">
                 {d.monthName}: {d.percentage}%
               </div>
             </div>
             <div
-              className={`w-full rounded-sm transition-all ${isPeak ? 'bg-amber-400' : 'bg-zinc-600'}`}
+              className={`w-full rounded-sm transition-all ${isPeak ? 'bg-amber-400' : 'bg-surface-hover'}`}
               style={{ height: `${Math.max(height, 2)}%` }}
             />
-            <span className={`text-[8px] ${isPeak ? 'text-amber-400 font-bold' : 'text-zinc-600'}`}>
+            <span className={`text-[8px] ${isPeak ? 'text-amber-400 font-bold' : 'text-text-disabled'}`}>
               {d.monthName.slice(0, 1)}
             </span>
           </div>
@@ -76,14 +76,14 @@ export default function StyleSeasonalityCard({ userTier }: Props) {
   // ── Tier gate ──────────────────────────────────────────────────────────────
   if (!canAccess) {
     return (
-      <div className="bg-black border border-zinc-800 rounded-lg p-6">
+      <div className="bg-surface border border-border rounded-2xl p-6">
         <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 bg-zinc-800 rounded-lg">
-            <CalendarDays className="w-5 h-5 text-zinc-400" />
+          <div className="p-2 bg-surface-hover rounded-lg">
+            <CalendarDays className="w-5 h-5 text-text-secondary" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-zinc-200">Saisonale Stilnachfrage</h3>
-            <p className="text-xs text-zinc-500">Plattformweite Release-Timing-Empfehlung</p>
+            <h3 className="text-sm font-bold text-text-primary">Saisonale Stilnachfrage</h3>
+            <p className="text-xs text-text-muted">Plattformweite Release-Timing-Empfehlung</p>
           </div>
           <span className="ml-auto text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded">
             Brewery+
@@ -91,8 +91,8 @@ export default function StyleSeasonalityCard({ userTier }: Props) {
         </div>
         <div className="flex flex-col items-center justify-center py-8 gap-3">
           <Lock className="w-8 h-8 text-violet-400" />
-          <p className="text-sm text-zinc-300 text-center max-w-xs">
-            Verfügbar ab <strong className="text-zinc-200">Brewery-Plan</strong>. Optimales Release-Timing für jeden Bierstil.
+          <p className="text-sm text-text-secondary text-center max-w-xs">
+            Verfügbar ab <strong className="text-text-primary">Brewery-Plan</strong>. Optimales Release-Timing für jeden Bierstil.
           </p>
         </div>
       </div>
@@ -100,28 +100,28 @@ export default function StyleSeasonalityCard({ userTier }: Props) {
   }
 
   return (
-    <div className="bg-black border border-zinc-800 rounded-lg p-6">
+    <div className="bg-surface border border-border rounded-2xl p-6">
       {/* Header */}
       <div className="flex items-center gap-3 mb-5">
         <div className="p-2 bg-amber-500/10 border border-amber-500/20 rounded-lg">
           <CalendarDays className="w-5 h-5 text-amber-400" />
         </div>
         <div>
-          <h3 className="text-sm font-semibold text-zinc-200">Saisonale Stilnachfrage</h3>
-          <p className="text-xs text-zinc-500">Plattformweite Scan-Verteilung je Bierstil</p>
+          <h3 className="text-sm font-bold text-text-primary">Saisonale Stilnachfrage</h3>
+          <p className="text-xs text-text-muted">Plattformweite Scan-Verteilung je Bierstil</p>
         </div>
       </div>
 
       {/* Search input */}
       <div className="relative mb-3">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" />
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && search(query)}
           placeholder="Bierstil eingeben, z.B. IPA…"
-          className="w-full bg-zinc-800 border border-zinc-700 text-zinc-200 text-sm rounded-lg pl-9 pr-4 py-2 focus:outline-none focus:border-amber-500/50 placeholder:text-zinc-600"
+          className="w-full bg-surface-hover border border-border-hover text-text-primary text-sm rounded-lg pl-9 pr-4 py-2 focus:outline-none focus:border-amber-500/50 placeholder:text-text-disabled"
         />
       </div>
 
@@ -133,8 +133,8 @@ export default function StyleSeasonalityCard({ userTier }: Props) {
             onClick={() => search(s)}
             className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
               query === s
-                ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
-                : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:text-zinc-200 hover:border-zinc-600'
+                ? 'bg-warning-bg border-warning/30 text-warning'
+                : 'bg-surface-hover border-border-hover text-text-secondary hover:text-text-primary hover:border-border-hover'
             }`}
           >
             {s}
@@ -146,7 +146,7 @@ export default function StyleSeasonalityCard({ userTier }: Props) {
       <button
         onClick={() => search(query)}
         disabled={pending || !query.trim()}
-        className="w-full mb-4 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-sm font-medium hover:bg-amber-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+        className="w-full mb-4 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-sm font-bold hover:bg-amber-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
       >
         {pending ? <span className="animate-spin">↻</span> : <Search className="w-4 h-4" />}
         Saisonalität analysieren
@@ -155,8 +155,8 @@ export default function StyleSeasonalityCard({ userTier }: Props) {
       {/* Loading skeleton */}
       {pending && (
         <div className="animate-pulse space-y-3">
-          <div className="h-20 bg-zinc-800 rounded" />
-          <div className="h-12 bg-zinc-800 rounded" />
+          <div className="h-20 bg-surface-hover rounded" />
+          <div className="h-12 bg-surface-hover rounded" />
         </div>
       )}
 
@@ -164,7 +164,7 @@ export default function StyleSeasonalityCard({ userTier }: Props) {
       {!pending && searched && result && (
         <div className="space-y-4">
           {!result.hasEnoughData ? (
-            <p className="text-sm text-zinc-400 text-center py-4">{result.releaseRecommendation}</p>
+            <p className="text-sm text-text-secondary text-center py-4">{result.releaseRecommendation}</p>
           ) : (
             <>
               {/* Bar chart */}
@@ -172,26 +172,26 @@ export default function StyleSeasonalityCard({ userTier }: Props) {
 
               {/* Stats */}
               <div className="grid grid-cols-3 gap-3">
-                <div className="bg-zinc-800/60 rounded-lg p-3 text-center">
-                  <p className="text-xs text-zinc-500 mb-1">Peak-Monat</p>
+                <div className="bg-border/60 rounded-lg p-3 text-center">
+                  <p className="text-xs text-text-muted mb-1">Peak-Monat</p>
                   <p className="text-sm font-semibold text-amber-400">{result.peakMonthName}</p>
                 </div>
-                <div className="bg-zinc-800/60 rounded-lg p-3 text-center">
-                  <p className="text-xs text-zinc-500 mb-1">Peak-Anteil</p>
-                  <p className="text-sm font-semibold text-zinc-200">
+                <div className="bg-border/60 rounded-lg p-3 text-center">
+                  <p className="text-xs text-text-muted mb-1">Peak-Anteil</p>
+                  <p className="text-sm font-bold text-text-primary">
                     {result.distribution.find((d) => d.month === result.peakMonth)?.percentage ?? 0}%
                   </p>
                 </div>
-                <div className="bg-zinc-800/60 rounded-lg p-3 text-center">
-                  <p className="text-xs text-zinc-500 mb-1">Scans gesamt</p>
-                  <p className="text-sm font-semibold text-zinc-200">{result.totalScans.toLocaleString('de-DE')}</p>
+                <div className="bg-border/60 rounded-lg p-3 text-center">
+                  <p className="text-xs text-text-muted mb-1">Scans gesamt</p>
+                  <p className="text-sm font-bold text-text-primary">{result.totalScans.toLocaleString('de-DE')}</p>
                 </div>
               </div>
 
               {/* Release recommendation */}
               <div className="flex items-start gap-2.5 p-3 rounded-lg bg-amber-500/5 border border-amber-500/15">
                 <Rocket className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
-                <p className="text-xs text-zinc-300 leading-relaxed">{result.releaseRecommendation}</p>
+                <p className="text-xs text-text-secondary leading-relaxed">{result.releaseRecommendation}</p>
               </div>
             </>
           )}
@@ -199,7 +199,7 @@ export default function StyleSeasonalityCard({ userTier }: Props) {
       )}
 
       {!pending && !searched && (
-        <p className="text-xs text-zinc-600 text-center py-4">
+        <p className="text-xs text-text-disabled text-center py-4">
           Gib einen Bierstil ein, um das optimale Release-Fenster zu ermitteln.
         </p>
       )}

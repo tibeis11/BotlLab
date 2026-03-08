@@ -69,7 +69,7 @@ const TOOLS: { icon: React.ReactNode; title: string; action: ToolAction }[] = [
 
 export default function MarkdownToolbar({ textareaRef, value, onChange }: MarkdownToolbarProps) {
     return (
-        <div className="flex items-center gap-0.5 border-b border-zinc-800 px-1 py-0.5">
+        <div className="flex items-center gap-0.5 border-b border-border px-1 py-0.5">
             {TOOLS.map(({ icon, title, action }, i) => (
                 <button
                     key={i}
@@ -81,12 +81,12 @@ export default function MarkdownToolbar({ textareaRef, value, onChange }: Markdo
                             applyAction(textareaRef.current, value, action, onChange);
                         }
                     }}
-                    className="p-1.5 text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800 rounded transition"
+                    className="p-1.5 text-text-disabled hover:text-text-secondary hover:bg-surface-hover rounded transition"
                 >
                     {icon}
                 </button>
             ))}
-            <span className="ml-auto text-[9px] text-zinc-700 uppercase font-bold tracking-wider hidden sm:block pr-1">
+            <span className="ml-auto text-[9px] text-text-disabled uppercase font-bold tracking-wider hidden sm:block pr-1">
                 Markdown
             </span>
         </div>

@@ -6,6 +6,7 @@
 
 import React, { useState, useTransition } from 'react';
 import Link from 'next/link';
+import { FlaskConical } from 'lucide-react';
 import { removeFromStash, type StashEntry, type PurchaseLocation } from '@/lib/actions/stash-actions';
 import { PURCHASE_LOCATION_LABELS } from '@/lib/stash-config';
 
@@ -27,16 +28,18 @@ export default function StashClient({ initialStash }: StashClientProps) {
   if (stash.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center space-y-5">
-        <span className="text-6xl">🥶</span>
+        <div className="w-16 h-16 rounded-2xl bg-surface border border-border flex items-center justify-center">
+          <FlaskConical className="w-8 h-8 text-text-disabled" />
+        </div>
         <div className="space-y-2">
-          <h1 className="text-3xl font-black text-white">Mein Stash</h1>
-          <p className="text-zinc-500 text-sm max-w-xs mx-auto">
+          <h1 className="text-3xl font-bold text-text-primary">Mein Stash</h1>
+          <p className="text-text-muted text-sm max-w-xs mx-auto">
             Dein digitaler Kühlschrank ist noch leer. Auf Bier-Seiten kannst du Biere zum Stash hinzufügen!
           </p>
         </div>
         <Link
           href="/discover"
-          className="text-xs text-cyan-400 font-bold border border-cyan-800 rounded-full px-5 py-2 hover:bg-cyan-900/20 transition-all"
+          className="text-xs text-brand font-bold border border-brand/30 rounded-full px-5 py-2 hover:bg-brand-bg transition-all"
         >
           Biere entdecken →
         </Link>
@@ -48,9 +51,9 @@ export default function StashClient({ initialStash }: StashClientProps) {
     <div className="space-y-6 pb-12">
       {/* Header */}
       <div className="space-y-1">
-        <p className="text-[10px] uppercase font-black tracking-[0.3em] text-cyan-500">Mein</p>
-        <h1 className="text-3xl font-black text-white">Stash</h1>
-        <p className="text-sm text-zinc-500">
+        <p className="text-[10px] uppercase font-bold tracking-[0.3em] text-brand">Mein</p>
+        <h1 className="text-3xl font-bold text-text-primary">Stash</h1>
+        <p className="text-sm text-text-muted">
           {stash.length} {stash.length === 1 ? 'Bier' : 'Biere'} kalt gestellt
         </p>
       </div>
@@ -87,19 +90,19 @@ function LocationBreakdown({ stash }: { stash: StashEntry[] }) {
   const sorted = (Object.entries(counts) as [PurchaseLocation, number][]).sort((a, b) => b[1] - a[1]);
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 space-y-3">
-      <p className="text-[10px] uppercase font-black tracking-widest text-zinc-500">
+    <div className="bg-surface border border-border rounded-2xl p-5 space-y-3">
+      <p className="text-[10px] uppercase font-bold tracking-widest text-text-disabled">
         Wo du kaufst
       </p>
       <div className="flex flex-wrap gap-2">
         {sorted.map(([loc, count]) => (
           <div
             key={loc}
-            className="flex items-center gap-1.5 bg-zinc-800 border border-zinc-700 rounded-full px-3 py-1.5 text-xs text-zinc-300"
+            className="flex items-center gap-1.5 bg-surface-hover border border-border rounded-full px-3 py-1.5 text-xs text-text-secondary"
           >
             <span>{PURCHASE_LOCATION_LABELS[loc].split(' ')[0]}</span>
             <span>{PURCHASE_LOCATION_LABELS[loc].split(' ').slice(1).join(' ')}</span>
-            <span className="text-zinc-500 ml-1">×{count}</span>
+            <span className="text-text-muted ml-1">×{count}</span>
           </div>
         ))}
       </div>
@@ -124,7 +127,7 @@ function StashCard({
   });
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 flex gap-4 items-center">
+    <div className="bg-surface border border-border rounded-2xl p-4 flex gap-4 items-center">
       {/* Image */}
       {entry.brew.imageUrl ? (
         <img
@@ -133,8 +136,8 @@ function StashCard({
           className="w-14 h-14 rounded-xl object-cover flex-shrink-0"
         />
       ) : (
-        <div className="w-14 h-14 rounded-xl bg-zinc-800 flex items-center justify-center flex-shrink-0">
-          <span className="text-2xl">🍺</span>
+        <div className="w-14 h-14 rounded-xl bg-surface-hover flex items-center justify-center flex-shrink-0">
+          <FlaskConical className="w-6 h-6 text-text-disabled" />
         </div>
       )}
 
@@ -142,36 +145,36 @@ function StashCard({
       <div className="flex-1 min-w-0 space-y-0.5">
         <Link
           href={`/b/${entry.brewId}`}
-          className="text-sm font-bold text-white hover:text-cyan-400 transition-colors truncate block"
+          className="text-sm font-bold text-text-primary hover:text-brand transition-colors truncate block"
         >
           {entry.brew.name}
         </Link>
         {entry.brew.breweryName && (
-          <p className="text-[11px] text-zinc-500 truncate">{entry.brew.breweryName}</p>
+          <p className="text-[11px] text-text-muted truncate">{entry.brew.breweryName}</p>
         )}
         <div className="flex items-center gap-2 flex-wrap">
           {entry.brew.style && (
-            <span className="text-[10px] bg-zinc-800 border border-zinc-700 rounded-full px-2 py-0.5 text-zinc-400">
+            <span className="text-[10px] bg-surface-hover border border-border rounded-full px-2 py-0.5 text-text-muted">
               {entry.brew.style}
             </span>
           )}
           {entry.brew.abv && (
-            <span className="text-[10px] text-zinc-600">{entry.brew.abv}% ABV</span>
+            <span className="text-[10px] text-text-disabled">{entry.brew.abv}% ABV</span>
           )}
           {entry.purchaseLocation && (
-            <span className="text-[10px] text-cyan-700">
+            <span className="text-[10px] text-brand">
               {PURCHASE_LOCATION_LABELS[entry.purchaseLocation]}
             </span>
           )}
         </div>
-        <p className="text-[10px] text-zinc-700">{addedDate}</p>
+        <p className="text-[10px] text-text-disabled">{addedDate}</p>
       </div>
 
       {/* Remove */}
       <button
         onClick={onRemove}
         disabled={removing}
-        className="p-2 rounded-lg text-zinc-600 hover:text-zinc-400 hover:bg-zinc-800 transition-all disabled:opacity-30"
+        className="p-2 rounded-lg text-text-disabled hover:text-text-muted hover:bg-surface-hover transition-all disabled:opacity-30"
         title="Aus Stash entfernen"
       >
         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

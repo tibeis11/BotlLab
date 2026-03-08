@@ -34,11 +34,11 @@ interface BotlGuideBadgeProps {
  */
 function creditColour(remaining: number | null | undefined): string {
   if (remaining === null || remaining === undefined || remaining === Infinity) {
-    return 'bg-emerald-500/20 text-emerald-400';
+    return 'bg-accent-purple/20 text-accent-purple';
   }
   if (remaining <= 0) return 'bg-red-500/20 text-red-500';
   if (remaining <= 2) return 'bg-amber-500/20 text-amber-400';
-  return 'bg-cyan-500/20 text-cyan-400';
+  return 'bg-accent-purple/15 text-accent-purple/80';
 }
 
 export function BotlGuideBadge({
@@ -60,7 +60,6 @@ export function BotlGuideBadge({
       className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold ml-1.5 ${colourClass} ${className}`}
       title={credits ? `Kostet ${credits} Credit${credits > 1 ? 's' : ''}` : undefined}
     >
-      <Sparkles className="w-2 h-2" />
       {showPersona && personaMeta && (
         <span className={`${personaMeta.colour} mr-0.5`}>{personaMeta.short}</span>
       )}
@@ -87,11 +86,11 @@ export function BotlGuidePersonaPill({
   const meta = PERSONA_DISPLAY[persona];
   return (
     <span
-      className={`inline-flex items-center gap-1 bg-purple-950/40 border border-purple-500/20 rounded-full px-2.5 py-1 ${className}`}
+      className={`inline-flex items-center gap-1 bg-accent-purple/10 border border-accent-purple/30 rounded-full px-2.5 py-1 ${className}`}
     >
-      <Sparkles className="w-3 h-3 text-purple-400" />
-      <span className="text-[11px] font-black uppercase tracking-widest text-purple-300">BotlGuide</span>
-      <span className={`text-[9px] font-bold uppercase tracking-widest ${meta.colour}`}>{meta.short}</span>
+      <Sparkles className="w-3 h-3 text-accent-purple" />
+      <span className="text-[11px] font-black uppercase tracking-widest text-accent-purple">BotlGuide</span>
+      <span className="text-[9px] font-bold uppercase tracking-widest text-accent-purple/70">{meta.short}</span>
     </span>
   );
 }

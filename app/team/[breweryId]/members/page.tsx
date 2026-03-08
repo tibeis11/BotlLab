@@ -10,6 +10,7 @@ import { getBreweryTierConfig, BreweryTierName } from '@/lib/tier-system';
 import { getBreweryPremiumStatus } from '@/lib/actions/premium-actions';
 import { trackEvent } from '@/lib/actions/analytics-actions';
 import { Users, Shield, Copy, RefreshCcw, Trash2, Crown, Sparkles, Check, Search, Infinity as InfinityIcon } from 'lucide-react';
+import UserAvatar from '@/app/components/UserAvatar';
 
 export default function TeamMembersPage({ params }: { params: Promise<{ breweryId: string }> }) {
   const supabase = useSupabase();
@@ -140,11 +141,11 @@ export default function TeamMembersPage({ params }: { params: Promise<{ breweryI
   
   if (loading) return (
       <div className="flex items-center justify-center py-20"> 
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand"></div>
       </div>
   );
   
-  if (!activeBrewery) return <div className="p-20 text-center text-red-500 font-bold">Brauerei nicht gefunden.</div>;
+  if (!activeBrewery) return <div className="p-20 text-center text-error font-bold">Brauerei nicht gefunden.</div>;
 
   const canManage = ['owner', 'admin'].includes(currentUserRole || '');
   const limitReached = members.length >= memberLimit;
@@ -153,30 +154,30 @@ export default function TeamMembersPage({ params }: { params: Promise<{ breweryI
     <div className="space-y-12 pb-24 animate-in fade-in slide-in-from-bottom-4 duration-500">
         
         {/* HEADER SECTION */}
-        <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-zinc-900 pb-8">
+        <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-border pb-8">
             <div>
                 <div className="flex items-center gap-3 mb-1">
-                    <h1 className="text-2xl font-bold text-white tracking-tight">Team & Rollen</h1>
+                    <h1 className="text-2xl font-bold text-text-primary tracking-tight">Team & Rollen</h1>
                      {limitReached && (
-                        <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded text-amber-500 bg-amber-500/10 border border-amber-500/20">
+                        <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full text-warning bg-warning-bg border border-warning/20">
                             Crew Voll
                         </span>
                     )}
                 </div>
-                <p className="text-sm text-zinc-500">Verwalte deine Brau-Crew, verteile Rollen und lade neue Mitglieder ein.</p>
+                <p className="text-sm text-text-muted">Verwalte deine Brau-Crew, verteile Rollen und lade neue Mitglieder ein.</p>
             </div>
 
             <div className="flex items-center gap-4">
-                 <div className="h-8 w-px bg-zinc-800 hidden md:block"></div>
+                 <div className="h-8 w-px bg-border hidden md:block"></div>
                  <div className="text-right hidden md:block">
-                    <p className="text-[10px] uppercase font-bold text-zinc-600 tracking-wider mb-0.5">Crew Kapazität</p>
-                    <div className="text-zinc-300 font-mono text-xs text-right flex items-center justify-end gap-2">
+                    <p className="text-[10px] uppercase font-bold text-text-disabled tracking-wider mb-0.5">Crew Kapazität</p>
+                    <div className="text-text-secondary font-mono text-xs text-right flex items-center justify-end gap-2">
                         {memberLimitBypassed ? (
-                            <span className="text-emerald-500 flex items-center gap-1">
+                            <span className="text-success flex items-center gap-1">
                                 {members.length} / <InfinityIcon size={13} />
                             </span>
                         ) : (
-                            <span className={limitReached ? "text-amber-500" : ""}>{members.length} / {memberLimit}</span>
+                            <span className={limitReached ? "text-warning" : ""}>{members.length} / {memberLimit}</span>
                         )}
                     </div>
                  </div>
@@ -189,45 +190,45 @@ export default function TeamMembersPage({ params }: { params: Promise<{ breweryI
       <div className="space-y-6 lg:sticky lg:top-8 z-20">
           
           {/* Stats Card */}
-          <div className="bg-zinc-900/30 border border-zinc-800 p-4 rounded-xl flex flex-col justify-between h-24 relative overflow-hidden group hover:border-purple-500/30 transition-colors">
-                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent opacity-50 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                <div className="text-purple-500 text-xs font-bold uppercase tracking-wider relative z-10">Mitglieder</div>
-                <div className="text-2xl font-mono font-bold text-purple-400 relative z-10">{members.length}</div>
+          <div className="bg-surface border border-border p-4 rounded-2xl flex flex-col justify-between h-24 relative overflow-hidden group hover:border-accent-purple/30 transition-colors">
+                <div className="absolute inset-0 bg-gradient-to-br from-accent-purple/10 to-transparent opacity-50 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                <div className="text-accent-purple text-xs font-bold uppercase tracking-wider relative z-10">Mitglieder</div>
+                <div className="text-2xl font-mono font-bold text-accent-purple relative z-10">{members.length}</div>
           </div>
 
           {/* Invite Card */}
-          <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl overflow-hidden group hover:border-zinc-700 transition-colors">
-                <div className="p-4 border-b border-zinc-800/50 bg-zinc-900/50">
-                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                        <Sparkles className="w-4 h-4 text-emerald-400" />
+          <div className="bg-surface border border-border rounded-2xl overflow-hidden group hover:border-border-hover transition-colors">
+                <div className="p-4 border-b border-border">
+                    <h3 className="text-sm font-bold text-text-primary flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-success" />
                         Invite Friends
                     </h3>
                 </div>
                 <div className="p-4 space-y-4">
-                    <p className="text-xs text-zinc-500 leading-relaxed">
+                    <p className="text-xs text-text-muted leading-relaxed">
                         Teile diesen Code, damit Freunde deinem Squad beitreten können.
                     </p>
 
                     {limitReached ? (
-                        <div className="bg-amber-500/10 border border-amber-500/20 p-2 rounded text-center">
-                            <p className="text-[10px] font-bold text-amber-500 uppercase tracking-wide">Limit erreicht</p>
-                            <p className="text-[10px] text-amber-400/80 mt-1">Upgrade für mehr Slots.</p>
+                        <div className="bg-warning-bg border border-warning/20 p-2 rounded-lg text-center">
+                            <p className="text-[10px] font-bold text-warning uppercase tracking-wide">Limit erreicht</p>
+                            <p className="text-[10px] text-text-muted mt-1">Upgrade für mehr Slots.</p>
                         </div>
                     ) : (
                         <div className="space-y-2">
                              <div 
                                 onClick={() => copyToClipboard(activeBrewery?.invite_code || '')}
-                                className="bg-black border border-zinc-800 rounded-lg p-2.5 flex items-center justify-between cursor-pointer group/code hover:border-emerald-500/50 transition-colors"
+                                className="bg-background border border-border rounded-lg p-2.5 flex items-center justify-between cursor-pointer group/code hover:border-success/50 transition-colors"
                              >
-                                <code className="font-mono text-emerald-400 text-xs font-bold tracking-widest truncate">
+                                <code className="font-mono text-success text-xs font-bold tracking-widest truncate">
                                     {activeBrewery?.invite_code || '---'}
                                 </code>
-                                <Copy className="w-3.5 h-3.5 text-zinc-500 group-hover/code:text-emerald-400" />
+                                <Copy className="w-3.5 h-3.5 text-text-muted group-hover/code:text-success" />
                              </div>
                              
                              <button 
                                 onClick={() => copyToClipboard(inviteLink)}
-                                className="w-full text-[10px] bg-zinc-800 hover:bg-zinc-700 text-zinc-300 py-2 rounded-lg font-bold transition-colors"
+                                className="w-full text-[10px] bg-surface-hover hover:bg-border-hover text-text-secondary py-2 rounded-lg font-bold transition-colors"
                              >
                                 Link kopieren
                              </button>
@@ -237,7 +238,7 @@ export default function TeamMembersPage({ params }: { params: Promise<{ breweryI
                     {canManage && (
                          <button 
                             onClick={handleRegenerateCode}
-                            className="flex items-center justify-center gap-1.5 w-full text-[10px] text-zinc-600 hover:text-zinc-400 py-1"
+                            className="flex items-center justify-center gap-1.5 w-full text-[10px] text-text-disabled hover:text-text-secondary py-1 transition-colors"
                         >
                             <RefreshCcw className="w-3 h-3" /> Neues Token
                         </button>
@@ -246,7 +247,7 @@ export default function TeamMembersPage({ params }: { params: Promise<{ breweryI
           </div>
 
           {message && (
-             <div className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 animate-in slide-in-from-left-4 fade-in ${message.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>
+             <div className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 animate-in slide-in-from-left-4 fade-in ${message.type === 'success' ? 'bg-success-bg text-success border border-success/20' : 'bg-error-bg text-error border border-error/20'}`}>
                  <span>{message.type === 'success' ? '✅' : '⚠️'}</span>
                  {message.msg}
              </div>
@@ -258,16 +259,16 @@ export default function TeamMembersPage({ params }: { params: Promise<{ breweryI
       <div className="space-y-6">
         
         {/* Toolbar */}
-        <div className="flex flex-col gap-4 bg-zinc-900/30 p-1 rounded-xl border border-zinc-800/50">
+        <div className="flex flex-col gap-4 bg-surface p-1 rounded-2xl border border-border">
             <div className="flex flex-col sm:flex-row gap-4 items-center">
                 <div className="relative group w-full">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within:text-white transition-colors" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted group-focus-within:text-text-primary transition-colors" />
                     <input
                         type="text"
                         placeholder="Mitglied suchen..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-transparent text-sm text-white pl-9 pr-3 py-2 focus:outline-none placeholder:text-zinc-600 rounded-lg"
+                        className="w-full bg-transparent text-sm text-text-primary pl-9 pr-3 py-2 focus:outline-none placeholder:text-text-disabled rounded-lg"
                     />
                 </div>
             </div>
@@ -276,23 +277,22 @@ export default function TeamMembersPage({ params }: { params: Promise<{ breweryI
         {/* Member Grid */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                 {members.filter(m => (m.profiles?.display_name || '').toLowerCase().includes(searchQuery.toLowerCase())).map((m, idx) => {
-                    const memberAvatar = m.profiles?.logo_url || '/tiers/lehrling.png';
                     const isOwner = m.role === 'owner';
                     const isAdmin = m.role === 'admin';
                     
                     return (
-                    <div key={idx} className="bg-zinc-900/40 border border-zinc-800 hover:border-zinc-700/80 p-4 rounded-2xl flex items-center justify-between group transition-all duration-200">
+                    <div key={idx} className="bg-surface border border-border hover:border-border-hover p-4 rounded-2xl flex items-center justify-between group transition-all duration-200">
                         <div className="flex items-center gap-4">
                             {/* Avatar */}
                             <div className="relative">
                                 <div 
-                                    className="w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden shadow-inner border border-zinc-700 bg-zinc-800"
+                                    className="w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden shadow-inner border border-border-hover bg-surface-hover"
                                 >
-                                    <img src={memberAvatar} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" alt="" />
+                                    <UserAvatar src={m.profiles?.logo_url} name={m.profiles?.display_name} userId={m.user_id} sizeClass="w-12 h-12" className="rounded-xl" />
                                 </div>
                                 {isOwner && (
-                                    <div className="absolute -top-2 -right-2 bg-zinc-950 rounded-full p-1 border border-amber-500/30">
-                                        <Crown className="w-3 h-3 text-amber-500 fill-amber-500/20" />
+                                    <div className="absolute -top-2 -right-2 bg-background rounded-full p-1 border border-rating/30">
+                                        <Crown className="w-3 h-3 text-rating fill-rating/20" />
                                     </div>
                                 )}
                             </div>
@@ -300,22 +300,22 @@ export default function TeamMembersPage({ params }: { params: Promise<{ breweryI
                             {/* Info */}
                             <div>
                                 <div className="flex items-center gap-2 mb-0.5">
-                                    <h3 className="font-bold text-white text-base leading-none">
+                                    <h3 className="font-bold text-text-primary text-base leading-none">
                                         {m.profiles?.display_name || 'Unbekannt'}
                                     </h3>
                                     {isOwner && (
-                                        <span className="text-[10px] font-black uppercase text-amber-500 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded tracking-wider">Owner</span>
+                                        <span className="text-[10px] font-black uppercase text-rating bg-rating/10 border border-rating/20 px-1.5 py-0.5 rounded-full tracking-wider">Owner</span>
                                     )}
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800/80">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-zinc-600"></div>
-                                        <span className="text-[10px] font-bold uppercase text-zinc-400">
+                                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-background border border-border">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-text-disabled"></div>
+                                        <span className="text-[10px] font-bold uppercase text-text-secondary">
                                             Mitglied
                                         </span>
                                     </div>
                                     {!isOwner && (
-                                        <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${isAdmin ? 'text-cyan-500 bg-cyan-500/10' : 'text-zinc-600 bg-zinc-900'}`}>
+                                        <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded-full ${isAdmin ? 'text-brand bg-brand-bg' : 'text-text-disabled bg-surface'}`}>
                                             {m.role}
                                         </span>
                                     )}
@@ -327,7 +327,7 @@ export default function TeamMembersPage({ params }: { params: Promise<{ breweryI
                         {canManage && m.role !== 'owner' && (
                             <button 
                                 onClick={() => handleRemoveMember(m.user_id)}
-                                className="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-900/50 border border-transparent hover:border-red-500/30 hover:bg-red-500/10 text-zinc-500 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100"
+                                className="w-8 h-8 flex items-center justify-center rounded-lg bg-surface border border-transparent hover:border-error/30 hover:bg-error-bg text-text-muted hover:text-error transition-all opacity-0 group-hover:opacity-100"
                                 title="Entfernen"
                             >
                                 <Trash2 className="w-4 h-4" />
@@ -337,7 +337,7 @@ export default function TeamMembersPage({ params }: { params: Promise<{ breweryI
                 )})}
 
                 {members.length === 0 && (
-                     <div className="p-12 text-center text-zinc-500 bg-zinc-900/20 border border-zinc-800 rounded-2xl border-dashed">
+                     <div className="p-12 text-center text-text-muted bg-surface border border-border rounded-2xl border-dashed">
                         Keine Mitglieder gefunden.
                     </div>
                 )}

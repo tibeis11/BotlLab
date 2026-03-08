@@ -66,12 +66,12 @@ export default function PollBlock({ poll, currentUserId }: PollBlockProps) {
         <div className="space-y-3">
             {/* Header */}
             <div>
-                <p className="font-bold text-white text-sm leading-snug">{poll.question}</p>
-                <div className="flex items-center gap-2 mt-1 text-[11px] text-zinc-500">
+                <p className="font-bold text-text-primary text-sm leading-snug">{poll.question}</p>
+                <div className="flex items-center gap-2 mt-1 text-[11px] text-text-muted">
                     <span className="font-semibold tabular-nums">{totalVotes} {totalVotes === 1 ? 'Stimme' : 'Stimmen'}</span>
-                    {poll.multiple_choice && <span className="text-zinc-700">· Mehrfachauswahl</span>}
+                    {poll.multiple_choice && <span className="text-text-disabled">· Mehrfachauswahl</span>}
                     {poll.ends_at && (
-                        <span className="flex items-center gap-1 text-zinc-700">
+                        <span className="flex items-center gap-1 text-text-disabled">
                             <Clock size={9} />
                             {isExpired ? 'Beendet' : `bis ${new Date(poll.ends_at).toLocaleDateString('de-DE')}`}
                         </span>
@@ -104,31 +104,31 @@ export default function PollBlock({ poll, currentUserId }: PollBlockProps) {
                                     {/* Large tap-target circle — WhatsApp style */}
                                     <div className={`w-7 h-7 rounded-full shrink-0 flex items-center justify-center transition-colors ${
                                         voted
-                                            ? 'bg-emerald-500'
-                                            : 'border-2 border-zinc-600 bg-transparent'
+                                            ? 'bg-success'
+                                            : 'border-2 border-border-active bg-transparent'
                                     }`}>
-                                        {voted && <Check size={14} className="text-white" strokeWidth={3} />}
+                                        {voted && <Check size={14} className="text-text-primary" strokeWidth={3} />}
                                     </div>
 
                                     {/* Label + bar */}
                                     <div className="flex-1 min-w-0">
                                         {/* Label row */}
                                         <div className="flex items-center justify-between mb-1.5">
-                                            <span className={`text-sm font-medium truncate ${voted ? 'text-white' : 'text-zinc-300'}`}>
+                                            <span className={`text-sm font-medium truncate ${voted ? 'text-text-primary' : 'text-text-secondary'}`}>
                                                 {option.label}
                                             </span>
                                             {showBar && (
-                                                <span className={`text-xs font-bold tabular-nums ml-3 shrink-0 ${voted ? 'text-emerald-400' : 'text-zinc-500'}`}>
+                                                <span className={`text-xs font-bold tabular-nums ml-3 shrink-0 ${voted ? 'text-success' : 'text-text-muted'}`}>
                                                     {pct}%
                                                 </span>
                                             )}
                                         </div>
 
                                         {/* Thin progress bar */}
-                                        <div className="w-full h-1 rounded-full bg-zinc-800 overflow-hidden">
+                                        <div className="w-full h-1 rounded-full bg-surface-hover overflow-hidden">
                                             <div
                                                 className={`h-full rounded-full transition-all duration-700 ease-out ${
-                                                    voted ? 'bg-emerald-500' : 'bg-zinc-600'
+                                                    voted ? 'bg-success' : 'bg-text-disabled'
                                                 }`}
                                                 style={{ width: showBar ? `${pct}%` : '0%' }}
                                             />
@@ -141,7 +141,7 @@ export default function PollBlock({ poll, currentUserId }: PollBlockProps) {
             </div>
 
             {!currentUserId && (
-                <p className="text-[11px] text-zinc-600 text-center pt-1">Einloggen, um abzustimmen</p>
+                <p className="text-[11px] text-text-disabled text-center pt-1">Einloggen, um abzustimmen</p>
             )}
         </div>
     );

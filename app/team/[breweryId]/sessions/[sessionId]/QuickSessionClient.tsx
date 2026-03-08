@@ -2,16 +2,17 @@
 
 import { useSession } from './SessionContext';
 import BottleScanner from '@/app/components/BottleScanner';
+import { Zap, Trash2, FlaskConical } from 'lucide-react';
 
 export default function QuickSessionClient() {
   const { session, loading, deleteSession } = useSession();
 
   if (loading) {
-    return <div className="text-white p-8 animate-pulse">Laden...</div>;
+    return <div className="text-text-primary p-8 animate-pulse">Laden...</div>;
   }
 
   if (!session) {
-    return <div className="text-white p-8">Session nicht gefunden.</div>;
+    return <div className="text-text-primary p-8">Session nicht gefunden.</div>;
   }
 
   return (
@@ -19,11 +20,12 @@ export default function QuickSessionClient() {
       {/* Header with Session Type Badge & Delete Button */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-bold text-white">
+          <h1 className="text-3xl font-bold text-text-primary">
             {session.batch_code || "Quick Session"}
           </h1>
-          <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-blue-900/30 text-blue-300 border border-blue-500/20">
-            ⚡ Quick Session
+          <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center gap-1">
+            <Zap className="w-3 h-3" />
+            Quick Session
           </span>
         </div>
 
@@ -33,69 +35,64 @@ export default function QuickSessionClient() {
               deleteSession();
             }
           }}
-          className="flex items-center gap-2 px-4 py-2 bg-zinc-900 hover:bg-red-500/10 text-zinc-500 hover:text-red-500 rounded-xl border border-zinc-800 hover:border-red-500/20 transition-all font-bold text-sm h-fit self-end md:self-auto"
+          className="flex items-center gap-2 px-4 py-2 bg-surface hover:bg-red-500/10 text-text-muted hover:text-red-400 rounded-xl border border-border hover:border-red-500/20 transition-all font-bold text-sm h-fit self-end md:self-auto"
         >
-          <span>🗑️</span>
+          <Trash2 className="w-4 h-4" />
           <span>Session löschen</span>
         </button>
       </div>
 
       {/* Recipe Info */}
       {session.brew && (
-        <div className="mb-6 p-4 bg-zinc-900/50 border border-zinc-800 rounded-xl">
-          <h3 className="font-semibold text-white">{session.brew.name}</h3>
-          {session.brew.style && (
-            <p className="text-sm text-zinc-400">{session.brew.style}</p>
-          )}
+        <div className="mb-6 p-4 bg-surface border border-border rounded-xl flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-surface-hover border border-border flex items-center justify-center shrink-0 text-text-muted">
+            <FlaskConical className="w-4 h-4" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-text-primary truncate">{session.brew.name}</p>
+            {session.brew.style && (
+              <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted">{session.brew.style}</p>
+            )}
+          </div>
         </div>
       )}
 
-      {/* Measurements Card */}
       <div className="mb-8">
-        <div className="bg-zinc-950 p-6 rounded-2xl border border-zinc-800">
-          <h2 className="text-lg font-bold text-white mb-4">Messwerte</h2>
+        <div className="bg-surface border border-border rounded-2xl p-6">
+          <div className="flex items-center gap-3 mb-5">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted shrink-0">Messwerte</span>
+            <div className="h-px bg-border flex-1" />
+          </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">
-                OG (Stammwürze)
-              </p>
-              <p className="text-2xl font-black text-white">
-                {session.measurements?.og || "N/A"}
+              <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted mb-1.5">OG</p>
+              <p className="text-2xl font-black tabular-nums text-text-primary">
+                {session.measurements?.og || "—"}
               </p>
             </div>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">
-                FG (Endvergärung)
-              </p>
-              <p className="text-2xl font-black text-white">
-                {session.measurements?.fg || "N/A"}
+              <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted mb-1.5">FG</p>
+              <p className="text-2xl font-black tabular-nums text-text-primary">
+                {session.measurements?.fg || "—"}
               </p>
             </div>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">
-                Alkohol (%)
-              </p>
-              <p className="text-2xl font-black text-white">
-                {session.measurements?.abv ? `${session.measurements.abv}%` : "N/A"}
+              <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted mb-1.5">ABV</p>
+              <p className="text-2xl font-black tabular-nums text-text-primary">
+                {session.measurements?.abv ? `${session.measurements.abv}%` : "—"}
               </p>
             </div>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">
-                Volumen (Liter)
-              </p>
-              <p className="text-2xl font-black text-white">
-                {session.measurements?.volume
-                  ? `${session.measurements.volume}L`
-                  : "N/A"}
+              <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted mb-1.5">Volumen</p>
+              <p className="text-2xl font-black tabular-nums text-text-primary">
+                {session.measurements?.volume ? `${session.measurements.volume}L` : "—"}
               </p>
             </div>
           </div>
           {session.notes && (
-            <div className="mt-4 pt-4 border-t border-zinc-800">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">
-                Notizen
-              </p>
-              <p className="text-zinc-300 text-sm">{session.notes}</p>
+            <div className="mt-5 pt-5 border-t border-border">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted mb-2">Notizen</p>
+              <p className="text-sm text-text-secondary leading-relaxed">{session.notes}</p>
             </div>
           )}
         </div>
@@ -106,6 +103,7 @@ export default function QuickSessionClient() {
         sessionId={session.id}
         breweryId={session.brewery_id}
         brewId={session.brew_id}
+        variant="clean"
       />
     </div>
   );

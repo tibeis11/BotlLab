@@ -8,17 +8,13 @@ import {
   Globe, 
   LayoutDashboard, 
   LogOut, 
-  Menu, 
   MessageSquare, 
   Package, 
-  Search, 
   Settings, 
   Tag, 
   Thermometer, 
   TrendingUp, 
   Users, 
-  X,
-  Medal,
   Heart,
   Trophy
 } from 'lucide-react';
@@ -29,13 +25,14 @@ import NotificationBell from '../../components/NotificationBell';
 import { supabase, getActiveBrewery, getUserBreweries } from '@/lib/supabase';
 import { useAuth } from '@/app/context/AuthContext';
 import { getBreweryBranding } from '@/lib/actions/premium-actions';
-import { getTierBorderColor } from '@/lib/premium-config';
+import UserAvatar from '@/app/components/UserAvatar';
 
 export default function AdminHeader() {
   const { user, signOut } = useAuth();
   const userId = user?.id;
   const [userName, setUserName] = useState<string | null>(null);
-  const [tierData, setTierData] = useState<{ path: string, borderColor: string } | null>(null);
+  const [userLogoUrl, setUserLogoUrl] = useState<string | null>(null);
+  const [userTier, setUserTier] = useState<string | null>(null);
   const [breweryId, setBreweryId] = useState<string | null>(null);
   const [activeBreweryName, setActiveBreweryName] = useState<string | null>(null);
   const [branding, setBranding] = useState<{ logoUrl: string | null; breweryName: string | null; isPremiumBranding: boolean }>({
@@ -90,10 +87,8 @@ export default function AdminHeader() {
         
         if (profile) {
           setUserName(profile.display_name || user.email?.split('@')[0] || 'Brauer');
-          setTierData({
-              path: profile.logo_url || '/tiers/lehrling.png',
-              borderColor: getTierBorderColor(profile.subscription_tier)
-          });
+          setUserLogoUrl(profile.logo_url || null);
+          setUserTier(profile.subscription_tier || null);
         }
 
         // 1. Get all breweries for the user
@@ -168,7 +163,7 @@ export default function AdminHeader() {
 
   return (
     <>
-    <nav className="border-b border-zinc-900 bg-zinc-950/80 p-3 sticky top-0 z-50 backdrop-blur-md">
+    <nav className="border-b border-border bg-background/80 p-3 sticky top-0 z-50 backdrop-blur-md">
       <div className="max-w-[1920px] w-full mx-auto px-6 flex justify-between items-center">
         
         <div className="flex items-center gap-6">
@@ -186,7 +181,7 @@ export default function AdminHeader() {
           <Link 
             href="/dashboard" 
             title="Dashboard"
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${pathname === '/dashboard' ? 'bg-cyan-950/50 text-cyan-400' : 'text-zinc-500 hover:text-white hover:bg-zinc-800/50'}`}
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${pathname === '/dashboard' ? 'bg-brand-bg text-brand' : 'text-text-muted hover:text-text-primary hover:bg-surface-hover'}`}
           >
             <LayoutDashboard className="w-4 h-4" />
             <span className="hidden xl:inline">Dashboard</span>
@@ -203,7 +198,7 @@ export default function AdminHeader() {
                 key={tab.path} 
                 href={tab.path} 
                 title={tab.name}
-                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${isActive ? 'bg-cyan-950/50 text-cyan-400' : 'text-zinc-500 hover:text-white hover:bg-zinc-800/50'}`}
+                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${isActive ? 'bg-brand-bg text-brand' : 'text-text-muted hover:text-text-primary hover:bg-surface-hover'}`}
               >
                 <tab.icon className="w-4 h-4" />
                 <span className="hidden xl:inline">{tab.name}</span>
@@ -211,7 +206,7 @@ export default function AdminHeader() {
             );
           })}
           
-          <div className="h-4 w-px bg-zinc-800 mx-2"></div>
+          <div className="h-4 w-px bg-border mx-2"></div>
             
             {/* Team Dropdown/Switcher Right Aligned */}
             {breweryId && (
@@ -222,58 +217,58 @@ export default function AdminHeader() {
                 >
                   <button 
                     title="Team / Brauerei"
-                    className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800/50 rounded-lg transition-all"
+                    className="p-2 text-text-muted hover:text-text-primary hover:bg-surface-hover rounded-lg transition-all"
                   >
                       <Factory className="w-5 h-5" />
                   </button>
                   
                   {showBreweryMenu && (
                       <div className="absolute right-0 top-full pt-2 w-56 z-50">
-                           <div className="bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-1 p-1">
+                           <div className="bg-surface border border-border rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-1 p-1">
                                
                                {/* Team Dashboard Link */}
                                <Link 
                                    href={`/team/${breweryId}`}
-                                   className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-300 hover:text-white hover:bg-zinc-900 rounded-lg"
+                                   className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-text-secondary hover:text-text-primary hover:bg-surface-hover rounded-lg"
                                >
                                    <LayoutDashboard className="w-4 h-4" /> <span>Team-Dashboard</span>
                                </Link>
                                
-                               <div className="h-px bg-zinc-800 my-1 mx-2"></div>
+                               <div className="h-px bg-border my-1 mx-2"></div>
                                
                                {/* Team Quick Links */}
                                <Link 
                                    href={`/team/${breweryId}/brews`}
-                                   className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
+                                   className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-text-muted hover:text-text-primary hover:bg-surface-hover rounded-lg"
                                >
                                    <Beer className="w-4 h-4" /> <span>Rezepte</span>
                                </Link>
                                <Link 
                                    href={`/team/${breweryId}/sessions`}
-                                   className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
+                                   className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-text-muted hover:text-text-primary hover:bg-surface-hover rounded-lg"
                                >
                                    <Thermometer className="w-4 h-4" /> <span>Sessions</span>
                                </Link>
 
-                               <div className="h-px bg-zinc-800 my-1 mx-2"></div>
+                               <div className="h-px bg-border my-1 mx-2"></div>
                                
                                {/* Team Settings */}
                                <Link 
                                    href={`/team/${breweryId}/settings`}
-                                   className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
+                                   className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-text-muted hover:text-text-primary hover:bg-surface-hover rounded-lg"
                                >
                                    <Settings className="w-4 h-4" /> <span>Einstellungen</span>
                                </Link>
 
                                {userBreweries.length > 1 && (
                                   <>
-                                   <div className="h-px bg-zinc-800 my-1 mx-2"></div>
-                                   <p className="px-3 py-2 text-[10px] text-zinc-600 uppercase font-black tracking-wider">Team wechseln</p>
+                                   <div className="h-px bg-border my-1 mx-2"></div>
+                                   <p className="px-3 py-2 text-[10px] text-text-disabled uppercase font-black tracking-wider">Team wechseln</p>
                                    {userBreweries.filter(b => b.id !== breweryId).map(b => (
                                        <button
                                           key={b.id}
                                           onClick={() => handleSwitchBrewery(b.id)}
-                                          className="w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-zinc-900 hover:text-white text-zinc-400 transition flex items-center gap-2 group font-bold"
+                                          className="w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-surface-hover hover:text-text-primary text-text-muted transition flex items-center gap-2 group font-bold"
                                        >
                                           <span className="opacity-50 group-hover:opacity-100 transition">↳</span>
                                           <span className="truncate">{b.name}</span>
@@ -293,23 +288,23 @@ export default function AdminHeader() {
               onMouseEnter={() => setShowDiscoverMenu(true)}
               onMouseLeave={() => setShowDiscoverMenu(false)}
             >
-              <Link href="/discover" className="text-zinc-400 hover:text-white transition-colors">
+              <Link href="/discover" className="text-text-muted hover:text-text-primary transition-colors">
                   <Globe className="w-5 h-5" />
               </Link>
               
               {showDiscoverMenu && (
                   <div className="absolute right-0 top-full pt-2 w-48 z-50">
-                          <div className="bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-1 px-1 py-1">
+                          <div className="bg-surface border border-border rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-1 px-1 py-1">
                               <Link 
                                   href="/discover" 
-                                  className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
+                                  className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-text-muted hover:text-text-primary hover:bg-surface-hover rounded-lg"
                               >
                                   <Beer className="w-4 h-4" />
                                   <span>Rezepte</span>
                               </Link>
                               <Link 
                                   href="/forum" 
-                                  className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg"
+                                  className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-text-muted hover:text-text-primary hover:bg-surface-hover rounded-lg"
                               >
                                   <MessageSquare className="w-4 h-4" />
                                   <span>Forum</span>
@@ -327,14 +322,10 @@ export default function AdminHeader() {
             onMouseEnter={() => setShowProfileMenu(true)}
             onMouseLeave={() => setShowProfileMenu(false)}
           >
-            <button className="flex items-center gap-0 xl:gap-3 pl-1 pr-1 xl:pr-4 py-1 rounded-full bg-zinc-900 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800 transition group">
-              <div 
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs overflow-hidden relative shadow-lg bg-zinc-900 border-2 ${tierData?.borderColor || 'border-zinc-500'}`}
-              >
-                  <img src={tierData?.path || '/tiers/lehrling.png'} alt="Avatar" className="w-full h-full object-cover" />
-              </div>
+            <button className="flex items-center gap-0 xl:gap-3 pl-1 pr-1 xl:pr-4 py-1 rounded-full bg-surface border border-border hover:border-border-hover hover:bg-surface-hover transition group">
+              <UserAvatar src={userLogoUrl} name={userName} userId={userId} tier={userTier} sizeClass="w-8 h-8" />
               <div className="hidden xl:flex flex-col items-start leading-none">
-                <span className="truncate max-w-[120px] font-bold text-white text-sm">
+                <span className="truncate max-w-[120px] font-bold text-text-primary text-sm">
                     {userName || 'Profil'}
                 </span>
               </div>
@@ -342,15 +333,15 @@ export default function AdminHeader() {
 
             {showProfileMenu && (
               <div className="absolute right-0 top-full pt-2 w-56 z-50">
-                <div className="bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                  <div className="px-4 py-3 border-b border-zinc-800">
-                    <p className="text-xs text-zinc-500 uppercase tracking-widest font-bold mb-1">Konto</p>
-                    <p className="font-bold text-white truncate">{userName}</p>
+                <div className="bg-surface border border-border rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="px-4 py-3 border-b border-border">
+                    <p className="text-xs text-text-muted uppercase tracking-widest font-bold mb-1">Konto</p>
+                    <p className="font-bold text-text-primary truncate">{userName}</p>
                   </div>
 
                   <Link 
                     href="/account"
-                    className="block w-full px-4 py-3 text-white hover:bg-zinc-800 transition text-sm font-medium flex items-center gap-2"
+                    className="block w-full px-4 py-3 text-text-primary hover:bg-surface-hover transition text-sm font-medium flex items-center gap-2"
                   >
                     <Settings className="w-4 h-4" /> Einstellungen
                   </Link>
@@ -359,7 +350,7 @@ export default function AdminHeader() {
                     <Link 
                       href={`/brewer/${userId}`}
                       target="_blank"
-                      className="block w-full px-4 py-3 text-white hover:bg-zinc-800 transition text-sm font-medium flex items-center gap-2"
+                      className="block w-full px-4 py-3 text-text-primary hover:bg-surface-hover transition text-sm font-medium flex items-center gap-2"
                     >
                       <Globe className="w-4 h-4" /> Öffentliches Profil
                     </Link>
@@ -367,7 +358,7 @@ export default function AdminHeader() {
 
                   <button
                     onClick={handleLogout}
-                    className="block w-full px-4 py-3 text-red-400 hover:bg-zinc-800 transition text-sm font-medium flex items-center gap-2 text-left border-t border-zinc-800"
+                    className="block w-full px-4 py-3 text-error hover:bg-surface-hover transition text-sm font-medium flex items-center gap-2 text-left border-t border-border"
                   >
                     <LogOut className="w-4 h-4" /> Abmelden
                   </button>
@@ -381,7 +372,7 @@ export default function AdminHeader() {
         <div className="flex items-center gap-2 lg:hidden">
           <NotificationBell />
           <button 
-            className="p-2 text-zinc-400 hover:text-white"
+            className="p-2 text-text-muted hover:text-text-primary"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
             {isMobileMenuOpen ? (
@@ -403,12 +394,12 @@ export default function AdminHeader() {
     {/* Moved OUTSIDE the nav to avoid backdrop-filter issues destroying fixed positioning context */}
     {isMobileMenuOpen && (
         <div 
-            className="lg:hidden fixed inset-0 z-[100] bg-zinc-950/95 backdrop-blur-3xl flex flex-col animate-in slide-in-from-right duration-200 supports-[backdrop-filter]:bg-zinc-950/80"
+            className="lg:hidden fixed inset-0 z-[100] bg-background/95 backdrop-blur-3xl flex flex-col animate-in slide-in-from-right duration-200 supports-[backdrop-filter]:bg-background/80"
         >
             <div className="flex flex-col h-full w-full" style={{ paddingRight: `${scrollbarCompensation}px` }}>
             
             {/* 1. Header with Close (Exakt nach Pixeln ausgerichtet am Main Header) */}
-            <div className="border-b border-zinc-900 bg-zinc-950 p-3">
+            <div className="border-b border-border bg-background p-3">
                <div className="max-w-[1920px] w-full mx-auto flex justify-between items-center px-6">
                    <div className="flex items-center gap-6" onClick={() => setIsMobileMenuOpen(false)}>
                       <Logo /> 
@@ -417,7 +408,7 @@ export default function AdminHeader() {
                      <NotificationBell />
                      <button 
                        onClick={() => setIsMobileMenuOpen(false)}
-                       className="p-2 text-zinc-400 hover:text-white"
+                       className="p-2 text-text-muted hover:text-text-primary"
                      >
                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -428,25 +419,25 @@ export default function AdminHeader() {
             </div>
 
             {/* Segmented Control Area */}
-            <div className="p-4 border-b border-zinc-900 bg-zinc-950">
-               <div className="flex bg-zinc-900 p-1 rounded-xl overflow-x-auto no-scrollbar">
+            <div className="p-4 border-b border-border bg-background">
+               <div className="flex bg-surface p-1 rounded-xl overflow-x-auto no-scrollbar">
                     <button 
                       onClick={() => setMobileTab('personal')}
-                      className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${mobileTab === 'personal' ? 'bg-zinc-800 text-white shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
+                      className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${mobileTab === 'personal' ? 'bg-surface-hover text-text-primary shadow-lg' : 'text-text-muted hover:text-text-secondary'}`}
                     >
                       <FlaskConical className={`w-4 h-4 ${mobileTab === 'personal' ? 'grayscale-0' : 'grayscale'}`} />
                       Labor
                     </button>
                     <button 
                       onClick={() => setMobileTab('team')}
-                      className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${mobileTab === 'team' ? 'bg-cyan-950 text-cyan-400 shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
+                      className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${mobileTab === 'team' ? 'bg-brand-bg text-brand shadow-lg' : 'text-text-muted hover:text-text-secondary'}`}
                     >
                       <Factory className="w-4 h-4" />
                       Brauerei
                     </button>
                     <button 
                       onClick={() => setMobileTab('discover')}
-                      className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${mobileTab === 'discover' ? 'bg-purple-900/50 text-purple-300 shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
+                      className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${mobileTab === 'discover' ? 'bg-surface-raised text-accent-purple shadow-lg' : 'text-text-muted hover:text-text-secondary'}`}
                     >
                       <Globe className="w-4 h-4" />
                       Entdecken
@@ -464,14 +455,14 @@ export default function AdminHeader() {
                        <Link 
                           href="/dashboard"
                           onClick={() => setIsMobileMenuOpen(false)}
-                          className="block bg-gradient-to-br from-zinc-800 to-zinc-900 border border-zinc-700 p-5 rounded-2xl relative overflow-hidden group"
+                          className="block bg-surface border border-border p-5 rounded-2xl relative overflow-hidden group"
                        >
                           <div className="absolute right-0 top-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                              <LayoutDashboard className="w-16 h-16" />
                           </div>
-                          <p className="text-xs text-zinc-400 uppercase font-black tracking-widest mb-1">Übersicht</p>
-                          <h3 className="text-2xl font-black text-white mb-2">Dashboard</h3>
-                          <div className="flex items-center gap-2 text-sm text-zinc-300">
+                          <p className="text-xs text-text-muted uppercase font-black tracking-widest mb-1">Übersicht</p>
+                          <h3 className="text-2xl font-black text-text-primary mb-2">Dashboard</h3>
+                          <div className="flex items-center gap-2 text-sm text-text-secondary">
                              <span>Alles im Blick</span>
                              <span>→</span>
                           </div>
@@ -479,18 +470,18 @@ export default function AdminHeader() {
 
                        {/* List for Tools */}
                        <div>
-                          <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest px-1 mb-1">Aktionen</p>
-                          <div className="divide-y divide-zinc-900/50">
+                          <p className="text-xs text-text-muted font-bold uppercase tracking-widest px-1 mb-1">Aktionen</p>
+                          <div className="divide-y divide-border-subtle">
                              {tabs.map(tab => (
                                 <Link
                                    key={tab.path}
                                    href={tab.path}
                                    onClick={() => setIsMobileMenuOpen(false)}
-                                   className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
+                                   className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface-hover transition"
                                 >
                                    <tab.icon className="w-5 h-5" />
-                                   <span className="font-bold text-sm text-zinc-200">{tab.name}</span>
-                                   <span className="ml-auto text-zinc-600">→</span>
+                                   <span className="font-bold text-sm text-text-primary">{tab.name}</span>
+                                   <span className="ml-auto text-text-disabled">→</span>
                                 </Link>
                              ))}
                           </div>
@@ -503,13 +494,13 @@ export default function AdminHeader() {
                          {breweryId ? (
                              <>
                                {/* Active Brewery Hero */}
-                               <div className="bg-gradient-to-br from-cyan-950/40 to-cyan-900/10 border border-cyan-900/50 p-5 rounded-2xl">
+                               <div className="bg-brand-bg border border-brand-dim p-5 rounded-2xl">
                                   <div className="flex justify-between items-start mb-4">
                                      <div>
-                                        <p className="text-[10px] text-cyan-400 font-black uppercase tracking-widest mb-1">Aktives Team</p>
-                                        <h3 className="text-xl font-bold text-white leading-tight">{activeBreweryName}</h3>
+                                        <p className="text-[10px] text-brand font-black uppercase tracking-widest mb-1">Aktives Team</p>
+                                        <h3 className="text-xl font-bold text-text-primary leading-tight">{activeBreweryName}</h3>
                                      </div>
-                                     <div className="bg-cyan-500/10 text-cyan-400 p-2 rounded-lg">
+                                     <div className="bg-brand-bg text-brand p-2 rounded-lg">
                                         <Factory className="w-5 h-5" />
                                      </div>
                                   </div>
@@ -517,7 +508,7 @@ export default function AdminHeader() {
                                   <Link 
                                      href={`/team/${breweryId}`}
                                      onClick={() => setIsMobileMenuOpen(false)}
-                                     className="w-full block text-center bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 font-bold py-3 rounded-xl border border-cyan-500/20 transition"
+                                     className="w-full block text-center bg-brand-bg hover:opacity-80 text-brand font-bold py-3 rounded-xl border border-brand-dim transition"
                                   >
                                      Zum Team-Dashboard
                                   </Link>
@@ -525,80 +516,80 @@ export default function AdminHeader() {
 
                                {/* Team Quick Actions */}
                                <div>
-                                  <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest px-1 mb-1">Aktionen</p>
-                                  <div className="divide-y divide-zinc-900/50">
+                                  <p className="text-xs text-text-muted font-bold uppercase tracking-widest px-1 mb-1">Aktionen</p>
+                                  <div className="divide-y divide-border-subtle">
                                      <Link
                                       href={`/team/${breweryId}/feed`}
                                       onClick={() => setIsMobileMenuOpen(false)}
-                                      className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
+                                      className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface-hover transition"
                                      >
-                                        <MessageSquare className="w-5 h-5 text-zinc-400" />
-                                        <span className="font-bold text-sm text-zinc-200">Feed</span>
-                                        <span className="ml-auto text-zinc-600">→</span>
+                                        <MessageSquare className="w-5 h-5 text-text-muted" />
+                                        <span className="font-bold text-sm text-text-primary">Feed</span>
+                                        <span className="ml-auto text-text-disabled">→</span>
                                      </Link>
                                      <Link
                                       href={`/team/${breweryId}/brews`}
                                       onClick={() => setIsMobileMenuOpen(false)}
-                                      className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
+                                      className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface-hover transition"
                                      >
-                                        <Beer className="w-5 h-5 text-zinc-400" />
-                                        <span className="font-bold text-sm text-zinc-200">Rezepte</span>
-                                        <span className="ml-auto text-zinc-600">→</span>
+                                        <Beer className="w-5 h-5 text-text-muted" />
+                                        <span className="font-bold text-sm text-text-primary">Rezepte</span>
+                                        <span className="ml-auto text-text-disabled">→</span>
                                      </Link>
                                      <Link
                                       href={`/team/${breweryId}/sessions`}
                                       onClick={() => setIsMobileMenuOpen(false)}
-                                      className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
+                                      className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface-hover transition"
                                      >
-                                        <Thermometer className="w-5 h-5 text-zinc-400" />
-                                        <span className="font-bold text-sm text-zinc-200">Sessions</span>
-                                        <span className="ml-auto text-zinc-600">→</span>
+                                        <Thermometer className="w-5 h-5 text-text-muted" />
+                                        <span className="font-bold text-sm text-text-primary">Sessions</span>
+                                        <span className="ml-auto text-text-disabled">→</span>
                                      </Link>
                                      <Link
                                       href={`/team/${breweryId}/inventory`}
                                       onClick={() => setIsMobileMenuOpen(false)}
-                                      className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
+                                      className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface-hover transition"
                                      >
-                                        <Package className="w-5 h-5 text-zinc-400" />
-                                        <span className="font-bold text-sm text-zinc-200">Inventar</span>
-                                        <span className="ml-auto text-zinc-600">→</span>
+                                        <Package className="w-5 h-5 text-text-muted" />
+                                        <span className="font-bold text-sm text-text-primary">Inventar</span>
+                                        <span className="ml-auto text-text-disabled">→</span>
                                      </Link>
                                      <Link
                                       href={`/team/${breweryId}/labels`}
                                       onClick={() => setIsMobileMenuOpen(false)}
-                                      className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
+                                      className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface-hover transition"
                                       title="Etiketten"
                                      >
-                                        <Tag className="w-5 h-5 text-zinc-400" />
-                                        <span className="font-bold text-sm text-zinc-200">Etiketten</span>
-                                        <span className="ml-auto text-zinc-600">→</span>
+                                        <Tag className="w-5 h-5 text-text-muted" />
+                                        <span className="font-bold text-sm text-text-primary">Etiketten</span>
+                                        <span className="ml-auto text-text-disabled">→</span>
                                      </Link>
                                      <Link
                                       href={`/team/${breweryId}/analytics`}
                                       onClick={() => setIsMobileMenuOpen(false)}
-                                      className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
+                                      className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface-hover transition"
                                      >
-                                        <TrendingUp className="w-5 h-5 text-zinc-400" />
-                                        <span className="font-bold text-sm text-zinc-200">Analytics</span>
-                                        <span className="ml-auto text-zinc-600">→</span>
+                                        <TrendingUp className="w-5 h-5 text-text-muted" />
+                                        <span className="font-bold text-sm text-text-primary">Analytics</span>
+                                        <span className="ml-auto text-text-disabled">→</span>
                                      </Link>
                                      <Link
                                       href={`/team/${breweryId}/members`}
                                       onClick={() => setIsMobileMenuOpen(false)}
-                                      className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
+                                      className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface-hover transition"
                                      >
-                                        <Users className="w-5 h-5 text-zinc-400" />
-                                        <span className="font-bold text-sm text-zinc-200">Mitglieder</span>
-                                        <span className="ml-auto text-zinc-600">→</span>
+                                        <Users className="w-5 h-5 text-text-muted" />
+                                        <span className="font-bold text-sm text-text-primary">Mitglieder</span>
+                                        <span className="ml-auto text-text-disabled">→</span>
                                      </Link>
                                      <Link
                                       href={`/team/${breweryId}/settings`}
                                       onClick={() => setIsMobileMenuOpen(false)}
-                                      className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
+                                      className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface-hover transition"
                                      >
-                                        <Settings className="w-5 h-5 text-zinc-400" />
-                                        <span className="font-bold text-sm text-zinc-200">Einstellungen</span>
-                                        <span className="ml-auto text-zinc-600">→</span>
+                                        <Settings className="w-5 h-5 text-text-muted" />
+                                        <span className="font-bold text-sm text-text-primary">Einstellungen</span>
+                                        <span className="ml-auto text-text-disabled">→</span>
                                      </Link>
                                   </div>
                                </div>
@@ -606,16 +597,16 @@ export default function AdminHeader() {
                                {/* Switchable Teams */}
                                {userBreweries.length > 1 && (
                                    <div>
-                                      <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest px-1 mb-3">Team wechseln</p>
+                                      <p className="text-xs text-text-muted font-bold uppercase tracking-widest px-1 mb-3">Team wechseln</p>
                                       <div className="space-y-2">
                                          {userBreweries.filter(b => b.id !== breweryId).map(b => (
                                              <button
                                                 key={b.id}
                                                 onClick={() => handleSwitchBrewery(b.id)}
-                                                className="w-full text-left bg-zinc-900/30 border border-zinc-800/50 p-3 rounded-xl flex items-center justify-between hover:bg-zinc-900 transition"
+                                                className="w-full text-left bg-surface border border-border p-3 rounded-xl flex items-center justify-between hover:bg-surface-hover transition"
                                              >
-                                                <span className="text-sm font-bold text-zinc-400">{b.name}</span>
-                                                <span className="text-[10px] bg-zinc-800 text-zinc-500 px-2 py-1 rounded">Wechseln</span>
+                                                <span className="text-sm font-bold text-text-muted">{b.name}</span>
+                                                <span className="text-[10px] bg-surface-raised text-text-muted px-2 py-1 rounded">Wechseln</span>
                                              </button>
                                          ))}
                                       </div>
@@ -623,14 +614,14 @@ export default function AdminHeader() {
                                )}
                              </>
                          ) : (
-                             <div className="text-center py-12 px-6 bg-zinc-900/30 rounded-2xl border border-zinc-800 border-dashed flex flex-col items-center">
+                             <div className="text-center py-12 px-6 bg-surface-sunken rounded-2xl border border-border-subtle border-dashed flex flex-col items-center">
                                  <Factory className="w-10 h-10 opacity-50 mb-4" />
-                                 <h3 className="font-bold text-white mb-2">Kein Team</h3>
-                                 <p className="text-sm text-zinc-500 mb-6">Du bist aktuell keinem Brauerei-Team zugeordnet.</p>
+                                 <h3 className="font-bold text-text-primary mb-2">Kein Team</h3>
+                                 <p className="text-sm text-text-muted mb-6">Du bist aktuell keinem Brauerei-Team zugeordnet.</p>
                                  <Link
-                                    href="/dashboard/team/create" // Assuming route
+                                    href="/dashboard/team/create"
                                     onClick={() => setIsMobileMenuOpen(false)}
-                                    className="inline-block bg-white text-black font-bold px-6 py-3 rounded-xl hover:bg-cyan-400 transition"
+                                    className="inline-block bg-brand text-background font-bold px-6 py-3 rounded-xl hover:opacity-90 transition"
                                  >
                                     Team Gründen
                                  </Link>
@@ -642,39 +633,39 @@ export default function AdminHeader() {
                 {mobileTab === 'discover' && (
                     <div className="space-y-6 animate-in fade-in zoom-in-95 duration-200">
                         {/* Discover Hero */}
-                        <div className="bg-gradient-to-br from-purple-900/40 to-purple-900/10 border border-purple-900/50 p-5 rounded-2xl">
+                        <div className="bg-surface border border-border p-5 rounded-2xl">
                               <div className="flex justify-between items-start mb-4">
                                  <div>
-                                    <p className="text-[10px] text-purple-400 font-black uppercase tracking-widest mb-1">BotlLab Community</p>
-                                    <h3 className="text-xl font-bold text-white leading-tight">Entdecken</h3>
+                                    <p className="text-[10px] text-accent-purple font-black uppercase tracking-widest mb-1">BotlLab Community</p>
+                                    <h3 className="text-xl font-bold text-text-primary leading-tight">Entdecken</h3>
                                  </div>
-                                 <div className="bg-purple-500/10 text-purple-400 p-2 rounded-lg">
+                                 <div className="bg-accent-purple/10 text-accent-purple p-2 rounded-lg">
                                     <Globe className="w-5 h-5" />
                                  </div>
                               </div>
-                              <p className="text-sm text-zinc-400 mb-4">Finde Inspiration, tausche dich aus und entdecke neue Rezepte.</p>
+                              <p className="text-sm text-text-muted mb-4">Finde Inspiration, tausche dich aus und entdecke neue Rezepte.</p>
                         </div>
 
                          <div>
-                            <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest px-1 mb-1">Community</p>
-                            <div className="divide-y divide-zinc-900/50">
+                            <p className="text-xs text-text-muted font-bold uppercase tracking-widest px-1 mb-1">Community</p>
+                            <div className="divide-y divide-border-subtle">
                                 <Link
                                     href="/discover"
                                     onClick={() => setIsMobileMenuOpen(false)}
-                                    className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
+                                    className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface-hover transition"
                                 >
-                                    <Globe className="w-5 h-5 text-zinc-400" />
-                                    <span className="font-bold text-sm text-zinc-200">Rezepte</span>
-                                    <span className="ml-auto text-zinc-600">→</span>
+                                    <Globe className="w-5 h-5 text-text-muted" />
+                                    <span className="font-bold text-sm text-text-primary">Rezepte</span>
+                                    <span className="ml-auto text-text-disabled">→</span>
                                 </Link>
                                 <Link
                                     href="/forum"
                                     onClick={() => setIsMobileMenuOpen(false)}
-                                    className="w-full flex items-center gap-4 py-4 px-2 hover:bg-zinc-900/30 transition"
+                                    className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface-hover transition"
                                 >
-                                    <MessageSquare className="w-5 h-5 text-zinc-400" />
-                                    <span className="font-bold text-sm text-zinc-200">Forum</span>
-                                    <span className="ml-auto text-zinc-600">→</span>
+                                    <MessageSquare className="w-5 h-5 text-text-muted" />
+                                    <span className="font-bold text-sm text-text-primary">Forum</span>
+                                    <span className="ml-auto text-text-disabled">→</span>
                                 </Link>
                             </div>
                          </div>
@@ -684,22 +675,19 @@ export default function AdminHeader() {
             </div>
 
             {/* 3. Footer (Fixed) */}
-            <div className="p-4 border-t border-zinc-900 bg-zinc-950 pb-8">
-               {tierData && (
-                <div className="flex items-center justify-between bg-zinc-900/50 p-3 rounded-2xl mb-3">
+            <div className="p-4 border-t border-border bg-background pb-8">
+               {userName && (
+                <div className="flex items-center justify-between bg-surface p-3 rounded-2xl mb-3">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full flex items-center justify-center text-xs overflow-hidden relative border border-zinc-700 bg-zinc-800">
-                            <div className={`absolute inset-0 border-2 rounded-full opacity-50 ${tierData.borderColor}`}></div>
-                            <img src={tierData.path} alt="Avatar" className="w-full h-full object-cover" />
-                        </div>
+                        <UserAvatar src={userLogoUrl} name={userName} userId={userId} tier={userTier} sizeClass="w-10 h-10" />
                         <div>
-                            <p className="text-sm font-bold text-white leading-tight">{userName}</p>
+                            <p className="text-sm font-bold text-text-primary leading-tight">{userName}</p>
                         </div>
                     </div>
                     <Link
                        href="/account"
                        onClick={() => setIsMobileMenuOpen(false)}
-                       className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-white transition"
+                       className="p-2 bg-surface-raised hover:bg-surface-hover rounded-lg text-text-muted hover:text-text-primary transition"
                     >
                        <Settings className="w-5 h-5" />
                     </Link>
@@ -708,7 +696,7 @@ export default function AdminHeader() {
                
                <button
                 onClick={() => { handleLogout(); setIsMobileMenuOpen(false); }}
-                className="w-full flex items-center justify-center gap-2 p-3 rounded-xl text-xs font-bold text-red-400/80 hover:bg-red-500/10 hover:text-red-400 transition"
+                className="w-full flex items-center justify-center gap-2 p-3 rounded-xl text-xs font-bold text-error hover:bg-error-bg hover:text-error transition"
                >
                 <LogOut className="w-4 h-4" /> Abmelden
                </button>

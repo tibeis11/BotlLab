@@ -15,14 +15,18 @@ import { useAuth } from '@/app/context/AuthContext';
 import RateBrewModal from './components/RateBrewModal';
 import DrinkingConfirmationPrompt from './components/DrinkingConfirmationPrompt';
 import BeatTheBrewerGame from './components/BeatTheBrewerGame';
+import { checkBrewHasFlavorProfile } from '@/lib/actions/beat-the-brewer-actions';
 import VibeCheck from './components/VibeCheck';
 import StashButton from './components/StashButton';
 import BrewBounties from './components/BrewBounties';
+import { useQrVerification } from '@/lib/hooks/useQrVerification';
 import { RatingSubmission } from '@/lib/types/rating';
+import { rollCapTier, type CapTier } from '@/lib/cap-tier';
 import IngredientList from './components/IngredientList';
 import GeoConsentPrompt from './components/GeoConsentPrompt';
 import ShopLink from './components/ShopLink';
 import type { BottleWithBrew, BreweryData, RatingData, TeamMember, BrewerProfile } from './types';
+import { Clock, Search, Package, Beer, BookOpen, MapPin, Building2, User, Star, ChevronUp, ChevronDown, Lock, QrCode } from 'lucide-react';
 
 // Phase 9.3: static dark blur placeholder for hero Image (zinc-900 = #18181b)
 const DARK_BLUR_PLACEHOLDER =
@@ -53,6 +57,7 @@ export default function PublicScanPage() {
   // Cap Collection
   const [collectingCap, setCollectingCap] = useState(false);
   const [capCollected, setCapCollected] = useState(false);
+  const [capTier, setCapTier] = useState<CapTier>('zinc');
   // Phase 2.3: toggle to show more than 3 ratings
   const [showAllRatings, setShowAllRatings] = useState(false);
   // Phase 1.3: separate loading state for ratings section
@@ -63,12 +68,16 @@ export default function PublicScanPage() {
   const [userAppMode, setUserAppMode] = useState<string | null>(null);
   // Phase 11: Beat the Brewer nach Rating prominenter zeigen
   const [showBeatTheBrewer, setShowBeatTheBrewer] = useState(false);
+  // Late Reveal: only flag, actual profile stays server-side
+  const [hasFlavorProfile, setHasFlavorProfile] = useState(false);
   // Phase 11.2: VibeCheck abgeschlossen → RatingCTABlock kurz hervorheben
   const [ratingCTAHighlight, setRatingCTAHighlight] = useState(false);
   // Hero-Bild Fehlerbehandlung: Fallback wenn Image-URL nicht erreichbar
   const [heroImageError, setHeroImageError] = useState(false);
   // Phase 12.1: GeoConsentPrompt nach Star-Rating einblenden
   const [showGeoConsent, setShowGeoConsent] = useState(false);
+  // Phase 5.1: Brewer darf eigenes Bier nicht spielen
+  const [isBreweryMember, setIsBreweryMember] = useState(false);
 
   // Tracking: Use ref to prevent multiple tracking calls
   const hasTrackedScan = useRef(false);
@@ -78,6 +87,9 @@ export default function PublicScanPage() {
   // Beat a Friend challenge (Phase 12.4)
   const challengeToken = searchParams.get('challenge') ?? undefined;
   const [challengerName, setChallengerName] = useState<string | null>(null);
+
+  // QR Verification: Check if user arrived via physical QR scan
+  const { isQrVerified, isVerifying: isQrVerifying, qrToken } = useQrVerification(data?.id ?? null);
 
   useEffect(() => {
     if (!challengeToken) return;
@@ -160,7 +172,6 @@ export default function PublicScanPage() {
             data,
             remix_parent_id,
             cap_url,
-            flavor_profile,
             moderation_status,
             moderation_rejection_reason
           `)
@@ -196,16 +207,20 @@ export default function PublicScanPage() {
               : undefined;
           } catch { /* ignore malformed referrer */ }
 
-          // Phase 7.3 — Derive scan source from UTM + referrer
+          // Phase 7.3 — Derive scan source from UTM + referrer + QR token
+          // New QR codes embed an HMAC token: /b/ABC123?_t=<token>
+          // The _t parameter is a strong signal for QR scan origin.
+          // Legacy /q/ redirect and old no-referrer heuristic also supported.
           const SOCIAL_DOMAINS = [
             'instagram.com', 'facebook.com', 'twitter.com', 'x.com',
             'tiktok.com', 'youtube.com', 'whatsapp.com', 'linkedin.com', 'untappd.com',
           ];
+          const hasQrToken = !!searchParams.get('_t');
           let derivedScanSource: 'qr_code' | 'direct_link' | 'social' | 'share';
-          if (utmMedium === 'qr') {
+          if (hasQrToken || utmMedium === 'qr') {
             derivedScanSource = 'qr_code';
           } else if (!referrerDomain) {
-            // No referrer = likely a real QR-code scan (mobile browsers open QR links without referrer)
+            // No referrer = likely QR scan (camera app) or direct URL entry
             derivedScanSource = 'qr_code';
           } else if (SOCIAL_DOMAINS.includes(referrerDomain)) {
             derivedScanSource = 'social';
@@ -237,6 +252,15 @@ export default function PublicScanPage() {
           (async () => { const { data: breweryData } = await supabase.from('breweries').select('*').eq('id', brew.brewery_id).single(); setBrewery(breweryData); })(),
           (async () => { const { data: memberData } = await supabase.from('brewery_members').select('role, profiles:user_id(display_name, logo_url)').eq('brewery_id', brew.brewery_id); setTeam((memberData || []) as unknown as TeamMember[]); })(),
         );
+        // Phase 5.1: Check if current user is a member of this brew's brewery
+        if (user?.id) {
+          secondaryPromises.push(
+            (async () => {
+              const { data: membership } = await supabase.from('brewery_members').select('id').eq('brewery_id', brew.brewery_id).eq('user_id', user.id).maybeSingle();
+              setIsBreweryMember(!!membership);
+            })(),
+          );
+        }
       }
 
       if (brew?.user_id) {
@@ -259,6 +283,8 @@ export default function PublicScanPage() {
             const { count } = await supabase.from('bottle_scans').select('*', { count: 'exact', head: true }).eq('bottle_id', bottle.id);
             setScanCount(count ?? 0);
           })(),
+          // Late Reveal: check server-side, don't send actual profile values to client
+          checkBrewHasFlavorProfile(brew.id).then(setHasFlavorProfile).catch(() => {}),
         );
       }
 
@@ -339,7 +365,7 @@ export default function PublicScanPage() {
       const payload = {
         ...submissionData,
         brew_id: brewId,
-        qr_verified: true, // Route /b/[id] is only reachable via QR-code scan
+        qr_verified: isQrVerified,
       };
 
       const response = await fetch('/api/ratings/submit', {
@@ -430,18 +456,21 @@ export default function PublicScanPage() {
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
           body: JSON.stringify({ brew_id: data.brews.id, rating_id: resolvedRatingId }),
         });
-        const res = await response.json();
+      const res = await response.json();
 
         if (!response.ok) {
           toast.error('Fehler beim Sammeln: ' + (res.error ?? 'Unbekannter Fehler'));
           return;
         }
+        if (res.cap_tier) setCapTier(res.cap_tier as CapTier);
       } else {
         // ── Fallback: direct insert (no rating link available) ──
+        const tier = rollCapTier();
         const { error } = await supabase
           .from('collected_caps')
-          .insert([{ user_id: user.id, brew_id: data.brews.id }]);
+          .insert([{ user_id: user.id, brew_id: data.brews.id, cap_tier: tier }]);
         if (error) throw error;
+        setCapTier(tier);
       }
 
       setShowRatingForm(false);
@@ -505,19 +534,26 @@ export default function PublicScanPage() {
     // Phase 10.2: fast-path from localStorage (avoids DB round-trip on return visits)
     if (typeof window !== 'undefined' && localStorage.getItem('botllab_cap_' + brewId) === '1') {
       setCapCollected(true);
+      // Tier from localStorage (stored after first claim)
+      const storedTier = localStorage.getItem('botllab_cap_tier_' + brewId) as CapTier | null;
+      if (storedTier) setCapTier(storedTier);
       return;
     }
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     const { data } = await supabase
       .from('collected_caps')
-      .select('id')
+      .select('id, cap_tier')
       .eq('user_id', user.id)
       .eq('brew_id', brewId)
       .maybeSingle();
     setCapCollected(!!data);
-    // Sync to localStorage so future visits use fast-path
-    if (data) localStorage.setItem('botllab_cap_' + brewId, '1');
+    if (data) {
+      const tier = (data.cap_tier as CapTier) ?? 'zinc';
+      setCapTier(tier);
+      localStorage.setItem('botllab_cap_' + brewId, '1');
+      localStorage.setItem('botllab_cap_tier_' + brewId, tier);
+    }
   }
 
   function handleStartRating() {
@@ -552,23 +588,27 @@ export default function PublicScanPage() {
 
   if (!data) {
     return (
-      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6 text-center">
-        <span className="text-6xl mb-6">🔍</span>
-        <h1 className="text-2xl font-bold">Unbekannte ID</h1>
-        <p className="text-zinc-500 mt-2">Diese Flasche existiert nicht in unserer Datenbank.</p>
+      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-12 h-12 rounded-2xl bg-surface border border-border flex items-center justify-center mx-auto mb-6">
+          <Search className="w-6 h-6 text-text-muted" />
+        </div>
+        <h1 className="text-2xl font-bold text-text-primary">Unbekannte ID</h1>
+        <p className="text-text-muted mt-2">Diese Flasche existiert nicht in unserer Datenbank.</p>
         {errorMsg && <p className="text-red-500 text-xs mt-4 font-mono">{errorMsg}</p>}
-        <p className="text-zinc-700 text-xs mt-4 font-mono">ID: {id}</p>
+        <p className="text-text-disabled text-xs mt-4 font-mono">ID: {id}</p>
       </div>
     );
   }
 
   if (!data.brews) {
     return (
-      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6 text-center">
-        <span className="text-6xl mb-6">🫙</span>
-        <h1 className="text-2xl font-bold">Flasche ist leer</h1>
-        <p className="text-zinc-500 mt-2">Bottle #{data.bottle_number} ist aktuell keinem Rezept zugewiesen.</p>
-        <p className="text-zinc-600 text-sm mt-4">Bitte den Braumeister kontaktieren!</p>
+      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-12 h-12 rounded-2xl bg-surface border border-border flex items-center justify-center mx-auto mb-6">
+          <Package className="w-6 h-6 text-text-muted" />
+        </div>
+        <h1 className="text-2xl font-bold text-text-primary">Flasche ist leer</h1>
+        <p className="text-text-muted mt-2">Bottle #{data.bottle_number} ist aktuell keinem Rezept zugewiesen.</p>
+        <p className="text-text-disabled text-sm mt-4">Bitte den Braumeister kontaktieren!</p>
       </div>
     );
   }
@@ -647,12 +687,12 @@ export default function PublicScanPage() {
   const batchVolume = session?.volume_liters ?? estimatedBatchVolume;
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col items-center">
+    <div className="min-h-screen bg-background text-foreground flex flex-col items-center">
       {/* Moderation Alerts */}
       {/* Pending Banner */}
       {brew.moderation_status === 'pending' && (
         <div className="w-full bg-yellow-500/10 border-b border-yellow-500/20 px-4 py-3 flex items-center justify-center gap-2 text-yellow-500 text-sm font-medium">
-          <span>⏳</span> Dieses Bild wird geprüft und ist noch nicht öffentlich sichtbar (Dauer ca. 24h).
+          <Clock className="w-4 h-4" /> Dieses Bild wird geprüft und ist noch nicht öffentlich sichtbar (Dauer ca. 24h).
         </div>
       )}
 
@@ -673,8 +713,8 @@ export default function PublicScanPage() {
               className={`object-cover ${(brew.moderation_status === 'pending') ? 'filter blur-md brightness-50' : ''}`}
             />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-zinc-900 to-zinc-950 flex items-center justify-center border-b border-zinc-800">
-              <span className="text-9xl opacity-20">🍺</span>
+            <div className="w-full h-full bg-gradient-to-br from-orange-950 via-zinc-900 to-zinc-950 flex items-center justify-center border-b border-border">
+              <Beer className="w-24 h-24 opacity-20 text-text-disabled" />
             </div>
           )}
 
@@ -702,8 +742,8 @@ export default function PublicScanPage() {
           )}
           {/* Phase 4.1: Flaschennummer als dezentes Badge */}
           {data.bottle_number !== null && data.bottle_number !== undefined && (
-            <span className="bg-black/60 backdrop-blur-md border border-zinc-700 px-3 py-1 rounded-full text-zinc-400 text-xs font-bold tracking-widest shadow-xl inline-flex items-center gap-1">
-              <span className="text-zinc-600">#</span>{data.bottle_number}
+            <span className="bg-black/60 backdrop-blur-md border border-white/20 px-3 py-1 rounded-full text-white/70 text-xs font-bold tracking-widest shadow-xl inline-flex items-center gap-1">
+              <span className="text-white/40">#</span>{data.bottle_number}
             </span>
           )}
         </div>
@@ -713,7 +753,7 @@ export default function PublicScanPage() {
       <div className="max-w-2xl mx-auto px-6 py-12 space-y-8">
         {/* Header — Name + Style, description moves below CTA (Phase 2.1) */}
         <header className="text-center space-y-2">
-          <span className="inline-block text-cyan-400 text-xs font-black tracking-normal px-4 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20">
+          <span className="inline-block text-brand text-xs font-black tracking-normal px-4 py-1 rounded-full bg-brand/10 border border-brand/20">
             {(brew.style || 'Handcrafted').toUpperCase()}
           </span>
           <h1 className="text-5xl md:text-6xl font-black tracking-tighter leading-none">
@@ -721,118 +761,118 @@ export default function PublicScanPage() {
           </h1>
           {/* Phase 4.3: Dezentes Scan-Badge — ab 2 Scans als sozialer Beweis */}
           {scanCount !== null && scanCount >= 2 && (
-            <p className="text-xs text-zinc-500 flex items-center justify-center gap-1">
-              🔍 {scanCount}× gescannt
+            <p className="text-xs text-text-muted flex items-center justify-center gap-1">
+              <Search className="w-3 h-3" /> {scanCount}× gescannt
             </p>
           )}
         </header>
 
         {/* Beschreibung — direkt unter dem Namen, wichtigste Info zuerst */}
         {brew.description && (
-          <p className="text-zinc-400 text-base leading-relaxed italic text-center">
+          <p className="text-text-secondary text-base leading-relaxed italic text-center">
             {brew.description}
           </p>
         )}
 
-        <div className="h-px bg-gradient-to-r from-transparent via-zinc-700 to-transparent" />
+        <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
 
         {/* Stats Grid - Prominenter */}
         <div className="grid grid-cols-3 gap-4">
-          <div className="bg-gradient-to-br from-zinc-900 to-zinc-950 p-5 rounded-2xl border border-zinc-800 shadow-lg">
-            <p className="text-[10px] text-cyan-400 uppercase font-bold mb-2 tracking-wider">Alkohol</p>
-            <p className="font-black text-3xl text-white tracking-tight">{displayData.abv || '0.0'}</p>
-            <p className="text-[9px] text-zinc-600 uppercase mt-1">% Vol.</p>
+          <div className="bg-surface/50 p-5 rounded-2xl border border-border shadow-lg">
+            <p className="text-[10px] text-brand uppercase font-bold mb-2 tracking-wider">Alkohol</p>
+            <p className="font-black text-3xl text-text-primary tracking-tight">{displayData.abv || '0.0'}</p>
+            <p className="text-[9px] text-text-disabled uppercase mt-1">% Vol.</p>
           </div>
 
-          <div className="bg-gradient-to-br from-zinc-900 to-zinc-950 p-5 rounded-2xl border border-zinc-800 shadow-lg">
+          <div className="bg-surface/50 p-5 rounded-2xl border border-border shadow-lg">
             {(!brew.brew_type || brew.brew_type === 'beer') ? (
               <>
                 <p className="text-[10px] text-amber-400 uppercase font-bold mb-2 tracking-wider">Bittere</p>
-                <p className="font-black text-3xl text-white tracking-tight">{displayData.ibu || '-'}</p>
-                <p className="text-[9px] text-zinc-600 uppercase mt-1">IBU</p>
+                <p className="font-black text-3xl text-text-primary tracking-tight">{displayData.ibu || '-'}</p>
+                <p className="text-[9px] text-text-disabled uppercase mt-1">IBU</p>
               </>
             ) : brew.brew_type === 'wine' ? (
               <>
                 <p className="text-[10px] text-purple-400 uppercase font-bold mb-2 tracking-wider">Säure</p>
-                <p className="font-black text-3xl text-white tracking-tight">
+                <p className="font-black text-3xl text-text-primary tracking-tight">
                   {displayData.acidity_g_l || '-'}
                 </p>
-                <p className="text-[9px] text-zinc-600 uppercase mt-1">g/L</p>
+                <p className="text-[9px] text-text-disabled uppercase mt-1">g/L</p>
               </>
             ) : (
               <>
                 <p className="text-[10px] text-pink-400 uppercase font-bold mb-2 tracking-wider">Zucker</p>
-                <p className="font-black text-3xl text-white tracking-tight">
+                <p className="font-black text-3xl text-text-primary tracking-tight">
                   {displayData.sugar_g_l || '-'}
                 </p>
-                <p className="text-[9px] text-zinc-600 uppercase mt-1">g/L</p>
+                <p className="text-[9px] text-text-disabled uppercase mt-1">g/L</p>
               </>
             )}
           </div>
 
-          <div className="bg-gradient-to-br from-zinc-900 to-zinc-950 p-5 rounded-2xl border border-zinc-800 shadow-lg">
+          <div className="bg-surface/50 p-5 rounded-2xl border border-border shadow-lg">
             <p className="text-[10px] text-emerald-400 uppercase font-bold mb-2 tracking-wider">
               {(!brew.brew_type || brew.brew_type === 'beer') ? 'Farbe' : (displayData.bottling_date ? 'Abfülldatum' : (brew.brew_type === 'wine' ? 'Jahrgang' : 'Jahr'))}
             </p>
-            <p className="font-black text-3xl text-white tracking-tight">
+            <p className="font-black text-3xl text-text-primary tracking-tight">
               {(!brew.brew_type || brew.brew_type === 'beer') ? (displayData.color || '-') : (displayData.bottling_date || (brew.brew_type === 'wine' ? displayData.vintage : displayData.year))}
             </p>
             {(!brew.brew_type || brew.brew_type === 'beer') && (
-              <p className="text-[9px] text-zinc-600 uppercase mt-1">EBC</p>
+              <p className="text-[9px] text-text-disabled uppercase mt-1">EBC</p>
             )}
           </div>
         </div>
 
         {/* Details Section — Inhaltsstoffe & Zutaten direkt nach Werten */}
         {brew.data && (
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6 space-y-4">
-            <h2 className="text-xs uppercase font-black tracking-[0.3em] text-cyan-400 mb-4">Details</h2>
+          <div className="bg-surface/50 border border-border rounded-2xl p-6 space-y-4">
+            <h2 className="text-xs uppercase font-black tracking-[0.3em] text-brand mb-4">Details</h2>
 
             {/* BEER Details */}
             {(!brew.brew_type || brew.brew_type === 'beer') && (
               <div className="grid grid-cols-2 gap-4 text-sm">
                 {/* 1. RESULTS / MESSWERTE */}
                 <div className="space-y-1">
-                  <p className="text-zinc-500 text-xs uppercase font-bold">Abgefüllt am</p>
-                  <p className="text-white font-mono">{displayData.bottling_date || displayData.year}</p>
+                  <p className="text-text-muted text-xs uppercase font-bold">Abgefüllt am</p>
+                  <p className="text-text-primary font-mono">{displayData.bottling_date || displayData.year}</p>
                 </div>
 
                 {displayData.srm && (
                   <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Farbe (SRM)</p>
-                    <p className="text-white font-mono">{displayData.srm}</p>
+                    <p className="text-text-muted text-xs uppercase font-bold">Farbe (SRM)</p>
+                    <p className="text-text-primary font-mono">{displayData.srm}</p>
                   </div>
                 )}
                 {brew.data.carbonation_g_l && (
                   <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Karbonisierung</p>
-                    <p className="text-white font-mono">{brew.data.carbonation_g_l} g/l</p>
+                    <p className="text-text-muted text-xs uppercase font-bold">Karbonisierung</p>
+                    <p className="text-text-primary font-mono">{brew.data.carbonation_g_l} g/l</p>
                   </div>
                 )}
 
                 {/* 2. ZUTATEN / INGREDIENTS */}
                 {brew.data.malts && (
-                  <div className="space-y-1 col-span-2 pt-2 border-t border-zinc-800/50">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Malzarten</p>
-                    <div className="text-white"><IngredientList items={brew.data.malts} mode={{ type: 'grams_per_liter', volume: batchVolume }} /></div>
+                  <div className="space-y-1 col-span-2 pt-2 border-t border-border/50">
+                    <p className="text-text-muted text-xs uppercase font-bold">Malzarten</p>
+                    <div className="text-text-primary"><IngredientList items={brew.data.malts} mode={{ type: 'grams_per_liter', volume: batchVolume }} /></div>
                   </div>
                 )}
                 {brew.data.hops && (
                   <div className="space-y-1 col-span-2">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Hopfen</p>
-                    <div className="text-white"><IngredientList items={brew.data.hops} mode={{ type: 'grams_per_liter', volume: batchVolume }} /></div>
+                    <p className="text-text-muted text-xs uppercase font-bold">Hopfen</p>
+                    <div className="text-text-primary"><IngredientList items={brew.data.hops} mode={{ type: 'grams_per_liter', volume: batchVolume }} /></div>
                   </div>
                 )}
                 {brew.data.yeast && (
                   <div className="space-y-1 col-span-2">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Hefe</p>
-                    <div className="text-white"><IngredientList items={brew.data.yeast} mode={{ type: 'grams_per_liter', volume: batchVolume }} /></div>
+                    <p className="text-text-muted text-xs uppercase font-bold">Hefe</p>
+                    <div className="text-text-primary"><IngredientList items={brew.data.yeast} mode={{ type: 'grams_per_liter', volume: batchVolume }} /></div>
                   </div>
                 )}
                 {brew.data.dry_hop_g && (
                   <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Dry Hop</p>
-                    <p className="text-white">{brew.data.dry_hop_g} g</p>
+                    <p className="text-text-muted text-xs uppercase font-bold">Dry Hop</p>
+                    <p className="text-text-primary">{brew.data.dry_hop_g} g</p>
                   </div>
                 )}
               </div>
@@ -843,40 +883,40 @@ export default function PublicScanPage() {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 {brew.data.grapes && (
                   <div className="space-y-1 col-span-2">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Rebsorten</p>
-                    <div className="text-white"><IngredientList items={brew.data.grapes} mode="percentage" /></div>
+                    <p className="text-text-muted text-xs uppercase font-bold">Rebsorten</p>
+                    <div className="text-text-primary"><IngredientList items={brew.data.grapes} mode="percentage" /></div>
                   </div>
                 )}
                 {brew.data.region && (
                   <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Region</p>
-                    <p className="text-white">{brew.data.region}</p>
+                    <p className="text-text-muted text-xs uppercase font-bold">Region</p>
+                    <p className="text-text-primary">{brew.data.region}</p>
                   </div>
                 )}
                 {brew.data.vintage && (
                   <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Jahrgang</p>
-                    <p className="text-white">{brew.data.vintage}</p>
+                    <p className="text-text-muted text-xs uppercase font-bold">Jahrgang</p>
+                    <p className="text-text-primary">{brew.data.vintage}</p>
                   </div>
                 )}
                 {brew.data.oak_aged && (
                   <div className="space-y-1 col-span-2">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Barrique</p>
-                    <p className="text-white">
+                    <p className="text-text-muted text-xs uppercase font-bold">Barrique</p>
+                    <p className="text-text-primary">
                       {brew.data.oak_months ? `${brew.data.oak_months} Monate im Holzfass` : 'Im Holzfass gereift'}
                     </p>
                   </div>
                 )}
                 {brew.data.residual_sugar_g_l && (
                   <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Restzucker</p>
-                    <p className="text-white">{brew.data.residual_sugar_g_l} g/L</p>
+                    <p className="text-text-muted text-xs uppercase font-bold">Restzucker</p>
+                    <p className="text-text-primary">{brew.data.residual_sugar_g_l} g/L</p>
                   </div>
                 )}
                 {brew.data.sulfites && (
                   <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Hinweis</p>
-                    <p className="text-white">Enthält Sulfite</p>
+                    <p className="text-text-muted text-xs uppercase font-bold">Hinweis</p>
+                    <p className="text-text-primary">Enthält Sulfite</p>
                   </div>
                 )}
               </div>
@@ -887,40 +927,40 @@ export default function PublicScanPage() {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 {brew.data.apples && (
                   <div className="space-y-1 col-span-2">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Apfelsorten</p>
-                    <div className="text-white"><IngredientList items={brew.data.apples} mode="percentage" /></div>
+                    <p className="text-text-muted text-xs uppercase font-bold">Apfelsorten</p>
+                    <div className="text-text-primary"><IngredientList items={brew.data.apples} mode="percentage" /></div>
                   </div>
                 )}
                 {brew.data.yeast && (
                   <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Hefe</p>
-                    <div className="text-white"><IngredientList items={brew.data.yeast} mode="name_only" /></div>
+                    <p className="text-text-muted text-xs uppercase font-bold">Hefe</p>
+                    <div className="text-text-primary"><IngredientList items={brew.data.yeast} mode="name_only" /></div>
                   </div>
                 )}
                 {brew.data.fermentation && (
                   <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Gärung</p>
-                    <p className="text-white capitalize">{brew.data.fermentation === 'wild' ? 'Wild' : 'Reinzucht'}</p>
+                    <p className="text-text-muted text-xs uppercase font-bold">Gärung</p>
+                    <p className="text-text-primary capitalize">{brew.data.fermentation === 'wild' ? 'Wild' : 'Reinzucht'}</p>
                   </div>
                 )}
                 {brew.data.sweetness && (
                   <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Süßegrad</p>
-                    <p className="text-white capitalize">
+                    <p className="text-text-muted text-xs uppercase font-bold">Süßegrad</p>
+                    <p className="text-text-primary capitalize">
                       {brew.data.sweetness === 'dry' ? 'Trocken' : brew.data.sweetness === 'semi' ? 'Halbtrocken' : 'Süß'}
                     </p>
                   </div>
                 )}
                 {brew.data.carbonation_g_l && (
                   <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Kohlensäure</p>
-                    <p className="text-white">{brew.data.carbonation_g_l} g/L</p>
+                    <p className="text-text-muted text-xs uppercase font-bold">Kohlensäure</p>
+                    <p className="text-text-primary">{brew.data.carbonation_g_l} g/L</p>
                   </div>
                 )}
                 {brew.data.pH && (
                   <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">pH-Wert</p>
-                    <p className="text-white">{brew.data.pH}</p>
+                    <p className="text-text-muted text-xs uppercase font-bold">pH-Wert</p>
+                    <p className="text-text-primary">{brew.data.pH}</p>
                   </div>
                 )}
               </div>
@@ -931,32 +971,32 @@ export default function PublicScanPage() {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 {brew.data.honey && (
                   <div className="space-y-1 col-span-2">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Honigsorten</p>
-                    <div className="text-white"><IngredientList items={brew.data.honey} mode="percentage" /></div>
+                    <p className="text-text-muted text-xs uppercase font-bold">Honigsorten</p>
+                    <div className="text-text-primary"><IngredientList items={brew.data.honey} mode="percentage" /></div>
                   </div>
                 )}
                 {brew.data.yeast && (
                   <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Hefe</p>
-                    <div className="text-white"><IngredientList items={brew.data.yeast} mode="name_only" /></div>
+                    <p className="text-text-muted text-xs uppercase font-bold">Hefe</p>
+                    <div className="text-text-primary"><IngredientList items={brew.data.yeast} mode="name_only" /></div>
                   </div>
                 )}
                 {brew.data.adjuncts && (
                   <div className="space-y-1 col-span-2">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Zutaten</p>
-                    <div className="text-white"><IngredientList items={brew.data.adjuncts} /></div>
+                    <p className="text-text-muted text-xs uppercase font-bold">Zutaten</p>
+                    <div className="text-text-primary"><IngredientList items={brew.data.adjuncts} /></div>
                   </div>
                 )}
                 {brew.data.aging_months && (
                   <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Reifung</p>
-                    <p className="text-white">{brew.data.aging_months} Monate</p>
+                    <p className="text-text-muted text-xs uppercase font-bold">Reifung</p>
+                    <p className="text-text-primary">{brew.data.aging_months} Monate</p>
                   </div>
                 )}
                 {brew.data.final_gravity && (
                   <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Final Gravity</p>
-                    <p className="text-white font-mono">{brew.data.final_gravity}</p>
+                    <p className="text-text-muted text-xs uppercase font-bold">Final Gravity</p>
+                    <p className="text-text-primary font-mono">{brew.data.final_gravity}</p>
                   </div>
                 )}
               </div>
@@ -967,32 +1007,32 @@ export default function PublicScanPage() {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 {brew.data.base && (
                   <div className="space-y-1 col-span-2">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Basis / Geschmack</p>
-                    <p className="text-white">{brew.data.base}</p>
+                    <p className="text-text-muted text-xs uppercase font-bold">Basis / Geschmack</p>
+                    <p className="text-text-primary">{brew.data.base}</p>
                   </div>
                 )}
                 {brew.data.carbonation_g_l && (
                   <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Kohlensäure</p>
-                    <p className="text-white">{brew.data.carbonation_g_l} g/L</p>
+                    <p className="text-text-muted text-xs uppercase font-bold">Kohlensäure</p>
+                    <p className="text-text-primary">{brew.data.carbonation_g_l} g/L</p>
                   </div>
                 )}
                 {brew.data.acidity_ph && (
                   <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">pH-Wert</p>
-                    <p className="text-white">{brew.data.acidity_ph}</p>
+                    <p className="text-text-muted text-xs uppercase font-bold">pH-Wert</p>
+                    <p className="text-text-primary">{brew.data.acidity_ph}</p>
                   </div>
                 )}
                 {brew.data.natural_flavors && (
                   <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Aromen</p>
-                    <p className="text-white">Natürliche Aromen</p>
+                    <p className="text-text-muted text-xs uppercase font-bold">Aromen</p>
+                    <p className="text-text-primary">Natürliche Aromen</p>
                   </div>
                 )}
                 {brew.data.coloring && (
                   <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Hinweis</p>
-                    <p className="text-white">Mit Farbstoff</p>
+                    <p className="text-text-muted text-xs uppercase font-bold">Hinweis</p>
+                    <p className="text-text-primary">Mit Farbstoff</p>
                   </div>
                 )}
               </div>
@@ -1000,17 +1040,17 @@ export default function PublicScanPage() {
 
             {/* Phase 4.2: Session-Informationen — Braudatum & Batch-Nummer */}
             {(displayData.brewed_at_display || displayData.batch_number) && (
-              <div className="grid grid-cols-2 gap-4 text-sm pt-4 border-t border-zinc-800/50">
+              <div className="grid grid-cols-2 gap-4 text-sm pt-4 border-t border-border/50">
                 {displayData.brewed_at_display && (
                   <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Gebraut am</p>
-                    <p className="text-white font-mono">{displayData.brewed_at_display}</p>
+                    <p className="text-text-muted text-xs uppercase font-bold">Gebraut am</p>
+                    <p className="text-text-primary font-mono">{displayData.brewed_at_display}</p>
                   </div>
                 )}
                 {displayData.batch_number && (
                   <div className="space-y-1">
-                    <p className="text-zinc-500 text-xs uppercase font-bold">Batch</p>
-                    <p className="text-white font-mono">#{displayData.batch_number}</p>
+                    <p className="text-text-muted text-xs uppercase font-bold">Batch</p>
+                    <p className="text-text-primary font-mono">#{displayData.batch_number}</p>
                   </div>
                 )}
               </div>
@@ -1021,70 +1061,71 @@ export default function PublicScanPage() {
         {/* Vollständiges Rezept Link */}
         <Link
           href={`/brew/${brew.id}`}
-          className="w-full bg-zinc-800 hover:bg-zinc-700 text-center py-4 rounded-xl font-bold transition border border-zinc-700 shadow-lg block"
+          className="w-full bg-surface-hover hover:bg-border text-text-primary text-center py-4 rounded-xl font-bold transition border border-border shadow-lg flex items-center justify-center gap-2"
         >
-          📖 Vollständiges Rezept
+          <BookOpen className="w-4 h-4" /> Vollständiges Rezept
         </Link>
 
         {/* Phase 2.3: Bewertungen inline — max. 3, mit Mehr-anzeigen-Toggle */}
         {ratingsLoading ? (
           <div className="space-y-3 animate-pulse" aria-label="Bewertungen werden geladen">
             {[1, 2].map(i => (
-              <div key={i} className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 space-y-2">
-                <div className="h-3 bg-zinc-800 rounded w-1/3" />
-                <div className="h-2 bg-zinc-800 rounded w-1/4 mt-1" />
-                <div className="h-3 bg-zinc-800 rounded w-3/4 mt-2" />
+              <div key={i} className="bg-surface/50 border border-border rounded-xl p-4 space-y-2">
+                <div className="h-3 bg-surface-hover rounded w-1/3" />
+                <div className="h-2 bg-surface-hover rounded w-1/4 mt-1" />
+                <div className="h-3 bg-surface-hover rounded w-3/4 mt-2" />
               </div>
             ))}
           </div>
         ) : ratings.length > 0 ? (
           <div className="space-y-3">
-            <p className="text-[10px] uppercase font-black tracking-[0.25em] text-zinc-500">Bewertungen</p>
+            <p className="text-[10px] uppercase font-black tracking-[0.25em] text-text-muted">Bewertungen</p>
             {ratings.slice(0, showAllRatings ? undefined : 3).map(rating => (
-              <div key={rating.id} className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
+              <div key={rating.id} className="bg-surface/50 border border-border rounded-xl p-4">
                 <div className="flex items-start justify-between mb-2">
                   <div>
-                    <p className="font-bold text-white">{rating.author_name}</p>
+                    <p className="font-bold text-text-primary">{rating.author_name}</p>
                     <div className="flex gap-0.5 mt-1">
                       {[1, 2, 3, 4, 5].map(star => (
-                        <span key={star} className={`text-sm ${star <= rating.rating ? 'text-yellow-500' : 'text-zinc-700'}`}>★</span>
+                        <Star key={star} className={`w-3.5 h-3.5 ${star <= rating.rating ? 'fill-amber-400 text-amber-400' : 'text-text-disabled'}`} />
                       ))}
                     </div>
                   </div>
-                  <span className="text-xs text-zinc-600">
+                  <span className="text-xs text-text-disabled">
                     {new Date(rating.created_at).toLocaleDateString('de-DE')}
                   </span>
                 </div>
                 {rating.comment && (
-                  <p className="text-sm text-zinc-400 leading-relaxed">{rating.comment}</p>
+                  <p className="text-sm text-text-secondary leading-relaxed">{rating.comment}</p>
                 )}
               </div>
             ))}
             {ratings.length > 3 && (
               <button
                 onClick={() => setShowAllRatings(prev => !prev)}
-                className="w-full text-xs text-zinc-500 hover:text-zinc-300 py-2 transition"
+                className="w-full text-xs text-text-muted hover:text-text-secondary py-2 transition flex items-center justify-center gap-1"
               >
-                {showAllRatings ? '▲ Weniger anzeigen' : `▼ Alle ${ratings.length} Bewertungen anzeigen`}
+                {showAllRatings ? <><ChevronUp className="w-3 h-3" /> Weniger anzeigen</> : <><ChevronDown className="w-3 h-3" /> Alle {ratings.length} Bewertungen anzeigen</>}
               </button>
             )}
           </div>
         ) : (
-          <p className="text-center text-zinc-600 text-sm py-2 italic">
-            Noch keine Bewertungen — sei der Erste! ⭐
+          <p className="text-center text-text-disabled text-sm py-2 italic">
+            Noch keine Bewertungen — sei der Erste! <Star className="w-3.5 h-3.5 inline text-amber-400" />
           </p>
         )}
 
         {/* ── Trenner: Inhalt → Interaktion ── */}
         <div className="relative flex items-center gap-3 my-2">
-          <div className="flex-1 h-px bg-zinc-800" />
-          <span className="text-[10px] uppercase tracking-[0.18em] font-bold text-zinc-700 select-none">Mitmachen</span>
-          <div className="flex-1 h-px bg-zinc-800" />
+          <div className="flex-1 h-px bg-border" />
+          <span className="text-[10px] uppercase tracking-[0.18em] font-bold text-text-disabled select-none">Mitmachen</span>
+          <div className="flex-1 h-px bg-border" />
         </div>
 
         {/* ── Gamification & Community Section ── */}
 
         {/* VibeCheck */}
+        {isQrVerified ? (
         <VibeCheck
           brewId={brew.id}
           isLoggedIn={!!user}
@@ -1093,19 +1134,31 @@ export default function PublicScanPage() {
             setTimeout(() => setRatingCTAHighlight(false), 2000);
           }}
         />
+        ) : (
+          <div className="bg-surface/50 border border-dashed border-border rounded-2xl p-5 text-center space-y-2">
+            <QrCode className="w-6 h-6 mx-auto text-text-disabled" />
+            <p className="text-sm text-text-muted">Scanne den QR-Code auf der Flasche, um am VibeCheck teilzunehmen.</p>
+          </div>
+        )}
 
         {/* Rating + Cap CTA */}
-        <div className={ratingCTAHighlight ? 'ring-2 ring-cyan-500/40 rounded-2xl animate-pulse' : ''}>
+        <div className={ratingCTAHighlight ? 'ring-2 ring-brand/40 rounded-2xl animate-pulse' : ''}>
         <RatingCTABlock
           avgRating={avgRating}
           ratingCount={ratings.length}
           hasAlreadyRated={hasAlreadyRated}
           capCollected={capCollected}
+          capTier={capTier}
           collectingCap={collectingCap}
           capUrl={brew.cap_url}
           onRate={() => setShowRatingForm(true)}
           onClaim={() => claimCap()}
         />
+        {!isQrVerified && !hasAlreadyRated && (
+          <p className="text-[10px] text-text-disabled text-center mt-1.5 flex items-center justify-center gap-1">
+            <QrCode className="w-3 h-3" /> QR-Scan-verifizierte Bewertungen werden besonders gekennzeichnet
+          </p>
+        )}
         </div>
 
         {/* Rating Modal */}
@@ -1134,11 +1187,14 @@ export default function PublicScanPage() {
           />
         )}
 
-        {/* Phase 2.1 / Phase 11.1 Tier 3: Beat the Brewer — nach Rating prominent, sonst nur bei Flavor Profile */}
-        {brew.flavor_profile && (hasAlreadyRated || showBeatTheBrewer) && (
+        {/* Beat the Brewer — sichtbar wenn Server bestätigt, dass Flavor Profile existiert.
+            Actual profile values stay server-side until after submit (Late Reveal).
+            showBeatTheBrewer steuert nur den Einblende-Effekt nach Rating, nicht die Sichtbarkeit. */}
+        {hasFlavorProfile && !isBreweryMember && (
+          isQrVerified ? (
           <div className={showBeatTheBrewer ? 'animate-in fade-in slide-in-from-bottom-4 duration-300' : ''}>
             {showBeatTheBrewer && (
-              <p className="text-[10px] uppercase font-black tracking-[0.25em] text-cyan-500 text-center mb-2">
+              <p className="text-[10px] uppercase font-black tracking-[0.25em] text-brand text-center mb-2">
                 Zeig, ob du den Geschmack genauso wahrnimmst wie der Brauer →
               </p>
             )}
@@ -1149,15 +1205,24 @@ export default function PublicScanPage() {
               challengeToken={challengeToken}
               challengerName={challengerName}
               ratingId={existingRatingId}
+              qrToken={qrToken}
+              bottleId={data?.id}
             />
           </div>
+          ) : (
+          <div className="bg-surface/50 border border-dashed border-border rounded-2xl p-5 text-center space-y-2">
+            <Lock className="w-6 h-6 mx-auto text-text-disabled" />
+            <p className="text-sm font-medium text-text-secondary">Beat the Brewer</p>
+            <p className="text-xs text-text-muted">Scanne den QR-Code auf der Flasche, um gegen den Brauer anzutreten.</p>
+          </div>
+          )
         )}
 
         {/* ── Tier 3 / Tier 4 Trenner ── */}
         <div className="relative flex items-center gap-3 my-2">
-          <div className="flex-1 h-px bg-zinc-800" />
-          <span className="text-[10px] uppercase tracking-[0.18em] font-bold text-zinc-700 select-none">Community</span>
-          <div className="flex-1 h-px bg-zinc-800" />
+          <div className="flex-1 h-px bg-border" />
+          <span className="text-[10px] uppercase tracking-[0.18em] font-bold text-text-disabled select-none">Community</span>
+          <div className="flex-1 h-px bg-border" />
         </div>
 
         {/* Phase 11.5: Stash & Bounties — direkt sichtbar, kein Accordion */}
@@ -1182,22 +1247,22 @@ export default function PublicScanPage() {
           <div className="space-y-4 mt-8">
             <Link
               href={`/brewery/${brewery.id}`}
-              className="block group bg-zinc-900 border border-zinc-800 rounded-2xl p-6 hover:bg-zinc-800 transition shadow-lg"
+              className="block group bg-surface border border-border rounded-2xl p-6 hover:bg-surface-hover transition shadow-lg"
             >
               <div className="flex items-center gap-4">
-                <div className="relative w-16 h-16 rounded-full bg-zinc-800 border-2 border-zinc-700 overflow-hidden shrink-0">
+                <div className="relative w-16 h-16 rounded-full bg-surface-hover border-2 border-border overflow-hidden shrink-0">
                   {brewery.logo_url && brewery.moderation_status !== 'pending' ? (
                     <Image fill src={brewery.logo_url} alt={brewery.name ?? 'Brauerei-Logo'} className="object-cover" sizes="64px" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-2xl">🏰</div>
+                    <div className="w-full h-full flex items-center justify-center"><Building2 className="w-6 h-6 text-text-muted" /></div>
                   )}
                 </div>
                 <div className="text-left flex-1 min-w-0">
-                  <p className="text-[10px] text-zinc-400 uppercase font-bold tracking-widest mb-1">Brauerei</p>
-                  <h3 className="font-bold text-xl text-white truncate group-hover:text-cyan-400 transition">
+                  <p className="text-[10px] text-text-secondary uppercase font-bold tracking-widest mb-1">Brauerei</p>
+                  <h3 className="font-bold text-xl text-text-primary truncate group-hover:text-brand transition">
                     {brewery.name} ↗
                   </h3>
-                  {brewery.location && <p className="text-xs text-zinc-500 mt-1">📍 {brewery.location}</p>}
+                  {brewery.location && <p className="text-xs text-text-muted mt-1 flex items-center gap-1"><MapPin className="w-3 h-3" /> {brewery.location}</p>}
                 </div>
               </div>
             </Link>
@@ -1205,18 +1270,18 @@ export default function PublicScanPage() {
             {/* Team Avatars */}
             {team.length > 0 && (
               <div className="flex flex-col items-center gap-3 py-2">
-                <p className="text-[9px] uppercase font-black tracking-[0.2em] text-zinc-600">Das Brau-Team</p>
+                <p className="text-[9px] uppercase font-black tracking-[0.2em] text-text-disabled">Das Brau-Team</p>
                 <div className="flex -space-x-2">
                   {team.map((m, i) => (
                     <div
                       key={i}
-                      className="relative w-8 h-8 rounded-full border-2 border-black bg-zinc-800 flex items-center justify-center overflow-hidden"
+                      className="relative w-8 h-8 rounded-full border-2 border-background bg-surface-hover flex items-center justify-center overflow-hidden"
                       title={m.profiles?.display_name ?? undefined}
                     >
                       {m.profiles?.logo_url ? (
                         <Image fill src={m.profiles.logo_url ?? ''} alt={m.profiles?.display_name ?? ''} className="object-cover" sizes="32px" />
                       ) : (
-                        <span className="text-[10px]">👤</span>
+                        <User className="w-3 h-3 text-text-muted" />
                       )}
                     </div>
                   ))}

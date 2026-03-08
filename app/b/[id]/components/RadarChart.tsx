@@ -18,6 +18,8 @@ export type RadarProfile = Omit<FlavorProfile, 'source'>;
 interface RadarChartProps {
   playerProfile: RadarProfile;
   brewerProfile?: RadarProfile | null;
+  /** Phase 3.6: Optional community average profile (dashed grey ring) */
+  communityProfile?: Record<string, number> | null;
   showBrewer?: boolean;
   size?: number;
   className?: string;
@@ -57,20 +59,31 @@ function profileToPoints(
 export default function RadarChart({
   playerProfile,
   brewerProfile,
+  communityProfile,
   showBrewer = false,
   size = 280,
   className = '',
 }: RadarChartProps) {
   const cx = size / 2;
   const cy = size / 2;
-  const maxR = size * 0.38; // Radius of outer ring
-  const labelR = size * 0.47; // Radius for label placement
+  const maxR = size * 0.35; // Slightly reduced to leave room for labels
+  const labelR = size * 0.47; // Label radius relative to chart center
+
+  // Phase 4.1: CSS custom property tokens instead of hardcoded hex
+  const playerColor = 'var(--color-brand)';
+  const brewerColor = 'var(--color-rating)';
+  const bgColor = 'var(--color-surface)';
+  const fontSize = Math.max(9, Math.round(size * 0.052)); // scale with size
+
+  // Extra padding so labels near the SVG edges aren't clipped
+  const pad = Math.round(size * 0.12);
+  const vbSize = size + pad * 2;
 
   const gridLevels = [0.25, 0.5, 0.75, 1.0];
 
   return (
     <svg
-      viewBox={`0 0 ${size} ${size}`}
+      viewBox={`${-pad} ${-pad} ${vbSize} ${vbSize}`}
       width={size}
       height={size}
       role="img"
@@ -80,7 +93,7 @@ export default function RadarChart({
       {/* Phase 7.4: SVG-Semantik für Screen-Reader */}
       <title id="radar-chart-title">Dein Geschmacksprofil vs. Brauer-Profil</title>
       {/* Background */}
-      <circle cx={cx} cy={cy} r={maxR + 8} fill="rgba(24,24,27,0.8)" />
+      <circle cx={cx} cy={cy} r={maxR + 8} style={{ fill: bgColor }} fillOpacity={0.95} />
 
       {/* Grid rings */}
       {gridLevels.map((level) => {
@@ -115,15 +128,37 @@ export default function RadarChart({
         );
       })}
 
+      {/* Community profile (Phase 3.6: dashed grey ring, always visible if data exists) */}
+      {communityProfile && (() => {
+        const communityAsProfile = {
+          sweetness: communityProfile.sweetness ?? 0.5,
+          bitterness: communityProfile.bitterness ?? 0.5,
+          body: communityProfile.body ?? 0.5,
+          roast: communityProfile.roast ?? 0.5,
+          fruitiness: communityProfile.fruitiness ?? 0.5,
+        } as RadarProfile;
+        return (
+          <polygon
+            points={profileToPoints(communityAsProfile, cx, cy, maxR)}
+            fill="none"
+            stroke="rgba(161,161,170,0.5)"
+            strokeWidth={1.5}
+            strokeDasharray="6 3"
+            strokeLinejoin="round"
+          />
+        );
+      })()}
+
       {/* Brewer profile (revealed after submit) */}
       {brewerProfile && (
         <polygon
           points={profileToPoints(brewerProfile, cx, cy, maxR)}
-          fill="rgba(245,158,11,0.15)"
-          stroke="rgb(245,158,11)"
+          fillOpacity={0.15}
           strokeWidth={2}
           strokeLinejoin="round"
           style={{
+            fill: brewerColor,
+            stroke: brewerColor,
             opacity: showBrewer ? 1 : 0,
             transition: 'opacity 0.8s ease-in-out',
           }}
@@ -133,10 +168,10 @@ export default function RadarChart({
       {/* Player profile */}
       <polygon
         points={profileToPoints(playerProfile, cx, cy, maxR)}
-        fill="rgba(6,182,212,0.18)"
-        stroke="rgb(6,182,212)"
+        fillOpacity={0.18}
         strokeWidth={2}
         strokeLinejoin="round"
+        style={{ fill: playerColor, stroke: playerColor }}
       />
 
       {/* Player dots */}
@@ -149,9 +184,8 @@ export default function RadarChart({
             cx={x}
             cy={y}
             r={3.5}
-            fill="rgb(6,182,212)"
-            stroke="rgb(24,24,27)"
             strokeWidth={1.5}
+            style={{ fill: playerColor, stroke: bgColor }}
           />
         );
       })}
@@ -167,10 +201,10 @@ export default function RadarChart({
               cx={x}
               cy={y}
               r={3.5}
-              fill="rgb(245,158,11)"
-              stroke="rgb(24,24,27)"
               strokeWidth={1.5}
               style={{
+                fill: brewerColor,
+                stroke: bgColor,
                 opacity: showBrewer ? 1 : 0,
                 transition: 'opacity 0.8s ease-in-out 0.2s',
               }}
@@ -178,22 +212,35 @@ export default function RadarChart({
           );
         })}
 
-      {/* Axis labels */}
+      {/* Axis labels — Phase 4.2: scaled fontSize + bg rect for legibility */}
       {DIMS.map((dim, i) => {
         const { x, y } = polarToCartesian(cx, cy, labelR, i);
+        const bgPad = 3;
+        const bgW = dim.labelShort.length * fontSize * 0.6 + bgPad * 2;
+        const bgH = fontSize + bgPad * 2;
         return (
-          <text
-            key={`label-${i}`}
-            x={x}
-            y={y}
-            textAnchor="middle"
-            dominantBaseline="central"
-            fill="rgb(161,161,170)"
-            fontSize={11}
-            fontWeight={500}
-          >
-            {dim.icon} {dim.label}
-          </text>
+          <g key={`label-${i}`}>
+            <rect
+              x={x - bgW / 2}
+              y={y - bgH / 2}
+              width={bgW}
+              height={bgH}
+              rx={3}
+              style={{ fill: bgColor }}
+              fillOpacity={0.75}
+            />
+            <text
+              x={x}
+              y={y}
+              textAnchor="middle"
+              dominantBaseline="central"
+              fill="rgb(161,161,170)"
+              fontSize={fontSize}
+              fontWeight={500}
+            >
+              {dim.labelShort}
+            </text>
+          </g>
         );
       })}
     </svg>

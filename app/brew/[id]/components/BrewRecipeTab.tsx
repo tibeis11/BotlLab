@@ -27,7 +27,7 @@ const scaleAmount = (amount: any, factor: number) => {
 
 /* ─── Section Header ─── */
 
-function SectionLabel({ label, icon: Icon, iconColor = 'text-zinc-500' }: {
+function SectionLabel({ label, icon: Icon, iconColor = 'text-text-muted' }: {
   label: string;
   icon?: any;
   iconColor?: string;
@@ -35,8 +35,8 @@ function SectionLabel({ label, icon: Icon, iconColor = 'text-zinc-500' }: {
   return (
     <div className="flex items-center gap-3 mb-6">
       {Icon && <Icon className={`w-4 h-4 ${iconColor} shrink-0`} />}
-      <h4 className="text-xs font-black uppercase tracking-[0.25em] text-zinc-500">{label}</h4>
-      <div className="h-px bg-zinc-800/80 flex-1" />
+      <h4 className="text-xs font-black uppercase tracking-[0.25em] text-text-muted">{label}</h4>
+      <div className="h-px bg-surface-hover/80 flex-1" />
     </div>
   );
 }
@@ -48,7 +48,7 @@ function MaltView({ value, factor = 1 }: { value: any; factor?: number }) {
   return (
     <ul className="space-y-3">
       {value.map((item: any, i: number) => (
-        <li key={i} className="flex justify-between items-center text-sm group hover:bg-zinc-900/30 rounded-lg px-2 -mx-2 py-1.5 transition-colors">
+        <li key={i} className="flex justify-between items-center text-sm group hover:bg-surface/30 rounded-lg px-2 -mx-2 py-1.5 transition-colors">
           <div className="flex items-center gap-3">
             {item.color_ebc && (
               <div
@@ -58,13 +58,13 @@ function MaltView({ value, factor = 1 }: { value: any; factor?: number }) {
               />
             )}
             <div className="flex flex-col">
-              <span className="text-zinc-200 font-medium">{item.name}</span>
-              {item.color_ebc && <span className="text-[10px] text-zinc-600">{item.color_ebc} EBC</span>}
+              <span className="text-text-primary font-medium">{item.name}</span>
+              {item.color_ebc && <span className="text-[10px] text-text-disabled">{item.color_ebc} EBC</span>}
             </div>
           </div>
-          <div className="text-right font-mono text-zinc-500 shrink-0 ml-4">
-            <span className="text-white font-bold">{scaleAmount(item.amount, factor)}</span>{' '}
-            <span className="text-zinc-600 text-xs">{item.unit || 'kg'}</span>
+          <div className="text-right font-mono text-text-muted shrink-0 ml-4">
+            <span className="text-text-primary font-bold">{scaleAmount(item.amount, factor)}</span>{' '}
+            <span className="text-text-disabled text-xs">{item.unit || 'kg'}</span>
           </div>
         </li>
       ))}
@@ -93,8 +93,8 @@ function HopView({ value, factor = 1 }: { value: any; factor?: number }) {
           onClick={() => setIsCorrectionMode(!isCorrectionMode)}
           className={`text-xs px-2.5 py-1 rounded-lg border flex items-center gap-1.5 transition-colors ${
             isCorrectionMode || hasCorrections
-              ? 'bg-cyan-950/40 border-cyan-700/50 text-cyan-400'
-              : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-white'
+              ? 'bg-brand-bg border-brand/50 text-brand'
+              : 'bg-surface border-border text-text-muted hover:text-text-primary'
           }`}
         >
           <Scale size={11} />
@@ -103,7 +103,7 @@ function HopView({ value, factor = 1 }: { value: any; factor?: number }) {
       </div>
 
       {isCorrectionMode && (
-        <p className="text-xs text-cyan-500/80 bg-cyan-950/20 px-3 py-2 rounded-lg border border-cyan-900/30 mb-3">
+        <p className="text-xs text-brand bg-brand-bg px-3 py-2 rounded-lg border border-brand/30 mb-3">
           Tatsächlichen Alpha-Säure-Gehalt eingeben — die Menge wird angepasst.
         </p>
       )}
@@ -120,14 +120,14 @@ function HopView({ value, factor = 1 }: { value: any; factor?: number }) {
           const isCorrected = correctedAlpha !== null && correctedAlpha !== undefined && correctedAlpha !== originalAlpha;
 
           return (
-            <li key={i} className="group hover:bg-zinc-900/30 rounded-lg px-2 -mx-2 py-1.5 transition-colors">
+            <li key={i} className="group hover:bg-surface/30 rounded-lg px-2 -mx-2 py-1.5 transition-colors">
               <div className="flex justify-between items-center text-sm">
                 <div className="flex flex-col">
-                  <span className="text-zinc-200 font-medium">{item.name}</span>
-                  <span className="text-[10px] text-zinc-600">
+                  <span className="text-text-primary font-medium">{item.name}</span>
+                  <span className="text-[10px] text-text-disabled">
                     {item.use && <span>{item.use} · </span>}
                     {item.alpha && <span>{item.alpha}% α</span>}
-                    {isCorrected && <span className="text-cyan-500 ml-1">→ {correctedAlpha}% α (korrigiert)</span>}
+                    {isCorrected && <span className="text-brand ml-1">→ {correctedAlpha}% α (korrigiert)</span>}
                   </span>
                 </div>
                 <div className="text-right font-mono shrink-0 ml-4">
@@ -136,13 +136,13 @@ function HopView({ value, factor = 1 }: { value: any; factor?: number }) {
                       type="number"
                       step="0.1"
                       placeholder={String(originalAlpha || '')}
-                      className="bg-zinc-900 border border-zinc-700 text-white text-xs px-2 py-1 rounded-lg w-20 text-right focus:border-cyan-500 focus:outline-none"
+                      className="bg-surface border border-border-hover text-text-primary text-xs px-2 py-1 rounded-lg w-20 text-right focus:border-brand focus:outline-none"
                       onChange={(e) => setAlpha(i, parseFloat(e.target.value))}
                     />
                   ) : (
                     <>
-                      <span className="text-white font-bold">{scaleAmount(item.amount, factor * alphaRatio)}</span>{' '}
-                      <span className="text-zinc-600 text-xs">{item.unit || 'g'}</span>
+                      <span className="text-text-primary font-bold">{scaleAmount(item.amount, factor * alphaRatio)}</span>{' '}
+                      <span className="text-text-disabled text-xs">{item.unit || 'g'}</span>
                     </>
                   )}
                 </div>
@@ -178,17 +178,17 @@ function MashScheduleView({ steps, mashWater, spargeWater, factor = 1, calculate
       {(mashWater || spargeWater || calculatedMashWater !== undefined) && (
         <div className="grid grid-cols-2 gap-6">
           <div className="flex flex-col">
-            <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-wider mb-1">Hauptguss</span>
-            <span className="font-mono text-white font-black text-2xl">
+            <span className="text-[10px] font-bold text-text-disabled uppercase tracking-wider mb-1">Hauptguss</span>
+            <span className="font-mono text-text-primary font-black text-2xl">
               {typeof displayMash === 'number' ? displayMash.toFixed(1).replace('.', ',') : displayMash || '–'}
-              <span className="text-zinc-600 text-sm font-normal ml-1">L</span>
+              <span className="text-text-disabled text-sm font-normal ml-1">L</span>
             </span>
           </div>
           <div className="flex flex-col">
-            <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-wider mb-1">Nachguss</span>
-            <span className="font-mono text-white font-black text-2xl">
+            <span className="text-[10px] font-bold text-text-disabled uppercase tracking-wider mb-1">Nachguss</span>
+            <span className="font-mono text-text-primary font-black text-2xl">
               {typeof displaySparge === 'number' ? displaySparge.toFixed(1).replace('.', ',') : displaySparge || '–'}
-              <span className="text-zinc-600 text-sm font-normal ml-1">L</span>
+              <span className="text-text-disabled text-sm font-normal ml-1">L</span>
             </span>
           </div>
         </div>
@@ -196,15 +196,15 @@ function MashScheduleView({ steps, mashWater, spargeWater, factor = 1, calculate
 
       {Array.isArray(steps) && steps.length > 0 && (
         <div>
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-4 flex items-center gap-2">
+          <p className="text-[10px] font-black uppercase tracking-widest text-text-disabled mb-4 flex items-center gap-2">
             <Thermometer className="w-3 h-3" /> Maischplan
             {hasDecoction && (
-              <span className="text-[9px] font-bold text-orange-400 bg-orange-950/40 border border-orange-900/30 px-1.5 py-0.5 rounded-full uppercase tracking-widest">
+              <span className="text-[9px] font-bold text-orange-600 dark:text-accent-orange bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-900/30 px-1.5 py-0.5 rounded-full uppercase tracking-widest">
                 Dekoktion
               </span>
             )}
           </p>
-          <div className="relative border-l border-zinc-800 ml-2.5 space-y-1">
+          <div className="relative border-l border-border ml-2.5 space-y-1">
             {steps.map((step: any, i: number) => {
               const isDecoction = step.step_type === 'decoction';
               const isMashout = step.step_type === 'mashout';
@@ -212,17 +212,17 @@ function MashScheduleView({ steps, mashWater, spargeWater, factor = 1, calculate
 
               return (
                 <div key={i} className="relative pl-5 py-1.5 group">
-                  <span className={`absolute -left-[5px] top-3.5 w-2.5 h-2.5 rounded-full border-2 border-zinc-950 group-hover:bg-cyan-500 transition-colors ${
-                    isDecoction ? 'bg-orange-500' : isMashout ? 'bg-emerald-600' : isStrike ? 'bg-blue-500' : i === 0 ? 'bg-zinc-500' : 'bg-zinc-800'
+                  <span className={`absolute -left-[5px] top-3.5 w-2.5 h-2.5 rounded-full border-2 border-background group-hover:bg-brand transition-colors ${
+                    isDecoction ? 'bg-orange-500' : isMashout ? 'bg-emerald-600' : isStrike ? 'bg-blue-500' : i === 0 ? 'bg-text-muted' : 'bg-surface-hover'
                   }`} />
                   <div className="flex justify-between items-start gap-3">
                     <div className="flex flex-col gap-0.5 min-w-0">
-                      <span className="text-sm font-semibold text-zinc-300 group-hover:text-white transition-colors flex items-center gap-2">
+                      <span className="text-sm font-semibold text-text-secondary group-hover:text-text-primary transition-colors flex items-center gap-2">
                         {step.name || (isDecoction ? `Dekoktion ${i + 1}` : isMashout ? 'Abmaischen' : isStrike ? 'Einmaischen' : `Rast ${i + 1}`)}
-                        {isDecoction && <Flame className="w-3.5 h-3.5 text-orange-400 shrink-0" />}
+                        {isDecoction && <Flame className="w-3.5 h-3.5 text-accent-orange shrink-0" />}
                         {step.step_type && step.step_type !== 'rest' && (STEP_TYPE_LABEL[step.step_type] || step.step_type).toLowerCase() !== (step.name || '').toLowerCase() && (
                           <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide ${
-                            isDecoction ? 'text-orange-400 bg-orange-950/40' : isMashout ? 'text-emerald-400 bg-emerald-950/40' : isStrike ? 'text-blue-400 bg-blue-950/40' : 'text-zinc-500 bg-zinc-900'
+                            isDecoction ? 'text-orange-600 dark:text-accent-orange bg-orange-50 dark:bg-orange-950/40' : isMashout ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40' : isStrike ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40' : 'text-text-muted bg-surface'
                           }`}>
                             {STEP_TYPE_LABEL[step.step_type] || step.step_type}
                           </span>
@@ -232,17 +232,17 @@ function MashScheduleView({ steps, mashWater, spargeWater, factor = 1, calculate
                       {isDecoction && (step.decoction_form || step.volume_liters || step.decoction_boil_time) && (
                         <div className="flex flex-wrap gap-1.5 mt-1">
                           {step.decoction_form && (
-                            <span className="text-[10px] text-orange-300/70 bg-orange-950/20 px-1.5 py-0.5 rounded font-medium">
+                            <span className="text-[10px] text-orange-500 dark:text-orange-300/70 bg-orange-50 dark:bg-orange-950/20 px-1.5 py-0.5 rounded font-medium">
                               {DECOCTION_FORM_LABEL[step.decoction_form] || step.decoction_form}
                             </span>
                           )}
                           {step.volume_liters && (
-                            <span className="text-[10px] text-zinc-400 bg-zinc-900/60 px-1.5 py-0.5 rounded font-mono flex items-center gap-1">
+                            <span className="text-[10px] text-text-secondary bg-surface/60 px-1.5 py-0.5 rounded font-mono flex items-center gap-1">
                               <Droplets className="w-2.5 h-2.5" /> {typeof step.volume_liters === 'number' ? scaleAmount(step.volume_liters, factor) : step.volume_liters} L
                             </span>
                           )}
                           {step.decoction_boil_time && (
-                            <span className="text-[10px] text-zinc-400 bg-zinc-900/60 px-1.5 py-0.5 rounded font-mono">
+                            <span className="text-[10px] text-text-secondary bg-surface/60 px-1.5 py-0.5 rounded font-mono">
                               Kochen {step.decoction_boil_time} min
                             </span>
                           )}
@@ -250,11 +250,11 @@ function MashScheduleView({ steps, mashWater, spargeWater, factor = 1, calculate
                       )}
                     </div>
                     <div className="flex gap-2 text-xs items-center shrink-0">
-                      <span className="font-mono text-zinc-400 bg-zinc-900/60 px-2 py-0.5 rounded">
+                      <span className="font-mono text-text-secondary bg-surface/60 px-2 py-0.5 rounded">
                         {step.temperature}°C
                       </span>
                       {step.duration && (
-                        <span className="font-mono text-zinc-500 bg-zinc-900/40 px-2 py-0.5 rounded">
+                        <span className="font-mono text-text-muted bg-surface/40 px-2 py-0.5 rounded">
                           {step.duration} min
                         </span>
                       )}
@@ -273,17 +273,17 @@ function MashScheduleView({ steps, mashWater, spargeWater, factor = 1, calculate
 /* ─── IngredientView ─── */
 
 function IngredientView({ value, factor = 1 }: { value: any; factor?: number }) {
-  if (!value) return <span className="text-zinc-600">–</span>;
-  if (typeof value === 'string') return <p className="text-sm text-zinc-300 font-medium leading-relaxed">{value}</p>;
+  if (!value) return <span className="text-text-disabled">–</span>;
+  if (typeof value === 'string') return <p className="text-sm text-text-secondary font-medium leading-relaxed">{value}</p>;
 
   if (Array.isArray(value)) {
     return (
       <ul className="space-y-3">
         {value.map((item: any, i: number) => (
-          <li key={i} className="flex justify-between items-center text-sm border-b border-zinc-900 pb-2 last:border-0 last:pb-0 group hover:bg-zinc-900/30 -mx-2 px-2 rounded-lg py-1 transition-colors">
-            <span className="text-zinc-300 font-medium group-hover:text-white transition-colors">{item.name}</span>
-            <span className="text-zinc-500 font-mono text-xs whitespace-nowrap ml-4 flex items-baseline gap-1">
-              {item.amount && <span className="text-white font-bold text-base">{scaleAmount(item.amount, factor)}</span>}
+          <li key={i} className="flex justify-between items-center text-sm border-b border-border pb-2 last:border-0 last:pb-0 group hover:bg-surface/30 -mx-2 px-2 rounded-lg py-1 transition-colors">
+            <span className="text-text-secondary font-medium group-hover:text-text-primary transition-colors">{item.name}</span>
+            <span className="text-text-muted font-mono text-xs whitespace-nowrap ml-4 flex items-baseline gap-1">
+              {item.amount && <span className="text-text-primary font-bold text-base">{scaleAmount(item.amount, factor)}</span>}
               {item.unit && <span className="opacity-70">{item.unit}</span>}
             </span>
           </li>
@@ -295,9 +295,9 @@ function IngredientView({ value, factor = 1 }: { value: any; factor?: number }) 
   if (typeof value === 'object') {
     return (
       <div className="flex justify-between items-center text-sm">
-        <span className="text-zinc-300 font-medium">{value.name}</span>
-        <span className="text-zinc-500 font-mono text-xs whitespace-nowrap ml-4 flex items-baseline gap-1">
-          {value.amount && <span className="text-white font-bold text-base">{scaleAmount(value.amount, factor)}</span>}
+        <span className="text-text-secondary font-medium">{value.name}</span>
+        <span className="text-text-muted font-mono text-xs whitespace-nowrap ml-4 flex items-baseline gap-1">
+          {value.amount && <span className="text-text-primary font-bold text-base">{scaleAmount(value.amount, factor)}</span>}
           {value.unit && <span className="opacity-70">{value.unit}</span>}
         </span>
       </div>
@@ -318,12 +318,12 @@ function StatItem({ label, value, unit, accent, colorHex }: {
 }) {
   return (
     <div className="flex flex-col relative overflow-hidden">
-      <span className={`text-[10px] font-bold uppercase tracking-wider mb-1.5 ${accent ? 'text-cyan-500' : 'text-zinc-500'}`}>
+      <span className={`text-[10px] font-bold uppercase tracking-wider mb-1.5 ${accent ? 'text-brand' : 'text-text-muted'}`}>
         {label}
       </span>
-      <span className="text-2xl font-black text-white leading-none tabular-nums">
+      <span className="text-2xl font-black text-text-primary leading-none tabular-nums">
         {value}
-        {unit && <span className="text-zinc-600 text-sm font-semibold ml-1">{unit}</span>}
+        {unit && <span className="text-text-disabled text-sm font-semibold ml-1">{unit}</span>}
       </span>
     </div>
   );
@@ -363,7 +363,7 @@ export default function BrewRecipeTab({
   volFactor,
 }: BrewRecipeTabProps) {
   if (!brew.data) return (
-    <div className="py-16 text-center text-zinc-600">Kein Rezept verfügbar.</div>
+    <div className="py-16 text-center text-text-disabled">Kein Rezept verfügbar.</div>
   );
 
   const isBeer = !brew.brew_type || brew.brew_type === 'beer';
@@ -373,27 +373,27 @@ export default function BrewRecipeTab({
 
       {/* ── Description ── */}
       {brew.description && (
-        <p className="text-zinc-400 leading-relaxed text-base font-medium whitespace-pre-wrap">
+        <p className="text-text-secondary leading-relaxed text-base font-medium whitespace-pre-wrap">
           {brew.description}
         </p>
       )}
 
       {/* ── Scaler (Beer only) ── */}
       {isBeer && (
-        <div className="py-3 border-t border-b border-zinc-800/60">
+        <div className="py-3 border-t border-b border-border/60">
           {/* Single flex-wrap row: label + inputs stay on same line, wrap only when needed */}
           <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
             {/* Label + equipment link */}
             <div className="flex items-center gap-2 shrink-0">
-              <Shuffle className="w-4 h-4 text-cyan-500 shrink-0" />
-              <span className="font-semibold text-white text-sm">Skalieren</span>
+              <Shuffle className="w-4 h-4 text-brand shrink-0" />
+              <span className="font-semibold text-text-primary text-sm">Skalieren</span>
               {userEquipmentName && (
                 <span className="text-[10px] text-cyan-600 font-medium">· {userEquipmentName}</span>
               )}
               {!userEquipmentName && userHasNoProfile && (
                 <Link
                   href={userBreweryId ? `/team/${userBreweryId}/settings?tab=equipment` : '/dashboard'}
-                  className="text-[10px] text-zinc-600 hover:text-cyan-500 transition hover:underline"
+                  className="text-[10px] text-text-disabled hover:text-brand transition hover:underline"
                 >
                   Brauanlage hinterlegen →
                 </Link>
@@ -403,36 +403,36 @@ export default function BrewRecipeTab({
             {/* Inputs */}
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold uppercase text-zinc-600 whitespace-nowrap">Ausschlag (L)</span>
+                <span className="text-[10px] font-bold uppercase text-text-disabled whitespace-nowrap">Ausschlag (L)</span>
                 <div className="relative">
                   <input
                     type="number" min="1"
                     value={scaleVolume}
                     onChange={(e) => setScaleVolume(parseFloat(e.target.value) || 0)}
-                    className="bg-zinc-900 text-white font-mono font-bold px-3 py-1.5 rounded-lg border border-zinc-800 w-20 focus:border-cyan-500 focus:outline-none text-sm"
+                    className="bg-surface text-text-primary font-mono font-bold px-3 py-1.5 rounded-lg border border-border w-20 focus:border-brand focus:outline-none text-sm"
                   />
                   {scaleVolume !== originalVolume && (
                     <button
                       onClick={() => setScaleVolume(originalVolume)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-cyan-500 font-bold hover:underline"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-brand font-bold hover:underline"
                     >↺</button>
                   )}
                 </div>
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold uppercase text-zinc-600 whitespace-nowrap">SHA (%)</span>
+                <span className="text-[10px] font-bold uppercase text-text-disabled whitespace-nowrap">SHA (%)</span>
                 <div className="relative">
                   <input
                     type="number" min="1" max="100"
                     value={scaleEfficiency}
                     onChange={(e) => setScaleEfficiency(parseFloat(e.target.value) || 0)}
-                    className="bg-zinc-900 text-white font-mono font-bold px-3 py-1.5 rounded-lg border border-zinc-800 w-20 focus:border-cyan-500 focus:outline-none text-sm"
+                    className="bg-surface text-text-primary font-mono font-bold px-3 py-1.5 rounded-lg border border-border w-20 focus:border-brand focus:outline-none text-sm"
                   />
                   {scaleEfficiency !== originalEfficiency && (
                     <button
                       onClick={() => setScaleEfficiency(originalEfficiency)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-cyan-500 font-bold hover:underline"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-brand font-bold hover:underline"
                     >↺</button>
                   )}
                 </div>
@@ -514,10 +514,10 @@ export default function BrewRecipeTab({
               <SectionLabel label="Kochen & Hopfen" icon={Flame} iconColor="text-red-500" />
               <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-3 flex items-center gap-1.5">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-text-disabled mb-3 flex items-center gap-1.5">
                     <Clock className="w-3 h-3" /> Kochzeit
                   </p>
-                  <p className="text-white font-mono text-xl font-black">{brew.data.boil_time || 60} <span className="text-zinc-600 text-sm font-normal">min</span></p>
+                  <p className="text-text-primary font-mono text-xl font-black">{brew.data.boil_time || 60} <span className="text-text-disabled text-sm font-normal">min</span></p>
                 </div>
                 <div className="md:col-span-3">
                   <HopView value={brew.data.hops} factor={volFactor} />
@@ -533,14 +533,14 @@ export default function BrewRecipeTab({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                 {brew.data.yeast && (
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-3">Hefe</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-text-disabled mb-3">Hefe</p>
                     <IngredientView value={brew.data.yeast} factor={volFactor} />
                   </div>
                 )}
                 {brew.data.carbonation_g_l && (
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-1">Karbonisierung</p>
-                    <p className="text-white font-mono text-xl font-black">{brew.data.carbonation_g_l} <span className="text-zinc-600 text-sm font-normal">g/l</span></p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-text-disabled mb-1">Karbonisierung</p>
+                    <p className="text-text-primary font-mono text-xl font-black">{brew.data.carbonation_g_l} <span className="text-text-disabled text-sm font-normal">g/l</span></p>
                   </div>
                 )}
               </div>
@@ -557,20 +557,20 @@ export default function BrewRecipeTab({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {brew.data.grapes && (
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-1">Rebsorten</p>
-                  <p className="text-lg text-white font-bold leading-relaxed">{brew.data.grapes}</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-text-disabled mb-1">Rebsorten</p>
+                  <p className="text-lg text-text-primary font-bold leading-relaxed">{brew.data.grapes}</p>
                 </div>
               )}
               {brew.data.region && (
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-1">Region</p>
-                  <p className="text-zinc-300 font-medium">{brew.data.region}</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-text-disabled mb-1">Region</p>
+                  <p className="text-text-secondary font-medium">{brew.data.region}</p>
                 </div>
               )}
               {brew.data.vintage && (
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-1">Jahrgang</p>
-                  <p className="text-white font-mono">{brew.data.vintage}</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-text-disabled mb-1">Jahrgang</p>
+                  <p className="text-text-primary font-mono">{brew.data.vintage}</p>
                 </div>
               )}
             </div>
@@ -586,7 +586,7 @@ export default function BrewRecipeTab({
             {(brew.data.oak_aged || brew.data.sulfites) && (
               <div className="flex flex-wrap gap-2 mt-6">
                 {brew.data.oak_aged && <span className="px-3 py-1.5 bg-amber-950/40 text-amber-500 border border-amber-900/50 rounded-lg text-xs font-bold uppercase tracking-wider">Barrique</span>}
-                {brew.data.sulfites && <span className="px-3 py-1.5 bg-zinc-900 text-zinc-400 border border-zinc-800 rounded-lg text-xs font-bold uppercase tracking-wider">Enthält Sulfite</span>}
+                {brew.data.sulfites && <span className="px-3 py-1.5 bg-surface text-text-secondary border border-border rounded-lg text-xs font-bold uppercase tracking-wider">Enthält Sulfite</span>}
               </div>
             )}
           </section>
@@ -601,15 +601,15 @@ export default function BrewRecipeTab({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
               {brew.data.honey && (
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-2">Honig & Zusätze</p>
-                  <p className="text-lg text-white font-bold leading-relaxed">{brew.data.honey}</p>
-                  {brew.data.adjuncts && <p className="text-sm text-zinc-500 mt-1">+ {brew.data.adjuncts}</p>}
+                  <p className="text-[10px] font-black uppercase tracking-widest text-text-disabled mb-2">Honig & Zusätze</p>
+                  <p className="text-lg text-text-primary font-bold leading-relaxed">{brew.data.honey}</p>
+                  {brew.data.adjuncts && <p className="text-sm text-text-muted mt-1">+ {brew.data.adjuncts}</p>}
                 </div>
               )}
               {brew.data.yeast && (
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-2">Hefe</p>
-                  <p className="text-sm text-white font-medium">{brew.data.yeast}</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-text-disabled mb-2">Hefe</p>
+                  <p className="text-sm text-text-primary font-medium">{brew.data.yeast}</p>
                 </div>
               )}
             </div>
@@ -623,8 +623,8 @@ export default function BrewRecipeTab({
             </div>
             {brew.data.nutrient_schedule && (
               <div className="mt-8">
-                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-3">Nährstoffplan</p>
-                <p className="text-zinc-400 font-mono text-xs whitespace-pre-wrap">{brew.data.nutrient_schedule}</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-text-disabled mb-3">Nährstoffplan</p>
+                <p className="text-text-secondary font-mono text-xs whitespace-pre-wrap">{brew.data.nutrient_schedule}</p>
               </div>
             )}
           </section>
@@ -639,20 +639,20 @@ export default function BrewRecipeTab({
             <div className="space-y-6">
               {brew.data.apples && (
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-1">Apfelsorten</p>
-                  <p className="text-lg text-white font-bold">{brew.data.apples}</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-text-disabled mb-1">Apfelsorten</p>
+                  <p className="text-lg text-text-primary font-bold">{brew.data.apples}</p>
                 </div>
               )}
               {brew.data.base && (
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-1">Basis</p>
-                  <p className="text-lg text-white font-bold">{brew.data.base}</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-text-disabled mb-1">Basis</p>
+                  <p className="text-lg text-text-primary font-bold">{brew.data.base}</p>
                 </div>
               )}
               {brew.data.yeast && (
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-1">Hefe</p>
-                  <p className="text-zinc-300">{brew.data.yeast}</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-text-disabled mb-1">Hefe</p>
+                  <p className="text-text-secondary">{brew.data.yeast}</p>
                 </div>
               )}
             </div>
@@ -674,23 +674,23 @@ export default function BrewRecipeTab({
       {brew.data.steps && brew.data.steps.length > 0 && (
         <section>
           <SectionLabel label="Brauanleitung" />
-          <div className="relative border-l border-zinc-800 ml-3 space-y-6 py-2">
+          <div className="relative border-l border-border ml-3 space-y-6 py-2">
             {brew.data.steps.map((step: any, idx: number) => (
               <div key={idx} className="relative pl-8">
-                <div className="absolute -left-[5px] top-2 w-2.5 h-2.5 rounded-full bg-cyan-900 border border-cyan-600" />
+                <div className="absolute -left-[5px] top-2 w-2.5 h-2.5 rounded-full bg-brand-dim border border-brand" />
                 <div className="flex flex-wrap items-center gap-3 mb-3">
-                  <span className="text-[10px] font-black text-cyan-500 bg-cyan-950/30 px-2 py-0.5 rounded border border-cyan-900/40 uppercase tracking-wider">
+                  <span className="text-[10px] font-black text-brand bg-brand-bg px-2 py-0.5 rounded border border-brand/40 uppercase tracking-wider">
                     Schritt {idx + 1}
                   </span>
-                  {step.title && <span className="text-white font-bold text-base">{step.title}</span>}
+                  {step.title && <span className="text-text-primary font-bold text-base">{step.title}</span>}
                 </div>
-                <div className="prose prose-invert prose-sm max-w-none text-zinc-400 font-medium leading-relaxed [&>p]:my-0">
+                <div className="prose prose-sm max-w-none text-text-secondary prose-headings:text-text-primary prose-strong:text-text-primary prose-li:text-text-secondary font-medium leading-relaxed [&>p]:my-0">
                   <ReactMarkdown
                     remarkPlugins={[remarkBreaks]}
                     components={{
                       ul: ({ node, ...props }) => <ul className="list-disc pl-4 space-y-1 my-2" {...props} />,
                       ol: ({ node, ...props }) => <ol className="list-decimal pl-4 space-y-1 my-2" {...props} />,
-                      li: ({ node, ...props }) => <li className="pl-1 marker:text-zinc-600" {...props} />,
+                      li: ({ node, ...props }) => <li className="pl-1 marker:text-text-disabled" {...props} />,
                     }}
                   >
                     {formatMarkdown(step.instruction)}
@@ -704,9 +704,9 @@ export default function BrewRecipeTab({
 
       {/* ── Notes ── */}
       {brew.data.notes && (
-        <section className="pt-6 border-t border-zinc-800/50">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-3">📝 Notizen</p>
-          <p className="text-zinc-500 whitespace-pre-wrap leading-relaxed text-sm font-mono">{brew.data.notes}</p>
+        <section className="pt-6 border-t border-border/50">
+          <p className="text-[10px] font-black uppercase tracking-widest text-text-disabled mb-3">📝 Notizen</p>
+          <p className="text-text-muted whitespace-pre-wrap leading-relaxed text-sm font-mono">{brew.data.notes}</p>
         </section>
       )}
     </div>

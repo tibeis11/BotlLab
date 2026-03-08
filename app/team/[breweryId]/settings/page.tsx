@@ -89,8 +89,8 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
     }
   }
 
-  if (loading) return <div className="p-20 text-center animate-pulse text-zinc-500">Lade Einstellungen...</div>;
-  if (!brewery) return <div className="p-20 text-center text-red-500">Brauerei nicht gefunden oder Zugriff verweigert.</div>;
+  if (loading) return <div className="p-20 text-center animate-pulse text-text-muted">Lade Einstellungen...</div>;
+  if (!brewery) return <div className="p-20 text-center text-error">Brauerei nicht gefunden oder Zugriff verweigert.</div>;
 
   const isAdmin = ['owner', 'admin'].includes(userRole);
 
@@ -105,29 +105,29 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
   const filteredItems = menuItems.filter(item => item.requiredRole.includes(userRole));
 
   return (
-    <div className="text-white font-sans antialiased animate-in fade-in duration-500">
+    <div className="text-text-primary font-sans antialiased animate-in fade-in duration-500">
       
       <div className="w-full space-y-8">
         
         {/* Header Section like Admin Dashboard */}
-        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800 pb-6">
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-6">
             <div>
               <div className="flex items-center gap-3 mb-1">
-                <h1 className="text-2xl font-bold text-white tracking-tight">
+                <h1 className="text-2xl font-bold text-text-primary tracking-tight">
                   Brauerei Einstellungen
                 </h1>
-                <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-zinc-800 text-zinc-400 border border-zinc-700 uppercase tracking-wide">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-surface-hover text-text-secondary border border-border-hover uppercase tracking-wide">
                   Settings
                 </span>
               </div>
-              <p className="text-sm text-zinc-500">Verwalte deinen Squad und deine Präferenzen.</p>
+              <p className="text-sm text-text-muted">Verwalte deinen Squad und deine Präferenzen.</p>
             </div>
             
              <div className="hidden md:block text-right">
-                <p className="text-[10px] uppercase font-bold text-zinc-600 tracking-wider mb-0.5">Current Context</p>
+                <p className="text-[10px] uppercase font-bold text-text-disabled tracking-wider mb-0.5">Current Context</p>
                 <div className="flex items-center gap-1.5 justify-end">
-                    <div className="w-1.5 h-1.5 rounded-full bg-cyan-500"></div>
-                    <p className="text-zinc-300 font-mono text-xs">{brewery.name}</p>
+                    <div className="w-1.5 h-1.5 rounded-full bg-brand"></div>
+                    <p className="text-text-secondary font-mono text-xs">{brewery.name}</p>
                 </div>
             </div>
         </header>
@@ -161,10 +161,10 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ brewery
                 ) : activeTab === 'botlguide' && isAdmin ? (
                     <TeamKnowledgeManager breweryId={brewery.id} />
                 ) : (
-                    <div className="bg-zinc-900 rounded-lg border border-zinc-800 p-12 text-center flex flex-col items-center">
-                        <Lock className="w-12 h-12 text-zinc-700 mb-4" />
-                         <h3 className="text-white font-bold mb-2">Zugriff verweigert</h3>
-                         <p className="text-zinc-500 text-sm">Du hast keine Berechtigung für diesen Bereich.</p>
+                    <div className="bg-surface rounded-2xl border border-border p-12 text-center flex flex-col items-center">
+                        <Lock className="w-12 h-12 text-text-disabled mb-4" />
+                         <h3 className="text-text-primary font-bold mb-2">Zugriff verweigert</h3>
+                         <p className="text-text-muted text-sm">Du hast keine Berechtigung für diesen Bereich.</p>
                     </div>
                 )}
           </main>
@@ -248,25 +248,25 @@ function GeneralSettings({
         <form onSubmit={handleSaveSettings} className="space-y-6">
               
              {/* Card Style matching MetricCard/Admin Panels */}
-             <div className="md:bg-black md:border md:border-zinc-800 md:rounded-lg md:p-6">
-                <h3 className="text-zinc-500 text-xs font-medium uppercase tracking-wider mb-6">Allgemein</h3>
+             <div className="md:bg-surface md:border md:border-border md:rounded-2xl md:p-6">
+                <h3 className="text-text-muted text-xs font-bold uppercase tracking-wider mb-6">Allgemein</h3>
                 
                 <div className="space-y-6">
                     {/* Logo Section */}
                     <div className="flex items-start gap-6">
                          <div className="relative group cursor-pointer" onClick={() => document.getElementById('logo-upload')?.click()}>
-                            <div className={`w-20 h-20 rounded-lg border flex items-center justify-center overflow-hidden transition-all ${logoPreview ? 'border-zinc-700 bg-black' : 'border-dashed border-zinc-700 bg-zinc-900 hover:border-zinc-500 group'}`}>
+                            <div className={`w-20 h-20 rounded-lg border flex items-center justify-center overflow-hidden transition-all ${logoPreview ? 'border-border-hover bg-background' : 'border-dashed border-border-hover bg-surface hover:border-text-muted group'}`}>
                                 {logoPreview ? (
                                 <img src={logoPreview} className="w-full h-full object-cover" alt="Logo" />
                                 ) : (
-                                <Factory className="w-8 h-8 text-zinc-700 group-hover:text-zinc-500 transition-colors" />
+                                <Factory className="w-8 h-8 text-text-disabled group-hover:text-text-muted transition-colors" />
                                 )}
                             </div>
                         </div>
                         
                         <div className="flex-1">
-                             <label className="block text-sm font-medium text-white mb-1">Brand Identity</label>
-                             <p className="text-xs text-zinc-500 mb-3">Das Logo für Rezepte & Feed. Empfohlen: 500x500px.</p>
+                             <label className="block text-sm font-bold text-text-primary mb-1">Brand Identity</label>
+                             <p className="text-xs text-text-muted mb-3">Das Logo für Rezepte & Feed. Empfohlen: 500x500px.</p>
                              
                               <input 
                                 id="logo-upload"
@@ -278,7 +278,7 @@ function GeneralSettings({
                             <button 
                                 type="button" 
                                 onClick={() => document.getElementById('logo-upload')?.click()}
-                                className="text-xs bg-zinc-800 hover:bg-zinc-700 text-white font-medium py-1.5 px-3 rounded border border-zinc-700 transition-colors"
+                                className="text-xs bg-surface-hover hover:bg-border-hover text-text-primary font-bold py-1.5 px-3 rounded-lg border border-border-hover transition-colors"
                             >
                                 Bild hochladen
                             </button>
@@ -287,27 +287,27 @@ function GeneralSettings({
 
                     {/* Name Input - Matching AdminPlanSwitcher INPUT style */}
                     <div>
-                        <label className="block text-xs font-medium text-zinc-400 mb-1.5">Brauerei Name</label>
+                        <label className="block text-xs font-bold text-text-secondary mb-1.5">Brauerei Name</label>
                         <input 
                             type="text"
                             value={breweryName}
                             onChange={e => setBreweryName(e.target.value)}
-                            className="w-full px-3 py-2 rounded bg-zinc-900 text-white border border-zinc-800 focus:outline-none focus:border-zinc-600 transition-colors placeholder:text-zinc-700 sm:text-sm"
+                            className="w-full px-3 py-2 rounded-lg bg-surface text-text-primary border border-border focus:outline-none focus:border-border-hover transition-colors placeholder:text-text-disabled sm:text-sm"
                             placeholder="E.g. CyberBrew Labs"
                         />
                     </div>
 
                     {/* Website / Shop URL */}
                     <div>
-                        <label className="block text-xs font-medium text-zinc-400 mb-1.5">Website / Shop URL</label>
+                        <label className="block text-xs font-bold text-text-secondary mb-1.5">Website / Shop URL</label>
                         <input 
                             type="url"
                             value={websiteUrl}
                             onChange={e => setWebsiteUrl(e.target.value)}
-                            className="w-full px-3 py-2 rounded bg-zinc-900 text-white border border-zinc-800 focus:outline-none focus:border-zinc-600 transition-colors placeholder:text-zinc-700 sm:text-sm"
+                            className="w-full px-3 py-2 rounded-lg bg-surface text-text-primary border border-border focus:outline-none focus:border-border-hover transition-colors placeholder:text-text-disabled sm:text-sm"
                             placeholder="https://meine-brauerei.de"
                         />
-                        <p className="text-xs text-zinc-600 mt-1">Wird als Shop-Link auf dem digitalen Flaschenetikett angezeigt.</p>
+                        <p className="text-xs text-text-disabled mt-1">Wird als Shop-Link auf dem digitalen Flaschenetikett angezeigt.</p>
                     </div>
                 </div>
               </div>
@@ -315,13 +315,13 @@ function GeneralSettings({
 
             <div className="flex items-center justify-end gap-3">
                 {message && (
-                    <span className={`text-sm ${message.type === 'success' ? 'text-green-500' : 'text-red-500'}`}>
+                    <span className={`text-sm ${message.type === 'success' ? 'text-success' : 'text-error'}`}>
                         {message.msg}
                     </span>
                 )}
                 <button 
                     disabled={isSaving}
-                    className="bg-white text-black hover:bg-zinc-200 font-bold py-2 px-4 rounded text-sm transition-colors disabled:opacity-50"
+                    className="bg-white text-black hover:bg-zinc-200 font-bold py-2 px-4 rounded-lg text-sm transition-colors disabled:opacity-50"
                 >
                     {isSaving ? 'Saving...' : 'Save Changes'}
                 </button>
@@ -461,14 +461,14 @@ function EquipmentSettings({ breweryId }: { breweryId: string }) {
     placeholder = ''
   ) => (
     <div>
-      <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1">{label}</label>
+      <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">{label}</label>
       <input
         type="number"
         step={step}
         placeholder={placeholder}
         value={form[key] as number}
         onChange={e => setForm(prev => ({ ...prev, [key]: parseFloat(e.target.value) || 0 }))}
-        className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-white font-mono text-sm focus:border-cyan-500 focus:outline-none transition"
+        className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-text-primary font-mono text-sm focus:border-brand focus:outline-none transition"
       />
     </div>
   );
@@ -477,9 +477,9 @@ function EquipmentSettings({ breweryId }: { breweryId: string }) {
     <div className="space-y-6">
 
       {/* Header */}
-      <div className="md:bg-black md:border md:border-zinc-800 md:rounded-lg md:p-6">
+      <div className="md:bg-surface md:border md:border-border md:rounded-2xl md:p-6">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-zinc-500 text-xs font-medium uppercase tracking-wider flex items-center gap-2">
+          <h3 className="text-text-muted text-xs font-bold uppercase tracking-wider flex items-center gap-2">
             <FlaskConical className="w-3.5 h-3.5" />
             Brauanlage-Profile
           </h3>
@@ -494,13 +494,13 @@ function EquipmentSettings({ breweryId }: { breweryId: string }) {
         </div>
 
         {loading ? (
-          <div className="text-zinc-500 text-sm animate-pulse font-mono">Lade Profile...</div>
+          <div className="text-text-muted text-sm animate-pulse font-mono">Lade Profile...</div>
         ) : (
           <div className="space-y-3">
 
             {/* Profile-Liste */}
             {profiles.length === 0 && editingId === null && (
-              <div className="text-center py-10 text-zinc-600 text-sm">
+              <div className="text-center py-10 text-text-disabled text-sm">
                 <FlaskConical className="w-8 h-8 mx-auto mb-3 opacity-30" />
                 <p>Noch keine Brauanlage konfiguriert.</p>
                 <p className="text-xs mt-1">Erstelle ein Profil um Verdampfung, Trubverlust und Co. einmalig zu hinterlegen.</p>
@@ -508,21 +508,21 @@ function EquipmentSettings({ breweryId }: { breweryId: string }) {
             )}
 
             {profiles.map(p => (
-              <div key={p.id} className={`border rounded-lg p-4 transition ${p.is_default ? 'border-cyan-700 bg-cyan-950/20' : 'border-zinc-800 bg-zinc-900/30'}`}>
+              <div key={p.id} className={`border rounded-2xl p-4 transition ${p.is_default ? 'border-brand bg-brand-bg' : 'border-border bg-surface/30'}`}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      {p.is_default && <Star className="w-3 h-3 text-cyan-400 fill-cyan-400 flex-shrink-0" />}
-                      <span className="font-semibold text-white text-sm truncate">{p.name}</span>
-                      <span className="text-[10px] bg-zinc-800 text-zinc-400 px-1.5 rounded font-mono uppercase">{BREW_METHOD_LABELS[p.brew_method]}</span>
+                      {p.is_default && <Star className="w-3 h-3 text-brand fill-brand flex-shrink-0" />}
+                      <span className="font-bold text-text-primary text-sm truncate">{p.name}</span>
+                      <span className="text-[10px] bg-surface-hover text-text-secondary px-1.5 rounded font-mono uppercase">{BREW_METHOD_LABELS[p.brew_method]}</span>
                     </div>
-                    <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-zinc-500 font-mono">
+                    <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-text-muted font-mono">
                       <span>{p.batch_volume_l} L</span>
                       <span>{p.boil_off_rate} L/h Verdampfung</span>
                       <span>{p.trub_loss} L Trub</span>
                       <span>{p.grain_absorption} L/kg Absorption</span>
                       <span>{p.mash_thickness} L/kg Maische</span>
-                      <span className="text-cyan-600">{p.default_efficiency ?? 75} % SHA</span>
+                      <span className="text-brand">{p.default_efficiency ?? 75} % SHA</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -531,7 +531,7 @@ function EquipmentSettings({ breweryId }: { breweryId: string }) {
                         onClick={() => handleSetDefault(p.id)}
                         disabled={settingDefault === p.id}
                         title="Als Standard setzen"
-                        className="p-1.5 rounded text-zinc-500 hover:text-cyan-400 hover:bg-cyan-950/30 transition disabled:opacity-50"
+                        className="p-1.5 rounded text-text-muted hover:text-brand hover:bg-brand-bg transition disabled:opacity-50"
                       >
                         {settingDefault === p.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Star className="w-3.5 h-3.5" />}
                       </button>
@@ -539,7 +539,7 @@ function EquipmentSettings({ breweryId }: { breweryId: string }) {
                     <button
                       onClick={() => openEdit(p)}
                       title="Bearbeiten"
-                      className="p-1.5 rounded text-zinc-500 hover:text-white hover:bg-zinc-800 transition"
+                      className="p-1.5 rounded text-text-muted hover:text-text-primary hover:bg-surface-hover transition"
                     >
                       <Pencil className="w-3.5 h-3.5" />
                     </button>
@@ -547,7 +547,7 @@ function EquipmentSettings({ breweryId }: { breweryId: string }) {
                       onClick={() => handleDelete(p.id)}
                       disabled={deletingId === p.id}
                       title="Löschen"
-                      className="p-1.5 rounded text-zinc-500 hover:text-red-400 hover:bg-red-950/30 transition disabled:opacity-50"
+                      className="p-1.5 rounded text-text-muted hover:text-error hover:bg-error-bg transition disabled:opacity-50"
                     >
                       {deletingId === p.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                     </button>
@@ -558,29 +558,29 @@ function EquipmentSettings({ breweryId }: { breweryId: string }) {
 
             {/* Edit / New Form */}
             {editingId !== null && (
-              <div className="border border-cyan-800/50 bg-cyan-950/10 rounded-xl p-5 space-y-5 animate-in slide-in-from-top-2 duration-200">
-                <h4 className="text-xs font-bold text-cyan-400 uppercase tracking-wider">
+              <div className="border border-brand/30 bg-brand-bg rounded-2xl p-5 space-y-5 animate-in slide-in-from-top-2 duration-200">
+                <h4 className="text-xs font-bold text-brand uppercase tracking-wider">
                   {editingId === 'new' ? 'Neue Brauanlage' : 'Anlage bearbeiten'}
                 </h4>
 
                 {/* Name + Braumethode */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1">Name *</label>
+                    <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">Name *</label>
                     <input
                       type="text"
                       placeholder="z.B. Grainfather 35L"
                       value={form.name}
                       onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
-                      className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-white text-sm focus:border-cyan-500 focus:outline-none transition"
+                      className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-text-primary text-sm focus:border-brand focus:outline-none transition"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1">Braumethode</label>
+                    <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">Braumethode</label>
                     <select
                       value={form.brew_method}
                       onChange={e => setForm(prev => ({ ...prev, brew_method: e.target.value as EquipmentProfile['brew_method'] }))}
-                      className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-white text-sm focus:border-cyan-500 focus:outline-none transition appearance-none"
+                      className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-text-primary text-sm focus:border-brand focus:outline-none transition appearance-none"
                     >
                       <option value="all_grain">All-Grain</option>
                       <option value="extract">Extrakt</option>
@@ -599,12 +599,12 @@ function EquipmentSettings({ breweryId }: { breweryId: string }) {
                   {form.brew_method !== 'extract' && numField('Maischedicke (L/kg)', 'mash_thickness', 0.1, '3.5')}
                   {numField('Typische SHA (%)', 'default_efficiency', 1, '75')}
                 </div>
-                <p className="text-[10px] text-zinc-600 italic -mt-2">
+                <p className="text-[10px] text-text-disabled italic -mt-2">
                   SHA = Sudhausausbeute. Wird als Vorschlagswert im Rezept-Editor und bei neuen Sessions verwendet. Kann pro Rezept überschrieben werden.
                 </p>
 
                 {/* Als Standard */}
-                <label className="flex items-center gap-2 cursor-pointer text-sm text-zinc-300">
+                <label className="flex items-center gap-2 cursor-pointer text-sm text-text-secondary">
                   <input
                     type="checkbox"
                     checked={form.is_default}
@@ -616,7 +616,7 @@ function EquipmentSettings({ breweryId }: { breweryId: string }) {
 
                 {/* Feedback */}
                 {message && (
-                  <p className={`text-xs font-medium ${message.type === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+                  <p className={`text-xs font-bold ${message.type === 'success' ? 'text-success' : 'text-error'}`}>
                     {message.msg}
                   </p>
                 )}
@@ -633,7 +633,7 @@ function EquipmentSettings({ breweryId }: { breweryId: string }) {
                   </button>
                   <button
                     onClick={cancelEdit}
-                    className="flex items-center gap-1.5 text-zinc-400 hover:text-white text-sm px-3 py-2 rounded-lg border border-zinc-800 hover:border-zinc-700 transition"
+                    className="flex items-center gap-1.5 text-text-secondary hover:text-text-primary text-sm px-3 py-2 rounded-lg border border-border hover:border-border-hover transition"
                   >
                     <X className="w-3.5 h-3.5" /> Abbrechen
                   </button>
@@ -726,24 +726,24 @@ function NotificationSettings({ breweryId }: { breweryId: string }) {
     }
 
     if (isLoading) {
-        return <div className="text-zinc-500 animate-pulse text-sm font-mono p-4">LOADING_PREFS...</div>;
+        return <div className="text-text-muted animate-pulse text-sm font-mono p-4">LOADING_PREFS...</div>;
     }
 
     const NotificationToggle = ({ label, desc, pKey, disabled }: { label: string, desc: string, pKey: keyof typeof prefs, disabled?: boolean }) => (
         <div className="flex items-center justify-between py-3">
             <div className="pr-4">
                 <div className="flex items-center gap-3 mb-0.5">
-                    <span className={`text-sm font-medium ${disabled ? 'text-zinc-500' : 'text-zinc-300'}`}>{label}</span>
-                    {savingKey === pKey && <span className="text-[10px] font-mono text-cyan-500 animate-pulse">SAVING</span>}
-                    {disabled && <span className="text-[9px] uppercase font-bold bg-zinc-900 border border-zinc-800 text-zinc-600 px-1 rounded">Soon</span>}
+                    <span className={`text-sm font-bold ${disabled ? 'text-text-muted' : 'text-text-secondary'}`}>{label}</span>
+                    {savingKey === pKey && <span className="text-[10px] font-mono text-brand animate-pulse">SAVING</span>}
+                    {disabled && <span className="text-[9px] uppercase font-bold bg-surface border border-border text-text-disabled px-1 rounded">Soon</span>}
                 </div>
-                <p className="text-xs text-zinc-500">{desc}</p>
+                <p className="text-xs text-text-muted">{desc}</p>
             </div>
             <button
                 disabled={disabled}
                 onClick={() => !disabled && togglePref(pKey)}
-                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
-                    disabled ? (prefs[pKey] ? 'bg-cyan-900' : 'bg-zinc-800') : (prefs[pKey] ? 'bg-cyan-600 hover:bg-cyan-500' : 'bg-zinc-700 hover:bg-zinc-600')
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 ${
+                    disabled ? (prefs[pKey] ? 'bg-brand-bg' : 'bg-surface-hover') : (prefs[pKey] ? 'bg-cyan-600 hover:bg-cyan-500' : 'bg-surface-hover hover:bg-border-hover')
                 }`}
             >
                 <span
@@ -759,13 +759,13 @@ function NotificationSettings({ breweryId }: { breweryId: string }) {
         <div className="space-y-6">
             
             {/* IN-APP SECTION */}
-            <div className="md:bg-black md:border md:border-zinc-800 md:rounded-lg md:p-6">
-                <h3 className="text-zinc-500 text-xs font-medium uppercase tracking-wider mb-4 flex items-center gap-2">
+            <div className="md:bg-surface md:border md:border-border md:rounded-2xl md:p-6">
+                <h3 className="text-text-muted text-xs font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
                      <Bell className="w-3.5 h-3.5" />
                      In-App Mitteilungen
                 </h3>
                 
-                <div className="divide-y divide-zinc-900">
+                <div className="divide-y divide-border">
                     <NotificationToggle 
                         label="Neues Rezept" 
                         desc="Wenn jemand ein neues Rezept anglegt."
@@ -785,13 +785,13 @@ function NotificationSettings({ breweryId }: { breweryId: string }) {
             </div>
 
             {/* EMAIL SECTION */}
-            <div className="md:bg-black md:border md:border-zinc-800 md:rounded-lg md:p-6">
-                 <h3 className="text-zinc-500 text-xs font-medium uppercase tracking-wider mb-4 flex items-center gap-2">
+            <div className="md:bg-surface md:border md:border-border md:rounded-2xl md:p-6">
+                 <h3 className="text-text-muted text-xs font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
                      <Mail className="w-3.5 h-3.5" />
                      E-Mail Alerts
                 </h3>
 
-                <div className="divide-y divide-zinc-900">
+                <div className="divide-y divide-border">
                     <NotificationToggle 
                         label="Neues Rezept per Mail" 
                         desc="Lasse dich per E-Mail informieren."
@@ -903,14 +903,14 @@ function MembershipSettings({ breweryId, userRole }: { breweryId: string, userRo
 
     return (
         <div className="space-y-6">
-            <div className="md:bg-black md:border md:border-red-900/30 md:rounded-lg md:p-6 space-y-6">
-                <h3 className="text-red-500 text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+            <div className="md:bg-surface md:border md:border-error/20 md:rounded-2xl md:p-6 space-y-6">
+                <h3 className="text-error text-xs font-bold uppercase tracking-wider flex items-center gap-2">
                     <ShieldAlert className="w-3.5 h-3.5" />
                     Danger Zone
                 </h3>
 
                 {dangerMsg && (
-                    <p className={`text-xs px-3 py-2 rounded ${dangerMsg.type === 'error' ? 'bg-red-500/10 text-red-400' : 'bg-green-500/10 text-green-400'}`}>
+                    <p className={`text-xs px-3 py-2 rounded-lg ${dangerMsg.type === 'error' ? 'bg-error-bg text-error' : 'bg-success-bg text-success'}`}>
                         {dangerMsg.msg}
                     </p>
                 )}
@@ -919,15 +919,15 @@ function MembershipSettings({ breweryId, userRole }: { breweryId: string, userRo
                 {userRole !== 'owner' && (
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                         <div>
-                            <h4 className="text-white font-medium text-sm mb-1">Squad verlassen</h4>
-                            <p className="text-zinc-500 text-xs max-w-md">
+                            <h4 className="text-text-primary font-bold text-sm mb-1">Squad verlassen</h4>
+                            <p className="text-text-muted text-xs max-w-md">
                                 Du verlierst Zugriff auf alle internen Rezepte, den Chatverlauf sowie exklusive Inhalte dieses Squads.
                             </p>
                         </div>
                         <button
                             onClick={handleLeaveSquad}
                             disabled={isLeaving}
-                            className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded text-xs transition-colors disabled:opacity-50 whitespace-nowrap"
+                            className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg text-xs transition-colors disabled:opacity-50 whitespace-nowrap"
                         >
                             {isLeaving ? 'Verlasse...' : 'Squad verlassen'}
                         </button>
@@ -939,21 +939,21 @@ function MembershipSettings({ breweryId, userRole }: { breweryId: string, userRo
                     <div className="space-y-3">
                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                             <div>
-                                <h4 className="text-white font-medium text-sm mb-1">Eigentumsrechte übertragen</h4>
-                                <p className="text-zinc-500 text-xs max-w-md">
+                                <h4 className="text-text-primary font-bold text-sm mb-1">Eigentumsrechte übertragen</h4>
+                                <p className="text-text-muted text-xs max-w-md">
                                     Übertrage die Owner-Rolle an ein anderes Teammitglied. Du wirst zum normalen Mitglied.
                                 </p>
                             </div>
                             {members.length > 0 && (
                                 <button
                                     onClick={() => setShowTransfer((v) => !v)}
-                                    className="border border-zinc-700 hover:border-zinc-500 text-zinc-300 font-bold py-2 px-4 rounded text-xs transition-colors whitespace-nowrap"
+                                    className="border border-border-hover hover:border-text-muted text-text-secondary font-bold py-2 px-4 rounded-lg text-xs transition-colors whitespace-nowrap"
                                 >
                                     {showTransfer ? 'Abbrechen' : 'Ownership übertragen'}
                                 </button>
                             )}
                             {members.length === 0 && (
-                                <span className="text-zinc-600 text-xs italic">Keine weiteren Mitglieder</span>
+                                <span className="text-text-disabled text-xs italic">Keine weiteren Mitglieder</span>
                             )}
                         </div>
                         {showTransfer && members.length > 0 && (
@@ -961,7 +961,7 @@ function MembershipSettings({ breweryId, userRole }: { breweryId: string, userRo
                                 <select
                                     value={selectedNewOwner}
                                     onChange={(e) => setSelectedNewOwner(e.target.value)}
-                                    className="flex-1 bg-zinc-900 border border-zinc-700 text-zinc-200 text-sm rounded px-3 py-2"
+                                    className="flex-1 bg-surface border border-border-hover text-text-secondary text-sm rounded-lg px-3 py-2"
                                 >
                                     <option value="">Mitglied auswählen…</option>
                                     {members.map((m) => (
@@ -973,7 +973,7 @@ function MembershipSettings({ breweryId, userRole }: { breweryId: string, userRo
                                 <button
                                     onClick={handleTransferOwnership}
                                     disabled={!selectedNewOwner || isTransferring}
-                                    className="bg-yellow-600 hover:bg-yellow-500 text-black font-bold py-2 px-4 rounded text-xs transition-colors disabled:opacity-50 whitespace-nowrap"
+                                    className="bg-warning hover:opacity-90 text-black font-bold py-2 px-4 rounded-lg text-xs transition-colors disabled:opacity-50 whitespace-nowrap"
                                 >
                                     {isTransferring ? 'Übertrage...' : 'Bestätigen'}
                                 </button>
@@ -984,10 +984,10 @@ function MembershipSettings({ breweryId, userRole }: { breweryId: string, userRo
 
                 {/* Owner: dissolve team */}
                 {userRole === 'owner' && (
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-t border-red-900/20 pt-5">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-t border-error/20 pt-5">
                         <div>
-                            <h4 className="text-red-400 font-medium text-sm mb-1">Team auflösen</h4>
-                            <p className="text-zinc-500 text-xs max-w-md">
+                            <h4 className="text-error font-bold text-sm mb-1">Team auflösen</h4>
+                            <p className="text-text-muted text-xs max-w-md">
                                 {members.length > 0
                                     ? `Das Team hat noch ${members.length} Mitglied(er). Bitte übertrage zuerst die Owner-Rolle oder entferne alle Mitglieder.`
                                     : 'Löscht das Team dauerhaft. Rezepte und Flaschen bleiben als anonymisierter Community-Inhalt erhalten.'}
@@ -996,7 +996,7 @@ function MembershipSettings({ breweryId, userRole }: { breweryId: string, userRo
                         <button
                             onClick={handleDissolve}
                             disabled={isDissolving || members.length > 0}
-                            className="bg-red-900 hover:bg-red-700 text-white font-bold py-2 px-4 rounded text-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+                            className="bg-red-900 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg text-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
                             title={members.length > 0 ? 'Zuerst alle Mitglieder entfernen oder Ownership übertragen' : ''}
                         >
                             {isDissolving ? 'Auflösen...' : 'Team auflösen'}

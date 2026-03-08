@@ -35,11 +35,11 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   const d = payload[0];
   return (
-    <div className="bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-xs shadow-lg">
-      <p className="text-zinc-400 font-medium mb-1">{BUCKET_LABELS[label] ?? label}</p>
-      <p className="text-white font-mono">Ø {d.value?.toFixed(1)} Sterne</p>
+    <div className="bg-surface border border-border-hover rounded px-3 py-2 text-xs shadow-lg">
+      <p className="text-text-secondary font-bold mb-1">{BUCKET_LABELS[label] ?? label}</p>
+      <p className="text-text-primary font-mono">Ø {d.value?.toFixed(1)} Sterne</p>
       {d.payload?.ratingCount != null && (
-        <p className="text-zinc-500 mt-0.5">{d.payload.ratingCount} Bewertung{d.payload.ratingCount !== 1 ? 'en' : ''}</p>
+        <p className="text-text-muted mt-0.5">{d.payload.ratingCount} Bewertung{d.payload.ratingCount !== 1 ? 'en' : ''}</p>
       )}
     </div>
   );
@@ -90,15 +90,15 @@ export default function ShelfLifeChart({ brews, userTier }: ShelfLifeChartProps)
   })) ?? [];
 
   return (
-    <div className="bg-black border border-zinc-800 rounded-lg p-6">
+    <div className="bg-surface border border-border rounded-2xl p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2">
           <PackageOpen size={15} className="text-blue-400" />
-          <h3 className="text-sm font-semibold text-white">Shelf-Life & Trinkreife</h3>
+          <h3 className="text-sm font-bold text-text-primary">Shelf-Life & Trinkreife</h3>
         </div>
         {!isLocked && result?.peakAgeBucket && (
-          <div className="flex items-center gap-1.5 text-[10px] text-emerald-300 bg-emerald-950/30 border border-emerald-900/40 px-2.5 py-1 rounded-full">
+          <div className="flex items-center gap-1.5 text-[10px] text-success bg-success-bg border border-success/20 px-2.5 py-1 rounded-full">
             <Star size={9} />
             Peak: {BUCKET_LABELS[result.peakAgeBucket]}
           </div>
@@ -109,8 +109,8 @@ export default function ShelfLifeChart({ brews, userTier }: ShelfLifeChartProps)
       {isLocked ? (
         <div className="flex flex-col items-center justify-center py-10 gap-3">
           <Lock size={20} className="text-violet-400" />
-          <p className="text-sm font-medium text-zinc-300">Verfügbar ab Brewery-Plan</p>
-          <p className="text-xs text-zinc-500 text-center max-w-xs">
+          <p className="text-sm font-bold text-text-secondary">Verfügbar ab Brewery-Plan</p>
+          <p className="text-xs text-text-muted text-center max-w-xs">
             Shelf-Life Analyse für deine Biere.
           </p>
         </div>
@@ -121,7 +121,7 @@ export default function ShelfLifeChart({ brews, userTier }: ShelfLifeChartProps)
             <select
               value={selectedBrewId}
               onChange={e => setSelectedBrewId(e.target.value)}
-              className="bg-zinc-900 border border-zinc-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition max-w-xs w-full"
+              className="bg-surface border border-border-hover rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-blue-500 transition max-w-xs w-full"
             >
               <option value="">— Brew auswählen —</option>
               {brews.map(b => (
@@ -134,34 +134,34 @@ export default function ShelfLifeChart({ brews, userTier }: ShelfLifeChartProps)
 
           {/* Content */}
           {loading ? (
-            <div className="h-52 bg-zinc-900/30 rounded-lg animate-pulse" />
+            <div className="h-52 bg-surface/30 rounded-lg animate-pulse" />
           ) : error ? (
             <div className="h-52 flex items-center justify-center text-red-400 text-sm">
               {error}
             </div>
           ) : !selectedBrewId ? (
-            <div className="h-52 flex items-center justify-center text-zinc-600 text-sm italic border border-dashed border-zinc-800 rounded-lg">
+            <div className="h-52 flex items-center justify-center text-text-disabled text-sm italic border border-dashed border-border rounded-lg">
               Wähle ein Brew aus.
             </div>
           ) : !result?.hasEnoughData ? (
-            <div className="h-52 flex flex-col items-center justify-center gap-2 text-zinc-600 text-sm border border-dashed border-zinc-800 rounded-lg">
-              <PackageOpen size={20} className="text-zinc-700" />
+            <div className="h-52 flex flex-col items-center justify-center gap-2 text-text-disabled text-sm border border-dashed border-border rounded-lg">
+              <PackageOpen size={20} className="text-text-disabled" />
               <span className="italic">Noch zu wenige Daten für eine Shelf-Life Kurve.</span>
-              <span className="text-[10px] text-zinc-700">Mindestens 3 Alters-Buckets mit Bewertungen erforderlich.</span>
+              <span className="text-[10px] text-text-disabled">Mindestens 3 Alters-Buckets mit Bewertungen erforderlich.</span>
             </div>
           ) : (
             <>
               <ResponsiveContainer width="100%" height={220}>
                 <LineChart data={chartData} margin={{ top: 5, right: 10, left: -25, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                   <XAxis
                     dataKey="bucket"
-                    tick={{ fill: '#71717a', fontSize: 10 }}
+                    tick={{ fill: 'var(--text-muted)', fontSize: 10 }}
                     tickFormatter={b => BUCKET_LABELS[b] ?? b}
                   />
                   <YAxis
                     domain={([min, max]) => [Math.max(0, Math.floor(min - 0.5)), Math.min(10, Math.ceil(max + 0.5))]}
-                    tick={{ fill: '#71717a', fontSize: 10 }}
+                    tick={{ fill: 'var(--text-muted)', fontSize: 10 }}
                   />
                   <Tooltip content={<CustomTooltip />} />
                   {result.peakAgeBucket && (
@@ -195,18 +195,18 @@ export default function ShelfLifeChart({ brews, userTier }: ShelfLifeChartProps)
               {/* Insights row */}
               <div className="flex flex-wrap gap-4 mt-4">
                 {result.peakAgeBucket && (
-                  <div className="flex items-center gap-1.5 text-[10px] text-emerald-300/80">
-                    <Star size={9} className="text-emerald-400" />
+                  <div className="flex items-center gap-1.5 text-[10px] text-success">
+                    <Star size={9} className="text-success" />
                     Optimal: <strong>{BUCKET_LABELS[result.peakAgeBucket]}</strong>
                   </div>
                 )}
                 {result.dropOffBucket && (
-                  <div className="flex items-center gap-1.5 text-[10px] text-red-300/80">
-                    <TrendingDown size={9} className="text-red-400" />
+                  <div className="flex items-center gap-1.5 text-[10px] text-error">
+                    <TrendingDown size={9} className="text-error" />
                     Qualitätsabfall ab: <strong>{BUCKET_LABELS[result.dropOffBucket]}</strong>
                   </div>
                 )}
-                <div className="text-[10px] text-zinc-600 ml-auto">
+                <div className="text-[10px] text-text-disabled ml-auto">
                   {chartData.reduce((s, d) => s + d.ratingCount, 0)} Bewertungen analysiert
                 </div>
               </div>

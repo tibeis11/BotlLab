@@ -82,8 +82,8 @@ export default function SessionClient({ sessionId }: { sessionId: string }) {
 
   if (loading) {
      return (
-        <div className="min-h-screen bg-black flex flex-col items-center justify-center text-zinc-500 gap-4">
-            <Loader2 className="w-8 h-8 animate-spin text-cyan-500" />
+        <div className="min-h-screen bg-background flex flex-col items-center justify-center text-text-muted gap-4">
+            <Loader2 className="w-8 h-8 animate-spin text-brand" />
             <p className="font-medium animate-pulse">Lade Logbuch...</p>
         </div>
      );
@@ -91,8 +91,8 @@ export default function SessionClient({ sessionId }: { sessionId: string }) {
 
   if (!session) {
       return (
-        <div className="min-h-screen bg-black flex items-center justify-center">
-            <div className="text-white p-8 border border-zinc-800 rounded-xl bg-zinc-900">Session nicht gefunden.</div>
+        <div className="min-h-screen bg-background flex items-center justify-center">
+            <div className="text-text-primary p-8 border border-border rounded-xl bg-surface">Session nicht gefunden.</div>
         </div>
       );
   }
@@ -149,7 +149,7 @@ export default function SessionClient({ sessionId }: { sessionId: string }) {
     switch(activeTab) {
         case 'overview': return <OverviewTab setActiveTab={handleTabChange} />;
         case 'planning': return <PlanningTab />;
-        case 'brewing': return <BrewDayTab />;
+        case 'brewing': return <div className="-mx-4 -my-4 md:-mx-6 md:-my-6 lg:-mx-8 lg:-my-8"><BrewDayTab /></div>;
         case 'fermentation': return <FermentationTab />;
         case 'conditioning': return <ConditioningTab />;
         case 'completed': return <CompletedTab />;
@@ -175,8 +175,9 @@ export default function SessionClient({ sessionId }: { sessionId: string }) {
              )}
         </div>
 
-        <div className="flex bg-black text-white min-h-screen selection:bg-cyan-500/30">
-            
+        <div className="bg-background text-text-primary min-h-screen selection:bg-brand/30">
+            <div className="flex max-w-[1600px] mx-auto w-full min-h-screen">
+
             {/* Desktop Sidebar — sticky so it stays visible while page scrolls */}
             <SessionTabs 
                 activeTab={activeTab} 
@@ -188,7 +189,7 @@ export default function SessionClient({ sessionId }: { sessionId: string }) {
             <div className="flex-1 flex flex-col min-w-0 relative">
                 
                 {/* Tab Content — flows naturally, browser scroll handles everything */}
-                <main className="flex-1 px-1 py-4 md:p-6 lg:p-8 pb-36 lg:pb-8 w-full animate-in fade-in duration-300">
+                <main className="flex-1 px-4 py-4 md:p-6 lg:p-8 pb-48 lg:pb-8 w-full animate-in fade-in duration-300">
                     {renderTabContent()}
                 </main>
 
@@ -202,6 +203,7 @@ export default function SessionClient({ sessionId }: { sessionId: string }) {
 
             {/* Global Help Sheet */}
             <BotlGuideSheet />
+            </div>
         </div>
     </BotlGuideProvider>
   );

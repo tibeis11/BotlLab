@@ -1,7 +1,6 @@
 import { getForumCategories } from '@/lib/forum-service';
 import NewThreadForm from './NewThreadForm';
 import { redirect } from 'next/navigation';
-import Footer from '@/app/components/Footer';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { supabase } from '@/lib/supabase'; // Use correct client for data fetch if needed, similar to forum-service
@@ -66,7 +65,6 @@ export default async function CreateThreadPage({ searchParams }: CreateThreadPag
                     linkedBrew={linkedBrew}
                 />
             </div>
-            <Footer />
         </>
     );
 }

@@ -36,14 +36,14 @@ export default function BookmarkButton({ targetId, targetType, initialBookmarked
                 flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium
                 transition-all duration-150 disabled:opacity-60
                 ${bookmarked
-                    ? 'text-amber-400 bg-amber-500/10 hover:bg-amber-500/20'
-                    : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/40'
+                    ? 'text-warning bg-warning/10 hover:bg-warning/20'
+                    : 'text-text-muted hover:text-text-secondary hover:bg-surface-hover/40'
                 }
             `}
         >
             <Bookmark
                 size={14}
-                className={`transition-all ${bookmarked ? 'fill-amber-400' : ''}`}
+                className={`transition-all ${bookmarked ? 'fill-warning' : ''}`}
             />
             <span className="hidden sm:inline">{bookmarked ? 'Gespeichert' : 'Merken'}</span>
         </button>

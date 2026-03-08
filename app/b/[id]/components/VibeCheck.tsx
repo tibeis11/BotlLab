@@ -70,10 +70,6 @@ export default function VibeCheck({
 
   const handleSubmit = useCallback(async () => {
     if (selectedVibes.size === 0) return;
-    if (!isLoggedIn) {
-      setError('Bitte melde dich an, um teilzunehmen.');
-      return;
-    }
 
     setPhase('submitting');
     setError(null);
@@ -85,20 +81,28 @@ export default function VibeCheck({
       });
       setResult(res);
       setPhase('result');
+
+      // Store anonymous session token for post-registration claiming
+      if (res.isAnonymous && res.sessionToken) {
+        try {
+          localStorage.setItem('vibe_pending_token', res.sessionToken);
+        } catch { /* localStorage may be unavailable */ }
+      }
+
       onComplete?.();
     } catch (err: any) {
       setError(err.message || 'Fehler beim Senden.');
       setPhase('pick');
     }
-  }, [brewId, selectedVibes, isLoggedIn]);
+  }, [brewId, selectedVibes]);
 
   // ─── Already submitted (no result data) ───
   if (alreadySubmitted && !result) {
     if (communityVibes.length === 0) {
       return (
-        <div className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-5 text-center space-y-2">
+        <div className="bg-surface/60 border border-border rounded-2xl p-5 text-center space-y-2">
           <span className="text-2xl">&#x2705;</span>
-          <p className="text-sm text-zinc-400">Danke für deinen Vibe-Check!</p>
+          <p className="text-sm text-text-secondary">Danke für deinen Vibe-Check!</p>
         </div>
       );
     }
@@ -113,16 +117,22 @@ export default function VibeCheck({
   // ─── Result phase ───
   if (phase === 'result' && result) {
     return (
-      <div className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-5 space-y-4">
+      <div className="bg-surface/60 border border-border rounded-2xl p-5 space-y-4">
         {/* Points earned */}
         <div className="text-center space-y-2">
-          <span className="text-3xl">✅</span>
-          <p className="text-sm font-bold text-white">Vibe Check abgeschlossen!</p>
-          <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/20 rounded-full px-4 py-1.5">
-            <span className="text-green-400 text-sm font-bold">
-              +{result.pointsAwarded} Tasting IQ
-            </span>
-          </div>
+          <span className="text-3xl">&#x2705;</span>
+          <p className="text-sm font-bold text-text-primary">Vibe Check abgeschlossen!</p>
+          {result.isAnonymous ? (
+            <p className="text-xs text-text-muted">
+              Mit einem Account h&auml;ttest du <span className="font-bold text-green-400">+{result.pointsAwarded} Tasting IQ</span> erhalten.
+            </p>
+          ) : (
+            <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/20 rounded-full px-4 py-1.5">
+              <span className="text-green-400 text-sm font-bold">
+                +{result.pointsAwarded} Tasting IQ
+              </span>
+            </div>
+          )}
         </div>
 
         <VibeCheckCommunityDisplay
@@ -135,14 +145,14 @@ export default function VibeCheck({
 
   // ─── Pick phase ───
   return (
-    <div className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-5 space-y-4">
+    <div className="bg-surface/60 border border-border rounded-2xl p-5 space-y-4">
       <div className="text-center space-y-1">
-        <p className="text-[10px] uppercase font-black tracking-[0.25em] text-cyan-500">
+        <p className="text-[10px] uppercase font-black tracking-[0.25em] text-brand">
           Vibe Check
         </p>
-        <h3 className="text-base font-bold text-white">Wo trinkst du dieses Bier?</h3>
-        <p className="text-xs text-zinc-500">
-          Wähle bis zu 3 Vibes <span className="text-zinc-700">• +3 Tasting IQ</span>
+        <h3 className="text-base font-bold text-text-primary">Wo trinkst du dieses Bier?</h3>
+        <p className="text-xs text-text-muted">
+          Wähle bis zu 3 Vibes <span className="text-text-disabled">• +3 Tasting IQ</span>
         </p>
       </div>
 
@@ -158,8 +168,8 @@ export default function VibeCheck({
               className={`
                 flex flex-col items-center gap-1 py-3 px-2 rounded-xl border transition-all duration-150
                 ${isSelected
-                  ? 'bg-cyan-500/10 border-cyan-500/40 scale-105'
-                  : 'bg-zinc-800/50 border-zinc-700/50 hover:bg-zinc-800 hover:border-zinc-600'
+                  ? 'bg-brand/10 border-brand/40 scale-105'
+                  : 'bg-surface-hover/50 border-border/50 hover:bg-surface-hover hover:border-border-hover'
                 }
                 disabled:opacity-50 disabled:cursor-not-allowed
               `}
@@ -167,7 +177,7 @@ export default function VibeCheck({
               <span className={`text-xl transition-transform ${isSelected ? 'scale-110' : ''}`}>
                 {vibe.emoji}
               </span>
-              <span className={`text-[10px] font-medium ${isSelected ? 'text-cyan-400' : 'text-zinc-500'}`}>
+              <span className={`text-[10px] font-medium ${isSelected ? 'text-brand' : 'text-text-muted'}`}>
                 {vibe.label}
               </span>
             </button>
@@ -183,7 +193,7 @@ export default function VibeCheck({
       <button
         onClick={handleSubmit}
         disabled={selectedVibes.size === 0 || phase === 'submitting'}
-        className="w-full bg-cyan-500 hover:bg-cyan-400 disabled:bg-zinc-800 disabled:text-zinc-600 text-black font-bold py-3 rounded-xl transition-all duration-200 text-sm"
+        className="w-full bg-brand hover:bg-brand-hover disabled:bg-surface-hover disabled:text-text-disabled text-black font-bold py-3 rounded-xl transition-all duration-200 text-sm"
       >
         {phase === 'submitting' ? 'Wird gesendet...' : `Absenden (${selectedVibes.size}/3)`}
       </button>
@@ -211,7 +221,7 @@ function VibeCheckCommunityDisplay({
 
   return (
     <div className="space-y-2.5">
-      <p className="text-[10px] uppercase font-black tracking-widest text-zinc-600">{title}</p>
+      <p className="text-[10px] uppercase font-black tracking-widest text-text-disabled">{title}</p>
       <div className="space-y-1.5">
         {communityVibes.slice(0, 5).map(({ vibe, percentage }) => {
           const option = VIBE_OPTIONS.find((v) => v.id === vibe);
@@ -219,14 +229,14 @@ function VibeCheckCommunityDisplay({
           return (
             <div key={vibe} className="flex items-center gap-2">
               <span className="text-base">{option.emoji}</span>
-              <span className="text-xs text-zinc-400 w-20 truncate">{option.label}</span>
-              <div className="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+              <span className="text-xs text-text-secondary w-20 truncate">{option.label}</span>
+              <div className="flex-1 h-1.5 bg-surface-hover rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-cyan-500/40 rounded-full"
+                  className="h-full bg-brand/40 rounded-full"
                   style={{ width: `${percentage}%` }}
                 />
               </div>
-              <span className="text-[10px] text-zinc-600 font-mono w-8 text-right">
+              <span className="text-[10px] text-text-disabled font-mono w-8 text-right">
                 {percentage}%
               </span>
             </div>

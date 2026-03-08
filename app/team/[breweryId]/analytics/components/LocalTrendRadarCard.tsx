@@ -19,7 +19,7 @@ function tierAtLeast(userTier: UserTier, required: UserTier): boolean {
 const OPPORTUNITY_CONFIG = {
   high:   { label: 'Hohe Chance', color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
   medium: { label: 'Mittlere Chance', color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20' },
-  low:    { label: 'Gesättigt', color: 'text-zinc-400', bg: 'bg-zinc-800 border-zinc-700' },
+  low:    { label: 'Gesättigt', color: 'text-text-secondary', bg: 'bg-surface-hover border-border-hover' },
 };
 
 function TrendRow({ trend }: { trend: LocalTrend }) {
@@ -27,14 +27,14 @@ function TrendRow({ trend }: { trend: LocalTrend }) {
   const isUp   = trend.scanChangePercent > 0;
   const isFlat = trend.scanChangePercent === 0;
   const Icon   = isFlat ? Minus : isUp ? TrendingUp : TrendingDown;
-  const changeColor = isUp ? 'text-emerald-400' : isFlat ? 'text-zinc-400' : 'text-red-400';
+  const changeColor = isUp ? 'text-emerald-400' : isFlat ? 'text-text-secondary' : 'text-red-400';
 
   return (
     <div className={`flex items-center gap-3 p-3 rounded-lg border ${opp.bg}`}>
       {/* Style name */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-zinc-200 truncate">{trend.style}</p>
-        <p className="text-xs text-zinc-500 mt-0.5">
+        <p className="text-sm font-bold text-text-primary truncate">{trend.style}</p>
+        <p className="text-xs text-text-muted mt-0.5">
           {trend.competitorCount} Brauereien im Radius · Ø {trend.avgRatingInRadius > 0 ? `${trend.avgRatingInRadius} ★` : '–'}
         </p>
       </div>
@@ -46,7 +46,7 @@ function TrendRow({ trend }: { trend: LocalTrend }) {
       </div>
 
       {/* Opportunity badge */}
-      <span className={`text-[10px] font-medium px-2 py-0.5 rounded border ${opp.bg} ${opp.color} whitespace-nowrap`}>
+      <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${opp.bg} ${opp.color} whitespace-nowrap`}>
         {opp.label}
       </span>
     </div>
@@ -82,14 +82,14 @@ export default function LocalTrendRadarCard({ breweryId, userTier }: Props) {
   // ── Tier gate ──────────────────────────────────────────────────────────────
   if (!canAccess) {
     return (
-      <div className="bg-black border border-zinc-800 rounded-lg p-6">
+      <div className="bg-surface border border-border rounded-2xl p-6">
         <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 bg-zinc-800 rounded-lg">
-            <Radar className="w-5 h-5 text-zinc-400" />
+          <div className="p-2 bg-surface-hover rounded-lg">
+            <Radar className="w-5 h-5 text-text-secondary" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-zinc-200">Local Trend Radar</h3>
-            <p className="text-xs text-zinc-500">Regionale Nachfrage im Umkreis</p>
+            <h3 className="text-sm font-bold text-text-primary">Local Trend Radar</h3>
+            <p className="text-xs text-text-muted">Regionale Nachfrage im Umkreis</p>
           </div>
           <span className="ml-auto text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded">
             Brewery+
@@ -97,8 +97,8 @@ export default function LocalTrendRadarCard({ breweryId, userTier }: Props) {
         </div>
         <div className="flex flex-col items-center justify-center py-8 gap-3">
           <Lock className="w-8 h-8 text-violet-400" />
-          <p className="text-sm text-zinc-300 text-center max-w-xs">
-            Verfügbar ab <strong className="text-zinc-200">Brewery-Plan</strong>. Regionale Stiltrends und Marktlücken in deinem Umkreis.
+          <p className="text-sm text-text-secondary text-center max-w-xs">
+            Verfügbar ab <strong className="text-text-primary">Brewery-Plan</strong>. Regionale Stiltrends und Marktlücken in deinem Umkreis.
           </p>
         </div>
       </div>
@@ -108,10 +108,10 @@ export default function LocalTrendRadarCard({ breweryId, userTier }: Props) {
   // ── Loading state ──────────────────────────────────────────────────────────
   if (!loaded || pending) {
     return (
-      <div className="bg-black border border-zinc-800 rounded-lg p-6 animate-pulse">
-        <div className="h-5 bg-zinc-800 rounded w-48 mb-3" />
+      <div className="bg-surface border border-border rounded-2xl p-6 animate-pulse">
+        <div className="h-5 bg-surface-hover rounded w-48 mb-3" />
         <div className="space-y-2">
-          {[...Array(4)].map((_, i) => <div key={i} className="h-12 bg-zinc-800 rounded-lg" />)}
+          {[...Array(4)].map((_, i) => <div key={i} className="h-12 bg-surface-hover rounded-lg" />)}
         </div>
       </div>
     );
@@ -120,7 +120,7 @@ export default function LocalTrendRadarCard({ breweryId, userTier }: Props) {
   const trends = result?.trends ?? [];
 
   return (
-    <div className="bg-black border border-zinc-800 rounded-lg p-6">
+    <div className="bg-surface border border-border rounded-2xl p-6">
       {/* Header */}
       <div className="flex items-start justify-between gap-3 mb-4">
         <div className="flex items-center gap-3">
@@ -128,8 +128,8 @@ export default function LocalTrendRadarCard({ breweryId, userTier }: Props) {
             <Radar className="w-5 h-5 text-blue-400" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-zinc-200">Local Trend Radar</h3>
-            <p className="text-xs text-zinc-500">Bierstil-Nachfrage im {result?.radiusKm ?? radius}-km-Radius</p>
+            <h3 className="text-sm font-bold text-text-primary">Local Trend Radar</h3>
+            <p className="text-xs text-text-muted">Bierstil-Nachfrage im {result?.radiusKm ?? radius}-km-Radius</p>
           </div>
         </div>
         {/* Radius picker */}
@@ -137,14 +137,14 @@ export default function LocalTrendRadarCard({ breweryId, userTier }: Props) {
           <select
             value={radius}
             onChange={(e) => { const r = Number(e.target.value); setRadius(r); load(r); }}
-            className="text-xs bg-zinc-800 border border-zinc-700 text-zinc-300 rounded-md px-2 py-1 focus:outline-none"
+            className="text-xs bg-surface-hover border border-border-hover text-text-secondary rounded-lg px-2 py-1 focus:outline-none"
           >
             {[25, 50, 100, 200].map((r) => <option key={r} value={r}>{r} km</option>)}
           </select>
           <button
             onClick={() => load(radius)}
             disabled={pending}
-            className="p-1.5 rounded-md bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-zinc-200 disabled:opacity-50"
+            className="p-1.5 rounded-lg bg-surface-hover border border-border-hover text-text-secondary hover:text-text-primary disabled:opacity-50"
             title="Neu laden"
           >
             <RefreshCw className="w-3.5 h-3.5" />
@@ -156,20 +156,20 @@ export default function LocalTrendRadarCard({ breweryId, userTier }: Props) {
       {result?.insight && (
         <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-500/5 border border-blue-500/15 mb-4">
           <Lightbulb className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" />
-          <p className="text-xs text-zinc-300 leading-relaxed">{result.insight}</p>
+          <p className="text-xs text-text-secondary leading-relaxed">{result.insight}</p>
         </div>
       )}
 
       {/* No data */}
       {!result?.hasEnoughData && (
         <div className="text-center py-8">
-          <p className="text-sm text-zinc-400">{result?.insight ?? 'Keine Daten verfügbar.'}</p>
+          <p className="text-sm text-text-secondary">{result?.insight ?? 'Keine Daten verfügbar.'}</p>
         </div>
       )}
 
       {/* Trend rows */}
       {result?.hasEnoughData && trends.length === 0 && (
-        <p className="text-sm text-zinc-400 text-center py-6">Keine Stile mit ausreichend Daten (mind. 3 Brauereien).</p>
+        <p className="text-sm text-text-secondary text-center py-6">Keine Stile mit ausreichend Daten (mind. 3 Brauereien).</p>
       )}
       {result?.hasEnoughData && trends.length > 0 && (
         <div className="space-y-2">
@@ -179,7 +179,7 @@ export default function LocalTrendRadarCard({ breweryId, userTier }: Props) {
 
       {/* Legend */}
       {result?.hasEnoughData && result.periodDays && (
-        <p className="text-xs text-zinc-600 mt-3 text-right">
+        <p className="text-xs text-text-disabled mt-3 text-right">
           Vergleich: letzte 60 Tage vs. 60 Tage davor · Plattformweit anonymisiert
         </p>
       )}

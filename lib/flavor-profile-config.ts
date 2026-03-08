@@ -14,7 +14,8 @@ export interface FlavorDimension {
   labelShort: string; // For radar chart labels
   minLabel: string;
   maxLabel: string;
-  icon: string; // Emoji
+  icon: string; // Emoji (legacy, prefer lucide icons in UI)
+  hexColor: string; // CSS hex color — use for inline styles/SVG
   description: string;
   color: string; // Tailwind color class for charts
 }
@@ -47,6 +48,7 @@ export const FLAVOR_DIMENSIONS: FlavorDimension[] = [
     icon: '🍯',
     description: 'Restsüße im Bier — von trocken/herb bis deutlich süß.',
     color: 'text-amber-400',
+    hexColor: '#fbbf24',
   },
   {
     id: 'bitterness',
@@ -57,6 +59,7 @@ export const FLAVOR_DIMENSIONS: FlavorDimension[] = [
     icon: '🌿',
     description: 'Hopfen-Bitterkeit — von sanft bis aggressiv bitter.',
     color: 'text-green-400',
+    hexColor: '#4ade80',
   },
   {
     id: 'body',
@@ -67,6 +70,7 @@ export const FLAVOR_DIMENSIONS: FlavorDimension[] = [
     icon: '🏋️',
     description: 'Mundgefühl — von wässrig/leicht bis schwer/vollmundig.',
     color: 'text-blue-400',
+    hexColor: '#60a5fa',
   },
   {
     id: 'roast',
@@ -77,6 +81,7 @@ export const FLAVOR_DIMENSIONS: FlavorDimension[] = [
     icon: '☕',
     description: 'Röstaromen — von keiner Röstung bis Kaffee/Schokolade.',
     color: 'text-orange-400',
+    hexColor: '#fb923c',
   },
   {
     id: 'fruitiness',
@@ -87,6 +92,7 @@ export const FLAVOR_DIMENSIONS: FlavorDimension[] = [
     icon: '🍑',
     description: 'Fruchtaromen — von neutral bis tropisch/beerig.',
     color: 'text-pink-400',
+    hexColor: '#f472b6',
   },
 ];
 
@@ -102,8 +108,9 @@ export const EMPTY_FLAVOR_PROFILE: FlavorProfile = {
 
 /**
  * Calculate match score between two flavor profiles (0–1).
- * Uses normalized Euclidean distance inverted to similarity.
- * 1.0 = perfect match, 0.0 = maximum difference.
+ * Uses normalized Euclidean distance inverted to similarity,
+ * with a minimum-spread floor (Phase 5.2) so random 50/50/50/50/50
+ * guesses land at ~30% instead of ~50%.
  */
 export function calculateMatchScore(
   playerProfile: Omit<FlavorProfile, 'source'>,
@@ -120,8 +127,12 @@ export function calculateMatchScore(
   // Max possible distance = sqrt(5 * 1^2) = sqrt(5) ≈ 2.236
   const maxDistance = Math.sqrt(dims.length);
   const distance = Math.sqrt(sumSquaredDiff);
+  const rawScore = Math.max(0, Math.min(1, 1 - distance / maxDistance));
 
-  return Math.max(0, Math.min(1, 1 - distance / maxDistance));
+  // Phase 5.2: Minimum-spread floor — subtract 0.2 and renormalize to 0–1.
+  // Random guesses (~0.50 raw) → ~0.375, perfect match (1.0) stays 1.0.
+  const FLOOR = 0.2;
+  return Math.max(0, Math.min(1, (rawScore - FLOOR) / (1 - FLOOR)));
 }
 
 /**

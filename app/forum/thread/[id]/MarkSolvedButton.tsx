@@ -26,8 +26,8 @@ export default function MarkSolvedButton({ threadId, isSolved }: MarkSolvedButto
             disabled={isPending}
             className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg border transition disabled:opacity-50
                 ${solved
-                    ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/25'
-                    : 'bg-zinc-800/60 border-zinc-700 text-zinc-400 hover:text-zinc-200 hover:border-zinc-600'
+                    ? 'bg-success/15 border-success/30 text-success hover:bg-success/25'
+                    : 'bg-surface-hover/60 border-border-hover text-text-secondary hover:text-foreground hover:border-border-active'
                 }`}
         >
             {solved

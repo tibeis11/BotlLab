@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useSupabase } from '@/lib/hooks/useSupabase'
 import Link from 'next/link'
 import Logo from '@/app/components/Logo'
+import { CheckCircle } from 'lucide-react'
 
 export default function ResetPasswordPage() {
   const supabase = useSupabase()
@@ -66,7 +67,7 @@ export default function ResetPasswordPage() {
   if (!sessionReady) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-zinc-700 border-t-cyan-400 rounded-full animate-spin" />
+        <div className="w-6 h-6 border-2 border-border border-t-brand rounded-full animate-spin" />
       </div>
     )
   }
@@ -80,9 +81,9 @@ export default function ResetPasswordPage() {
       {/* Back link */}
       <Link
         href="/login"
-        className="absolute top-8 left-8 flex items-center gap-2 text-zinc-400 hover:text-white transition group"
+        className="absolute top-8 left-8 flex items-center gap-2 text-text-muted hover:text-text-primary transition group"
       >
-        <div className="w-8 h-8 bg-zinc-900 border border-zinc-800 rounded-lg flex items-center justify-center group-hover:border-cyan-500 transition">
+        <div className="w-8 h-8 bg-surface border border-border rounded-lg flex items-center justify-center group-hover:border-brand transition">
           ←
         </div>
         <span className="text-sm font-bold hidden sm:block">Zum Login</span>
@@ -94,20 +95,20 @@ export default function ResetPasswordPage() {
           <div className="mb-4 scale-125">
             <Logo />
           </div>
-          <p className="text-zinc-500 text-sm">Neues Passwort festlegen</p>
+          <p className="text-text-muted text-sm">Neues Passwort festlegen</p>
         </div>
 
-        <div className="bg-zinc-900/50 backdrop-blur-xl border border-zinc-800/50 rounded-3xl p-8 shadow-2xl">
+        <div className="bg-surface/50 backdrop-blur-xl border border-border/50 rounded-3xl p-8 shadow-xl">
           {done ? (
             <div className="text-center space-y-4 py-4">
-              <div className="text-4xl">✅</div>
-              <p className="text-white font-bold text-lg">Passwort geändert!</p>
-              <p className="text-zinc-400 text-sm">Du wirst in Kürze zum Login weitergeleitet…</p>
+              <CheckCircle className="w-10 h-10 text-success mx-auto" />
+              <p className="text-text-primary font-bold text-lg">Passwort geändert!</p>
+              <p className="text-text-muted text-sm">Du wirst in Kürze zum Login weitergeleitet…</p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">
+                <label className="block text-xs font-bold uppercase tracking-widest text-text-disabled mb-2">
                   Neues Passwort
                 </label>
                 <div className="relative">
@@ -118,12 +119,12 @@ export default function ResetPasswordPage() {
                     minLength={8}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-zinc-950/50 border border-zinc-800 p-4 pr-12 rounded-xl focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition text-white placeholder:text-zinc-600"
+                    className="w-full bg-background/50 border border-border p-4 pr-12 rounded-xl focus:border-brand focus:ring-2 focus:ring-brand/20 outline-none transition text-text-primary placeholder:text-text-disabled"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-text-disabled hover:text-text-primary transition"
                   >
                     {showPassword ? (
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
@@ -137,13 +138,13 @@ export default function ResetPasswordPage() {
                     )}
                   </button>
                 </div>
-                <p className="text-[10px] text-zinc-500 mt-2 px-1">
+                <p className="text-[10px] text-text-disabled mt-2 px-1">
                   Min. 8 Zeichen, Klein- &amp; Großbuchstaben, Zahlen &amp; Symbole.
                 </p>
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">
+                <label className="block text-xs font-bold uppercase tracking-widest text-text-disabled mb-2">
                   Passwort bestätigen
                 </label>
                 <input
@@ -153,12 +154,12 @@ export default function ResetPasswordPage() {
                   minLength={8}
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
-                  className={`w-full bg-zinc-950/50 border p-4 rounded-xl focus:ring-2 outline-none transition text-white placeholder:text-zinc-600 ${
+                  className={`w-full bg-background/50 border p-4 rounded-xl focus:ring-2 outline-none transition text-text-primary placeholder:text-text-disabled ${
                     confirm && confirm !== password
                       ? 'border-red-500/60 focus:border-red-400 focus:ring-red-400/20'
                       : confirm && confirm === password
                       ? 'border-emerald-500/60 focus:border-emerald-400 focus:ring-emerald-400/20'
-                      : 'border-zinc-800 focus:border-cyan-500 focus:ring-cyan-500/20'
+                      : 'border-border focus:border-brand focus:ring-brand/20'
                   }`}
                 />
                 {confirm && confirm === password && (

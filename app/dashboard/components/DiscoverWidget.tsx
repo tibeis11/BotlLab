@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useSupabase } from '@/lib/hooks/useSupabase';
 import Link from 'next/link';
-import BrewCard from '@/app/components/BrewCard';
-import { Flame, Compass } from 'lucide-react';
+import DiscoverBrewCard from '@/app/components/DiscoverBrewCard';
+import { Compass } from 'lucide-react';
 
 interface TrendingBrew {
     id: string;
@@ -29,8 +29,6 @@ export default function DiscoverWidget() {
     useEffect(() => {
         async function fetchTrending() {
             try {
-                // Fetch public brews with likes_count...
-                
                 const { data, error } = await supabase
                     .from('brews')
                     .select('id,name,style,image_url,created_at,user_id,likes_count,data,breweries(id,name,logo_url,moderation_status)')
@@ -41,7 +39,6 @@ export default function DiscoverWidget() {
 
                 if (error) throw error;
 
-                // Transform data
                 const formatted = (data || []).map((b: any) => ({
                     id: b.id,
                     name: b.name,
@@ -61,7 +58,6 @@ export default function DiscoverWidget() {
                     }
                 }));
 
-                // If user is logged in, fetch which of these brews the user has liked
                 try {
                     const { data: userData } = await supabase.auth.getUser();
                     const user = userData?.user;
@@ -94,8 +90,8 @@ export default function DiscoverWidget() {
 
     if (loading) {
         return (
-            <div className="bg-zinc-900/50 border border-zinc-800 rounded-3xl p-6 min-h-[200px] animate-pulse flex items-center justify-center">
-                <span className="text-zinc-600 font-bold">Lade angesagte Rezepte...</span>
+            <div className="min-h-[200px] animate-pulse flex items-center justify-center">
+                <span className="text-text-disabled font-bold text-sm">Lade angesagte Rezepte...</span>
             </div>
         );
     }
@@ -103,21 +99,19 @@ export default function DiscoverWidget() {
     if (trendingBrews.length === 0) return null;
 
     return (
-        /* Scroll Container - Pure Component without Header/Container */
-        <div className="flex gap-4 overflow-x-auto pb-4 pt-2 px-2 snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:scrollbar-thin md:[&::-webkit-scrollbar]:block md:scrollbar-thumb-zinc-700 md:scrollbar-track-transparent">
+        <div className="flex gap-4 overflow-x-auto pb-4 pt-2 px-2 snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {trendingBrews.map(brew => (
                 <div key={brew.id} className="min-w-[280px] w-[280px] snap-start first:ml-0">
-                    <BrewCard brew={{
+                    <DiscoverBrewCard brew={{
                         ...brew,
                         brewery: brew.brewery,
                         likes_count: brew.likes_count,
-                    }} forceVertical />
+                    }} variant="portrait" />
                 </div>
             ))}
-            {/* View More Card */}
             <Link 
                 href="/discover"
-                className="min-w-[100px] snap-center bg-zinc-900/30 border border-zinc-800/50 border-dashed rounded-xl flex flex-col items-center justify-center gap-2 text-zinc-500 hover:text-white hover:bg-zinc-900 hover:border-zinc-700 transition group"
+                className="min-w-[100px] snap-center bg-surface border border-border-subtle border-dashed rounded-xl flex flex-col items-center justify-center gap-2 text-text-muted hover:text-text-primary hover:bg-surface-hover hover:border-border-hover transition-all group"
             >
                 <Compass size={24} className="opacity-50 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" />
                 <span className="text-[10px] uppercase font-bold tracking-widest opacity-70 group-hover:opacity-100">Mehr...</span>

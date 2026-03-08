@@ -9,6 +9,7 @@
 // ============================================================================
 
 import React, { useEffect, useState } from 'react';
+import { Target, Gift } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   claimBounty,
@@ -103,12 +104,12 @@ export default function BrewBounties({ brewId, latestMatchScore }: BrewBountiesP
           return (
             <div
               key={bounty.id}
-              className={`bg-zinc-900 border rounded-2xl p-5 space-y-3 ${
+              className={`bg-surface border rounded-2xl p-5 space-y-3 ${
                 bounty.userClaimed
                   ? 'border-amber-700/50'
                   : unavailable
-                  ? 'border-zinc-800 opacity-60'
-                  : 'border-zinc-800'
+                  ? 'border-border opacity-60'
+                  : 'border-border'
               }`}
             >
               <div className="flex items-start justify-between gap-3">
@@ -116,8 +117,8 @@ export default function BrewBounties({ brewId, latestMatchScore }: BrewBountiesP
                   <span className="text-[10px] font-black uppercase tracking-widest text-amber-500">
                     {formatRewardType(bounty.rewardType)}
                   </span>
-                  <h3 className="text-base font-black text-white">{bounty.title}</h3>
-                  <p className="text-sm text-zinc-400">{bounty.description}</p>
+                  <h3 className="text-base font-black text-text-primary">{bounty.title}</h3>
+                  <p className="text-sm text-text-secondary">{bounty.description}</p>
                 </div>
                 {bounty.userClaimed && (
                   <span className="flex-shrink-0 text-[10px] font-black uppercase tracking-widest bg-amber-500/10 border border-amber-700 text-amber-400 rounded-full px-2.5 py-1">
@@ -126,9 +127,9 @@ export default function BrewBounties({ brewId, latestMatchScore }: BrewBountiesP
                 )}
               </div>
 
-              <div className="text-xs text-zinc-500 space-y-0.5">
-                <p>🎯 {formatCondition(bounty.conditionType, bounty.conditionValue)}</p>
-                <p>🎁 Reward: <span className="text-zinc-300 font-medium">{bounty.rewardValue}</span></p>
+              <div className="text-xs text-text-muted space-y-0.5">
+                <p className="flex items-center gap-1"><Target className="w-3.5 h-3.5 inline shrink-0" /> {formatCondition(bounty.conditionType, bounty.conditionValue)}</p>
+                <p className="flex items-center gap-1"><Gift className="w-3.5 h-3.5 inline shrink-0" /> Reward: <span className="text-text-secondary font-medium">{bounty.rewardValue}</span></p>
                 {bounty.maxClaims && (
                   <p>📊 {bounty.claimCount}/{bounty.maxClaims} Einlösungen</p>
                 )}
@@ -143,8 +144,8 @@ export default function BrewBounties({ brewId, latestMatchScore }: BrewBountiesP
                   <p className="text-[10px] uppercase font-black tracking-widest text-amber-500">
                     Dein Reward-Code
                   </p>
-                  <p className="text-2xl font-black text-white tracking-[0.15em]">{code}</p>
-                  <p className="text-[11px] text-zinc-500">
+                  <p className="text-2xl font-black text-text-primary tracking-[0.15em]">{code}</p>
+                  <p className="text-[11px] text-text-muted">
                     Zeig diesen Code beim nächsten Kauf / Taproom-Besuch.
                   </p>
                 </div>
@@ -163,20 +164,20 @@ export default function BrewBounties({ brewId, latestMatchScore }: BrewBountiesP
 
               {/* Not qualified hint */}
               {!bounty.userClaimed && !unavailable && user && !qualifies && (
-                <p className="text-xs text-zinc-600 text-center">
+                <p className="text-xs text-text-disabled text-center">
                   Spiele Beat the Brewer um die Bedingung zu erfüllen.
                 </p>
               )}
 
               {/* Not logged in hint */}
               {!user && (
-                <p className="text-xs text-zinc-600 text-center">
+                <p className="text-xs text-text-disabled text-center">
                   Melde dich an, um Bounties einzulösen.
                 </p>
               )}
 
               {unavailable && (
-                <p className="text-xs text-zinc-600 text-center">
+                <p className="text-xs text-text-disabled text-center">
                   {expired ? 'Diese Bounty ist abgelaufen.' : 'Alle Rewards wurden vergeben.'}
                 </p>
               )}

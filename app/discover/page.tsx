@@ -97,11 +97,11 @@ async function getFeaturedBrews() {
 function DiscoverSkeleton() {
   return (
     <div className="max-w-6xl mx-auto px-4 pt-8 pb-20">
-      <div className="h-10 w-64 bg-zinc-900 rounded-xl animate-pulse mb-4" />
-      <div className="h-14 bg-zinc-900 rounded-2xl animate-pulse mb-6" />
+      <div className="h-10 w-64 bg-surface rounded-xl animate-pulse mb-4" />
+      <div className="h-14 bg-surface rounded-2xl animate-pulse mb-6" />
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="h-72 bg-zinc-900/40 rounded-2xl border border-zinc-800 animate-pulse" />
+          <div key={i} className="h-72 bg-surface/40 rounded-2xl border border-border animate-pulse" />
         ))}
       </div>
     </div>

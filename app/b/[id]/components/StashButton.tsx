@@ -99,9 +99,9 @@ export default function StashButton({ brewId, brewName }: StashButtonProps) {
           <span className="text-2xl shrink-0">🥶</span>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-bold text-emerald-400 leading-snug">Im Keller gespeichert</p>
-            <p className="text-[11px] text-zinc-500 mt-0.5">Tippen zum Entfernen</p>
+            <p className="text-[11px] text-text-muted mt-0.5">Tippen zum Entfernen</p>
           </div>
-          <svg className="w-4 h-4 text-zinc-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+          <svg className="w-4 h-4 text-text-disabled shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
       ) : (
         <button
@@ -111,14 +111,14 @@ export default function StashButton({ brewId, brewName }: StashButtonProps) {
             setShowModal(true);
           }}
           disabled={loading}
-          className="w-full flex items-center gap-4 bg-zinc-900/60 border border-zinc-800 rounded-2xl px-5 py-4 text-left hover:bg-zinc-800/60 transition-colors disabled:opacity-50 group"
+          className="w-full flex items-center gap-4 bg-surface/60 border border-border rounded-2xl px-5 py-4 text-left hover:bg-surface-hover/60 transition-colors disabled:opacity-50 group"
         >
           <span className="text-2xl shrink-0">🗂️</span>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-zinc-200 leading-snug group-hover:text-white transition-colors">In meinen Keller legen</p>
-            <p className="text-[11px] text-zinc-500 mt-0.5">Speichere Biere, die du kennst &amp; liebst · <span className="text-cyan-500">+5 IQ</span></p>
+            <p className="text-sm font-bold text-text-secondary leading-snug group-hover:text-text-primary transition-colors">In meinen Keller legen</p>
+            <p className="text-[11px] text-text-muted mt-0.5">Speichere Biere, die du kennst &amp; liebst · <span className="text-brand">+5 IQ</span></p>
           </div>
-          <svg className="w-4 h-4 text-zinc-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+          <svg className="w-4 h-4 text-text-disabled shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
         </button>
       )}
 
@@ -128,19 +128,19 @@ export default function StashButton({ brewId, brewName }: StashButtonProps) {
           className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-4"
           onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false); }}
         >
-          <div role="dialog" aria-modal="true" aria-label="In Stash hinzufügen" className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md p-6 space-y-5 shadow-2xl">
+          <div role="dialog" aria-modal="true" aria-label="In Stash hinzufügen" className="bg-surface border border-border rounded-2xl w-full max-w-md p-6 space-y-5 shadow-2xl">
 
             {step === 'location' ? (
               <>
                 <div className="space-y-1">
-                  <p className="text-[10px] uppercase font-black tracking-[0.2em] text-cyan-500">
+                  <p className="text-[10px] uppercase font-black tracking-[0.2em] text-brand">
                     Stash
                   </p>
-                  <h3 className="text-xl font-black text-white">
+                  <h3 className="text-xl font-black text-text-primary">
                     Wo hast du diesen Schatz gehoben?
                   </h3>
-                  <p className="text-xs text-zinc-500">
-                    Optional — du bekommst <span className="text-cyan-400 font-bold">+5 Tasting IQ</span> für die Angabe.
+                  <p className="text-xs text-text-muted">
+                    Optional — du bekommst <span className="text-brand font-bold">+5 Tasting IQ</span> für die Angabe.
                   </p>
                 </div>
 
@@ -155,8 +155,8 @@ export default function StashButton({ brewId, brewName }: StashButtonProps) {
                       disabled={loading}
                       className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium text-left transition-all ${
                         selectedLocation === loc
-                          ? 'border-cyan-500 bg-cyan-500/10 text-white'
-                          : 'border-zinc-700 text-zinc-300 hover:border-zinc-500 hover:text-white'
+                          ? 'border-brand bg-brand/10 text-text-primary'
+                          : 'border-border text-text-secondary hover:border-border-hover hover:text-text-primary'
                       } disabled:opacity-50`}
                     >
                       <span className="text-lg">{label.split(' ')[0]}</span>
@@ -168,7 +168,7 @@ export default function StashButton({ brewId, brewName }: StashButtonProps) {
                 <button
                   onClick={() => handleAdd(null)}
                   disabled={loading}
-                  className="w-full text-center text-xs text-zinc-600 hover:text-zinc-400 transition-colors py-1"
+                  className="w-full text-center text-xs text-text-disabled hover:text-text-secondary transition-colors py-1"
                 >
                   Überspringen (kein Bonus)
                 </button>
@@ -178,17 +178,17 @@ export default function StashButton({ brewId, brewName }: StashButtonProps) {
               <div className="flex flex-col items-center text-center space-y-4 py-4">
                 <span className="text-5xl">🥶</span>
                 <div className="space-y-1.5">
-                  <p className="text-xl font-black text-white">Im Stash!</p>
-                  <p className="text-sm text-zinc-400">
-                    <span className="font-semibold text-white">{brewName}</span> liegt jetzt kalt.
+                  <p className="text-xl font-black text-text-primary">Im Stash!</p>
+                  <p className="text-sm text-text-secondary">
+                    <span className="font-semibold text-text-primary">{brewName}</span> liegt jetzt kalt.
                   </p>
                   {selectedLocation && (
-                    <p className="text-xs text-cyan-400 font-bold">+5 Tasting IQ gutgeschrieben 🧠</p>
+                    <p className="text-xs text-brand font-bold">+5 Tasting IQ gutgeschrieben 🧠</p>
                   )}
                 </div>
                 <button
                   onClick={() => setShowModal(false)}
-                  className="mt-2 bg-zinc-800 text-white text-sm font-medium rounded-xl px-6 py-2.5 hover:bg-zinc-700 transition-all"
+                  className="mt-2 bg-surface-hover text-text-primary text-sm font-medium rounded-xl px-6 py-2.5 hover:bg-border transition-all"
                 >
                   OK
                 </button>

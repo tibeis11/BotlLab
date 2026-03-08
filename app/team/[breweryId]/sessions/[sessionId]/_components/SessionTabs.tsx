@@ -30,7 +30,7 @@ export function SessionTabs({ activeTab, setActiveTab, currentPhase }: SessionTa
     ] as const;
 
     return (
-        <nav className="w-56 hidden lg:flex flex-col border-r border-zinc-900 bg-black shrink-0 sticky top-0 self-start min-h-screen p-4 overflow-y-auto">
+        <nav className="w-56 hidden lg:flex flex-col border-r border-border bg-background shrink-0 sticky top-0 self-start min-h-screen p-4 overflow-y-auto">
             {/* Logo or Brand could go here if not in outer layout */}
             <div className="flex flex-col gap-1">
                 {tabs.map((tab) => {
@@ -53,16 +53,16 @@ export function SessionTabs({ activeTab, setActiveTab, currentPhase }: SessionTa
                             onClick={() => setActiveTab(tab.id as SessionTab)}
                             className={`flex items-center justify-between w-full min-h-[48px] px-3 py-2 rounded-md text-sm font-medium transition-all ${
                                 isActive 
-                                    ? 'bg-zinc-800 text-white shadow-sm' 
-                                    : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
+                                    ? 'bg-surface-hover text-text-primary shadow-sm' 
+                                    : 'text-text-muted hover:bg-surface hover:text-text-primary'
                             }`}
                         >
                             <div className="flex items-center gap-3">
-                                <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-zinc-500'}`} />
+                                <Icon className={`w-5 h-5 ${isActive ? 'text-text-primary' : 'text-text-disabled'}`} />
                                 {tab.label}
                             </div>
                             {isCurrentPhase && (
-                                <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.6)]" />
+                                <span className="w-1.5 h-1.5 rounded-full bg-brand shadow-[0_0_8px_var(--color-brand)]" />
                             )}
                         </button>
                     );
@@ -107,15 +107,15 @@ export function MobileSessionTabs({ activeTab, setActiveTab }: SessionTabsProps)
     const isOverflowActive = overflowTabs.some(t => t.id === activeTab);
 
     return (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-zinc-950 border-t border-zinc-900 z-50" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 8px)' }}>
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-border z-50" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 8px)' }}>
             
             {/* More Menu Drawer */}
             {isMoreOpen && (
                 <div 
                     ref={moreMenuRef}
-                    className="absolute bottom-full right-0 mb-2 mr-2 w-48 bg-zinc-900 border border-zinc-800 rounded-lg shadow-xl overflow-hidden animate-in slide-in-from-bottom-2 fade-in duration-200"
+                    className="absolute bottom-full right-0 mb-2 mr-2 w-48 bg-surface border border-border rounded-lg shadow-xl overflow-hidden animate-in slide-in-from-bottom-2 fade-in duration-200"
                 >
-                    <div className="flex flex-col divide-y divide-zinc-800">
+                    <div className="flex flex-col divide-y divide-border">
                         {overflowTabs.map(tab => {
                             const isActive = activeTab === tab.id;
                             const Icon = tab.icon;
@@ -127,12 +127,12 @@ export function MobileSessionTabs({ activeTab, setActiveTab }: SessionTabsProps)
                                         setIsMoreOpen(false);
                                     }}
                                     className={`flex items-center gap-3 w-full p-4 text-left transition-colors ${
-                                        isActive ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200'
+                                        isActive ? 'bg-surface-hover text-text-primary' : 'text-text-muted hover:bg-surface-hover/50 hover:text-text-primary'
                                     }`}
                                 >
                                     <Icon className="w-5 h-5" />
                                     <span className="font-medium text-sm">{tab.label}</span>
-                                    {isActive && <CheckCircle2 className="w-4 h-4 text-cyan-500 ml-auto" />}
+                                    {isActive && <CheckCircle2 className="w-4 h-4 text-brand ml-auto" />}
                                 </button>
                             );
                         })}
@@ -152,7 +152,7 @@ export function MobileSessionTabs({ activeTab, setActiveTab }: SessionTabsProps)
                                 setIsMoreOpen(false);
                             }}
                             className={`flex flex-col items-center justify-center flex-1 h-full gap-1 active:scale-95 transition-transform ${
-                                isActive ? 'text-white' : 'text-zinc-500'
+                                isActive ? 'text-text-primary' : 'text-text-disabled'
                             }`}
                         >
                             <Icon className={`w-6 h-6 ${isActive ? 'fill-current/10' : ''}`} />
@@ -165,7 +165,7 @@ export function MobileSessionTabs({ activeTab, setActiveTab }: SessionTabsProps)
                 <button
                     onClick={() => setIsMoreOpen(!isMoreOpen)}
                     className={`flex flex-col items-center justify-center flex-1 h-full gap-1 active:scale-95 transition-transform ${
-                        isOverflowActive || isMoreOpen ? 'text-white' : 'text-zinc-500'
+                        isOverflowActive || isMoreOpen ? 'text-text-primary' : 'text-text-muted'
                     }`}
                 >
                     <MoreHorizontal className={`w-6 h-6 ${(isOverflowActive || isMoreOpen) ? 'fill-current/10' : ''}`} />

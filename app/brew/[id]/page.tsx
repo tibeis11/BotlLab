@@ -509,10 +509,10 @@ export default function BrewDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="text-6xl mb-4">🍺</div>
-          <p className="text-zinc-500">Lade Rezept...</p>
+          <p className="text-text-muted">Lade Rezept...</p>
         </div>
       </div>
     );
@@ -520,11 +520,11 @@ export default function BrewDetailPage() {
 
   if (errorMsg || !brew) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center max-w-md">
           <div className="text-6xl mb-4">❌</div>
-          <h1 className="text-2xl font-bold text-white mb-2">Rezept nicht gefunden</h1>
-          <p className="text-zinc-500 mb-6">{errorMsg || "Dieses Rezept existiert nicht oder wurde gelöscht."}</p>
+          <h1 className="text-2xl font-bold text-text-primary mb-2">Rezept nicht gefunden</h1>
+          <p className="text-text-muted mb-6">{errorMsg || "Dieses Rezept existiert nicht oder wurde gelöscht."}</p>
           <Link href="/" className="text-cyan-500 hover:underline">← Zurück zur Startseite</Link>
         </div>
       </div>
@@ -575,7 +575,7 @@ export default function BrewDetailPage() {
   });
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-background text-text-primary">
       <Header breweryId={brew.brewery_id} />
 
       <BrewHero
@@ -652,11 +652,11 @@ export default function BrewDetailPage() {
 
       {/* Save to Team Modal */}
       {saveModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-surface border border-border rounded-2xl w-full max-w-md p-6 shadow-2xl">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-white">In Team-Bibliothek speichern</h3>
-              <button onClick={() => setSaveModalOpen(false)} className="text-zinc-500 hover:text-zinc-300">✕</button>
+              <h3 className="text-xl font-bold text-text-primary">In Team-Bibliothek speichern</h3>
+              <button onClick={() => setSaveModalOpen(false)} className="text-text-muted hover:text-text-secondary">✕</button>
             </div>
             <div className="space-y-2 max-h-[60vh] overflow-y-auto">
               {userBreweries.map(b => (
@@ -667,22 +667,22 @@ export default function BrewDetailPage() {
                   className={`w-full text-left p-4 rounded-xl border flex items-center gap-4 group disabled:opacity-50 transition-all ${
                     savedInBreweryIds.has(b.id)
                       ? 'bg-emerald-900/10 border-emerald-500/20 cursor-default'
-                      : 'bg-zinc-950 border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 hover:shadow-lg'
+                      : 'bg-background border-border hover:bg-surface-hover hover:border-border-hover hover:shadow-lg'
                   }`}
                 >
                   {b.logo_url ? (
-                    <img src={b.logo_url} className="w-12 h-12 rounded-full object-cover border border-zinc-800" />
+                    <img src={b.logo_url} className="w-12 h-12 rounded-full object-cover border border-border" />
                   ) : (
-                    <div className="w-12 h-12 rounded-full bg-zinc-800 flex items-center justify-center text-xl">🏭</div>
+                    <div className="w-12 h-12 rounded-full bg-surface-hover flex items-center justify-center text-xl">🏭</div>
                   )}
                   <div className="flex-1">
                     <div className="flex justify-between items-center">
-                      <span className={`font-bold text-lg block transition ${savedInBreweryIds.has(b.id) ? 'text-emerald-500' : 'text-white group-hover:text-cyan-400'}`}>
+                      <span className={`font-bold text-lg block transition ${savedInBreweryIds.has(b.id) ? 'text-emerald-500' : 'text-text-primary group-hover:text-cyan-400'}`}>
                         {b.name}
                       </span>
                       {savedInBreweryIds.has(b.id) && <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
                     </div>
-                    <span className="text-xs text-zinc-500">
+                    <span className="text-xs text-text-muted">
                       {savedInBreweryIds.has(b.id) ? 'Bereits gespeichert' : 'Klicken zum Speichern'}
                     </span>
                   </div>

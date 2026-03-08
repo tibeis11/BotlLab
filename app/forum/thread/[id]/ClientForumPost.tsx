@@ -50,13 +50,13 @@ export default function ClientForumPost({ post, threadAuthorId, initialCounts, i
     const contentToRender = (post.content || '').trim();
 
     return (
-        <div className="bg-zinc-900/10 border border-zinc-800/60 rounded-2xl ml-0 md:ml-4 overflow-hidden group hover:border-zinc-700/50 transition duration-300">
+        <div className="bg-surface/10 border border-border rounded-2xl ml-0 md:ml-4 overflow-hidden group hover:border-border-hover/50 transition duration-300">
             {/* Header */}
-            <div className="px-4 py-3 bg-gradient-to-r from-zinc-900/60 to-transparent border-b border-zinc-800/40 flex items-center justify-between backdrop-blur-sm">
+            <div className="px-4 py-3 bg-gradient-to-r from-surface/60 to-transparent border-b border-border flex items-center justify-between backdrop-blur-sm">
                 <div className="flex items-center gap-3">
                     {post.author ? (
                         <Link href={`/brewer/${post.author.id}`} className="flex items-center gap-3 group/author">
-                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs overflow-hidden relative shadow-lg bg-zinc-900 border-2 border-zinc-700 transition">
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs overflow-hidden relative shadow-lg bg-surface border-2 border-border-hover transition">
                                 <img
                                     src={post.author.avatar_url || '/default_label/default.webp'}
                                     alt=""
@@ -64,11 +64,11 @@ export default function ClientForumPost({ post, threadAuthorId, initialCounts, i
                                 />
                             </div>
                             <div className="flex items-baseline gap-2">
-                                <span className="font-bold text-zinc-200 text-sm group-hover/author:text-emerald-400 transition">
+                                <span className="font-bold text-foreground text-sm group-hover/author:text-brand transition">
                                     {post.author.display_name}
                                 </span>
                                 {post.author_id === threadAuthorId && (
-                                    <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                                    <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-brand/10 text-brand border border-brand/20">
                                         Autor
                                     </span>
                                 )}
@@ -76,27 +76,27 @@ export default function ClientForumPost({ post, threadAuthorId, initialCounts, i
                         </Link>
                     ) : (
                         <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-500 ring-1 ring-white/10">
+                            <div className="w-8 h-8 rounded-full bg-surface-hover flex items-center justify-center text-text-muted ring-1 ring-white/10">
                                 <User size={14} />
                             </div>
-                            <span className="font-bold text-zinc-200 text-sm">Gelöschter Nutzer</span>
+                            <span className="font-bold text-foreground text-sm">Gelöschter Nutzer</span>
                         </div>
                     )}
                 </div>
-                <div className="text-xs text-zinc-600 font-medium">
-                    {new Date(post.created_at).toLocaleDateString()} <span className="text-zinc-700 mx-1">|</span> {new Date(post.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                <div className="text-xs text-text-disabled font-medium">
+                    {new Date(post.created_at).toLocaleDateString()} <span className="text-text-disabled mx-1">|</span> {new Date(post.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </div>
             </div>
 
             <div className="p-4 md:p-5">
                 {isDeleted ? (
-                    <p className="text-zinc-600 text-sm italic">[Dieser Beitrag wurde gelöscht]</p>
+                    <p className="text-text-disabled text-sm italic">[Dieser Beitrag wurde gelöscht]</p>
                 ) : (
                     <MarkdownContent content={contentToRender} />
                 )}
 
                 {!isDeleted && isEdited && (
-                    <p className="mt-2 text-[10px] text-zinc-600 italic">
+                    <p className="mt-2 text-[10px] text-text-disabled italic">
                         Bearbeitet am {new Date(post.updated_at!).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                     </p>
                 )}

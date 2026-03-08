@@ -113,8 +113,8 @@ export default function BreweryTierWidget({ breweryId }: { breweryId: string }) 
 
   if (loading || !data) {
     return (
-      <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-xl animate-pulse mb-8">
-        <div className="h-20 bg-zinc-800 rounded-xl"></div>
+      <div className="bg-surface border border-border rounded-3xl p-6 shadow-xl animate-pulse mb-8">
+        <div className="h-20 bg-surface-hover rounded-xl"></div>
       </div>
     );
   }
@@ -139,7 +139,7 @@ export default function BreweryTierWidget({ breweryId }: { breweryId: string }) 
   // Premium Widget for Brewery users
   if (isPremiumUser && premiumStatus) {
     return (
-      <div className="bg-gradient-to-br from-purple-900/20 to-zinc-900/10 border border-purple-500/20 rounded-3xl p-6 shadow-xl relative overflow-hidden mb-8">
+      <div className="bg-gradient-to-br from-purple-900/20 to-background/10 border border-purple-500/20 rounded-3xl p-6 shadow-xl relative overflow-hidden mb-8">
         <div 
           className="absolute inset-0 opacity-10 blur-3xl pointer-events-none"
           style={{ background: `radial-gradient(circle at top right, #a855f7, transparent)` }}
@@ -164,15 +164,15 @@ export default function BreweryTierWidget({ breweryId }: { breweryId: string }) 
             
             <div className="hidden sm:block">
               <div className="text-right">
-                <div className="text-xs text-zinc-500 font-bold uppercase tracking-wider">Status</div>
+                <div className="text-xs text-text-disabled font-bold uppercase tracking-wider">Status</div>
                 <div className="text-lg font-black text-emerald-400">Aktiv</div>
               </div>
             </div>
           </div>
 
           {/* Active Benefits */}
-          <div className="bg-zinc-900/50 rounded-2xl p-4 border border-zinc-800/50">
-            <div className="text-sm font-bold text-white mb-3">Freigeschaltete Features</div>
+          <div className="bg-surface/50 rounded-2xl p-4 border border-border/50">
+            <div className="text-sm font-bold text-text-primary mb-3">Freigeschaltete Features</div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <FeaturePill icon="♾️" label="Unbegrenzte Rezepte" active={premiumStatus.features.bypassBrewLimits} />
               <FeaturePill icon="🍾" label="Unbegrenzte Flaschen" active={premiumStatus.features.bypassBottleLimits} />
@@ -186,16 +186,16 @@ export default function BreweryTierWidget({ breweryId }: { breweryId: string }) 
           </div>
 
           {/* Current Limits Display */}
-          <div className="bg-zinc-900/30 rounded-2xl p-4 border border-zinc-800/30">
-            <div className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-3">Aktuelle Nutzung</div>
+          <div className="bg-surface/30 rounded-2xl p-4 border border-border/30">
+            <div className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-3">Aktuelle Nutzung</div>
             <div className="grid grid-cols-2 gap-4">
               <div className="text-center">
                 <div className="text-2xl font-black text-cyan-400">{data.brewCount}</div>
-                <div className="text-xs text-zinc-500 mt-1">Rezepte</div>
+                <div className="text-xs text-text-disabled mt-1">Rezepte</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-black text-purple-400">{data.bottleCount}</div>
-                <div className="text-xs text-zinc-500 mt-1">Flaschen</div>
+                <div className="text-xs text-text-disabled mt-1">Flaschen</div>
               </div>
             </div>
           </div>
@@ -213,7 +213,7 @@ export default function BreweryTierWidget({ breweryId }: { breweryId: string }) 
 
   // Regular Tier Widget for Free/Brewer users
   return (
-    <div className="bg-gradient-to-br from-emerald-900/20 to-zinc-900/10 border border-emerald-500/20 rounded-3xl p-6 shadow-xl relative overflow-hidden mb-8">
+    <div className="bg-gradient-to-br from-emerald-900/20 to-background/10 border border-emerald-500/20 rounded-3xl p-6 shadow-xl relative overflow-hidden mb-8">
        <div 
         className="absolute inset-0 opacity-10 blur-3xl pointer-events-none"
         style={{ background: `radial-gradient(circle at top right, ${currentConfig.color}, transparent)` }}
@@ -224,13 +224,13 @@ export default function BreweryTierWidget({ breweryId }: { breweryId: string }) 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div 
-              className="text-4xl w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg bg-zinc-900"
+              className="text-4xl w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg bg-surface"
               style={{ border: `1px solid ${currentConfig.color}40`, color: currentConfig.color }}
             >
               {currentConfig.icon}
             </div>
             <div>
-              <div className="text-xs font-bold uppercase tracking-widest text-zinc-500">Brauerei Status</div>
+              <div className="text-xs font-bold uppercase tracking-widest text-text-disabled">Brauerei Status</div>
               <h3 className="text-2xl font-black text-white">{currentConfig.displayName}</h3>
             </div>
           </div>
@@ -268,7 +268,7 @@ export default function BreweryTierWidget({ breweryId }: { breweryId: string }) 
                   <span className="text-lg">💎</span>
                   <div className="text-xs">
                       <div className="font-bold text-purple-400 uppercase tracking-widest">Premium Status Active</div>
-                      <div className="text-zinc-500">Alle Brauerei-Limits wurden durch dein Abo außer Kraft gesetzt.</div>
+                      <div className="text-text-muted">Alle Brauerei-Limits wurden durch dein Abo außer Kraft gesetzt.</div>
                   </div>
               </div>
           </div>
@@ -276,14 +276,14 @@ export default function BreweryTierWidget({ breweryId }: { breweryId: string }) 
 
         {/* Progress System */}
         {!isMaxTier && nextTier && (premiumStatus?.tier !== 'enterprise' && premiumStatus?.tier !== 'brewery') && (
-          <div className="bg-zinc-900/50 rounded-2xl p-4 border border-zinc-800/50">
+          <div className="bg-surface/50 rounded-2xl p-4 border border-border/50">
              <div className="flex justify-between items-center mb-3">
-                <span className="text-sm font-bold text-zinc-300">Nächstes Level: <span style={{ color: nextTier.color }}>{nextTier.displayName}</span></span>
-                <span className="text-xs font-bold text-zinc-500">{unlockedRequirements}/{totalRequirements} Ziele</span>
+                <span className="text-sm font-bold text-text-secondary">Nächstes Level: <span style={{ color: nextTier.color }}>{nextTier.displayName}</span></span>
+                <span className="text-xs font-bold text-text-disabled">{unlockedRequirements}/{totalRequirements} Ziele</span>
              </div>
              
              {/* Progress Bar */}
-             <div className="h-2 bg-zinc-800 rounded-full overflow-hidden mb-4">
+             <div className="h-2 bg-surface-hover rounded-full overflow-hidden mb-4">
                  <div className="h-full transition-all duration-500" style={{ width: `${progress}%`, backgroundColor: nextTier.color }} />
              </div>
 
@@ -304,10 +304,10 @@ export default function BreweryTierWidget({ breweryId }: { breweryId: string }) 
         {/* Benefits Next Tier */}
         {!isMaxTier && nextTier && (premiumStatus?.tier !== 'enterprise' && premiumStatus?.tier !== 'brewery') && (
              <div className="mt-2">
-                <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-600 mb-2">Next Up</div>
-                <div className="flex flex-wrap gap-2 text-xs text-zinc-400">
+                <div className="text-[10px] font-bold uppercase tracking-widest text-text-disabled mb-2">Next Up</div>
+                <div className="flex flex-wrap gap-2 text-xs text-text-muted">
                     {nextTier.benefits.map((b, i) => (
-                        <span key={i} className="px-2 py-1 rounded-md bg-zinc-800/50 border border-zinc-700/50">
+                        <span key={i} className="px-2 py-1 rounded-md bg-surface-hover/50 border border-border/50">
                             {b}
                         </span>
                     ))}
@@ -325,7 +325,7 @@ function Limitpill({ icon, current, max, label, bypassed = false }: { icon: stri
     const isHit = !isUnlimited && current >= max;
     
     return (
-        <div className={`flex flex-col items-end ${isHit ? 'text-red-400' : isClose ? 'text-orange-400' : 'text-zinc-400'}`}>
+        <div className={`flex flex-col items-end ${isHit ? 'text-red-400' : isClose ? 'text-orange-400' : 'text-text-muted'}`}>
             <div className="text-xs font-bold uppercase tracking-wider opacity-60 flex items-center gap-1">
                 {label} {bypassed && <span title="Limit aufgehoben durch Premium">💎</span>}
             </div>
@@ -341,9 +341,9 @@ function Limitpill({ icon, current, max, label, bypassed = false }: { icon: stri
 function GoalItem({ label, current, target }: { label: string, current: number, target: number }) {
     const done = current >= target;
     return (
-        <div className={`flex flex-col items-center justify-center p-2 rounded-lg border ${done ? 'bg-emerald-900/20 border-emerald-500/30 text-emerald-400' : 'bg-zinc-800/50 border-zinc-700/50 text-zinc-500'}`}>
+        <div className={`flex flex-col items-center justify-center p-2 rounded-lg border ${done ? 'bg-emerald-900/20 border-emerald-500/30 text-emerald-400' : 'bg-surface-hover/50 border-border/50 text-text-disabled'}`}>
             <span className="text-[10px] uppercase font-bold tracking-wider mb-1">{label}</span>
-            <span className={`text-sm font-black ${done ? 'text-emerald-400' : 'text-zinc-300'}`}>
+            <span className={`text-sm font-bold ${done ? 'text-emerald-400' : 'text-text-secondary'}`}>
                 {current >= target ? '✓' : `${current}/${target}`}
             </span>
         </div>
@@ -355,7 +355,7 @@ function FeaturePill({ icon, label, active }: { icon: string, label: string, act
         <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${
             active 
                 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
-                : 'bg-zinc-800/50 border-zinc-700/50 text-zinc-500'
+                : 'bg-surface-hover/50 border-border/50 text-text-disabled'
         }`}>
             <span className="text-lg">{icon}</span>
             <span className="text-xs font-bold">{label}</span>

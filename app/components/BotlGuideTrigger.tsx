@@ -1,12 +1,9 @@
 'use client';
 
 import { useGuide, BotlGuideKey } from '@/lib/botlguide/BotlGuideContext';
-import { HelpCircle, Info } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 
-export function BotlGuideTrigger({ guideKey, className, icon = 'help' }: { guideKey: BotlGuideKey, className?: string, icon?: 'help' | 'info' }) {
-    // Determine icon
-    const Icon = icon === 'info' ? Info : HelpCircle;
-    
+export function BotlGuideTrigger({ guideKey, className, icon }: { guideKey: BotlGuideKey, className?: string, icon?: 'help' | 'info' }) {
     // Safely use hook - if context is missing, render nothing (defensive)
     let openGuide;
     try {
@@ -19,11 +16,12 @@ export function BotlGuideTrigger({ guideKey, className, icon = 'help' }: { guide
     return (
         <button 
            onClick={(e) => { e.stopPropagation(); openGuide(guideKey); }}
-           className={`text-zinc-500 hover:text-emerald-400 transition-colors p-1 -m-1 rounded-full hover:bg-zinc-800 ${className}`}
+           className={`inline-flex items-center gap-1 px-2 py-1 min-h-[32px] rounded-full bg-accent-purple/10 border border-accent-purple/30 text-accent-purple hover:bg-accent-purple/20 transition-colors ${className ?? ''}`}
            title="BotlGuide öffnen"
            aria-label={`Hilfe zu ${guideKey}`}
         >
-            <Icon className="w-3.5 h-3.5" />
+            <Sparkles className="w-3 h-3 shrink-0" />
+            <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:inline">Guide</span>
         </button>
     );
 }

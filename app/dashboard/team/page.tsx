@@ -34,7 +34,7 @@ export default function TeamRedirect() {
 
   return (
     <div className="flex items-center justify-center min-h-[50vh]">
-      <div className="text-zinc-500 animate-pulse">Leite zur Team-Verwaltung weiter...</div>
+      <div className="text-text-muted animate-pulse">Leite zur Team-Verwaltung weiter...</div>
     </div>
   );
 }

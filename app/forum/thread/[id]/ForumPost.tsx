@@ -10,6 +10,7 @@ import type { VoteCounts } from '@/lib/forum-service';
 import EditDeletePostButtons from './EditDeletePostButtons';
 import MarkdownContent from '@/app/forum/_components/MarkdownContent';
 import { formatRelativeTime } from '@/app/forum/_components/forum-utils';
+import UserAvatar from '@/app/components/UserAvatar';
 
 interface PostAuthor {
     id: string;
@@ -76,21 +77,15 @@ export default async function ForumPost({ post, threadAuthorId, initialCounts, i
     // (content is rendered via MarkdownContent below)
 
     return (
-        <div className="group flex gap-3 py-4 border-b border-zinc-800/30 last:border-b-0 hover:bg-zinc-900/20 transition-colors rounded px-2">
+        <div className="group flex gap-3 py-4 border-b border-border/30 last:border-b-0 hover:bg-surface/20 transition-colors rounded px-2">
             {/* Avatar column */}
             <div className="shrink-0 pt-0.5">
                 {post.author ? (
                     <Link href={`/brewer/${post.author.id}`}>
-                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs overflow-hidden bg-zinc-900 border-[1.5px] transition hover:brightness-110 ${tierBorderClass}`}>
-                            <img 
-                                src={post.author.avatar_url || '/tiers/lehrling.png'} 
-                                alt="" 
-                                className="w-full h-full object-cover" 
-                            />
-                        </div>
+                        <UserAvatar src={post.author.avatar_url} name={post.author.display_name} userId={post.author.id} tier={post.author.subscription_tier} sizeClass="w-7 h-7" />
                     </Link>
                 ) : (
-                    <div className="w-7 h-7 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-600">
+                    <div className="w-7 h-7 rounded-full bg-surface-hover flex items-center justify-center text-text-disabled">
                         <User size={10} />
                     </div>
                 )}
@@ -101,20 +96,20 @@ export default async function ForumPost({ post, threadAuthorId, initialCounts, i
                 {/* Inline meta: name · badges · time · actions */}
                 <div className="flex items-baseline gap-1.5 flex-wrap mb-2">
                     {post.author ? (
-                        <Link href={`/brewer/${post.author.id}`} className="font-semibold text-[13px] text-zinc-200 hover:text-emerald-400 transition leading-none">
+                        <Link href={`/brewer/${post.author.id}`} className="font-semibold text-[13px] text-foreground hover:text-success transition leading-none">
                             {post.author.display_name}
                         </Link>
                     ) : (
-                        <span className="font-semibold text-[13px] text-zinc-500 leading-none">Gelöschter Nutzer</span>
+                        <span className="font-semibold text-[13px] text-text-muted leading-none">Gelöschter Nutzer</span>
                     )}
 
                     {post.author_id === threadAuthorId && (
-                        <span className="text-[9px] uppercase font-bold tracking-wider px-1 py-px rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 leading-none">
+                        <span className="text-[9px] uppercase font-bold tracking-wider px-1 py-px rounded bg-brand/10 text-brand border border-brand/20 leading-none">
                             OP
                         </span>
                     )}
 
-                    <span className="text-[11px] text-zinc-600 leading-none">
+                    <span className="text-[11px] text-text-disabled leading-none">
                         {formatRelativeTime(post.created_at)}
                     </span>
                 </div>
@@ -122,15 +117,15 @@ export default async function ForumPost({ post, threadAuthorId, initialCounts, i
                 {/* Post body */}
                 <div className="text-sm leading-relaxed">
                 {isDeleted ? (
-                    <p className="text-zinc-600 text-sm italic">[Dieser Beitrag wurde gelöscht]</p>
+                    <p className="text-text-disabled text-sm italic">[Dieser Beitrag wurde gelöscht]</p>
                 ) : (
                     <>
                 <MarkdownContent content={contentToRender} />
 
                 {linkedBrew && (
                     <div className="mt-1.5">
-                        <Link href={`/brew/${linkedBrew.id}`} className="inline-flex items-center gap-2.5 bg-zinc-950/40 border border-zinc-800/60 rounded-lg px-2.5 py-1.5 hover:border-zinc-700 hover:bg-zinc-900/40 transition group/brew max-w-sm">
-                            <div className="w-8 h-8 bg-zinc-900 rounded overflow-hidden border border-zinc-800 flex-shrink-0">
+                        <Link href={`/brew/${linkedBrew.id}`} className="inline-flex items-center gap-2.5 bg-background/40 border border-border rounded-lg px-2.5 py-1.5 hover:border-border-hover hover:bg-surface/40 transition group/brew max-w-sm">
+                            <div className="w-8 h-8 bg-surface rounded overflow-hidden border border-border flex-shrink-0">
                                 {linkedBrew.image_url ? (
                                     <img 
                                         src={linkedBrew.image_url} 
@@ -141,16 +136,16 @@ export default async function ForumPost({ post, threadAuthorId, initialCounts, i
                                         }`} 
                                     />
                                 ) : (
-                                    <div className="w-full h-full flex items-center justify-center bg-zinc-900">
-                                        <Beaker className="w-3.5 h-3.5 text-zinc-600" />
+                                    <div className="w-full h-full flex items-center justify-center bg-surface">
+                                        <Beaker className="w-3.5 h-3.5 text-text-disabled" />
                                     </div>
                                 )}
                             </div>
                             <div className="min-w-0">
-                                <div className="text-[9px] text-zinc-500 uppercase font-bold tracking-wider leading-none mb-0.5">Erwähntes Rezept</div>
-                                <div className="text-xs font-bold text-zinc-300 group-hover/brew:text-emerald-400 transition truncate">{linkedBrew.name}</div>
+                                <div className="text-[9px] text-text-muted uppercase font-bold tracking-wider leading-none mb-0.5">Erwähntes Rezept</div>
+                                <div className="text-xs font-bold text-text-secondary group-hover/brew:text-success transition truncate">{linkedBrew.name}</div>
                             </div>
-                            <span className="text-zinc-600 group-hover/brew:text-zinc-400 text-xs ml-1">→</span>
+                            <span className="text-text-disabled group-hover/brew:text-text-secondary text-xs ml-1">→</span>
                         </Link>
                     </div>
                 )}
@@ -159,14 +154,14 @@ export default async function ForumPost({ post, threadAuthorId, initialCounts, i
                 )}
 
                 {!isDeleted && isEdited && (
-                    <span className="text-[10px] text-zinc-600 italic">
+                    <span className="text-[10px] text-text-disabled italic">
                         (bearbeitet)
                     </span>
                 )}
 
                 {/* Footer action bar — always visible, mobile-friendly */}
                 {!isDeleted && (
-                    <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-zinc-800/40 gap-2">
+                    <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-border gap-2">
                         {/* Reactions left */}
                         <VoteBar
                             targetId={post.id}

@@ -13,6 +13,10 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
+  Target, Gamepad2, Trophy, Award, ThumbsUp, Minus,
+  Loader2, AlertTriangle, Swords, Users, RefreshCw, Info,
+} from 'lucide-react';
+import {
   FLAVOR_DIMENSIONS,
   EMPTY_FLAVOR_PROFILE,
   type FlavorDimensionId,
@@ -20,11 +24,15 @@ import {
 } from '@/lib/flavor-profile-config';
 import {
   submitBeatTheBrewer,
+  getBrewBTBResult,
   type BeatTheBrewerResult,
+  type HistoricalBTBResult,
 } from '@/lib/actions/beat-the-brewer-actions';
 import { acceptFriendChallenge, type FriendChallenge } from '@/lib/actions/beat-friend-actions';
+import { getBrewFlavorProfile } from '@/lib/rating-analytics';
 import RadarChart from './RadarChart';
 import BeatAFriendShare from './BeatAFriendShare';
+import UniversalSlider from './UniversalSlider';
 
 interface BeatTheBrewerGameProps {
   brewId: string;
@@ -39,15 +47,20 @@ interface BeatTheBrewerGameProps {
   challengerName?: string | null;
   /** Optional: Rating-ID um flavor_profile mit Bewertung zu verknüpfen (Phase 11.6) */
   ratingId?: string | null;
+  /** QR token for nonce-based anti-replay (Phase 3.2) */
+  qrToken?: string | null;
+  /** Bottle UUID for nonce validation */
+  bottleId?: string | null;
 }
 
 // ──── Score tier labels ────
-function getScoreTier(percent: number): { label: string; emoji: string; color: string } {
-  if (percent >= 90) return { label: 'Perfekter Gaumen!', emoji: '🏆', color: 'text-yellow-400' };
-  if (percent >= 75) return { label: 'Biersommelier!', emoji: '🥇', color: 'text-cyan-400' };
-  if (percent >= 60) return { label: 'Guter Geschmack!', emoji: '👏', color: 'text-green-400' };
-  if (percent >= 40) return { label: 'Nicht schlecht!', emoji: '🍺', color: 'text-zinc-300' };
-  return { label: 'Daneben getippt!', emoji: '😅', color: 'text-orange-400' };
+type ScoreTier = { label: string; icon: React.ReactNode; color: string };
+function getScoreTier(percent: number): ScoreTier {
+  if (percent >= 90) return { label: 'Perfekter Gaumen!', icon: <Trophy size={36} />, color: 'text-rating' };
+  if (percent >= 75) return { label: 'Biersommelier!',    icon: <Award size={36} />,  color: 'text-brand' };
+  if (percent >= 60) return { label: 'Guter Geschmack!', icon: <ThumbsUp size={36} />, color: 'text-success' };
+  if (percent >= 40) return { label: 'Nicht schlecht!',  icon: <Minus size={36} />,   color: 'text-text-secondary' };
+  return                     { label: 'Daneben getippt!', icon: <Target size={36} />,  color: 'text-error' };
 }
 
 export default function BeatTheBrewerGame({
@@ -58,9 +71,11 @@ export default function BeatTheBrewerGame({
   challengeToken,
   challengerName,
   ratingId,
+  qrToken,
+  bottleId,
 }: BeatTheBrewerGameProps) {
   // ─── State ───
-  const [phase, setPhase] = useState<'cta' | 'playing' | 'submitting' | 'reveal'>(
+  const [phase, setPhase] = useState<'cta' | 'playing' | 'submitting' | 'reveal' | 'error'>(
     alreadyPlayed ? 'reveal' : 'cta',
   );
   const [sliders, setSliders] = useState<Record<FlavorDimensionId, number>>({
@@ -70,18 +85,54 @@ export default function BeatTheBrewerGame({
     roast: 0.5,
     fruitiness: 0.5,
   });
+  const [touched, setTouched] = useState<Record<FlavorDimensionId, boolean>>({
+    sweetness: false,
+    bitterness: false,
+    body: false,
+    roast: false,
+    fruitiness: false,
+  });
   const [result, setResult] = useState<BeatTheBrewerResult | null>(null);
+  const [historicalResult, setHistoricalResult] = useState<HistoricalBTBResult | null>(null);
+  const [historicalLoading, setHistoricalLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showBrewer, setShowBrewer] = useState(false);
   const [acceptedChallenge, setAcceptedChallenge] = useState<FriendChallenge | null>(null);
+  const [challengeLoading, setChallengeLoading] = useState(!!challengeToken);
+  const [communityProfile, setCommunityProfile] = useState<Record<string, number> | null>(null);
 
   // Cleanup reveal timer on unmount to prevent memory leak
   const showBrewerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => { if (showBrewerTimerRef.current) clearTimeout(showBrewerTimerRef.current); }, []);
 
+  // Phase 3.1: Load historical result for already-played users
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    setHistoricalLoading(true);
+    getBrewBTBResult(brewId)
+      .then((res) => {
+        if (res) {
+          setHistoricalResult(res);
+          setResult(res);
+          setSliders({
+            sweetness: res.dimensionScores.sweetness.player,
+            bitterness: res.dimensionScores.bitterness.player,
+            body: res.dimensionScores.body.player,
+            roast: res.dimensionScores.roast.player,
+            fruitiness: res.dimensionScores.fruitiness.player,
+          });
+          setPhase('reveal');
+          setShowBrewer(true);
+        }
+      })
+      .catch(() => { /* silent — show CTA as fallback */ })
+      .finally(() => setHistoricalLoading(false));
+  }, [brewId, isLoggedIn]);
+
   // ─── Handlers ───
   const handleSliderChange = useCallback((dim: FlavorDimensionId, value: number) => {
     setSliders((prev) => ({ ...prev, [dim]: value }));
+    setTouched((prev) => ({ ...prev, [dim]: true }));
   }, []);
 
   const handleStart = useCallback(() => {
@@ -90,11 +141,6 @@ export default function BeatTheBrewerGame({
   }, []);
 
   const handleSubmit = useCallback(async () => {
-    if (!isLoggedIn) {
-      setError('Bitte melde dich an, um Beat the Brewer zu spielen.');
-      return;
-    }
-
     setPhase('submitting');
     setError(null);
 
@@ -103,37 +149,83 @@ export default function BeatTheBrewerGame({
         brewId,
         ratingId: ratingId ?? null,
         playerProfile: sliders,
+        qrToken: qrToken ?? null,
+        bottleId: bottleId ?? null,
       });
       setResult(res);
+      // Sync sliders to the actual result player profile so radar and bars always match.
+      // This is critical when the server returns a stored historical result (e.g. anonymous
+      // already-played path) instead of echoing back what the user just entered.
+      setSliders({
+        sweetness:  res.dimensionScores.sweetness.player,
+        bitterness: res.dimensionScores.bitterness.player,
+        body:       res.dimensionScores.body.player,
+        roast:      res.dimensionScores.roast.player,
+        fruitiness: res.dimensionScores.fruitiness.player,
+      });
       setPhase('reveal');
 
+      // Store anonymous session token for post-registration claiming
+      if (res.isAnonymous && res.sessionToken) {
+        try {
+          localStorage.setItem('btb_pending_token', res.sessionToken);
+        } catch { /* localStorage may be unavailable */ }
+      }
+
+      // Phase 3.6: Load community profile for reveal overlay
+      getBrewFlavorProfile(brewId)
+        .then((cp) => {
+          if (cp) {
+            const { source, _count, ...profile } = cp as any;
+            setCommunityProfile(profile);
+          }
+        })
+        .catch(() => { /* non-fatal */ });
+
       // If accepting a friend challenge, record the head-to-head result
-      if (challengeToken) {
-        const challengeResult = await acceptFriendChallenge(
-          challengeToken,
-          { ...sliders, source: 'manual' } as FlavorProfile,
-          res.matchPercent,
-        );
-        if (challengeResult.success && challengeResult.challenge) {
-          setAcceptedChallenge(challengeResult.challenge);
+      if (challengeToken && !res.isAnonymous) {
+        setChallengeLoading(true);
+        try {
+          const challengeResult = await acceptFriendChallenge(
+            challengeToken,
+            { ...sliders, source: 'manual' } as FlavorProfile,
+            res.matchPercent,
+          );
+          if (challengeResult.success && challengeResult.challenge) {
+            setAcceptedChallenge(challengeResult.challenge);
+          }
+        } finally {
+          setChallengeLoading(false);
         }
       }
 
       // Staggered reveal animation
       showBrewerTimerRef.current = setTimeout(() => setShowBrewer(true), 600);
     } catch (err: any) {
-      setError(err.message || 'Fehler beim Senden.');
-      setPhase('playing');
+      console.error('[beat-the-brewer] submit error:', err);
+      setError('Ein Fehler ist aufgetreten. Bitte versuche es erneut.');
+      setPhase('error');
     }
   }, [brewId, sliders, isLoggedIn, challengeToken]);
 
-  // ─── Already played (no result data) ───
-  if (alreadyPlayed && !result) {
+  // ─── Loading historical result ───
+  if (historicalLoading) {
     return (
-      <div className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-6 text-center space-y-3">
-        <div className="text-3xl">🎮</div>
-        <p className="text-sm font-bold text-zinc-300">Beat the Brewer</p>
-        <p className="text-xs text-zinc-500">
+      <div className="bg-surface border border-border rounded-2xl p-6 text-center space-y-3">
+        <Loader2 size={28} className="mx-auto text-text-disabled animate-spin" />
+        <p className="text-sm font-bold text-text-secondary">Beat the Brewer</p>
+        <p className="text-xs text-text-muted">Lade dein Ergebnis…</p>
+      </div>
+    );
+  }
+
+  // ─── Already played (no result data — fallback) ───
+  if (alreadyPlayed && !result && !historicalResult) {
+    return (
+      <div className="bg-surface border border-border rounded-2xl p-6 text-center space-y-3">
+        <Gamepad2 size={28} className="mx-auto text-text-disabled" />
+        <p className="text-sm font-bold text-text-secondary">Beat the Brewer</p>
+        <p className="text-xs text-text-muted">
           Du hast dieses Bier bereits gespielt. Probiere ein anderes!
         </p>
       </div>
@@ -143,32 +235,57 @@ export default function BeatTheBrewerGame({
   // ─── CTA Card ───
   if (phase === 'cta') {
     return (
-      <div className="bg-gradient-to-br from-zinc-900 to-zinc-950 border border-zinc-800 rounded-2xl p-6 text-center space-y-4 group hover:border-cyan-500/30 transition-all duration-300">
+      <div className="bg-surface border border-border rounded-2xl p-6 text-center space-y-4 group hover:border-brand/30 transition-all duration-300">
         {/* Challenge context banner */}
         {challengeToken && challengerName && (
-          <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-xl px-4 py-3 text-sm text-cyan-300">
-            <span className="font-black">{challengerName}</span> hat dich herausgefordert! 🤝
+          <div className="bg-brand-bg border border-brand/20 rounded-xl px-4 py-3 text-sm text-brand flex items-center justify-center gap-2">
+            <Users size={14} />
+            <span><span className="font-black">{challengerName}</span> hat dich herausgefordert!</span>
           </div>
         )}
 
-        <div className="text-4xl group-hover:scale-110 transition-transform duration-300">🎯</div>
+        <Target size={36} className="mx-auto text-brand group-hover:scale-110 transition-transform duration-300" />
         <div className="space-y-1">
-          <h3 className="text-lg font-black text-white">Beat the Brewer</h3>
-          <p className="text-xs text-zinc-400 leading-relaxed max-w-[250px] mx-auto">
-            Kannst du das Geschmacksprofil von <span className="text-cyan-400 font-semibold">{brewName}</span> erraten?
+          <h3 className="text-lg font-black text-text-primary">Beat the Brewer</h3>
+          <p className="text-xs text-text-muted leading-relaxed max-w-[250px] mx-auto">
+            Kannst du das Geschmacksprofil von <span className="text-brand font-semibold">{brewName}</span> erraten?
             Stelle die Regler ein und finde heraus, wie gut dein Gaumen ist!
           </p>
         </div>
 
         <button
           onClick={handleStart}
-          className="w-full bg-cyan-500 hover:bg-cyan-400 text-black font-black py-3.5 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-95 shadow-lg shadow-cyan-500/20"
+          className="w-full bg-brand hover:bg-brand-hover text-white font-black py-3.5 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-95 shadow-lg shadow-brand/20 flex items-center justify-center gap-2"
         >
-          🎮 Jetzt spielen
+          <Gamepad2 size={16} /> Jetzt spielen
         </button>
 
-        <p className="text-[10px] text-zinc-600 uppercase font-bold tracking-widest">
+        <p className="text-[10px] text-text-disabled uppercase font-bold tracking-widest">
           +bis zu 10 Tasting IQ Punkte
+        </p>
+      </div>
+    );
+  }
+
+  // ─── Error Phase (3.5) ───
+  if (phase === 'error') {
+    return (
+      <div className="bg-surface border border-error/20 rounded-2xl p-6 space-y-5">
+        <div className="text-center space-y-3">
+          <AlertTriangle size={36} className="mx-auto text-error" />
+          <h3 className="text-lg font-black text-text-primary">Etwas ist schiefgelaufen</h3>
+          <p className="text-sm text-text-muted">
+            {error || 'Ein Fehler ist aufgetreten. Bitte versuche es erneut.'}
+          </p>
+        </div>
+        <button
+          onClick={() => { setError(null); setPhase('playing'); }}
+          className="w-full bg-brand hover:bg-brand-hover text-white font-black py-3.5 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-95 shadow-lg shadow-brand/20 flex items-center justify-center gap-2"
+        >
+          <RefreshCw size={16} /> Erneut versuchen
+        </button>
+        <p className="text-[10px] text-text-disabled text-center">
+          Deine Einstellungen bleiben erhalten.
         </p>
       </div>
     );
@@ -177,29 +294,38 @@ export default function BeatTheBrewerGame({
   // ─── Playing Phase ───
   if (phase === 'playing' || phase === 'submitting') {
     const isSubmitting = phase === 'submitting';
+    const allTouched = FLAVOR_DIMENSIONS.every((dim) => touched[dim.id]);
 
     return (
-      <div className="bg-zinc-900 border border-cyan-500/20 rounded-2xl p-6 space-y-5">
+      <div className="bg-surface border border-brand/20 rounded-2xl p-6 space-y-5">
         {/* Header */}
         <div className="text-center space-y-1">
-          <p className="text-[10px] uppercase font-black tracking-[0.25em] text-cyan-500">
+          <p className="text-[10px] uppercase font-black tracking-[0.25em] text-brand">
             Beat the Brewer
           </p>
-          <h3 className="text-lg font-black text-white">
+          <h3 className="text-lg font-black text-text-primary">
             Wie schmeckt {brewName}?
           </h3>
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-text-muted">
             Stelle ein, wie du das Geschmacksprofil einschätzt.
           </p>
         </div>
 
-        {/* Mini radar preview */}
-        <div className="flex justify-center">
-          <RadarChart
-            playerProfile={sliders}
-            size={200}
-            className="opacity-80"
-          />
+        {/* Phase 3.2: Compact dimension dots instead of mini-radar */}
+        <div className="flex justify-center gap-2">
+          {FLAVOR_DIMENSIONS.map((dim) => (
+            <div key={dim.id} className="flex flex-col items-center gap-1">
+              <div
+                className="w-4 h-4 rounded-full border transition-all duration-150"
+                style={{
+                  backgroundColor: touched[dim.id] ? dim.hexColor : 'transparent',
+                  borderColor: touched[dim.id] ? dim.hexColor : 'rgba(161,161,170,0.3)',
+                  opacity: touched[dim.id] ? 0.4 + sliders[dim.id] * 0.6 : 0.3,
+                }}
+              />
+              <span className="text-[8px] text-text-disabled font-bold">{dim.labelShort}</span>
+            </div>
+          ))}
         </div>
 
         {/* Sliders */}
@@ -211,13 +337,21 @@ export default function BeatTheBrewerGame({
               value={sliders[dim.id]}
               onChange={(v) => handleSliderChange(dim.id, v)}
               disabled={isSubmitting}
+              touched={touched[dim.id]}
             />
           ))}
         </div>
 
+        {/* Phase 3.3: Hint when not all sliders are touched */}
+        {!allTouched && (
+          <p className="text-[10px] text-text-disabled text-center">
+            Tipp: Stelle alle Regler ein für ein genaues Ergebnis.
+          </p>
+        )}
+
         {error && (
-          <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-sm text-red-400">
-            {error}
+          <div className="bg-error/10 border border-error/20 rounded-xl px-4 py-3 text-sm text-error flex items-center gap-2">
+            <AlertTriangle size={14} className="flex-shrink-0" />{error}
           </div>
         )}
 
@@ -225,23 +359,18 @@ export default function BeatTheBrewerGame({
         <button
           onClick={handleSubmit}
           disabled={isSubmitting}
-          className="w-full bg-cyan-500 hover:bg-cyan-400 disabled:bg-zinc-700 disabled:text-zinc-400 text-black font-black py-4 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-95 shadow-lg shadow-cyan-500/20 disabled:shadow-none flex items-center justify-center gap-2"
+          className="w-full bg-brand hover:bg-brand-hover disabled:bg-surface-hover disabled:text-text-disabled text-white font-black py-4 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-95 shadow-lg shadow-brand/20 disabled:shadow-none flex items-center justify-center gap-2"
         >
           {isSubmitting ? (
-            <>
-              <span className="animate-spin">⏳</span>
-              Auswertung läuft...
-            </>
+            <><Loader2 size={16} className="animate-spin" />Auswertung läuft...</>
           ) : (
-            <>
-              🎯 Ergebnis aufdecken
-            </>
+            <><Target size={16} />Ergebnis aufdecken</>
           )}
         </button>
 
         {!isLoggedIn && (
-          <p className="text-xs text-zinc-500 text-center">
-            ⚠️ Du musst angemeldet sein, um Punkte zu erhalten.
+          <p className="text-xs text-text-muted text-center leading-relaxed">
+            Auch ohne Account spielbar! Registriere dich um Punkte zu sammeln.
           </p>
         )}
       </div>
@@ -251,62 +380,103 @@ export default function BeatTheBrewerGame({
   // ─── Reveal Phase ───
   if (phase === 'reveal' && result) {
     const tier = getScoreTier(result.matchPercent);
+    const isHistorical = !!(historicalResult as HistoricalBTBResult)?.playedAt;
 
     return (
-      <div className="bg-zinc-900 border border-cyan-500/30 rounded-2xl p-6 space-y-6">
+      <div className="bg-surface border border-brand/30 rounded-2xl p-6 space-y-6">
         {/* Score Header */}
         <div className="text-center space-y-3">
-          <div className="text-5xl">{tier.emoji}</div>
+
+          {/* Already-played notice — shown for historical (logged-in) AND anonymous repeat plays */}
+          {(isHistorical || result.isAnonymous) && (
+            <p className="text-[10px] uppercase font-bold tracking-widest text-text-disabled">
+              Dein gespeichertes Ergebnis
+              {isHistorical && (historicalResult as HistoricalBTBResult).playedAt && (
+                <> · {new Date((historicalResult as HistoricalBTBResult).playedAt).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}</>
+              )}
+            </p>
+          )}
+
+          <div className={`flex justify-center ${tier.color}`}>{tier.icon}</div>
           <div className="space-y-1">
             <p className={`text-sm font-black uppercase tracking-widest ${tier.color}`}>
               {tier.label}
             </p>
-            <p className="text-5xl font-black text-white tabular-nums">
+            <p className="text-5xl font-black text-text-primary tabular-nums">
               {result.matchPercent}
-              <span className="text-2xl text-zinc-500">%</span>
+              <span className="text-2xl text-text-disabled">%</span>
             </p>
-            <p className="text-xs text-zinc-500">Übereinstimmung</p>
+            <p className="text-xs text-text-muted">Übereinstimmung</p>
           </div>
 
-          {/* Points earned */}
-          <div className="inline-flex items-center gap-2 bg-cyan-500/10 border border-cyan-500/20 rounded-full px-4 py-1.5">
-            <span className="text-cyan-400 text-sm font-bold">
-              +{result.pointsAwarded} Tasting IQ
-            </span>
-            <span className="text-[10px] text-zinc-500">
-              (Gesamt: {result.newTastingIQ})
-            </span>
-          </div>
+          {/* Points / CTA */}
+          {result.isAnonymous ? (
+            <div className="space-y-1">
+              <p className="text-xs text-text-muted">
+                Registriere dich um{' '}
+                <span className="font-bold text-brand">+{result.pointsAwarded} Tasting IQ</span>{' '}
+                zu sichern.
+              </p>
+              <a
+                href="/auth"
+                onClick={(e) => {
+                  e.preventDefault();
+                  const url = new URL('/auth', window.location.origin);
+                  if (result.sessionToken) url.searchParams.set('claim_token', result.sessionToken);
+                  window.location.href = url.toString();
+                }}
+                className="inline-block text-brand hover:text-brand-hover text-xs font-bold underline underline-offset-2 transition-colors"
+              >
+                Jetzt Account erstellen →
+              </a>
+            </div>
+          ) : !isHistorical ? (
+            <div className="inline-flex items-center gap-2 bg-brand-bg border border-brand/20 rounded-full px-4 py-1.5">
+              <span className="text-brand text-sm font-bold">
+                +{result.pointsAwarded} Tasting IQ
+              </span>
+              <span className="text-[10px] text-text-disabled">
+                (Gesamt: {result.newTastingIQ})
+              </span>
+            </div>
+          ) : null}
         </div>
 
-        {/* Radar Chart: Player vs Brewer */}
+        {/* Radar Chart: Player vs Brewer + optional Community overlay (3.6) */}
         <div className="flex justify-center">
           <RadarChart
             playerProfile={sliders}
             brewerProfile={result.brewerProfile}
+            communityProfile={communityProfile}
             showBrewer={showBrewer}
             size={280}
           />
         </div>
 
         {/* Legend */}
-        <div className="flex justify-center gap-6 text-xs">
+        <div className="flex justify-center gap-4 text-xs flex-wrap">
           <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-full bg-cyan-500" />
-            <span className="text-zinc-400">Deine Einschätzung</span>
+            <div className="w-3 h-3 rounded-full bg-brand" />
+            <span className="text-text-secondary">Deine Einschätzung</span>
           </div>
           <div
             className="flex items-center gap-1.5 transition-opacity duration-700"
             style={{ opacity: showBrewer ? 1 : 0 }}
           >
-            <div className="w-3 h-3 rounded-full bg-amber-500" />
-            <span className="text-zinc-400">Brewer&apos;s Profil</span>
+            <div className="w-3 h-3 rounded-full bg-rating" />
+            <span className="text-text-secondary">Brewer&apos;s Profil</span>
           </div>
+          {communityProfile && (
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-full border-2 border-text-disabled bg-transparent" />
+              <span className="text-text-secondary">Community</span>
+            </div>
+          )}
         </div>
 
-        {/* Dimension Breakdown */}
-        <div className="space-y-2">
-          <p className="text-[10px] uppercase font-black tracking-widest text-zinc-600 mb-3">
+        {/* Dimension Breakdown — Phase 4.3: two separate bars (no more overlap), Phase 4.4: consistent diff badge */}
+        <div className="space-y-3">
+          <p className="text-[10px] uppercase font-black tracking-widest text-text-disabled mb-1">
             Dimension Details
           </p>
           {FLAVOR_DIMENSIONS.map((dim) => {
@@ -315,47 +485,47 @@ export default function BeatTheBrewerGame({
             const isClose = diffPercent <= 15;
 
             return (
-              <div
-                key={dim.id}
-                className="flex items-center gap-3 text-sm"
-              >
-                <span className="w-5 text-center">{dim.icon}</span>
-                <span className="text-zinc-400 w-24 text-xs font-medium">{dim.label}</span>
-                <div className="flex-1 flex items-center gap-2">
-                  {/* Player value */}
-                  <span className="text-cyan-400 text-xs font-mono w-10 text-right">
-                    {Math.round(scores.player * 100)}%
-                  </span>
-                  {/* Visual bar comparison */}
-                  <div className="flex-1 h-1.5 bg-zinc-800 rounded-full relative overflow-hidden">
-                    <div
-                      className="absolute top-0 left-0 h-full bg-cyan-500/60 rounded-full"
-                      style={{ width: `${scores.player * 100}%` }}
-                    />
-                    <div
-                      className="absolute top-0 left-0 h-full bg-amber-500/60 rounded-full transition-all duration-700"
-                      style={{
-                        width: showBrewer ? `${scores.brewer * 100}%` : '0%',
-                      }}
-                    />
+              <div key={dim.id} className="space-y-1">
+                {/* Label row + diff badge */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="inline-block w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: dim.hexColor }} />
+                    <span className="text-text-muted text-xs font-medium">{dim.labelShort}</span>
                   </div>
-                  {/* Brewer value */}
-                  <span
-                    className="text-amber-400 text-xs font-mono w-10 transition-opacity duration-700"
-                    style={{ opacity: showBrewer ? 1 : 0 }}
-                  >
-                    {Math.round(scores.brewer * 100)}%
-                  </span>
-                  {/* Diff badge */}
                   <span
                     className={`text-[10px] font-bold px-1.5 py-0.5 rounded transition-opacity duration-700 ${
-                      isClose
-                        ? 'bg-green-500/10 text-green-400'
-                        : 'bg-orange-500/10 text-orange-400'
+                      isClose ? 'bg-success/10 text-success' : 'bg-error/10 text-error'
                     }`}
                     style={{ opacity: showBrewer ? 1 : 0 }}
                   >
-                    {isClose ? '✓' : `Δ${diffPercent}%`}
+                    {isClose ? `✓ ±${diffPercent}%` : `△ ±${diffPercent}%`}
+                  </span>
+                </div>
+                {/* Player bar */}
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-1.5 bg-surface-hover rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-brand/60 rounded-full"
+                      style={{ width: `${scores.player * 100}%` }}
+                    />
+                  </div>
+                  <span className="text-brand text-[10px] font-mono w-7 text-right flex-shrink-0">
+                    {Math.round(scores.player * 100)}%
+                  </span>
+                </div>
+                {/* Brewer bar (revealed) */}
+                <div
+                  className="flex items-center gap-2 transition-opacity duration-700"
+                  style={{ opacity: showBrewer ? 1 : 0 }}
+                >
+                  <div className="flex-1 h-1.5 bg-surface-hover rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-rating/60 rounded-full"
+                      style={{ width: `${scores.brewer * 100}%` }}
+                    />
+                  </div>
+                  <span className="text-rating text-[10px] font-mono w-7 text-right flex-shrink-0">
+                    {Math.round(scores.brewer * 100)}%
                   </span>
                 </div>
               </div>
@@ -372,9 +542,11 @@ export default function BeatTheBrewerGame({
           />
         )}
 
-        {/* Head-to-head reveal when accepting a challenge */}
-        {acceptedChallenge && (
-          <FriendHeadToHead challenge={acceptedChallenge} myScore={result.matchPercent} />
+        {/* Phase 3.4: Challenge skeleton or head-to-head */}
+        {challengeToken && (
+          challengeLoading
+            ? <div className="bg-surface border border-border rounded-2xl p-5 animate-pulse h-40" />
+            : acceptedChallenge && <FriendHeadToHead challenge={acceptedChallenge} myScore={result.matchPercent} />
         )}
       </div>
     );
@@ -398,26 +570,38 @@ function FriendHeadToHead({
   const diff = Math.abs(myScore - challenge.challengerScore);
 
   return (
-    <div className="bg-gradient-to-br from-zinc-800 to-zinc-900 border border-amber-500/30 rounded-2xl p-5 space-y-4">
+    <div className="bg-surface border border-rating/30 rounded-2xl p-5 space-y-4">
       <div className="text-center space-y-1">
-        <p className="text-[10px] uppercase font-black tracking-[0.25em] text-amber-500">
+        <div className="flex justify-center">
+          {iWin
+            ? <Trophy size={24} className="text-rating" />
+            : diff === 0
+              ? <Swords size={24} className="text-text-muted" />
+              : <Award size={24} className="text-text-muted" />
+          }
+        </div>
+        <p className="text-[10px] uppercase font-black tracking-[0.25em] text-rating">
           Head-to-Head
         </p>
-        <p className="text-lg font-black text-white">
-          {iWin ? '🏆 Du gewinnst!' : diff === 0 ? '🤝 Unentschieden!' : `💪 ${challenge.challengerDisplayName ?? 'Dein Freund'} gewinnt`}
+        <p className="text-lg font-black text-text-primary">
+          {iWin
+            ? 'Du gewinnst!'
+            : diff === 0
+              ? 'Unentschieden!'
+              : `${challenge.challengerDisplayName ?? 'Dein Freund'} gewinnt`}
         </p>
       </div>
 
       {/* Score comparison */}
       <div className="grid grid-cols-3 gap-3 items-center text-center">
-        <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-xl p-3">
-          <p className="text-2xl font-black text-cyan-400">{myScore}%</p>
-          <p className="text-[10px] text-zinc-500 mt-0.5">Du</p>
+        <div className="bg-brand-bg border border-brand/20 rounded-xl p-3">
+          <p className="text-2xl font-black text-brand">{myScore}%</p>
+          <p className="text-[10px] text-text-disabled mt-0.5">Du</p>
         </div>
-        <div className="text-zinc-600 font-black text-lg">VS</div>
-        <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3">
-          <p className="text-2xl font-black text-amber-400">{challenge.challengerScore}%</p>
-          <p className="text-[10px] text-zinc-500 mt-0.5">
+        <div className="text-text-disabled font-black text-lg">VS</div>
+        <div className="bg-surface-hover border border-border rounded-xl p-3">
+          <p className="text-2xl font-black text-rating">{challenge.challengerScore}%</p>
+          <p className="text-[10px] text-text-disabled mt-0.5">
             {challenge.challengerDisplayName ?? 'Freund'}
           </p>
         </div>
@@ -435,12 +619,12 @@ function FriendHeadToHead({
         )}
         <div className="flex gap-5 text-xs">
           <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-cyan-500" />
-            <span className="text-zinc-400">Du</span>
+            <div className="w-2.5 h-2.5 rounded-full bg-brand" />
+            <span className="text-text-secondary">Du</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-            <span className="text-zinc-400">{challenge.challengerDisplayName ?? 'Freund'}</span>
+            <div className="w-2.5 h-2.5 rounded-full bg-rating" />
+            <span className="text-text-secondary">{challenge.challengerDisplayName ?? 'Freund'}</span>
           </div>
         </div>
       </div>
@@ -457,65 +641,53 @@ interface FlavorGameSliderProps {
   value: number;
   onChange: (value: number) => void;
   disabled?: boolean;
+  touched?: boolean;
 }
 
-function FlavorGameSlider({ dim, value, onChange, disabled }: FlavorGameSliderProps) {
+function FlavorGameSlider({ dim, value, onChange, disabled, touched = true }: FlavorGameSliderProps) {
   const percent = Math.round(value * 100);
+  const [showTooltip, setShowTooltip] = useState(false);
 
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
-        <label className="text-sm font-bold text-white flex items-center gap-1.5">
-          <span>{dim.icon}</span>
-          <span>{dim.label}</span>
-        </label>
-        <span className="text-xs font-mono text-cyan-400">{percent}%</span>
-      </div>
-
-      <div className="relative h-8 flex items-center">
-        {/* Custom track */}
-        <div className="absolute w-full h-2 bg-zinc-800 rounded-full overflow-hidden">
-          <div
-            className="h-full rounded-full transition-all duration-75"
-            style={{
-              width: `${percent}%`,
-              backgroundColor: dim.color,
-              opacity: 0.6,
-            }}
+        <label className="text-sm font-bold text-text-primary flex items-center gap-2">
+          <span
+            className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0 transition-colors duration-150"
+            style={{ backgroundColor: touched ? dim.hexColor : 'rgba(161,161,170,0.4)' }}
           />
-        </div>
-
-        {/* Native range input */}
-        <input
-          type="range"
-          min="0"
-          max="100"
-          step="1"
-          value={percent}
-          onChange={(e) => onChange(parseInt(e.target.value) / 100)}
-          disabled={disabled}
-          className="w-full h-full absolute z-10 opacity-0 cursor-pointer disabled:cursor-not-allowed"
-        />
-
-        {/* Custom thumb */}
-        <div
-          className="pointer-events-none absolute w-5 h-5 rounded-full shadow-md border-2 z-[5] transition-all duration-75"
-          style={{
-            left: `calc(${percent}% - 10px)`,
-            backgroundColor: dim.color,
-            borderColor: 'rgba(255,255,255,0.3)',
-          }}
-        />
-      </div>
-
-      <div className="flex justify-between px-0.5">
-        <span className="text-[9px] text-zinc-600 uppercase font-bold tracking-wider">
-          {dim.minLabel}
-        </span>
-        <span className="text-[9px] text-zinc-600 uppercase font-bold tracking-wider">
-          {dim.maxLabel}
+          {dim.label}
+          <button
+            type="button"
+            className="text-text-disabled hover:text-text-muted transition-colors"
+            onClick={() => setShowTooltip((v) => !v)}
+            aria-label={`Info: ${dim.label}`}
+          >
+            <Info size={12} />
+          </button>
+        </label>
+        <span className={`text-xs font-mono ${touched ? 'text-brand' : 'text-text-disabled'}`}>
+          {touched ? `${percent}%` : '—'}
         </span>
       </div>
+
+      {showTooltip && (
+        <p className="text-[11px] text-text-muted leading-snug -mt-0.5 mb-0.5 pl-[18px]">
+          {dim.description}
+        </p>
+      )}
+
+      <UniversalSlider
+        value={touched ? value : undefined}
+        onChange={(v) => onChange(v)}
+        min={0}
+        max={1}
+        step={0.01}
+        color={dim.hexColor}
+        minLabel={dim.minLabel}
+        maxLabel={dim.maxLabel}
+        disabled={disabled}
+      />
     </div>
   );
 }

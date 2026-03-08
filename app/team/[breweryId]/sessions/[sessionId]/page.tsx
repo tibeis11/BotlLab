@@ -51,7 +51,7 @@ export default async function SessionPage({ params }: PageProps) {
     .single() as { data: any, error: any };
 
   if (error || !session) {
-    return <div className="text-white p-8">Session nicht gefunden.</div>;
+    return <div className="text-text-primary p-8">Session nicht gefunden.</div>;
   }
 
   const isQuick = isQuickSession(session);

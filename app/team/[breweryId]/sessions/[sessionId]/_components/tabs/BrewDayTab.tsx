@@ -1,13 +1,13 @@
 ﻿'use client';
 
 import { useSession } from '../../SessionContext';
-import { PhaseTitle } from './PhaseLayout';
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
     Clock,
     Thermometer,
     Beaker,
     ArrowRight,
+    ArrowLeft,
     Play,
     Pause,
     Plus,
@@ -15,18 +15,19 @@ import {
     Droplets,
     FlaskConical,
     CheckCircle2,
-    ChevronUp,
-    ChevronDown,
+    Check,
     Flame,
+    List,
+    X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { BotlGuideTrigger } from '@/app/components/BotlGuideTrigger';
 
-// 
+// ─────────────────────────────────────────────
 // Types
-// 
+// ─────────────────────────────────────────────
 
-type EventType = 'mash' | 'sparge' | 'boil' | 'measure' | 'decoction_pull' | 'decoction_heat' | 'decoction_rest' | 'decoction_boil' | 'decoction_return';
+type EventType = 'strike' | 'mash' | 'mashout' | 'sparge' | 'boil' | 'measure' | 'decoction_pull' | 'decoction_heat' | 'decoction_rest' | 'decoction_boil' | 'decoction_return';
 
 interface TEvent {
     id: string;
@@ -36,10 +37,9 @@ interface TEvent {
     time?: number;
     temp?: number;
     spargeVol?: number;
+    mashWaterVol?: number;
     hops?: HopAddition[];
-    /** Stopwatch mode: count UP, no countdown */
     stopwatch?: boolean;
-    /** Volume info string for decoction pull, e.g. "6.0 L Dickmaische" */
     volumeInfo?: string;
 }
 
@@ -63,9 +63,20 @@ interface OGReading {
     note?: string;
 }
 
-// 
+type PhaseName = 'Maischen' | 'Läutern' | 'Kochen' | 'Abschluss';
+
+interface PhaseSegment {
+    label: PhaseName;
+    startIdx: number;
+    endIdx: number;
+    color: string;
+    bgColor: string;
+    borderColor: string;
+}
+
+// ─────────────────────────────────────────────
 // Helpers
-// 
+// ─────────────────────────────────────────────
 
 const sf = (v: any): number => {
     const n = parseFloat(String(v ?? '').replace(',', '.'));
@@ -78,9 +89,11 @@ const fmtMs = (ms: number) => {
 };
 
 const TYPE_LABEL: Record<EventType, string> = {
+    strike:            'Einmaischen',
     mash:              'Maischen',
-    sparge:            'Laeutern',
-    boil:              'Wuerze\u00adkochen',
+    mashout:           'Abmaischen',
+    sparge:            'Läutern',
+    boil:              'Kochen',
     measure:           'Abschluss',
     decoction_pull:    'Dekoktion',
     decoction_heat:    'Dekoktion',
@@ -89,55 +102,46 @@ const TYPE_LABEL: Record<EventType, string> = {
     decoction_return:  'Dekoktion',
 };
 
-// 
-// LiveTimer
-// 
+const PHASE_LABEL: Record<EventType, PhaseName> = {
+    strike: 'Maischen', mash: 'Maischen', mashout: 'Maischen',
+    sparge: 'Läutern', boil: 'Kochen', measure: 'Abschluss',
+    decoction_pull: 'Maischen', decoction_heat: 'Maischen', decoction_rest: 'Maischen',
+    decoction_boil: 'Maischen', decoction_return: 'Maischen',
+};
 
-function LiveTimer({ state }: { state: TimerState }) {
-    const [display, setDisplay] = useState(() => fmtMs(Math.max(0, state.duration - state.elapsed)));
+const PHASE_COLORS: Record<PhaseName, { color: string; bgColor: string; borderColor: string }> = {
+    'Maischen':  { color: 'text-amber-400',   bgColor: 'bg-amber-500/10',   borderColor: 'border-amber-500/20' },
+    'Läutern':   { color: 'text-sky-400',      bgColor: 'bg-sky-500/10',      borderColor: 'border-sky-500/20' },
+    'Kochen':    { color: 'text-red-400',      bgColor: 'bg-red-500/10',      borderColor: 'border-red-500/20' },
+    'Abschluss': { color: 'text-emerald-400',  bgColor: 'bg-emerald-500/10',  borderColor: 'border-emerald-500/20' },
+};
+
+// ─────────────────────────────────────────────
+// Timer Components
+// ─────────────────────────────────────────────
+
+function useLiveTime(state: TimerState, mode: 'countdown' | 'stopwatch') {
+    const [display, setDisplay] = useState(() => {
+        if (mode === 'stopwatch') return fmtMs(state.elapsed);
+        return fmtMs(Math.max(0, state.duration - state.elapsed));
+    });
     useEffect(() => {
         if (!state.running || !state.startTime) {
-            setDisplay(fmtMs(Math.max(0, state.duration - state.elapsed)));
+            setDisplay(mode === 'stopwatch' ? fmtMs(state.elapsed) : fmtMs(Math.max(0, state.duration - state.elapsed)));
             return;
         }
         const tick = () => {
             const total = state.elapsed + (Date.now() - state.startTime!);
-            setDisplay(fmtMs(Math.max(0, state.duration - total)));
+            setDisplay(mode === 'stopwatch' ? fmtMs(total) : fmtMs(Math.max(0, state.duration - total)));
         };
         tick();
         const id = setInterval(tick, 200);
         return () => clearInterval(id);
-    }, [state]);
-    return <>{display}</>;
+    }, [state, mode]);
+    return display;
 }
 
-// 
-// LiveStopwatch — counts UP (for decoction_heat where duration is unknown)
-// 
-
-function LiveStopwatch({ state }: { state: TimerState }) {
-    const [display, setDisplay] = useState(() => fmtMs(state.elapsed));
-    useEffect(() => {
-        if (!state.running || !state.startTime) {
-            setDisplay(fmtMs(state.elapsed));
-            return;
-        }
-        const tick = () => {
-            const total = state.elapsed + (Date.now() - state.startTime!);
-            setDisplay(fmtMs(total));
-        };
-        tick();
-        const id = setInterval(tick, 200);
-        return () => clearInterval(id);
-    }, [state]);
-    return <>{display}</>;
-}
-
-// 
-// TimerBar
-// 
-
-function TimerBar({ state }: { state: TimerState }) {
+function TimerProgress({ state }: { state: TimerState }) {
     const [pct, setPct] = useState(0);
     useEffect(() => {
         if (!state.running || !state.startTime) {
@@ -152,12 +156,12 @@ function TimerBar({ state }: { state: TimerState }) {
         const id = setInterval(tick, 500);
         return () => clearInterval(id);
     }, [state]);
-    return <div className="h-full bg-amber-500 transition-all duration-500" style={{ width: `${pct}%` }} />;
+    return (
+        <div className="h-1 bg-surface-hover rounded-full overflow-hidden">
+            <div className="h-full bg-amber-500 rounded-full transition-all duration-500 ease-linear" style={{ width: `${pct}%` }} />
+        </div>
+    );
 }
-
-// 
-// HopCountdown
-// 
 
 function HopCountdown({ hopAddMs, boilState }: { hopAddMs: number; boilState: TimerState }) {
     const [remaining, setRemaining] = useState(0);
@@ -176,13 +180,109 @@ function HopCountdown({ hopAddMs, boilState }: { hopAddMs: number; boilState: Ti
         const id = setInterval(calc, 500);
         return () => clearInterval(id);
     }, [boilState, hopAddMs]);
-    if (due) return <span className="text-amber-400 font-bold animate-pulse">JETZT</span>;
-    return <span className="font-mono tabular-nums">{fmtMs(remaining)}</span>;
+    if (due) return <span className="text-amber-400 font-bold animate-pulse text-xs">JETZT</span>;
+    return <span className="font-mono tabular-nums text-xs">{fmtMs(remaining)}</span>;
 }
 
-// 
+// ─────────────────────────────────────────────
+// Phase Rail
+// ─────────────────────────────────────────────
+
+function PhaseRail({ phases, activePhaseIdx, onPhaseClick }: {
+    phases: PhaseSegment[];
+    activePhaseIdx: number;
+    onPhaseClick: (phaseIdx: number) => void;
+}) {
+    return (
+        <div className="flex items-center gap-1">
+            {phases.map((phase, i) => {
+                const isActive = i === activePhaseIdx;
+                const isPast = i < activePhaseIdx;
+                return (
+                    <button
+                        key={phase.label}
+                        onClick={() => onPhaseClick(i)}
+                        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-bold uppercase tracking-wider transition-all ${
+                            isActive
+                                ? `${phase.bgColor} ${phase.color} ${phase.borderColor} border`
+                                : isPast
+                                    ? 'text-text-disabled'
+                                    : 'text-text-muted hover:text-text-secondary'
+                        }`}
+                    >
+                        {isPast && <Check className="w-3 h-3" />}
+                        <span className="hidden sm:inline">{phase.label}</span>
+                        <span className="sm:hidden">{phase.label.slice(0, 3)}</span>
+                    </button>
+                );
+            })}
+        </div>
+    );
+}
+
+// ─────────────────────────────────────────────
+// Step List (Desktop Sidebar + Mobile Sheet)
+// ─────────────────────────────────────────────
+
+function StepList({ timeline, active, phases, onGoTo, className = '' }: {
+    timeline: TEvent[];
+    active: number;
+    phases: PhaseSegment[];
+    onGoTo: (i: number) => void;
+    className?: string;
+}) {
+    const activeRef = useRef<HTMLButtonElement>(null);
+    useEffect(() => {
+        activeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, [active]);
+
+    return (
+        <div className={`space-y-1 ${className}`}>
+            {phases.map((phase) => (
+                <div key={phase.label} className="mb-3">
+                    <p className={`text-[10px] font-bold uppercase tracking-widest ${phase.color} mb-1.5 px-1`}>
+                        {phase.label}
+                    </p>
+                    {timeline.slice(phase.startIdx, phase.endIdx + 1).map((ev, offsetIdx) => {
+                        const i = phase.startIdx + offsetIdx;
+                        const isActive = i === active;
+                        const isPast = i < active;
+                        return (
+                            <button
+                                key={ev.id}
+                                ref={isActive ? activeRef : undefined}
+                                onClick={() => onGoTo(i)}
+                                className={`w-full text-left flex items-center gap-2 px-2.5 py-2 rounded-lg transition-all text-sm ${
+                                    isActive
+                                        ? `${phase.bgColor} ${phase.color} font-semibold`
+                                        : isPast
+                                            ? 'text-text-disabled hover:bg-surface'
+                                            : 'text-text-muted hover:bg-surface hover:text-text-secondary'
+                                }`}
+                            >
+                                <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                                    isActive ? 'bg-current' : isPast ? 'bg-text-disabled' : 'bg-border'
+                                }`} />
+                                <span className={`flex-1 truncate ${isPast ? 'line-through' : ''}`}>{ev.title}</span>
+                                {ev.temp !== undefined && !isPast && (
+                                    <span className="text-[10px] font-mono opacity-60 shrink-0">{ev.temp}°</span>
+                                )}
+                                {(ev.time ?? 0) > 0 && ev.type !== 'measure' && !isPast && (
+                                    <span className="text-[10px] font-mono opacity-60 shrink-0">{ev.time}m</span>
+                                )}
+                                {isPast && <Check className="w-3 h-3 text-text-disabled shrink-0" />}
+                            </button>
+                        );
+                    })}
+                </div>
+            ))}
+        </div>
+    );
+}
+
+// ─────────────────────────────────────────────
 // Main Component
-// 
+// ─────────────────────────────────────────────
 
 export function BrewDayTab() {
     const { session, updateSessionData, addEvent } = useSession();
@@ -194,17 +294,40 @@ export function BrewDayTab() {
     const origVol     = sf(meas.original_volume          ?? data.batch_size ?? 20);
     const scale       = origVol > 0 ? targetVol / origVol : 1;
 
+    // ── Build timeline ──
     const timeline = useMemo<TEvent[]>(() => {
         const ev: TEvent[] = [];
 
-        // 1. Mash steps — Dekoktions-Schritte werden in Sub-Events expandiert
+        // 1. Mash steps — per step_type differenziert
         const mashSteps: any[] = data.mash_steps ?? data.mash_schedule ?? [];
+        const mashWater = sf(data.mash_water_liters ?? 0) * scale;
+
         if (mashSteps.length > 0) {
             mashSteps.forEach((s: any, i: number) => {
                 const t = sf(s.temperature ?? s.temp);
+                const stepType = s.step_type ?? (i === 0 ? 'strike' : 'rest');
 
-                if (s.step_type === 'decoction') {
-                    // ── Dekoktions-Expansion ──
+                if (stepType === 'strike') {
+                    // ── Einmaischen: Bestätigungsschritt mit Hauptguss-Info ──
+                    const desc = mashWater > 0
+                        ? `${mashWater.toFixed(1).replace('.', ',')} L Hauptguss auf ${t > 0 ? t + '°C' : 'Zieltemperatur'}`
+                        : t > 0 ? `Einmaischtemperatur: ${t}°C` : 'Malz in Wasser einrühren';
+                    ev.push({
+                        id: `mash-${i}`, type: 'strike', title: s.name ?? 'Einmaischen',
+                        description: desc, temp: t > 0 ? t : undefined,
+                        mashWaterVol: mashWater > 0 ? mashWater : undefined,
+                    });
+
+                } else if (stepType === 'mashout') {
+                    // ── Abmaischen: Stoppuhr bis Zieltemp erreicht ──
+                    ev.push({
+                        id: `mash-${i}`, type: 'mashout', title: s.name ?? 'Abmaischen',
+                        description: t > 0 ? `Maische auf ${t}°C aufheizen` : 'Abmaischtemperatur erreichen',
+                        temp: t > 0 ? t : 78, stopwatch: true,
+                    });
+
+                } else if (stepType === 'decoction') {
+                    // ── Dekoktion: 6-Schritt-Expansion ──
                     const formLabel = s.decoction_form === 'thin' ? 'Dünnmaische'
                         : s.decoction_form === 'liquid' ? 'Kochwasser'
                         : 'Dickmaische';
@@ -213,157 +336,111 @@ export function BrewDayTab() {
                     const volInfo = scaledVol ? `${scaledVol} L ${formLabel}` : formLabel;
                     const stepName = s.name ?? `Dekoktion ${i + 1}`;
 
-                    // 1. Pull — Teilmaische ziehen (Bestätigungsschritt)
-                    ev.push({
-                        id: `mash-${i}-pull`,
-                        type: 'decoction_pull',
-                        title: `${stepName}: Teilmaische ziehen`,
-                        description: volInfo,
-                        volumeInfo: volInfo,
-                    });
-
-                    // 2. Heat — Aufheizen (Stopwatch, kein Countdown)
-                    ev.push({
-                        id: `mash-${i}-heat`,
-                        type: 'decoction_heat',
-                        title: `Teilmaische aufheizen`,
-                        description: s.decoction_rest_temp
-                            ? `Ziel: ${s.decoction_rest_temp}°C`
-                            : 'Bis zum Kochen aufheizen',
-                        temp: s.decoction_rest_temp ? sf(s.decoction_rest_temp) : 100,
-                        stopwatch: true,
-                    });
-
-                    // 3. Optional: Teilmaische-Rast (wenn temp+time definiert)
+                    // 1. Pull
+                    ev.push({ id: `mash-${i}-pull`, type: 'decoction_pull', title: `${stepName}: Teilmaische ziehen`, description: volInfo, volumeInfo: volInfo });
+                    // 2. Heat (Stoppuhr)
+                    ev.push({ id: `mash-${i}-heat`, type: 'decoction_heat', title: `Teilmaische aufheizen`, description: s.decoction_rest_temp ? `Ziel: ${s.decoction_rest_temp}°C` : 'Bis zum Kochen aufheizen', temp: s.decoction_rest_temp ? sf(s.decoction_rest_temp) : 100, stopwatch: true });
+                    // 3. Optional: Teilmaische-Rast
                     if (sf(s.decoction_rest_temp) > 0 && sf(s.decoction_rest_time) > 0) {
-                        ev.push({
-                            id: `mash-${i}-rest`,
-                            type: 'decoction_rest',
-                            title: `Teilmaische-Rast`,
-                            time: sf(s.decoction_rest_time),
-                            temp: sf(s.decoction_rest_temp),
-                        });
+                        ev.push({ id: `mash-${i}-rest`, type: 'decoction_rest', title: `Teilmaische-Rast`, time: sf(s.decoction_rest_time), temp: sf(s.decoction_rest_temp) });
                     }
-
-                    // 4. Boil — Teilmaische kochen
+                    // 4. Optional: Kochen der Teilmaische
                     if (sf(s.decoction_boil_time) > 0) {
-                        ev.push({
-                            id: `mash-${i}-boil`,
-                            type: 'decoction_boil',
-                            title: `Teilmaische kochen`,
-                            time: sf(s.decoction_boil_time),
-                            temp: 100,
-                        });
+                        ev.push({ id: `mash-${i}-boil`, type: 'decoction_boil', title: `Teilmaische kochen`, time: sf(s.decoction_boil_time), temp: 100 });
                     }
-
-                    // 5. Return — Teilmaische zurückführen (Bestätigungsschritt)
+                    // 5. Return (Stoppuhr — Temperatur prüfen nach Rückschüttung)
                     ev.push({
-                        id: `mash-${i}-return`,
-                        type: 'decoction_return',
+                        id: `mash-${i}-return`, type: 'decoction_return',
                         title: `${stepName}: Zurückführen`,
-                        temp: t > 0 ? t : undefined,
-                        description: t > 0 ? `Hauptmaische auf ${t}°C bringen` : undefined,
+                        description: t > 0 ? `Rückschüttung → Hauptmaische auf ${t}°C bringen` : 'Teilmaische zurückschütten & Temperatur prüfen',
+                        temp: t > 0 ? t : undefined, stopwatch: true,
                     });
-
-                    // 6. Hauptrast bei Zieltemperatur (wenn Dauer definiert)
+                    // 6. Hauptrast bei Zieltemperatur
                     if (sf(s.duration) > 0) {
-                        ev.push({
-                            id: `mash-${i}-mainrest`,
-                            type: 'mash',
-                            title: `Rast bei ${t}°C`,
-                            time: sf(s.duration),
-                            temp: t > 0 ? t : undefined,
-                        });
+                        ev.push({ id: `mash-${i}-mainrest`, type: 'mash', title: `Rast bei ${t}°C`, time: sf(s.duration), temp: t > 0 ? t : undefined });
                     }
+
                 } else {
-                    // ── Normaler Rast-/Abmaisch-Schritt ──
+                    // ── rest: Normale Temperatur-Rast mit Countdown ──
                     ev.push({
-                        id: `mash-${i}`,
-                        type: 'mash',
-                        title: s.name ?? (i === 0 ? 'Einmaischen' : `Rast ${i + 1}`),
-                        time: sf(s.duration ?? s.time),
-                        temp: t > 0 ? t : undefined,
+                        id: `mash-${i}`, type: 'mash',
+                        title: s.name || `Rast ${i + 1}`,
+                        time: sf(s.duration ?? s.time), temp: t > 0 ? t : undefined,
                     });
                 }
             });
         } else {
-            ev.push({ id: 'mash-0', type: 'mash', title: 'Einmaischen', time: 60, temp: 67 });
+            // Fallback: kein Maischplan definiert
+            ev.push({ id: 'mash-0', type: 'strike', title: 'Einmaischen', temp: 67, description: 'Kein Maischplan im Rezept — bitte manuell maischen' });
+            ev.push({ id: 'mash-1', type: 'mash', title: 'Kombi-Rast', time: 60, temp: 67 });
         }
 
-        // 2. Sparge / Laeutern with Nachguss volume
+        // 2. Sparge
         const spargeVol = sf(data.sparge_water_liters ?? data.sparge_volume ?? data.sparge_water_volume ?? 0);
-        ev.push({
-            id:        'sparge',
-            type:      'sparge',
-            title:     'Laeutern & Nachguss',
-            spargeVol: spargeVol > 0 ? spargeVol : undefined,
-        });
+        ev.push({ id: 'sparge', type: 'sparge', title: 'Läutern & Nachguss', spargeVol: spargeVol > 0 ? spargeVol : undefined });
 
-        // 3. Boil with hops embedded
+        // 3. Boil
         const boilTime = sf(data.boil_time ?? 60);
         const rawHops: any[] = data.hops ?? data.ingredients?.hops ?? [];
         const boilHops: HopAddition[] = rawHops
             .filter((h: any) => h.type === 'boil' || h.usage === 'Boil' || sf(h.time) > 0)
             .sort((a: any, b: any) => sf(b.time) - sf(a.time))
-            .map((h: any) => ({
-                name:   h.name ?? 'Hopfen',
-                amount: Math.round(sf(String(h.amount ?? 0).replace(',', '.')) * scale),
-                time:   sf(h.time),
-            }));
-        ev.push({
-            id:    'boil',
-            type:  'boil',
-            title: 'Wuerze\u00adkochen',
-            time:  boilTime > 0 ? boilTime : 60,
-            temp:  100,
-            hops:  boilHops,
-        });
+            .map((h: any) => ({ name: h.name ?? 'Hopfen', amount: Math.round(sf(String(h.amount ?? 0).replace(',', '.')) * scale), time: sf(h.time) }));
+        ev.push({ id: 'boil', type: 'boil', title: 'Würzekochen', time: boilTime > 0 ? boilTime : 60, temp: 100, hops: boilHops });
 
         // 4. OG Measurement
         const og = sf(data.og ?? '1.050');
         let desc = 'Zielwert nicht definiert';
         if (og > 0) {
             if (og > 2) {
-                 // Assumed Plato
-                 const sg = 1 + (og / (258.6 - ((og / 258.2) * 227.1)));
-                 desc = `Ziel: ${og.toFixed(1)}°P (${sg.toFixed(3)} SG)`;
+                const sg = 1 + (og / (258.6 - ((og / 258.2) * 227.1)));
+                desc = `Ziel: ${og.toFixed(1)}°P (${sg.toFixed(3)} SG)`;
             } else {
-                 // Assumed SG
-                 const plato = (135.997 * Math.pow(og, 3)) - (630.272 * Math.pow(og, 2)) + (1111.14 * og) - 616.868;
-                 desc = `Ziel: ${og.toFixed(3)} SG (${plato.toFixed(1)}°P)`;
+                const plato = (135.997 * Math.pow(og, 3)) - (630.272 * Math.pow(og, 2)) + (1111.14 * og) - 616.868;
+                desc = `Ziel: ${og.toFixed(3)} SG (${plato.toFixed(1)}°P)`;
             }
         }
-
-        ev.push({
-            id:          'measure',
-            type:        'measure',
-            title:       'Stammwuerze messen',
-            description: desc,
-        });
+        ev.push({ id: 'measure', type: 'measure', title: 'Stammwürze messen', description: desc });
 
         return ev;
     }, [data, scale]);
 
-    const [active, setActive]     = useState(0);
-    const [timer,  setTimer]      = useState<TimerState>({ running: false, startTime: null, elapsed: 0, duration: 0 });
+    // ── Build phase segments ──
+    const phases = useMemo<PhaseSegment[]>(() => {
+        const segs: PhaseSegment[] = [];
+        let cur: PhaseName | null = null;
+        timeline.forEach((ev, i) => {
+            const phase = PHASE_LABEL[ev.type];
+            if (phase !== cur) {
+                if (segs.length > 0) segs[segs.length - 1].endIdx = i - 1;
+                const colors = PHASE_COLORS[phase];
+                segs.push({ label: phase, startIdx: i, endIdx: i, ...colors });
+                cur = phase;
+            } else {
+                segs[segs.length - 1].endIdx = i;
+            }
+        });
+        return segs;
+    }, [timeline]);
+
+    const getActivePhaseIdx = useCallback((stepIdx: number) => {
+        return phases.findIndex(p => stepIdx >= p.startIdx && stepIdx <= p.endIdx);
+    }, [phases]);
+
+    // ── State ──
+    const [active, setActive]         = useState(0);
+    const [timer,  setTimer]          = useState<TimerState>({ running: false, startTime: null, elapsed: 0, duration: 0 });
     const [ogReadings, setOgReadings] = useState<OGReading[]>(() => meas.og_readings ?? []);
     const [ogInput,    setOgInput]    = useState('');
     const [ogNote,     setOgNote]     = useState('');
-    const [timerExpanded, setTimerExpanded] = useState(false);
-
-    const activeRef    = useRef<HTMLDivElement>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
+    const [showStepList, setShowStepList] = useState(false);
 
     useEffect(() => {
         if (meas.active_step_index !== undefined) setActive(meas.active_step_index);
         if (savedTimers.global) setTimer(savedTimers.global);
-        if (meas.og_readings)   setOgReadings(meas.og_readings);
+        if (meas.og_readings) setOgReadings(meas.og_readings);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
-
-    useEffect(() => {
-        activeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, [active]);
 
     useEffect(() => {
         if (!timer.running || timer.duration === 0) return;
@@ -377,14 +454,14 @@ export function BrewDayTab() {
         return () => clearInterval(id);
     }, [timer, active, timeline]);
 
-    const goTo = (i: number) => {
+    const goTo = useCallback((i: number) => {
         setActive(i);
-        const step    = timeline[i];
+        setShowStepList(false);
+        const step = timeline[i];
         const isStopwatch = step.stopwatch;
         const hasDuration = (step.time ?? 0) > 0 && step.type !== 'measure';
         let newTimer: TimerState;
         if (isStopwatch) {
-            // Stopwatch: count up, no target duration — user clicks "Erledigt" when done
             newTimer = { running: false, startTime: null, elapsed: 0, duration: 0 };
         } else if (hasDuration) {
             newTimer = { running: false, startTime: null, elapsed: 0, duration: step.time! * 60_000 };
@@ -393,9 +470,9 @@ export function BrewDayTab() {
         }
         setTimer(newTimer);
         updateSessionData({ measurements: { ...meas, active_step_index: i, timers: { ...savedTimers, global: newTimer } } as any });
-    };
+    }, [timeline, meas, savedTimers, updateSessionData]);
 
-    const toggleTimer = (e: React.MouseEvent) => {
+    const toggleTimer = useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
         const now = Date.now();
         const next: TimerState = timer.running
@@ -403,32 +480,32 @@ export function BrewDayTab() {
             : { ...timer, running: true, startTime: now };
         setTimer(next);
         updateSessionData({ measurements: { ...meas, timers: { ...savedTimers, global: next } } as any });
-    };
+    }, [timer, meas, savedTimers, updateSessionData]);
 
-    const nextStep = (e: React.MouseEvent) => {
+    const nextStep = useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
         const next = active + 1;
         if (next < timeline.length) {
-            addEvent({ type: 'NOTE', title: `\u2713 ${timeline[active].title}`, data: { stepIndex: active } });
+            addEvent({ type: 'NOTE', title: `✓ ${timeline[active].title}`, data: { stepIndex: active } });
             goTo(next);
             toast.success('Weiter!', { description: timeline[next].title });
         } else {
-            toast.success('Brautag abgeschlossen! \uD83C\uDF89');
+            toast.success('Brautag abgeschlossen! 🎉');
         }
-    };
+    }, [active, timeline, addEvent, goTo]);
 
-    const addOGReading = () => {
+    const prevStep = useCallback((e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (active > 0) goTo(active - 1);
+    }, [active, goTo]);
+
+    const addOGReading = useCallback(() => {
         const val = sf(ogInput);
         if (val < 0.9 || val > 1.2) {
-            toast.error('Ungueltiger Wert', { description: 'Bitte einen Wert zwischen 0.900 und 1.200 eingeben.' });
+            toast.error('Ungültiger Wert', { description: 'Bitte einen Wert zwischen 0.900 und 1.200 eingeben.' });
             return;
         }
-        const reading: OGReading = {
-            id:        crypto.randomUUID(),
-            timestamp: new Date().toISOString(),
-            value:     val,
-            note:      ogNote.trim() || undefined,
-        };
+        const reading: OGReading = { id: crypto.randomUUID(), timestamp: new Date().toISOString(), value: val, note: ogNote.trim() || undefined };
         const updated = [...ogReadings, reading];
         setOgReadings(updated);
         setOgInput('');
@@ -436,329 +513,382 @@ export function BrewDayTab() {
         addEvent({ type: 'MEASUREMENT_OG', title: `OG: ${val.toFixed(3)}`, data: { value: val, note: reading.note } });
         updateSessionData({ measurements: { ...meas, og_readings: updated } as any });
         toast.success('Messung gespeichert', { description: `${val.toFixed(3)}` });
-    };
+    }, [ogInput, ogNote, ogReadings, addEvent, meas, updateSessionData]);
 
-    const removeOGReading = (id: string) => {
+    const removeOGReading = useCallback((id: string) => {
         const updated = ogReadings.filter(r => r.id !== id);
         setOgReadings(updated);
         updateSessionData({ measurements: { ...meas, og_readings: updated } as any });
-    };
+    }, [ogReadings, meas, updateSessionData]);
 
-    type Phase = { label: string; color: string };
-    const PHASE_MAP: Record<EventType, Phase> = {
-        mash:              { label: 'Maischen',  color: 'text-amber-400'   },
-        sparge:            { label: 'Laeutern',  color: 'text-sky-400'     },
-        boil:              { label: 'Kochen',    color: 'text-red-400'     },
-        measure:           { label: 'Abschluss', color: 'text-emerald-400' },
-        decoction_pull:    { label: 'Maischen',  color: 'text-amber-400'   },
-        decoction_heat:    { label: 'Maischen',  color: 'text-amber-400'   },
-        decoction_rest:    { label: 'Maischen',  color: 'text-amber-400'   },
-        decoction_boil:    { label: 'Maischen',  color: 'text-amber-400'   },
-        decoction_return:  { label: 'Maischen',  color: 'text-amber-400'   },
-    };
-
-    const getHeader = (i: number): Phase | null => {
-        const cur  = PHASE_MAP[timeline[i].type];
-        const prev = i > 0 ? PHASE_MAP[timeline[i - 1].type] : null;
-        if (i === 0 || cur.label !== prev?.label) return cur;
-        return null;
-    };
-
-    const hasDur = (ev: TEvent) => ((ev.time ?? 0) > 0 || ev.stopwatch) && ev.type !== 'measure';
+    const ev = timeline[active];
+    const hasDur = ev && ((ev.time ?? 0) > 0 || ev.stopwatch) && ev.type !== 'measure';
+    const timerMode = ev?.stopwatch ? 'stopwatch' : 'countdown';
+    const timerDisplay = useLiveTime(timer, timerMode);
+    const activePhaseIdx = getActivePhaseIdx(active);
+    const activePhase = phases[activePhaseIdx];
 
     return (
-        <div className="flex flex-col md:flex-row bg-black text-zinc-300 border-t border-zinc-900">
+        <div className="flex flex-col min-h-[calc(100vh-8rem)] bg-background text-text-primary">
 
-            {(timer.duration > 0 || timeline[active]?.stopwatch) && (
-                <div className="md:hidden fixed left-0 right-0 z-40 bg-zinc-950 border-t border-zinc-800 shadow-[0_-4px_16px_rgba(0,0,0,0.6)]" style={{ bottom: 'calc(4rem + max(env(safe-area-inset-bottom), 8px))' }}>
-                    {/* Expandable details panel */}
-                    {timerExpanded && (
-                        <div className="px-4 py-3 border-b border-zinc-800 grid grid-cols-2 gap-x-6 gap-y-2">
-                            {timeline[active]?.temp !== undefined && (
-                                <div className="flex items-center justify-between">
-                                    <span className="text-[10px] uppercase tracking-widest text-zinc-600 flex items-center gap-1.5"><Thermometer className="w-3 h-3"/>Temp</span>
-                                    <span className="font-mono text-xs text-amber-400">{timeline[active].temp}°C</span>
-                                </div>
-                            )}
-                            <div className="flex items-center justify-between">
-                                <span className="text-[10px] uppercase tracking-widest text-zinc-600 flex items-center gap-1.5"><Beaker className="w-3 h-3"/>Volumen</span>
-                                <span className="font-mono text-xs text-zinc-300">{targetVol} L</span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <span className="text-[10px] uppercase tracking-widest text-zinc-600 flex items-center gap-1.5"><Clock className="w-3 h-3"/>Schritt</span>
-                                <span className="font-mono text-xs text-zinc-300">{active + 1} / {timeline.length}</span>
-                            </div>
-                            {timeline[active + 1] && (
-                                <div className="flex items-center justify-between col-span-2">
-                                    <span className="text-[10px] uppercase tracking-widest text-zinc-600">Nächster</span>
-                                    <span className="text-xs text-zinc-400 truncate max-w-[180px] text-right">{timeline[active + 1].title}</span>
-                                </div>
-                            )}
+            {/* ── Phase Rail (Header) ── */}
+            <div className="sticky top-0 z-30 bg-background/90 backdrop-blur-lg border-b border-border">
+                <div className="flex items-center justify-between px-2 py-3 sm:px-4 md:px-6">
+                    <div className="flex items-center gap-3 min-w-0">
+                        <div>
+                            <h1 className="text-lg font-bold text-text-primary tracking-tight">Brautag</h1>
+                            <p className="text-[11px] text-text-muted font-mono">#{session?.batch_code || session?.brew?.name}</p>
                         </div>
-                    )}
-                    {/* Collapsed strip */}
-                    <div className="flex items-center justify-between px-4 h-16">
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                            <div className={`w-2 h-2 rounded-full shrink-0 ${timer.running ? 'bg-amber-500 animate-pulse' : 'bg-zinc-600'}`} />
-                            <span className="text-sm text-zinc-400 truncate font-medium">{timeline[active]?.title}</span>
-                        </div>
-                        <div className="flex items-center gap-3 shrink-0">
-                            <span className="text-xl font-mono font-bold text-white tabular-nums">
-                                {timeline[active]?.stopwatch ? <LiveStopwatch state={timer} /> : <LiveTimer state={timer} />}
-                            </span>
-                            <button onClick={toggleTimer} className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${timer.running ? 'bg-zinc-800 text-amber-500' : 'bg-amber-600 text-white'}`}>
-                                {timer.running ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
-                            </button>
-                            <button onClick={() => setTimerExpanded(v => !v)} className="w-10 h-10 flex items-center justify-center text-zinc-500 hover:text-zinc-300 transition-colors">
-                                {timerExpanded ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
-                            </button>
-                        </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <PhaseRail phases={phases} activePhaseIdx={activePhaseIdx} onPhaseClick={(pi) => goTo(phases[pi].startIdx)} />
+                        <button
+                            onClick={() => setShowStepList(v => !v)}
+                            className="lg:hidden w-9 h-9 flex items-center justify-center rounded-lg bg-surface border border-border text-text-muted hover:text-text-primary transition-colors"
+                        >
+                            {showStepList ? <X className="w-4 h-4" /> : <List className="w-4 h-4" />}
+                        </button>
                     </div>
                 </div>
-            )}
-
-            <div ref={containerRef} className="flex-1 min-w-0">
-                <div className="max-w-lg mx-auto py-4 pb-4 md:pb-4">
-                    <div className="mb-4">
-                        <PhaseTitle>Brautag</PhaseTitle>
-                        <p className="text-zinc-500 text-sm">Schritt-für-Schritt Anleitung für <span className="font-mono text-zinc-400">#{session?.batch_code || session?.brew?.name}</span></p>
+                {/* Step counter */}
+                <div className="px-2 sm:px-4 md:px-6 pb-2 flex items-center gap-2">
+                    <div className="flex gap-0.5 flex-1">
+                        {timeline.map((_, i) => (
+                            <div
+                                key={i}
+                                className={`h-1 rounded-full flex-1 transition-all duration-300 ${
+                                    i < active ? 'bg-text-disabled' : i === active ? (activePhase ? 'bg-amber-500' : 'bg-brand') : 'bg-surface-hover'
+                                }`}
+                            />
+                        ))}
                     </div>
-
-                    {timeline.map((ev, i) => {
-                        const isActive = i === active;
-                        const isPast   = i < active;
-                        const header   = getHeader(i);
-
-                        return (
-                            <div key={ev.id}>
-                                {header && (
-                                    <div className="flex items-center gap-2 pt-5 pb-1">
-                                        <p className={`text-[10px] font-bold uppercase tracking-widest ${header.color}`}>{header.label}</p>
-                                        {ev.type === 'sparge'  && <BotlGuideTrigger guideKey="brautag.laeutern"  icon="info" />}
-                                        {ev.type === 'measure' && <BotlGuideTrigger guideKey="brautag.og_messen" icon="info" />}
-                                    </div>
-                                )}
-
-                                <div ref={isActive ? activeRef : undefined} onClick={() => !isActive && goTo(i)} className={`flex gap-3 py-0.5 ${!isActive ? 'cursor-pointer' : ''}`}>
-                                    <div className="flex flex-col items-center w-4 shrink-0 pt-3.5">
-                                        <div className={`w-2 h-2 rounded-full transition-all duration-200 ${isActive ? 'bg-amber-500 ring-4 ring-amber-500/20 scale-150' : isPast ? 'bg-zinc-800' : 'bg-zinc-700'}`} />
-                                    </div>
-
-                                    <div className="flex-1 min-w-0 mb-0.5">
-                                        {isActive ? (
-                                            <div className="my-1 bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden">
-                                                <div className="p-4 space-y-3">
-                                                    <div>
-                                                        <p className="text-[10px] font-mono uppercase tracking-widest text-amber-500 mb-1">
-                                                            {TYPE_LABEL[ev.type]}
-                                                            {ev.stopwatch && <span className="text-zinc-600 ml-2">· Stoppuhr</span>}
-                                                            {!ev.stopwatch && hasDur(ev) && <span className="text-zinc-600 ml-2">· {ev.time} min</span>}
-                                                        </p>
-                                                        <h2 className="text-base font-bold text-white mb-2">{ev.title}</h2>
-                                                        {ev.type === 'measure' && ev.description ? (
-                                                            <div className="bg-zinc-950/50 border border-zinc-800 rounded px-3 py-2 inline-block">
-                                                                <span className="text-xs uppercase tracking-widest text-zinc-500 font-bold mr-2">Zielwert</span>
-                                                                <span className="text-lg font-mono font-bold text-emerald-400">{ev.description.replace('Ziel: ', '')}</span>
-                                                            </div>
-                                                        ) : (
-                                                            ev.description && <p className="text-xs text-zinc-500 mt-0.5">{ev.description}</p>
-                                                        )}
-                                                    </div>
-
-                                                    {(ev.temp || ev.spargeVol || ev.volumeInfo) && (
-                                                        <div className="flex flex-wrap gap-2">
-                                                            {ev.temp && (
-                                                                <span className="inline-flex items-center gap-1 text-xs font-mono font-bold bg-zinc-950 border border-zinc-800 text-amber-400 px-2 py-1 rounded">
-                                                                    <Thermometer className="w-3 h-3" />{ev.temp}°C
-                                                                </span>
-                                                            )}
-                                                            {ev.spargeVol && (
-                                                                <span className="inline-flex items-center gap-1 text-xs font-mono font-bold bg-zinc-950 border border-zinc-800 text-sky-400 px-2 py-1 rounded">
-                                                                    <Droplets className="w-3 h-3" />{ev.spargeVol} L Nachguss
-                                                                </span>
-                                                            )}
-                                                            {ev.volumeInfo && (
-                                                                <span className="inline-flex items-center gap-1 text-xs font-mono font-bold bg-amber-500/10 border border-amber-500/20 text-amber-500 px-2 py-1 rounded">
-                                                                    <Flame className="w-3 h-3" />{ev.volumeInfo}
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    )}
-
-                                                    {ev.type === 'boil' && (ev.hops?.length ?? 0) > 0 && (
-                                                        <div className="rounded-md border border-zinc-800 overflow-hidden">
-                                                            <div className="flex items-center justify-between px-3 py-1.5 bg-zinc-950 border-b border-zinc-800">
-                                                                <span className="text-[10px] uppercase tracking-widest font-bold text-zinc-500">Hopfengaben</span>
-                                                                <span className="text-[10px] uppercase tracking-widest font-bold text-zinc-600">verbleibend</span>
-                                                            </div>
-                                                            {ev.hops!.map((h) => {
-                                                                const hopAddMs = (ev.time! - h.time) * 60_000;
-                                                                return (
-                                                                    <div key={`${h.name}-${h.time}`} className="flex items-center justify-between px-3 py-2 text-xs border-b border-zinc-800/50 last:border-0">
-                                                                        <div className="flex items-center gap-2 min-w-0">
-                                                                            <span className="text-zinc-300 truncate font-medium">{h.name}</span>
-                                                                            <span className="text-zinc-600 shrink-0">{h.amount} g</span>
-                                                                            <span className="text-zinc-700 shrink-0">bei {h.time} min</span>
-                                                                        </div>
-                                                                        <div className="text-zinc-400 shrink-0 ml-2">
-                                                                            <HopCountdown hopAddMs={hopAddMs} boilState={timer} />
-                                                                        </div>
-                                                                    </div>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    )}
-
-                                                    {ev.type === 'measure' && (
-                                                        <div className="space-y-3">
-                                                            {ogReadings.length > 0 && (
-                                                                <div className="rounded-md border border-zinc-800 overflow-hidden">
-                                                                    {ogReadings.map((r) => (
-                                                                        <div key={r.id} className="flex items-center justify-between px-3 py-2 text-xs border-b border-zinc-800/50 last:border-0">
-                                                                            <div className="flex items-center gap-2 min-w-0">
-                                                                                <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />
-                                                                                <span className="font-mono font-bold text-white">{r.value.toFixed(3)}</span>
-                                                                                {r.note && <span className="text-zinc-500 truncate">{r.note}</span>}
-                                                                            </div>
-                                                                            <div className="flex items-center gap-2 shrink-0">
-                                                                                <span className="text-zinc-700 tabular-nums">
-                                                                                    {new Date(r.timestamp).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
-                                                                                </span>
-                                                                                <button onClick={() => removeOGReading(r.id)} className="text-zinc-700 hover:text-red-500 transition-colors p-0.5">
-                                                                                    <Trash2 className="w-3 h-3" />
-                                                                                </button>
-                                                                            </div>
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            )}
-                                                            <div className="flex gap-2">
-                                                                <div className="relative flex-1">
-                                                                    <FlaskConical className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-600" />
-                                                                    <input
-                                                                        type="number" step="0.001" min="0.9" max="1.2"
-                                                                        placeholder="1.052"
-                                                                        value={ogInput}
-                                                                        onChange={e => setOgInput(e.target.value)}
-                                                                        onKeyDown={e => e.key === 'Enter' && addOGReading()}
-                                                                        className="w-full bg-black border border-zinc-800 rounded px-3 py-2 pl-8 text-white text-sm font-mono focus:border-zinc-600 outline-none"
-                                                                    />
-                                                                </div>
-                                                                <input
-                                                                    type="text" placeholder="Notiz (optional)"
-                                                                    value={ogNote}
-                                                                    onChange={e => setOgNote(e.target.value)}
-                                                                    className="flex-1 bg-black border border-zinc-800 rounded px-3 py-2 text-white text-sm focus:border-zinc-600 outline-none"
-                                                                />
-                                                                <button onClick={addOGReading} className="shrink-0 w-9 h-9 flex items-center justify-center bg-emerald-700 hover:bg-emerald-600 text-white rounded transition-colors">
-                                                                    <Plus className="w-4 h-4" />
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    )}
-
-                                                    <div className="flex items-center gap-2 pt-1">
-                                                        {hasDur(ev) && (
-                                                            <button onClick={toggleTimer} className={`flex items-center gap-2 px-3 py-2 rounded text-xs font-bold uppercase tracking-wide border transition-colors shrink-0 ${timer.running ? 'bg-zinc-950 border-zinc-700 text-amber-500 hover:bg-zinc-800' : 'bg-amber-600 border-transparent text-white hover:bg-amber-500'}`}>
-                                                                {timer.running ? <Pause className="w-3 h-3 fill-current" /> : <Play className="w-3 h-3 fill-current" />}
-                                                                <span className="font-mono tabular-nums text-sm tracking-tighter">
-                                                                    {ev.stopwatch ? <LiveStopwatch state={timer} /> : <LiveTimer state={timer} />}
-                                                                </span>
-                                                            </button>
-                                                        )}
-                                                        <button onClick={nextStep} className="flex flex-1 items-center justify-center gap-2 px-4 py-2 bg-white hover:bg-zinc-100 text-black text-xs font-bold uppercase tracking-wide rounded transition-colors active:scale-95">
-                                                            Erledigt <ArrowRight className="w-3 h-3" />
-                                                        </button>
-                                                    </div>
-                                                </div>
-
-                                                {hasDur(ev) && timer.duration > 0 && !ev.stopwatch && (
-                                                    <div className="h-0.5 bg-zinc-800"><TimerBar state={timer} /></div>
-                                                )}
-                                            </div>
-                                        ) : (
-                                            <div className={`flex items-center gap-3 py-2 ${isPast ? 'opacity-35' : 'hover:opacity-70 transition-opacity'}`}>
-                                                {ev.type.startsWith('decoction_') && !isPast && (
-                                                    <Flame className="w-3 h-3 text-amber-600 shrink-0" />
-                                                )}
-                                                <span className={`text-sm flex-1 min-w-0 truncate ${isPast ? 'line-through text-zinc-500' : ev.type.startsWith('decoction_') ? 'text-amber-400/70' : 'text-zinc-400'}`}>{ev.title}</span>
-                                                <div className="flex items-center gap-2 shrink-0">
-                                                    {ev.temp !== undefined && (ev.type === 'mash' || ev.type.startsWith('decoction_')) && (
-                                                        <span className="text-[10px] font-mono text-amber-700">{ev.temp}°C</span>
-                                                    )}
-                                                    {ev.spargeVol !== undefined && (
-                                                        <span className="text-[10px] font-mono text-sky-700">{ev.spargeVol} L</span>
-                                                    )}
-                                                    {ev.volumeInfo && (
-                                                        <span className="text-[10px] font-mono text-amber-700">{ev.volumeInfo}</span>
-                                                    )}
-                                                    {ev.stopwatch && (
-                                                        <span className="text-[10px] font-mono text-zinc-700">⏱</span>
-                                                    )}
-                                                    {!ev.stopwatch && hasDur(ev) && (
-                                                        <span className="text-[10px] font-mono text-zinc-700">{ev.time} min</span>
-                                                    )}
-                                                    {ev.type === 'measure' && ogReadings.length > 0 && (
-                                                        <span className="text-[10px] font-mono text-emerald-700">{ogReadings.length}×</span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })}
-                    <p className="pt-10 pl-7 text-[10px] font-mono text-zinc-800 uppercase tracking-widest">Ende</p>
+                    <span className="text-[10px] font-mono text-text-disabled shrink-0 ml-2">{active + 1}/{timeline.length}</span>
                 </div>
             </div>
 
-            <div className="w-56 hidden xl:flex flex-col shrink-0 border-l border-zinc-900 p-5 gap-5 sticky top-0 self-start">
-                <div>
-                    <p className="text-[10px] uppercase tracking-widest text-zinc-600 mb-1">
-                        {timeline[active]?.stopwatch ? 'Stoppuhr' : 'Timer'}
-                    </p>
-                    {timer.duration > 0 || timeline[active]?.stopwatch ? (
-                        <>
-                            <div className="text-3xl font-mono font-black text-white tabular-nums tracking-tighter">
-                                {timeline[active]?.stopwatch ? <LiveStopwatch state={timer} /> : <LiveTimer state={timer} />}
-                            </div>
-                            <div className="flex items-center gap-2 mt-1">
-                                <div className={`w-1.5 h-1.5 rounded-full ${timer.running ? 'bg-amber-500 animate-pulse' : 'bg-zinc-800'}`} />
-                                <span className="text-xs text-zinc-600">{timer.running ? 'Laeuft' : 'Pausiert'}</span>
-                            </div>
-                        </>
-                    ) : (
-                        <p className="text-sm text-zinc-700">Kein aktiver Timer</p>
-                    )}
-                </div>
-                <div className="h-px bg-zinc-900"/>
-                <div className="space-y-3">
-                    {timeline[active]?.temp !== undefined && (
-                        <div className="flex justify-between text-xs">
-                            <span className="text-zinc-600 flex items-center gap-2"><Thermometer className="w-3 h-3"/>Temperatur</span>
-                            <span className="font-mono text-amber-400">{timeline[active].temp}°C</span>
+            {/* ── Content Area ── */}
+            <div className="flex-1 flex relative">
+
+                {/* ── Mobile Step List Sheet ── */}
+                {showStepList && (
+                    <div className="absolute inset-0 z-20 bg-background lg:hidden overflow-y-auto p-2 sm:p-4 animate-in slide-in-from-right duration-200">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-sm font-bold text-text-primary uppercase tracking-widest">Alle Schritte</h2>
+                            <button onClick={() => setShowStepList(false)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface text-text-muted">
+                                <X className="w-4 h-4" />
+                            </button>
                         </div>
-                    )}
-                    {timeline[active]?.spargeVol !== undefined && (
-                        <div className="flex justify-between text-xs">
-                            <span className="text-zinc-600 flex items-center gap-2"><Droplets className="w-3 h-3"/>Nachguss</span>
-                            <span className="font-mono text-sky-400">{timeline[active].spargeVol} L</span>
-                        </div>
-                    )}
-                    <div className="flex justify-between text-xs">
-                        <span className="text-zinc-600 flex items-center gap-2"><Beaker className="w-3 h-3"/>Volumen</span>
-                        <span className="font-mono text-zinc-300">{targetVol} L</span>
+                        <StepList timeline={timeline} active={active} phases={phases} onGoTo={goTo} />
                     </div>
-                    <div className="flex justify-between text-xs">
-                        <span className="text-zinc-600 flex items-center gap-2"><Clock className="w-3 h-3"/>Schritt</span>
-                        <span className="font-mono text-zinc-300">{active + 1} / {timeline.length}</span>
+                )}
+
+                {/* ── Focus Card (Main) ── */}
+                <div className="flex-1 min-w-0 flex flex-col">
+                    <div className="flex-1 flex items-start justify-center px-2 py-4 sm:px-4 sm:py-6 md:px-8 md:py-10">
+                        <div className="w-full max-w-2xl space-y-6">
+
+                            {/* Step Type Badge */}
+                            <div className="flex items-center gap-2">
+                                <span className={`text-[11px] font-bold uppercase tracking-widest ${activePhase?.color ?? 'text-brand'}`}>
+                                    {TYPE_LABEL[ev.type]}
+                                </span>
+                                {ev.stopwatch && <span className="text-[10px] text-text-disabled">· Stoppuhr</span>}
+                                {!ev.stopwatch && hasDur && <span className="text-[10px] text-text-disabled">· {ev.time} min</span>}
+                                {ev.type === 'sparge'  && <BotlGuideTrigger guideKey="brautag.laeutern"  icon="info" />}
+                                {ev.type === 'measure' && <BotlGuideTrigger guideKey="brautag.og_messen" icon="info" />}
+                            </div>
+
+                            {/* Step Title */}
+                            <h2 className="text-2xl md:text-3xl font-black text-text-primary tracking-tight leading-tight">{ev.title}</h2>
+
+                            {/* Description */}
+                            {ev.description && ev.type !== 'measure' && (
+                                <p className="text-text-muted text-sm md:text-base">{ev.description}</p>
+                            )}
+
+                            {/* Metadata Chips */}
+                            {(ev.temp !== undefined || ev.spargeVol !== undefined || ev.volumeInfo || ev.mashWaterVol !== undefined) && (
+                                <div className="flex flex-wrap gap-2">
+                                    {ev.temp !== undefined && (
+                                        <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${activePhase?.borderColor ?? 'border-border'} ${activePhase?.bgColor ?? 'bg-surface'}`}>
+                                            <Thermometer className={`w-4 h-4 ${activePhase?.color ?? 'text-text-muted'}`} />
+                                            <span className="text-lg font-mono font-bold text-text-primary">{ev.temp}°C</span>
+                                        </div>
+                                    )}
+                                    {ev.mashWaterVol !== undefined && (
+                                        <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-cyan-500/20 bg-cyan-500/10">
+                                            <Droplets className="w-4 h-4 text-cyan-400" />
+                                            <span className="text-lg font-mono font-bold text-text-primary">{ev.mashWaterVol.toFixed(1).replace('.', ',')} L</span>
+                                            <span className="text-xs text-text-muted">Hauptguss</span>
+                                        </div>
+                                    )}
+                                    {ev.spargeVol !== undefined && (
+                                        <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-sky-500/20 bg-sky-500/10">
+                                            <Droplets className="w-4 h-4 text-sky-400" />
+                                            <span className="text-lg font-mono font-bold text-text-primary">{ev.spargeVol} L</span>
+                                            <span className="text-xs text-text-muted">Nachguss</span>
+                                        </div>
+                                    )}
+                                    {ev.volumeInfo && (
+                                        <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-amber-500/20 bg-amber-500/10">
+                                            <Flame className="w-4 h-4 text-amber-500" />
+                                            <span className="text-sm font-mono font-bold text-amber-400">{ev.volumeInfo}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* ── Timer Section ── */}
+                            {hasDur && (
+                                <div className="bg-surface rounded-xl border border-border p-5 space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-[10px] uppercase tracking-widest text-text-disabled mb-1">
+                                                {ev.stopwatch ? 'Stoppuhr' : 'Verbleibend'}
+                                            </p>
+                                            <div className="text-4xl md:text-5xl font-mono font-black text-text-primary tabular-nums tracking-tighter">
+                                                {timerDisplay}
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={toggleTimer}
+                                            className={`w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center transition-all shadow-lg ${
+                                                timer.running
+                                                    ? 'bg-surface-hover border-2 border-amber-500/30 text-amber-500 hover:bg-border'
+                                                    : 'bg-amber-600 text-white hover:bg-amber-500 active:scale-95'
+                                            }`}
+                                        >
+                                            {timer.running ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current ml-0.5" />}
+                                        </button>
+                                    </div>
+                                    {timer.duration > 0 && !ev.stopwatch && <TimerProgress state={timer} />}
+                                    <div className="flex items-center gap-1 text-xs text-text-disabled">
+                                        <div className={`w-1.5 h-1.5 rounded-full ${timer.running ? 'bg-amber-500 animate-pulse' : 'bg-text-disabled'}`} />
+                                        <span>{timer.running ? 'Läuft' : 'Pausiert'}</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* ── Strike: Einmaisch-Checkliste ── */}
+                            {ev.type === 'strike' && (
+                                <div className="bg-cyan-500/5 border border-cyan-500/20 rounded-xl p-5 space-y-3">
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-cyan-400">Checkliste</p>
+                                    <ul className="space-y-2 text-sm text-text-secondary">
+                                        <li className="flex items-start gap-2">
+                                            <Droplets className="w-4 h-4 text-cyan-400 mt-0.5 shrink-0" />
+                                            <span>Hauptguss auf <span className="font-mono font-bold text-text-primary">{ev.temp ? `${ev.temp}°C` : 'Zieltemperatur'}</span> erhitzen</span>
+                                        </li>
+                                        <li className="flex items-start gap-2">
+                                            <Beaker className="w-4 h-4 text-cyan-400 mt-0.5 shrink-0" />
+                                            <span>Malz langsam unter Rühren einschütten</span>
+                                        </li>
+                                        <li className="flex items-start gap-2">
+                                            <Thermometer className="w-4 h-4 text-cyan-400 mt-0.5 shrink-0" />
+                                            <span>Temperatur kontrollieren — ggf. nachregulieren</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            )}
+
+                            {/* ── Mashout: Abmaisch-Info ── */}
+                            {ev.type === 'mashout' && (
+                                <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-5 space-y-3">
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-red-400">Abmaischen</p>
+                                    <ul className="space-y-2 text-sm text-text-secondary">
+                                        <li className="flex items-start gap-2">
+                                            <Thermometer className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
+                                            <span>Maische auf <span className="font-mono font-bold text-text-primary">{ev.temp ?? 78}°C</span> aufheizen</span>
+                                        </li>
+                                        <li className="flex items-start gap-2">
+                                            <Clock className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
+                                            <span>Stoppuhr läuft — &quot;Erledigt&quot; drücken wenn Temperatur erreicht</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            )}
+
+                            {/* ── Boil: Hop Additions ── */}
+                            {ev.type === 'boil' && (ev.hops?.length ?? 0) > 0 && (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Hopfengaben</p>
+                                    <div className="grid gap-2">
+                                        {ev.hops!.map((h) => {
+                                            const hopAddMs = (ev.time! - h.time) * 60_000;
+                                            return (
+                                                <div key={`${h.name}-${h.time}`} className="flex items-center justify-between bg-surface rounded-lg border border-border px-4 py-3">
+                                                    <div className="flex items-center gap-3 min-w-0">
+                                                        <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center shrink-0">
+                                                            <span className="text-[10px] font-bold text-red-400">{h.time}′</span>
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <p className="text-sm font-medium text-text-primary truncate">{h.name}</p>
+                                                            <p className="text-xs text-text-disabled">{h.amount} g</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="shrink-0 text-right">
+                                                        <HopCountdown hopAddMs={hopAddMs} boilState={timer} />
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* ── OG Measurement ── */}
+                            {ev.type === 'measure' && (
+                                <div className="space-y-4">
+                                    {/* Target value display */}
+                                    {ev.description && (
+                                        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-5 text-center">
+                                            <p className="text-[10px] uppercase tracking-widest text-emerald-400 font-bold mb-2">Zielwert</p>
+                                            <p className="text-2xl md:text-3xl font-mono font-black text-emerald-400">{ev.description.replace('Ziel: ', '')}</p>
+                                        </div>
+                                    )}
+
+                                    {/* Previous readings */}
+                                    {ogReadings.length > 0 && (
+                                        <div className="space-y-2">
+                                            <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Bisherige Messungen</p>
+                                            {ogReadings.map((r) => (
+                                                <div key={r.id} className="flex items-center justify-between bg-surface rounded-lg border border-border px-4 py-3">
+                                                    <div className="flex items-center gap-3 min-w-0">
+                                                        <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                                                        <span className="font-mono font-bold text-text-primary text-lg">{r.value.toFixed(3)}</span>
+                                                        {r.note && <span className="text-sm text-text-muted truncate">{r.note}</span>}
+                                                    </div>
+                                                    <div className="flex items-center gap-3 shrink-0">
+                                                        <span className="text-xs text-text-disabled tabular-nums">
+                                                            {new Date(r.timestamp).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+                                                        </span>
+                                                        <button onClick={() => removeOGReading(r.id)} className="text-text-disabled hover:text-red-500 transition-colors p-1">
+                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* Add reading form */}
+                                    <div className="bg-surface rounded-xl border border-border p-4 space-y-3">
+                                        <p className="text-xs font-bold text-text-muted uppercase tracking-widest">Neue Messung</p>
+                                        <div className="flex gap-2">
+                                            <div className="relative flex-1">
+                                                <FlaskConical className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-disabled" />
+                                                <input
+                                                    type="number" step="0.001" min="0.9" max="1.2"
+                                                    placeholder="1.052"
+                                                    value={ogInput}
+                                                    onChange={e => setOgInput(e.target.value)}
+                                                    onKeyDown={e => e.key === 'Enter' && addOGReading()}
+                                                    className="w-full bg-background border border-border rounded-lg px-3 py-2.5 pl-10 text-text-primary text-base font-mono focus:border-emerald-500 outline-none transition-colors"
+                                                />
+                                            </div>
+                                            <input
+                                                type="text" placeholder="Notiz"
+                                                value={ogNote}
+                                                onChange={e => setOgNote(e.target.value)}
+                                                className="flex-1 bg-background border border-border rounded-lg px-3 py-2.5 text-text-primary text-sm focus:border-emerald-500 outline-none transition-colors"
+                                            />
+                                            <button onClick={addOGReading} className="shrink-0 w-11 h-11 flex items-center justify-center bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg transition-colors">
+                                                <Plus className="w-5 h-5" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* ── Context info (Volume, Step count) ── */}
+                            <div className="flex items-center gap-4 text-xs text-text-disabled">
+                                <span className="flex items-center gap-1"><Beaker className="w-3 h-3" />{targetVol} L</span>
+                                <span className="flex items-center gap-1"><Clock className="w-3 h-3" />Schritt {active + 1} von {timeline.length}</span>
+                                {timeline[active + 1] && (
+                                    <span className="truncate">Nächster: {timeline[active + 1].title}</span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* ── Mobile Bottom Action Bar ── */}
+                    <div className="lg:hidden fixed left-0 right-0 z-40 bg-surface/95 backdrop-blur-lg border-t border-border" style={{ bottom: 'calc(4rem + max(env(safe-area-inset-bottom), 8px))' }}>
+                        {/* Timer progress line */}
+                        {hasDur && timer.duration > 0 && !ev.stopwatch && (
+                            <div className="h-0.5 -mt-px"><TimerProgress state={timer} /></div>
+                        )}
+                        <div className="flex items-center gap-2 px-2 py-3 sm:px-4">
+                            <button
+                                onClick={prevStep}
+                                disabled={active === 0}
+                                className="w-11 h-11 flex items-center justify-center rounded-lg bg-background border border-border text-text-muted hover:text-text-primary disabled:opacity-30 transition-colors"
+                            >
+                                <ArrowLeft className="w-4 h-4" />
+                            </button>
+
+                            {hasDur && (
+                                <button
+                                    onClick={toggleTimer}
+                                    className={`flex items-center gap-2 px-4 h-11 rounded-lg font-mono font-bold tabular-nums text-sm transition-all ${
+                                        timer.running
+                                            ? 'bg-background border border-amber-500/30 text-amber-500'
+                                            : 'bg-amber-600 text-white'
+                                    }`}
+                                >
+                                    {timer.running ? <Pause className="w-3.5 h-3.5 fill-current" /> : <Play className="w-3.5 h-3.5 fill-current" />}
+                                    {timerDisplay}
+                                </button>
+                            )}
+
+                            <button
+                                onClick={nextStep}
+                                className="flex-1 h-11 flex items-center justify-center gap-2 bg-white text-black font-bold text-sm uppercase tracking-wide rounded-lg transition-colors active:scale-[0.98]"
+                            >
+                                {active === timeline.length - 1 ? 'Fertig 🎉' : 'Erledigt'}
+                                <ArrowRight className="w-4 h-4" />
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* ── Desktop Bottom Action Bar ── */}
+                    <div className="hidden lg:flex items-center justify-center gap-3 px-8 py-4 border-t border-border">
+                        <button
+                            onClick={prevStep}
+                            disabled={active === 0}
+                            className="flex items-center gap-2 px-5 h-11 rounded-lg bg-surface border border-border text-text-muted hover:text-text-primary disabled:opacity-30 font-medium text-sm transition-colors"
+                        >
+                            <ArrowLeft className="w-4 h-4" /> Zurück
+                        </button>
+
+                        {hasDur && (
+                            <button
+                                onClick={toggleTimer}
+                                className={`flex items-center gap-2 px-5 h-11 rounded-lg font-mono font-bold tabular-nums text-sm transition-all ${
+                                    timer.running
+                                        ? 'bg-surface border border-amber-500/30 text-amber-500 hover:bg-surface-hover'
+                                        : 'bg-amber-600 text-white hover:bg-amber-500'
+                                }`}
+                            >
+                                {timer.running ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
+                                {timerDisplay}
+                            </button>
+                        )}
+
+                        <button
+                            onClick={nextStep}
+                            className="flex items-center gap-2 px-8 h-11 bg-white text-black font-bold text-sm uppercase tracking-wide rounded-lg transition-colors hover:bg-gray-100 active:scale-[0.98]"
+                        >
+                            {active === timeline.length - 1 ? 'Brautag abschließen 🎉' : 'Erledigt'}
+                            <ArrowRight className="w-4 h-4" />
+                        </button>
                     </div>
                 </div>
-                <div className="h-px bg-zinc-900"/>
-                <div>
-                    <p className="text-[10px] uppercase tracking-widest text-zinc-600 mb-1">Naechster Schritt</p>
-                    <p className="text-xs text-zinc-400">{timeline[active + 1]?.title ?? '\u2014'}</p>
+
+                {/* ── Desktop Step List Sidebar ── */}
+                <div className="hidden lg:block w-72 xl:w-80 shrink-0 border-l border-border bg-background overflow-y-auto sticky top-0 self-start max-h-screen">
+                    <div className="p-5">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-text-disabled mb-4">Alle Schritte</p>
+                        <StepList timeline={timeline} active={active} phases={phases} onGoTo={goTo} />
+                    </div>
                 </div>
             </div>
         </div>

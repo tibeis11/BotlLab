@@ -80,21 +80,21 @@ export default function EditDeletePostButtons({
                     value={editContent}
                     onChange={e => setEditContent(e.target.value)}
                     rows={5}
-                    className="w-full bg-zinc-950/60 border border-zinc-700 rounded-xl px-3 py-2 text-sm text-zinc-200 resize-y focus:outline-none focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 leading-relaxed"
+                    className="w-full bg-background/60 border border-border-hover rounded-xl px-3 py-2 text-sm text-foreground resize-y focus:outline-none focus:ring-1 focus:ring-success/50 focus:border-success/50 leading-relaxed"
                 />
-                {error && <p className="text-xs text-red-400">{error}</p>}
+                {error && <p className="text-xs text-error">{error}</p>}
                 <div className="flex gap-2 justify-end">
                     <button
                         onClick={() => setMode('idle')}
                         disabled={isPending}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-zinc-400 hover:text-white border border-zinc-700 rounded-lg transition-colors disabled:opacity-50"
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-text-secondary hover:text-text-primary border border-border-hover rounded-lg transition-colors disabled:opacity-50"
                     >
                         <X size={12} /> Abbrechen
                     </button>
                     <button
                         onClick={handleSave}
                         disabled={isPending || editContent.trim().length < 2}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors disabled:opacity-50"
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-success hover:bg-success/90 text-text-primary rounded-lg transition-colors disabled:opacity-50"
                     >
                         {isPending ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
                         Speichern
@@ -107,20 +107,20 @@ export default function EditDeletePostButtons({
     if (mode === 'confirming-delete') {
         return (
             <div className="mt-3 flex flex-col gap-2">
-                <p className="text-xs text-zinc-400">Beitrag wirklich löschen? Dies kann nicht rückgängig gemacht werden.</p>
-                {error && <p className="text-xs text-red-400">{error}</p>}
+                <p className="text-xs text-text-secondary">Beitrag wirklich löschen? Dies kann nicht rückgängig gemacht werden.</p>
+                {error && <p className="text-xs text-error">{error}</p>}
                 <div className="flex gap-2 justify-end">
                     <button
                         onClick={() => setMode('idle')}
                         disabled={isPending}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-zinc-400 hover:text-white border border-zinc-700 rounded-lg transition-colors disabled:opacity-50"
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-text-secondary hover:text-text-primary border border-border-hover rounded-lg transition-colors disabled:opacity-50"
                     >
                         <X size={12} /> Abbrechen
                     </button>
                     <button
                         onClick={handleDelete}
                         disabled={isPending}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors disabled:opacity-50"
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-error hover:bg-error/90 text-white rounded-lg transition-colors disabled:opacity-50"
                     >
                         {isPending ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
                         Löschen
@@ -137,7 +137,7 @@ export default function EditDeletePostButtons({
                 <button
                     onClick={openEdit}
                     title="Bearbeiten"
-                    className="flex items-center gap-1.5 py-2 px-2.5 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/60 text-xs font-medium transition-colors"
+                    className="flex items-center gap-1.5 py-2 px-2.5 rounded-lg text-text-muted hover:text-foreground hover:bg-surface-hover/60 text-xs font-medium transition-colors"
                 >
                     <Pencil size={13} />
                     <span className="hidden md:inline">Bearbeiten</span>
@@ -147,7 +147,7 @@ export default function EditDeletePostButtons({
                 <button
                     onClick={() => setMode('confirming-delete')}
                     title="Löschen"
-                    className="flex items-center gap-1.5 py-2 px-2.5 rounded-lg text-zinc-600 hover:text-red-400 hover:bg-red-500/10 text-xs font-medium transition-colors"
+                    className="flex items-center gap-1.5 py-2 px-2.5 rounded-lg text-text-disabled hover:text-error hover:bg-error/10 text-xs font-medium transition-colors"
                 >
                     <Trash2 size={13} />
                     <span className="hidden md:inline">Löschen</span>

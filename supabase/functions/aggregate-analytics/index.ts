@@ -306,6 +306,37 @@ async function aggregateDailyMetrics(supabase: any, specificDate?: string) {
           .gte('created_at', `${dateStr}T00:00:00.000`)
           .lt('created_at', `${dateStr}T23:59:59.999`)
 
+        // BTB Play Counts: Authenticated + Anonymous
+        // Fetch brew IDs for this brewery to count BTB plays across all brews
+        const { data: breweryBrews } = await supabase
+          .from('brews')
+          .select('id')
+          .eq('brewery_id', bId)
+        const brewIdsForBrewery = (breweryBrews || []).map((b: any) => b.id)
+
+        let btbAuth = 0
+        let btbAnon = 0
+        if (brewIdsForBrewery.length > 0) {
+          const { count: btbAuthCount } = await supabase
+            .from('tasting_score_events')
+            .select('id', { count: 'exact', head: true })
+            .eq('event_type', 'beat_the_brewer')
+            .in('brew_id', brewIdsForBrewery)
+            .gte('created_at', `${dateStr}T00:00:00.000`)
+            .lt('created_at', `${dateStr}T23:59:59.999`)
+
+          const { count: btbAnonCount } = await supabase
+            .from('anonymous_game_sessions')
+            .select('id', { count: 'exact', head: true })
+            .eq('event_type', 'beat_the_brewer')
+            .in('brew_id', brewIdsForBrewery)
+            .gte('created_at', `${dateStr}T00:00:00.000`)
+            .lt('created_at', `${dateStr}T23:59:59.999`)
+
+          btbAuth = btbAuthCount || 0
+          btbAnon = btbAnonCount || 0
+        }
+
         const { error } = await supabase.from('analytics_brewery_daily').upsert({
           brewery_id: bId,
           date: dateStr,
@@ -314,7 +345,9 @@ async function aggregateDailyMetrics(supabase: any, specificDate?: string) {
           sessions_count: sessionsCount || 0,
           bottles_scanned: bottlesScanned,
           ratings_received: ratingsReceived,
-          active_members: activeMembersCount
+          active_members: activeMembersCount,
+          btb_plays_total: btbAuth + btbAnon,
+          btb_plays_anonymous: btbAnon,
         })
         if (!error) breweryInsertCount++
       }))

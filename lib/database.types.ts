@@ -1,4 +1,5 @@
-﻿export type Json =
+Initialising login role...
+export type Json =
   | string
   | number
   | boolean
@@ -7,6 +8,11 @@
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.1"
+  }
   graphql_public: {
     Tables: {
       [_ in never]: never
@@ -34,66 +40,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      flavor_profiles: {
-        Row: {
-          id: string
-          brew_id: string
-          user_id: string | null
-          rating_id: string | null
-          sweetness: number
-          bitterness: number
-          body: number
-          roast: number
-          fruitiness: number
-          source: string
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          brew_id: string
-          user_id?: string | null
-          rating_id?: string | null
-          sweetness: number
-          bitterness: number
-          body: number
-          roast: number
-          fruitiness: number
-          source?: string
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          brew_id?: string
-          user_id?: string | null
-          rating_id?: string | null
-          sweetness?: number
-          bitterness?: number
-          body?: number
-          roast?: number
-          fruitiness?: number
-          source?: string
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "flavor_profiles_brew_id_fkey"
-            columns: ["brew_id"]
-            isOneToOne: false
-            referencedRelation: "brews"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "flavor_profiles_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
       achievements: {
         Row: {
           category: string
@@ -977,8 +923,121 @@ export type Database = {
           },
         ]
       }
+      botlguide_audit_log: {
+        Row: {
+          brewery_id: string | null
+          capability: string
+          created_at: string
+          credits_used: number
+          error_message: string | null
+          id: number
+          input_summary: string | null
+          ip_address: unknown
+          model: string
+          output_summary: string | null
+          rag_sources_used: string[] | null
+          response_time_ms: number | null
+          status: string
+          token_count_input: number | null
+          token_count_output: number | null
+          user_id: string
+        }
+        Insert: {
+          brewery_id?: string | null
+          capability: string
+          created_at?: string
+          credits_used?: number
+          error_message?: string | null
+          id?: never
+          input_summary?: string | null
+          ip_address?: unknown
+          model?: string
+          output_summary?: string | null
+          rag_sources_used?: string[] | null
+          response_time_ms?: number | null
+          status?: string
+          token_count_input?: number | null
+          token_count_output?: number | null
+          user_id: string
+        }
+        Update: {
+          brewery_id?: string | null
+          capability?: string
+          created_at?: string
+          credits_used?: number
+          error_message?: string | null
+          id?: never
+          input_summary?: string | null
+          ip_address?: unknown
+          model?: string
+          output_summary?: string | null
+          rag_sources_used?: string[] | null
+          response_time_ms?: number | null
+          status?: string
+          token_count_input?: number | null
+          token_count_output?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "botlguide_audit_log_brewery_id_fkey"
+            columns: ["brewery_id"]
+            isOneToOne: false
+            referencedRelation: "breweries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      botlguide_embeddings: {
+        Row: {
+          brewery_id: string | null
+          content: string
+          created_at: string
+          embedding: string | null
+          id: string
+          metadata: Json | null
+          source_id: string
+          source_type: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          brewery_id?: string | null
+          content: string
+          created_at?: string
+          embedding?: string | null
+          id?: string
+          metadata?: Json | null
+          source_id: string
+          source_type: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          brewery_id?: string | null
+          content?: string
+          created_at?: string
+          embedding?: string | null
+          id?: string
+          metadata?: Json | null
+          source_id?: string
+          source_type?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "botlguide_embeddings_brewery_id_fkey"
+            columns: ["brewery_id"]
+            isOneToOne: false
+            referencedRelation: "breweries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       botlguide_feedback: {
         Row: {
+          capability: string | null
           context_key: string
           created_at: string | null
           feedback: string
@@ -987,6 +1046,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          capability?: string | null
           context_key: string
           created_at?: string | null
           feedback: string
@@ -995,6 +1055,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          capability?: string | null
           context_key?: string
           created_at?: string | null
           feedback?: string
@@ -1003,6 +1064,73 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      botlguide_insights: {
+        Row: {
+          body: string
+          brew_id: string | null
+          brewery_id: string | null
+          created_at: string
+          dismissed: boolean
+          dismissed_at: string | null
+          id: string
+          insight_type: string
+          session_id: string | null
+          severity: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          brew_id?: string | null
+          brewery_id?: string | null
+          created_at?: string
+          dismissed?: boolean
+          dismissed_at?: string | null
+          id?: string
+          insight_type: string
+          session_id?: string | null
+          severity?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          brew_id?: string | null
+          brewery_id?: string | null
+          created_at?: string
+          dismissed?: boolean
+          dismissed_at?: string | null
+          id?: string
+          insight_type?: string
+          session_id?: string | null
+          severity?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "botlguide_insights_brew_id_fkey"
+            columns: ["brew_id"]
+            isOneToOne: false
+            referencedRelation: "brews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "botlguide_insights_brewery_id_fkey"
+            columns: ["brewery_id"]
+            isOneToOne: false
+            referencedRelation: "breweries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "botlguide_insights_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "brewing_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bottle_scans: {
         Row: {
@@ -1581,6 +1709,47 @@ export type Database = {
           },
         ]
       }
+      brewery_settings: {
+        Row: {
+          botlguide_enabled: boolean
+          botlguide_voice_config: Json | null
+          brewery_id: string
+          created_at: string
+          id: string
+          max_documents: number
+          sop_upload_enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          botlguide_enabled?: boolean
+          botlguide_voice_config?: Json | null
+          brewery_id: string
+          created_at?: string
+          id?: string
+          max_documents?: number
+          sop_upload_enabled?: boolean
+          updated_at?: string
+        }
+        Update: {
+          botlguide_enabled?: boolean
+          botlguide_voice_config?: Json | null
+          brewery_id?: string
+          created_at?: string
+          id?: string
+          max_documents?: number
+          sop_upload_enabled?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brewery_settings_brewery_id_fkey"
+            columns: ["brewery_id"]
+            isOneToOne: true
+            referencedRelation: "breweries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brewing_sessions: {
         Row: {
           apparent_attenuation: number | null
@@ -1813,6 +1982,7 @@ export type Database = {
       collected_caps: {
         Row: {
           brew_id: string | null
+          cap_tier: string
           claimed_via: string | null
           collected_at: string | null
           id: string
@@ -1821,6 +1991,7 @@ export type Database = {
         }
         Insert: {
           brew_id?: string | null
+          cap_tier?: string
           claimed_via?: string | null
           collected_at?: string | null
           id?: string
@@ -1829,6 +2000,7 @@ export type Database = {
         }
         Update: {
           brew_id?: string | null
+          cap_tier?: string
           claimed_via?: string | null
           collected_at?: string | null
           id?: string
@@ -1993,6 +2165,60 @@ export type Database = {
             columns: ["brewery_id"]
             isOneToOne: false
             referencedRelation: "breweries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      flavor_profiles: {
+        Row: {
+          bitterness: number | null
+          body: number | null
+          brew_id: string
+          created_at: string
+          fruitiness: number | null
+          id: string
+          rating_id: string | null
+          roast: number | null
+          sweetness: number | null
+          user_id: string
+        }
+        Insert: {
+          bitterness?: number | null
+          body?: number | null
+          brew_id: string
+          created_at?: string
+          fruitiness?: number | null
+          id?: string
+          rating_id?: string | null
+          roast?: number | null
+          sweetness?: number | null
+          user_id: string
+        }
+        Update: {
+          bitterness?: number | null
+          body?: number | null
+          brew_id?: string
+          created_at?: string
+          fruitiness?: number | null
+          id?: string
+          rating_id?: string | null
+          roast?: number | null
+          sweetness?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flavor_profiles_brew_id_fkey"
+            columns: ["brew_id"]
+            isOneToOne: false
+            referencedRelation: "brews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flavor_profiles_rating_id_fkey"
+            columns: ["rating_id"]
+            isOneToOne: false
+            referencedRelation: "ratings"
             referencedColumns: ["id"]
           },
         ]
@@ -2498,6 +2724,7 @@ export type Database = {
           joined_at: string | null
           location: string | null
           logo_url: string | null
+          pending_avatar_url: string | null
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           subscription_expires_at: string | null
@@ -2527,6 +2754,7 @@ export type Database = {
           joined_at?: string | null
           location?: string | null
           logo_url?: string | null
+          pending_avatar_url?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_expires_at?: string | null
@@ -2556,6 +2784,7 @@ export type Database = {
           joined_at?: string | null
           location?: string | null
           logo_url?: string | null
+          pending_avatar_url?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_expires_at?: string | null
@@ -2929,6 +3158,113 @@ export type Database = {
           },
         ]
       }
+      team_knowledge_base: {
+        Row: {
+          brewery_id: string
+          chunk_count: number | null
+          created_at: string
+          error_message: string | null
+          file_path: string
+          file_size_bytes: number
+          filename: string
+          id: string
+          metadata: Json | null
+          mime_type: string
+          status: string
+          updated_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          brewery_id: string
+          chunk_count?: number | null
+          created_at?: string
+          error_message?: string | null
+          file_path: string
+          file_size_bytes?: number
+          filename: string
+          id?: string
+          metadata?: Json | null
+          mime_type?: string
+          status?: string
+          updated_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          brewery_id?: string
+          chunk_count?: number | null
+          created_at?: string
+          error_message?: string | null
+          file_path?: string
+          file_size_bytes?: number
+          filename?: string
+          id?: string
+          metadata?: Json | null
+          mime_type?: string
+          status?: string
+          updated_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_knowledge_base_brewery_id_fkey"
+            columns: ["brewery_id"]
+            isOneToOne: false
+            referencedRelation: "breweries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_knowledge_chunks: {
+        Row: {
+          brewery_id: string
+          chunk_index: number
+          content: string
+          created_at: string
+          document_id: string
+          embedding: string | null
+          id: string
+          metadata: Json | null
+          token_count: number | null
+        }
+        Insert: {
+          brewery_id: string
+          chunk_index: number
+          content: string
+          created_at?: string
+          document_id: string
+          embedding?: string | null
+          id?: string
+          metadata?: Json | null
+          token_count?: number | null
+        }
+        Update: {
+          brewery_id?: string
+          chunk_index?: number
+          content?: string
+          created_at?: string
+          document_id?: string
+          embedding?: string | null
+          id?: string
+          metadata?: Json | null
+          token_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_knowledge_chunks_brewery_id_fkey"
+            columns: ["brewery_id"]
+            isOneToOne: false
+            referencedRelation: "breweries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_knowledge_chunks_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "team_knowledge_base"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_achievements: {
         Row: {
           achievement_id: string
@@ -3046,6 +3382,20 @@ export type Database = {
         }
         Relationships: []
       }
+      brew_style_flavor_averages: {
+        Row: {
+          avg_bitterness: number | null
+          avg_body: number | null
+          avg_fruitiness: number | null
+          avg_roast: number | null
+          avg_sweetness: number | null
+          brew_count: number | null
+          profile_count: number | null
+          style_display: string | null
+          style_normalized: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       admin_clear_trending_override: {
@@ -3125,8 +3475,9 @@ export type Database = {
       }
       generate_short_code: { Args: never; Returns: string }
       get_auth_user_brewery_ids: { Args: never; Returns: string[] }
-      get_brew_taste_profile: { Args: { p_brew_id: string }; Returns: Json }
+      get_botlguide_usage_stats: { Args: { p_days?: number }; Returns: Json }
       get_brew_flavor_profile: { Args: { p_brew_id: string }; Returns: Json }
+      get_brew_taste_profile: { Args: { p_brew_id: string }; Returns: Json }
       get_collaborative_recommendations:
         | {
             Args: { p_limit?: number; p_user_id: string }
@@ -3202,6 +3553,14 @@ export type Database = {
           view_count: number
         }[]
       }
+      get_user_brew_context: {
+        Args: {
+          p_brewery_id?: string
+          p_session_id?: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       increment_daily_stats:
         | {
             Args: {
@@ -3268,7 +3627,40 @@ export type Database = {
         Returns: Json
       }
       refresh_brew_style_averages: { Args: never; Returns: undefined }
+      refresh_brew_style_flavor_averages: { Args: never; Returns: undefined }
       refresh_trending_scores: { Args: never; Returns: undefined }
+      search_botlguide_embeddings: {
+        Args: {
+          p_match_count?: number
+          p_min_similarity?: number
+          p_query_embedding: string
+          p_source_type?: string
+          p_user_id?: string
+        }
+        Returns: {
+          content: string
+          id: string
+          metadata: Json
+          similarity: number
+          source_id: string
+        }[]
+      }
+      search_team_knowledge: {
+        Args: {
+          p_brewery_id: string
+          p_match_count?: number
+          p_min_similarity?: number
+          p_query_embedding: string
+        }
+        Returns: {
+          content: string
+          document_id: string
+          filename: string
+          id: string
+          metadata: Json
+          similarity: number
+        }[]
+      }
       set_default_equipment_profile: {
         Args: { p_brewery_id: string; p_profile_id: string }
         Returns: undefined
@@ -3435,4 +3827,5 @@ export const Constants = {
     },
   },
 } as const
-
+A new version of Supabase CLI is available: v2.75.0 (currently installed v2.72.8)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli

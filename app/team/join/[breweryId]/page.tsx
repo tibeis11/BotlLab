@@ -6,6 +6,7 @@ import { useAuth } from '@/app/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { addToFeed } from '@/lib/feed-service';
 import Link from 'next/link';
+import { Beaker } from 'lucide-react';
 
 export default function JoinBreweryPage({ params }: { params: Promise<{ breweryId: string }> }) {
   const supabase = useSupabase();
@@ -99,21 +100,21 @@ export default function JoinBreweryPage({ params }: { params: Promise<{ breweryI
   if (error) return (
     <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-4">
         <h1 className="text-2xl font-bold text-red-500 mb-2">Fehler</h1>
-        <p className="text-zinc-400 mb-6">{error}</p>
+        <p className="text-text-muted mb-6">{error}</p>
         <Link href="/dashboard" className="underline">Zum Dashboard</Link>
     </div>
   );
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-4">
-      <div className="max-w-md w-full bg-zinc-900 border border-zinc-800 rounded-2xl p-8 text-center shadow-2xl">
+      <div className="max-w-md w-full bg-surface border border-border rounded-2xl p-8 text-center shadow-xl">
          
-         <div className="w-20 h-20 bg-zinc-800 rounded-full mx-auto mb-4 border-2 border-zinc-700 overflow-hidden flex items-center justify-center text-3xl">
-            {brewery.logo_url ? <img src={brewery.logo_url} className="w-full h-full object-cover" /> : '🍻'}
+         <div className="w-20 h-20 bg-surface-hover rounded-full mx-auto mb-4 border-2 border-border overflow-hidden flex items-center justify-center">
+            {brewery.logo_url ? <img src={brewery.logo_url} className="w-full h-full object-cover" alt={brewery.name} /> : <Beaker className="w-8 h-8 text-text-muted" />}
          </div>
 
          <h1 className="text-2xl font-black mb-2">Einladung zu &quot;{brewery.name}&quot;</h1>
-         <p className="text-zinc-400 mb-8">
+         <p className="text-text-muted mb-8">
             Du wurdest eingeladen, diesem Brau-Team beizutreten. Du erhältst Zugriff auf alle Rezepte und das Inventar.
          </p>
 
@@ -130,12 +131,12 @@ export default function JoinBreweryPage({ params }: { params: Promise<{ breweryI
                 disabled={joining}
                 className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-xl transition disabled:opacity-50 flex items-center justify-center gap-2"
             >
-                {joining ? 'Trete bei...' : 'Team beitreten 🚀'}
+                {joining ? 'Trete bei...' : 'Team beitreten'}
             </button>
          )}
          
          <div className="mt-6">
-            <Link href="/dashboard" className="text-xs text-zinc-500 hover:text-white transition">Nein, danke. Zurück zum Dashboard.</Link>
+            <Link href="/dashboard" className="text-xs text-text-disabled hover:text-text-primary transition">Nein, danke. Zurück zum Dashboard.</Link>
          </div>
 
       </div>

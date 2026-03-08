@@ -39,7 +39,7 @@ export default function PollCreator() {
             <button
                 type="button"
                 onClick={() => setOpen(v => !v)}
-                className="flex items-center gap-2 text-xs font-bold text-zinc-500 hover:text-emerald-400 transition"
+                className="flex items-center gap-2 text-xs font-bold text-text-muted hover:text-success transition"
             >
                 <BarChart2 size={13} />
                 Umfrage hinzufügen
@@ -47,9 +47,9 @@ export default function PollCreator() {
             </button>
 
             {open && (
-                <div className="mt-3 bg-zinc-950/60 border border-zinc-800 rounded-xl p-4 space-y-3">
+                <div className="mt-3 bg-background/60 border border-border rounded-xl p-4 space-y-3">
                     <div>
-                        <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider block mb-1">
+                        <label className="text-[10px] uppercase font-bold text-text-muted tracking-wider block mb-1">
                             Frage *
                         </label>
                         <input
@@ -58,12 +58,12 @@ export default function PollCreator() {
                             onChange={e => setQuestion(e.target.value)}
                             placeholder="Worüber soll abgestimmt werden?"
                             maxLength={200}
-                            className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-emerald-600"
+                            className="w-full bg-surface border border-border-hover rounded-lg px-3 py-2 text-sm text-text-primary placeholder:text-text-disabled focus:outline-none focus:border-success"
                         />
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider block">
+                        <label className="text-[10px] uppercase font-bold text-text-muted tracking-wider block">
                             Antwortoptionen (min. 2, max. 6)
                         </label>
                         {options.map((opt, i) => (
@@ -74,13 +74,13 @@ export default function PollCreator() {
                                     onChange={e => setOption(i, e.target.value)}
                                     placeholder={`Option ${i + 1}`}
                                     maxLength={100}
-                                    className="flex-1 bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-emerald-600"
+                                    className="flex-1 bg-surface border border-border-hover rounded-lg px-3 py-2 text-sm text-text-primary placeholder:text-text-disabled focus:outline-none focus:border-success"
                                 />
                                 <button
                                     type="button"
                                     onClick={() => removeOption(i)}
                                     disabled={options.length <= 2}
-                                    className="text-zinc-600 hover:text-red-400 transition disabled:opacity-30 p-1"
+                                    className="text-text-disabled hover:text-error transition disabled:opacity-30 p-1"
                                 >
                                     <X size={14} />
                                 </button>
@@ -90,25 +90,25 @@ export default function PollCreator() {
                             <button
                                 type="button"
                                 onClick={addOption}
-                                className="flex items-center gap-1 text-xs text-zinc-500 hover:text-emerald-400 transition"
+                                className="flex items-center gap-1 text-xs text-text-muted hover:text-success transition"
                             >
                                 <Plus size={12} /> Option hinzufügen
                             </button>
                         )}
                     </div>
 
-                    <label className="flex items-center gap-2 cursor-pointer select-none text-sm text-zinc-400">
+                    <label className="flex items-center gap-2 cursor-pointer select-none text-sm text-text-secondary">
                         <input
                             type="checkbox"
                             checked={multiple}
                             onChange={e => setMultiple(e.target.checked)}
-                            className="accent-emerald-500"
+                            className="accent-success"
                         />
                         Mehrfachauswahl erlauben
                     </label>
 
                     {!isPollValid && question.trim().length > 0 && (
-                        <p className="text-[11px] text-amber-500">Mindestens 2 ausgefüllte Optionen erforderlich.</p>
+                        <p className="text-[11px] text-warning">Mindestens 2 ausgefüllte Optionen erforderlich.</p>
                     )}
                 </div>
             )}

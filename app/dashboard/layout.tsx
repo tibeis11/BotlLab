@@ -28,11 +28,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
 	return (
 		<AchievementNotificationProvider>
-			<div className="min-h-screen bg-zinc-950 text-white flex flex-col">
-				<Suspense fallback={<div className="h-16 bg-zinc-950 border-b border-zinc-900" />}>
+			<div className="min-h-screen bg-background text-foreground flex flex-col">
+				<Suspense fallback={<div className="h-16 bg-background border-b border-border" />}>
 					<AdminHeader />
 				</Suspense>
-				<main className="flex-1 max-w-6xl mx-auto w-full px-4 py-6">
+				<main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-8">
 					{children}
 				</main>
 			</div>

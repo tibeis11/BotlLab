@@ -68,18 +68,18 @@ export default function ScansOverTimeChart({ data, events, onEventClick }: Scans
 
   if (chartData.length === 0) {
     return (
-      <div className="h-64 flex items-center justify-center text-zinc-500 text-sm">
+      <div className="h-64 flex items-center justify-center text-text-muted text-sm">
         Keine Daten für diesen Zeitraum verfügbar
       </div>
     );
   }
 
   return (
-    <div className="bg-black rounded-lg p-6 border border-zinc-800">
+    <div className="bg-surface rounded-2xl p-6 border border-border">
       <div className="mb-6 flex items-center justify-between">
-        <h3 className="text-zinc-400 text-xs font-medium uppercase tracking-wider">Scans & Besucher Trend</h3>
+        <h3 className="text-text-muted text-[10px] font-black uppercase tracking-widest">Scans & Besucher Trend</h3>
         {events && events.length > 0 && (
-          <span className="text-zinc-500 text-[10px] uppercase tracking-wider">
+          <span className="text-text-muted text-[10px] uppercase tracking-wider">
             📍 {events.length} Event{events.length !== 1 ? 's' : ''} erkannt
           </span>
         )}
@@ -98,16 +98,16 @@ export default function ScansOverTimeChart({ data, events, onEventClick }: Scans
                 <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
             <XAxis 
               dataKey="formattedDate" 
-              tick={{ fill: '#71717a', fontSize: 11 }}
+              tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
               axisLine={false}
               tickLine={false}
               minTickGap={30}
             />
             <YAxis 
-              tick={{ fill: '#71717a', fontSize: 11 }}
+              tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
               axisLine={false}
               tickLine={false}
               allowDecimals={false}
@@ -118,29 +118,29 @@ export default function ScansOverTimeChart({ data, events, onEventClick }: Scans
                   const eventForDate = eventsByFormattedDate.get(label as string);
                   const config = eventForDate ? (EVENT_TYPE_CONFIG[eventForDate.eventType] || EVENT_TYPE_CONFIG.unknown) : null;
                   return (
-                    <div className="bg-zinc-900 border border-zinc-800 p-3 rounded-lg shadow-xl max-w-xs">
-                      <p className="text-zinc-300 text-xs mb-2 font-medium">{payload[0].payload.fullDate}</p>
+                    <div className="bg-surface border border-border p-3 rounded-lg shadow-xl max-w-xs">
+                      <p className="text-text-secondary text-xs mb-2 font-medium">{payload[0].payload.fullDate}</p>
                       <div className="space-y-1">
                         <div className="flex items-center gap-2 text-xs">
                           <div className="w-2 h-2 rounded-full bg-cyan-500"></div>
-                          <span className="text-zinc-400">Total Scans:</span>
-                          <span className="text-white font-mono font-medium">{payload[0].value}</span>
+                          <span className="text-text-secondary">Total Scans:</span>
+                          <span className="text-text-primary font-mono font-bold">{payload[0].value}</span>
                         </div>
                         <div className="flex items-center gap-2 text-xs">
                           <div className="w-2 h-2 rounded-full bg-violet-500"></div>
-                          <span className="text-zinc-400">Unique Visitors:</span>
-                          <span className="text-white font-mono font-medium">{payload[1].value}</span>
+                          <span className="text-text-secondary">Unique Visitors:</span>
+                          <span className="text-text-primary font-mono font-bold">{payload[1].value}</span>
                         </div>
                       </div>
                       {eventForDate && config && (
-                        <div className="mt-2 pt-2 border-t border-zinc-700">
+                        <div className="mt-2 pt-2 border-t border-border-hover">
                           <div className="flex items-center gap-1.5 text-xs">
                             <span>{config.emoji}</span>
                             <span className="font-medium" style={{ color: config.color }}>
                               {eventForDate.brewerLabel || config.label}
                             </span>
                           </div>
-                          <div className="text-[10px] text-zinc-500 mt-1 space-y-0.5">
+                          <div className="text-[10px] text-text-muted mt-1 space-y-0.5">
                             {eventForDate.city && <p>{eventForDate.city}</p>}
                             <p>{eventForDate.totalScans} Scans • {eventForDate.uniqueSessions} Personen</p>
                             <p>{config.label} — {Math.round(eventForDate.confidence * 100)}% sicher</p>
@@ -156,7 +156,7 @@ export default function ScansOverTimeChart({ data, events, onEventClick }: Scans
             <Legend 
                wrapperStyle={{ paddingTop: '20px' }}
                iconType="circle"
-               formatter={(value) => <span className="text-zinc-400 text-xs font-medium ml-1">{value}</span>}
+               formatter={(value) => <span className="text-text-secondary text-xs font-medium ml-1">{value}</span>}
             />
 
             {/* Phase 10: Event reference lines */}

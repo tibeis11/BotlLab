@@ -117,7 +117,7 @@ export default function PostsLoadMore({
                 {children.length > 0 && (
                     <div className={`mt-3 space-y-3 ${
                         depth < MAX_DEPTH
-                            ? 'ml-4 md:ml-8 border-l-2 border-zinc-800/60 pl-3 md:pl-5'
+                            ? 'ml-4 md:ml-8 border-l-2 border-border pl-3 md:pl-5'
                             : ''
                     }`}>
                         {children.map(child => renderPostTree(child, childDepth))}
@@ -142,14 +142,14 @@ export default function PostsLoadMore({
             {hasMore && remaining > 0 && (
                 <div className="flex justify-center py-4">
                     {loading ? (
-                        <div className="flex items-center gap-2 text-zinc-500 text-sm">
+                        <div className="flex items-center gap-2 text-text-muted text-sm">
                             <Loader2 className="w-4 h-4 animate-spin" />
                             <span>Antworten laden…</span>
                         </div>
                     ) : (
                         <button
                             onClick={loadMore}
-                            className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-zinc-300 hover:text-white border border-zinc-700 hover:border-zinc-500 rounded-xl transition-colors bg-zinc-900/40 hover:bg-zinc-900/70"
+                            className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-text-secondary hover:text-text-primary border border-border-hover hover:border-border-active rounded-xl transition-colors bg-surface/40 hover:bg-surface/70"
                         >
                             <MessageSquare className="w-4 h-4" />
                             Weitere {Math.min(remaining, pageSize)} von {remaining} Antworten laden

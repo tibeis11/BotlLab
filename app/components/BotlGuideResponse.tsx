@@ -77,7 +77,7 @@ export function BotlGuideResponse({
   // ── Loading ──────────────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <div className={`flex flex-col items-center justify-center p-8 text-zinc-500 space-y-3 bg-zinc-900/30 rounded-xl border border-zinc-800 ${className}`}>
+      <div className={`flex flex-col items-center justify-center p-8 text-text-muted space-y-3 bg-surface-hover rounded-xl border border-border ${className}`}>
         <Loader2 className="w-6 h-6 animate-spin text-purple-500" />
         <span className="text-xs font-medium animate-pulse">BotlGuide analysiert…</span>
       </div>
@@ -141,30 +141,30 @@ export function BotlGuideResponse({
         {suggestions.map((s, i) => (
           <div
             key={i}
-            className="bg-black border border-zinc-800 hover:border-blue-900/50 rounded-lg p-4 flex gap-3 transition-colors"
+            className="bg-surface border border-border hover:border-border-hover rounded-lg p-4 flex gap-3 transition-colors"
           >
             <Lightbulb className="text-blue-500 w-5 h-5 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-zinc-300 leading-relaxed">{s}</p>
+            <p className="text-sm text-text-secondary leading-relaxed">{s}</p>
           </div>
         ))}
         {(onFeedback || capability) && (
           <div className="flex items-center justify-end gap-3 pt-1">
-            <span className="text-[10px] text-zinc-600 uppercase tracking-wider">Hilfreich?</span>
+            <span className="text-[10px] text-text-disabled uppercase tracking-wider">Hilfreich?</span>
             <button
               onClick={() => handleFeedback('up')}
-              className={`transition-colors ${feedback === 'up' ? 'text-emerald-400' : 'text-zinc-600 hover:text-emerald-400'}`}
+              className={`transition-colors ${feedback === 'up' ? 'text-emerald-400' : 'text-text-disabled hover:text-emerald-400'}`}
             >
               <ThumbsUp className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => handleFeedback('down')}
-              className={`transition-colors ${feedback === 'down' ? 'text-red-400' : 'text-zinc-600 hover:text-red-400'}`}
+              className={`transition-colors ${feedback === 'down' ? 'text-red-400' : 'text-text-disabled hover:text-red-400'}`}
             >
               <ThumbsDown className="w-3.5 h-3.5" />
             </button>
           </div>
         )}
-        <div className="text-[9px] text-zinc-600 uppercase tracking-wider font-bold mt-2 flex items-center gap-1 opacity-60">
+        <div className="text-[9px] text-text-disabled uppercase tracking-wider font-bold mt-2 flex items-center gap-1 opacity-60">
           <Sparkles className="w-2.5 h-2.5" /> Generiert von BotlGuide AI · Überprüfe Werte immer manuell
         </div>
       </div>
@@ -182,24 +182,24 @@ export function BotlGuideResponse({
           </span>
         )}
       </div>
-      <div className="text-sm text-purple-100 leading-relaxed prose prose-invert prose-sm prose-p:my-1.5 prose-strong:text-purple-200 prose-strong:font-bold max-w-none">
+      <div className="text-sm text-text-primary leading-relaxed prose prose-invert prose-sm prose-p:my-1.5 prose-strong:text-text-primary prose-strong:font-bold max-w-none">
         <ReactMarkdown>{text ?? ''}</ReactMarkdown>
       </div>
       {(onFeedback || capability) && (
-        <div className="flex items-center justify-between text-xs text-zinc-500 border-t border-purple-500/10 pt-3 mt-3">
+        <div className="flex items-center justify-between text-xs text-text-muted border-t border-border pt-3 mt-3">
           <span className="flex items-center gap-1 text-[9px] uppercase tracking-wider font-bold opacity-70">
             <Sparkles className="w-2.5 h-2.5" /> KI-Generiert · Werte immer manuell prüfen
           </span>
           <div className="flex items-center gap-3">
             <button
               onClick={() => handleFeedback('up')}
-              className={`transition-colors ${feedback === 'up' ? 'text-emerald-400' : 'hover:text-emerald-400'}`}
+              className={`transition-colors ${feedback === 'up' ? 'text-emerald-400' : 'text-text-muted hover:text-emerald-400'}`}
             >
               <ThumbsUp className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => handleFeedback('down')}
-              className={`transition-colors ${feedback === 'down' ? 'text-red-400' : 'hover:text-red-400'}`}
+              className={`transition-colors ${feedback === 'down' ? 'text-red-400' : 'text-text-muted hover:text-red-400'}`}
             >
               <ThumbsDown className="w-3.5 h-3.5" />
             </button>
@@ -207,7 +207,7 @@ export function BotlGuideResponse({
         </div>
       )}
       {(!onFeedback && !capability) && (
-        <div className="text-[9px] text-zinc-600 uppercase tracking-wider font-bold mt-3 pt-2 border-t border-purple-500/10 flex items-center gap-1 opacity-60">
+        <div className="text-[9px] text-text-disabled uppercase tracking-wider font-bold mt-3 pt-2 border-t border-border flex items-center gap-1 opacity-60">
           <Sparkles className="w-2.5 h-2.5" /> Generiert von BotlGuide AI · Überprüfe Werte immer manuell
         </div>
       )}

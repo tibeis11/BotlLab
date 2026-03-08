@@ -83,11 +83,11 @@ export default function TopBrewsWidget({ breweryId }: { breweryId: string }) {
 
   if (loading) {
     return (
-      <div className="bg-zinc-900/30 border border-zinc-800 rounded-2xl p-5 animate-pulse">
-        <div className="h-4 w-32 bg-zinc-800 rounded mb-4" />
+      <div className="bg-surface border border-border rounded-2xl p-5 animate-pulse">
+        <div className="h-4 w-32 bg-surface-hover rounded mb-4" />
         <div className="space-y-3">
           {[1, 2, 3].map(i => (
-            <div key={i} className="h-12 bg-zinc-800/50 rounded-lg" />
+            <div key={i} className="h-12 bg-surface-hover/50 rounded-lg" />
           ))}
         </div>
       </div>
@@ -96,12 +96,12 @@ export default function TopBrewsWidget({ breweryId }: { breweryId: string }) {
 
   if (brews.length === 0) {
     return (
-      <div className="bg-zinc-900/30 border border-zinc-800 rounded-2xl p-6 text-center">
-        <Beer className="w-8 h-8 text-zinc-700 mx-auto mb-2" />
-        <p className="text-xs text-zinc-600">Noch keine Rezepte angelegt</p>
+      <div className="bg-surface border border-border rounded-2xl p-6 text-center">
+        <Beer className="w-8 h-8 text-text-disabled mx-auto mb-2" />
+        <p className="text-xs text-text-disabled">Noch keine Rezepte angelegt</p>
         <Link 
           href={`/team/${breweryId}/brews/new`}
-          className="text-xs text-cyan-400 hover:text-cyan-300 mt-2 inline-block font-bold"
+          className="text-xs text-brand hover:text-brand-hover mt-2 inline-block font-bold"
         >
           Erstes Rezept anlegen →
         </Link>
@@ -110,43 +110,43 @@ export default function TopBrewsWidget({ breweryId }: { breweryId: string }) {
   }
 
   return (
-    <div className="bg-zinc-900/30 border border-zinc-800 rounded-2xl overflow-hidden">
-      <div className="p-4 border-b border-zinc-800/50 bg-zinc-900/50 flex justify-between items-center">
-        <h3 className="text-sm font-bold text-white flex items-center gap-2">
-          <TrendingUp className="w-4 h-4 text-yellow-400" />
+    <div className="bg-surface border border-border rounded-2xl overflow-hidden">
+      <div className="p-4 border-b border-border-subtle bg-surface-hover/50 flex justify-between items-center">
+        <h3 className="text-sm font-bold text-text-primary flex items-center gap-2">
+          <TrendingUp className="w-4 h-4 text-rating" />
           Top Rezepte
         </h3>
         <Link
           href={`/team/${breweryId}/analytics`}
-          className="text-[10px] text-cyan-400 hover:text-cyan-300 font-bold uppercase tracking-wider transition-colors"
+          className="text-[10px] text-brand hover:text-brand-hover font-bold uppercase tracking-wider transition-colors"
         >
           Analytics
         </Link>
       </div>
 
-      <div className="divide-y divide-zinc-800/50">
+      <div className="divide-y divide-border-subtle">
         {brews.map((brew, i) => (
           <Link
             key={brew.id}
             href={`/team/${breweryId}/analytics/brew/${brew.id}`}
-            className="px-4 py-3 flex items-center gap-3 hover:bg-zinc-800/20 transition-colors group"
+            className="px-4 py-3 flex items-center gap-3 hover:bg-surface-hover/50 transition-colors group"
           >
             {/* Rank */}
             <span className={`text-sm font-black w-6 text-center shrink-0 ${
-              i === 0 ? 'text-yellow-400' : 
-              i === 1 ? 'text-zinc-300' : 
-              i === 2 ? 'text-amber-600' : 'text-zinc-600'
+              i === 0 ? 'text-yellow-500 dark:text-yellow-400' : 
+              i === 1 ? 'text-text-secondary dark:text-text-secondary' : 
+              i === 2 ? 'text-orange-600 dark:text-amber-600' : 'text-text-disabled'
             }`}>
               {i + 1}
             </span>
 
             {/* Info */}
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-bold text-zinc-200 group-hover:text-white truncate transition-colors">
+              <p className="text-xs font-bold text-text-secondary group-hover:text-text-primary truncate transition-colors">
                 {brew.name}
               </p>
               {brew.style && (
-                <p className="text-[10px] text-zinc-600 truncate">{brew.style}</p>
+                <p className="text-[10px] text-text-disabled truncate">{brew.style}</p>
               )}
             </div>
 
@@ -155,17 +155,17 @@ export default function TopBrewsWidget({ breweryId }: { breweryId: string }) {
               {brew.rating_count > 0 ? (
                 <>
                   <div className="flex items-center gap-1 justify-end">
-                    <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
-                    <span className="text-sm font-bold text-white">{brew.avg_rating}</span>
+                    <Star className="w-3 h-3 text-rating fill-rating" />
+                    <span className="text-sm font-bold text-text-primary">{brew.avg_rating}</span>
                   </div>
-                  <span className="text-[10px] text-zinc-600">{brew.rating_count} Votes</span>
+                  <span className="text-[10px] text-text-disabled">{brew.rating_count} Votes</span>
                 </>
               ) : (
-                <span className="text-[10px] text-zinc-700">Noch keine Votes</span>
+                <span className="text-[10px] text-text-disabled">Noch keine Votes</span>
               )}
             </div>
 
-            <ChevronRight className="w-3.5 h-3.5 text-zinc-700 group-hover:text-zinc-400 transition-colors shrink-0" />
+            <ChevronRight className="w-3.5 h-3.5 text-text-disabled group-hover:text-text-muted transition-colors shrink-0" />
           </Link>
         ))}
       </div>

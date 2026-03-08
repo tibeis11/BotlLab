@@ -172,20 +172,20 @@ export default function TeamKnowledgeManager({ breweryId }: TeamKnowledgeManager
     switch (status) {
       case 'ready':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-900/30 text-emerald-400 border border-emerald-800/30">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-success-bg text-success border border-success/20">
             <CheckCircle className="w-3 h-3" /> Bereit
           </span>
         );
       case 'processing':
       case 'pending':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-900/30 text-blue-400 border border-blue-800/30">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-brand-bg text-brand border border-brand/20">
             <Loader2 className="w-3 h-3 animate-spin" /> {status === 'pending' ? 'Warte…' : 'Verarbeitet…'}
           </span>
         );
       case 'error':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-900/30 text-red-400 border border-red-800/30">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-error-bg text-error border border-error/20">
             <AlertTriangle className="w-3 h-3" /> Fehler
           </span>
         );
@@ -195,7 +195,7 @@ export default function TeamKnowledgeManager({ breweryId }: TeamKnowledgeManager
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-6 h-6 animate-spin text-purple-500" />
+        <Loader2 className="w-6 h-6 animate-spin text-accent-purple" />
       </div>
     );
   }
@@ -205,45 +205,45 @@ export default function TeamKnowledgeManager({ breweryId }: TeamKnowledgeManager
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <BookOpen className="w-5 h-5 text-purple-400" />
-          <h3 className="text-lg font-bold text-white">Team-Wissen (SOPs & Handbücher)</h3>
+          <BookOpen className="w-5 h-5 text-accent-purple" />
+          <h3 className="text-lg font-bold text-text-primary">Team-Wissen (SOPs & Handbücher)</h3>
         </div>
         <button
           onClick={loadDocuments}
-          className="text-zinc-500 hover:text-zinc-300 transition-colors"
+          className="text-text-muted hover:text-text-secondary transition-colors"
           title="Aktualisieren"
         >
           <RefreshCw className="w-4 h-4" />
         </button>
       </div>
 
-      <p className="text-sm text-zinc-500">
+      <p className="text-sm text-text-muted">
         Lade SOPs, Handbücher und interne Dokumentation hoch.
         BotlGuide nutzt dieses Wissen als zusätzlichen Kontext für eure teamspezifischen Fragen.
       </p>
 
       {/* Alerts */}
       {error && (
-        <div className="bg-red-950/20 border border-red-500/20 rounded-lg p-3 text-sm text-red-300 flex items-start gap-2">
+        <div className="bg-error-bg border border-error/20 rounded-lg p-3 text-sm text-error flex items-start gap-2">
           <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
           <span>{error}</span>
-          <button onClick={() => setError(null)} className="ml-auto text-red-500 hover:text-red-300">
+          <button onClick={() => setError(null)} className="ml-auto text-error hover:opacity-80">
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
       {success && (
-        <div className="bg-emerald-950/20 border border-emerald-500/20 rounded-lg p-3 text-sm text-emerald-300 flex items-start gap-2">
+        <div className="bg-success-bg border border-success/20 rounded-lg p-3 text-sm text-success flex items-start gap-2">
           <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
           <span>{success}</span>
-          <button onClick={() => setSuccess(null)} className="ml-auto text-emerald-500 hover:text-emerald-300">
+          <button onClick={() => setSuccess(null)} className="ml-auto text-success hover:opacity-80">
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
 
       {/* Upload Area */}
-      <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-6">
+      <div className="bg-surface rounded-2xl border border-border p-6">
         <div className="flex flex-col sm:flex-row gap-3">
           <label className="flex-1 cursor-pointer">
             <input
@@ -254,20 +254,20 @@ export default function TeamKnowledgeManager({ breweryId }: TeamKnowledgeManager
               disabled={uploading}
               className="hidden"
             />
-            <div className="flex items-center justify-center gap-3 px-4 py-3 border-2 border-dashed border-zinc-700 rounded-lg hover:border-purple-600 hover:bg-purple-900/10 transition-colors">
+            <div className="flex items-center justify-center gap-3 px-4 py-3 border-2 border-dashed border-border-hover rounded-lg hover:border-accent-purple hover:bg-accent-purple/10 transition-colors">
               {uploading ? (
-                <Loader2 className="w-5 h-5 animate-spin text-purple-400" />
+                <Loader2 className="w-5 h-5 animate-spin text-accent-purple" />
               ) : (
-                <Upload className="w-5 h-5 text-purple-400" />
+                <Upload className="w-5 h-5 text-accent-purple" />
               )}
-              <span className="text-sm text-zinc-300">
+              <span className="text-sm text-text-secondary">
                 {uploading ? 'Wird hochgeladen…' : 'Datei auswählen (.txt, .md, .pdf, .csv)'}
               </span>
             </div>
           </label>
           <button
             onClick={() => setShowTextInput(!showTextInput)}
-            className="px-4 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+            className="px-4 py-3 bg-surface-hover hover:bg-border-hover text-text-secondary rounded-lg text-sm font-bold transition-colors flex items-center gap-2"
           >
             <FileText className="w-4 h-4" />
             Text einfügen
@@ -282,30 +282,30 @@ export default function TeamKnowledgeManager({ breweryId }: TeamKnowledgeManager
               placeholder="Dokumentname (z.B. Reinigungsprotokoll.pdf)"
               value={textFilename}
               onChange={e => setTextFilename(e.target.value)}
-              className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm placeholder-zinc-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="w-full px-3 py-2 bg-surface-hover border border-border-hover rounded-lg text-text-primary text-sm placeholder-text-disabled focus:ring-2 focus:ring-accent-purple focus:border-transparent"
             />
             <textarea
               placeholder="Dokumenttext hier einfügen…"
               value={textInput}
               onChange={e => setTextInput(e.target.value)}
               rows={8}
-              className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm placeholder-zinc-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-y"
+              className="w-full px-3 py-2 bg-surface-hover border border-border-hover rounded-lg text-text-primary text-sm placeholder-text-disabled focus:ring-2 focus:ring-accent-purple focus:border-transparent resize-y"
             />
             <div className="flex items-center justify-between">
-              <span className="text-xs text-zinc-500">
+              <span className="text-xs text-text-muted">
                 {textInput.length > 0 ? `${textInput.length} Zeichen` : ''}
               </span>
               <div className="flex gap-2">
                 <button
                   onClick={() => { setShowTextInput(false); setTextInput(''); setTextFilename(''); }}
-                  className="px-3 py-1.5 text-xs text-zinc-400 hover:text-white transition-colors"
+                  className="px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary transition-colors"
                 >
                   Abbrechen
                 </button>
                 <button
                   onClick={handleTextSubmit}
                   disabled={!textInput.trim() || !textFilename.trim() || uploading}
-                  className="px-4 py-1.5 bg-purple-600 hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5"
+                  className="px-4 py-1.5 bg-accent-purple hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5"
                 >
                   <Sparkles className="w-3 h-3" />
                   Verarbeiten & Einbetten
@@ -318,10 +318,10 @@ export default function TeamKnowledgeManager({ breweryId }: TeamKnowledgeManager
 
       {/* Documents List */}
       {documents.length === 0 ? (
-        <div className="bg-zinc-900/50 rounded-xl border border-zinc-800 p-12 text-center">
-          <BookOpen className="w-10 h-10 text-zinc-700 mx-auto mb-3" />
-          <p className="text-zinc-500 text-sm">Noch keine Dokumente hochgeladen.</p>
-          <p className="text-zinc-600 text-xs mt-1">
+        <div className="bg-surface/50 rounded-2xl border border-border p-12 text-center">
+          <BookOpen className="w-10 h-10 text-text-disabled mx-auto mb-3" />
+          <p className="text-text-muted text-sm">Noch keine Dokumente hochgeladen.</p>
+          <p className="text-text-disabled text-xs mt-1">
             Lade SOPs oder Handbücher hoch, damit BotlGuide euer internes Wissen nutzen kann.
           </p>
         </div>
@@ -330,15 +330,15 @@ export default function TeamKnowledgeManager({ breweryId }: TeamKnowledgeManager
           {documents.map(doc => (
             <div
               key={doc.id}
-              className="bg-zinc-900 rounded-lg border border-zinc-800 p-4 flex items-center gap-4 hover:border-zinc-700 transition-colors"
+              className="bg-surface rounded-lg border border-border p-4 flex items-center gap-4 hover:border-border-hover transition-colors"
             >
-              <FileText className="w-8 h-8 text-zinc-600 flex-shrink-0" />
+              <FileText className="w-8 h-8 text-text-disabled flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-0.5">
-                  <span className="text-sm font-medium text-white truncate">{doc.filename}</span>
+                  <span className="text-sm font-bold text-text-primary truncate">{doc.filename}</span>
                   {getStatusBadge(doc.status)}
                 </div>
-                <div className="flex items-center gap-3 text-xs text-zinc-500">
+                <div className="flex items-center gap-3 text-xs text-text-muted">
                   <span>{formatBytes(doc.file_size_bytes)}</span>
                   {doc.chunk_count && doc.chunk_count > 0 && (
                     <span>{doc.chunk_count} Chunks</span>
@@ -346,12 +346,12 @@ export default function TeamKnowledgeManager({ breweryId }: TeamKnowledgeManager
                   <span>{new Date(doc.created_at).toLocaleDateString('de-DE')}</span>
                 </div>
                 {doc.status === 'error' && doc.error_message && (
-                  <p className="text-xs text-red-400 mt-1">{doc.error_message}</p>
+                  <p className="text-xs text-error mt-1">{doc.error_message}</p>
                 )}
               </div>
               <button
                 onClick={() => handleDelete(doc.id, doc.filename)}
-                className="p-2 text-zinc-600 hover:text-red-400 transition-colors flex-shrink-0"
+                className="p-2 text-text-disabled hover:text-error transition-colors flex-shrink-0"
                 title="Löschen"
               >
                 <Trash2 className="w-4 h-4" />
@@ -362,10 +362,10 @@ export default function TeamKnowledgeManager({ breweryId }: TeamKnowledgeManager
       )}
 
       {/* Info Box */}
-      <div className="bg-purple-950/10 border border-purple-500/10 rounded-lg p-4 flex gap-3">
-        <Sparkles className="w-5 h-5 text-purple-400 flex-shrink-0 mt-0.5" />
-        <div className="text-xs text-purple-200/70 space-y-1">
-          <p className="font-semibold text-purple-200">Wie funktioniert Team-Wissen?</p>
+      <div className="bg-accent-purple/10 border border-accent-purple/20 rounded-lg p-4 flex gap-3">
+        <Sparkles className="w-5 h-5 text-accent-purple flex-shrink-0 mt-0.5" />
+        <div className="text-xs text-text-secondary space-y-1">
+          <p className="font-bold text-text-primary">Wie funktioniert Team-Wissen?</p>
           <p>
             Hochgeladene Dokumente werden in Textfragmente zerlegt und als Vektoren gespeichert.
             Wenn ein Teammitglied BotlGuide eine Frage stellt, werden die relevantesten Fragmente

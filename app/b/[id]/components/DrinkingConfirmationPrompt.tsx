@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { Beer } from 'lucide-react';
 import { resolveScanForPrompt, confirmDrinking } from '@/lib/actions/analytics-actions';
 
 // ============================================================================
@@ -192,22 +193,22 @@ export default function DrinkingConfirmationPrompt({
       }`}
     >
       <div className="max-w-lg mx-auto px-4 pb-4">
-        <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl shadow-2xl p-4 backdrop-blur-md">
+        <div className="bg-surface border border-border rounded-2xl shadow-2xl p-4 backdrop-blur-md">
           {responded ? (
             /* ── Thank you state ── */
-            <p className="text-center text-sm text-zinc-300 py-2 font-medium">
+            <p className="text-center text-sm text-text-secondary py-2 font-medium">
               {responseText}
             </p>
           ) : (
             /* ── Question state ── */
             <>
               <div className="flex items-start gap-3">
-                <span className="text-2xl shrink-0 mt-0.5">🍺</span>
+                <Beer className="w-6 h-6 shrink-0 mt-0.5 text-amber-400" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-zinc-100">
+                  <p className="text-sm font-semibold text-foreground">
                     Trinkst du dieses Bier gerade?
                   </p>
-                  <p className="text-xs text-zinc-500 mt-0.5 leading-relaxed">
+                  <p className="text-xs text-text-muted mt-0.5 leading-relaxed">
                     Hilft dem Brauer zu verstehen, wie beliebt sein Bier wirklich ist.
                   </p>
                 </div>
@@ -222,7 +223,7 @@ export default function DrinkingConfirmationPrompt({
                 </button>
                 <button
                   onClick={() => handleResponse(false)}
-                  className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium text-sm py-2.5 px-4 rounded-xl border border-zinc-700 transition-colors"
+                  className="flex-1 bg-surface-hover hover:bg-border text-text-secondary font-medium text-sm py-2.5 px-4 rounded-xl border border-border transition-colors"
                 >
                   Nein, nur schauen
                 </button>
@@ -230,7 +231,7 @@ export default function DrinkingConfirmationPrompt({
 
               <button
                 onClick={handleOptOut}
-                className="mt-2 w-full text-center text-[11px] text-zinc-600 hover:text-zinc-400 transition-colors py-1"
+                className="mt-2 w-full text-center text-[11px] text-text-disabled hover:text-text-secondary transition-colors py-1"
               >
                 ✕ Nicht mehr fragen
               </button>

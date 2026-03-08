@@ -201,25 +201,25 @@ export default function BottleScanner({
   const isClean = variant === 'clean';
 
   return (
-    <div className={`border border-zinc-800 ${isClean ? 'bg-zinc-900/30 rounded-xl p-6' : 'bg-zinc-900 rounded-lg overflow-hidden'} ${className || ''}`}>
+    <div className={`${isClean ? 'bg-surface border border-border rounded-xl p-6' : 'bg-surface border border-border rounded-xl overflow-hidden'} ${className || ''}`}>
       {/* Header */}
-      <div className={`flex justify-between items-center ${isClean ? 'mb-6' : 'p-4 border-b border-zinc-800 bg-zinc-950/50'}`}>
+      <div className={`flex justify-between items-center ${isClean ? 'mb-6' : 'px-4 py-3 border-b border-border bg-background/50'}`}>
          <div>
-             <h3 className={`font-bold tracking-tight flex items-center gap-2 ${isClean ? 'text-sm text-white' : 'text-zinc-200 text-sm'}`}>
-                <Camera className={`w-4 h-4 ${isClean ? 'text-purple-500' : 'text-zinc-400'}`} /> Flaschen scannen
+             <h3 className="font-bold tracking-tight flex items-center gap-2 text-sm text-text-primary">
+                <Camera className="w-4 h-4 text-text-muted" /> Flaschen scannen
              </h3>
-             {!isClean && <p className="text-xs text-zinc-500 mt-0.5">Weise Flaschen diesem Sud zu</p>}
+             {!isClean && <p className="text-xs text-text-muted mt-0.5">Weise Flaschen diesem Sud zu</p>}
          </div>
          <div className="flex items-center gap-4">
             {lastScannedNumber && (
                 <div className="hidden md:block text-right">
-                    <div className="text-[10px] font-bold uppercase text-zinc-600 tracking-wider">Zuletzt</div>
-                    <div className="text-zinc-300 font-mono font-bold">#{lastScannedNumber}</div>
+                    <div className="text-[10px] font-bold uppercase text-text-muted tracking-wider">Zuletzt</div>
+                    <div className="text-text-secondary font-mono font-bold">#{lastScannedNumber}</div>
                 </div>
             )}
             <div className="text-right">
-                <div className="text-[10px] font-bold uppercase text-zinc-600 tracking-wider">Erfasst</div>
-                <div className="text-xl font-black text-cyan-400 font-mono leading-none">{filledCount}</div>
+                <div className="text-[10px] font-bold uppercase text-text-muted tracking-wider">Erfasst</div>
+                <div className="text-xl font-black text-brand font-mono leading-none">{filledCount}</div>
             </div>
          </div>
       </div>
@@ -227,32 +227,32 @@ export default function BottleScanner({
       <div className={isClean ? 'space-y-4' : 'p-4 space-y-4'}>
         {/* Date Selector */}
         <div className="relative">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1.5 block flex items-center gap-1">
-             <Calendar className="w-3 h-3" /> Abfülltatum
+          <label className="text-[10px] font-bold uppercase tracking-widest text-text-muted mb-1.5 block flex items-center gap-1">
+             <Calendar className="w-3 h-3" /> Abfülldatum
           </label>
           <input 
             type="date" 
             value={filledAtDate}
             onChange={(e) => setFilledAtDate(e.target.value)}
-            className="w-full bg-black border border-zinc-800 rounded-lg px-3 py-2 text-white outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 transition text-sm font-mono h-10"
+            className="w-full bg-background border border-border rounded-lg px-3 py-2 text-text-primary outline-none focus:border-brand focus:ring-1 focus:ring-brand/20 transition text-sm font-mono h-10"
           />
         </div>
 
         {!showScanner ? (
           <button 
             onClick={() => setShowScanner(true)}
-            className="w-full py-4 bg-zinc-950 hover:bg-black border border-zinc-800 hover:border-zinc-700 text-zinc-300 rounded-lg font-bold uppercase tracking-wide flex items-center justify-center gap-3 transition-all group"
+            className="w-full py-4 bg-background hover:bg-surface-hover border border-border text-text-secondary rounded-lg font-bold uppercase tracking-wide flex items-center justify-center gap-3 transition-all group"
           >
             <Camera className="w-5 h-5 group-hover:scale-110 transition-transform group-hover:text-white" /> 
             <span>Scanner starten</span>
           </button>
         ) : (
           <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
-            <div className="rounded-lg overflow-hidden border border-zinc-700 relative bg-black aspect-square shadow-2xl max-w-[320px] mx-auto">
+            <div className="rounded-xl overflow-hidden border border-border relative bg-black aspect-square shadow-2xl max-w-[320px] mx-auto">
                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
                         <div className="flex flex-col items-center gap-2 opacity-50">
-                            <Camera className="w-8 h-8 text-zinc-600" />
-                            <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Kamera lädt...</span>
+                            <Camera className="w-8 h-8 text-text-disabled" />
+                            <span className="text-[10px] font-mono text-text-disabled uppercase tracking-widest">Kamera lädt...</span>
                         </div>
                  </div>
                  
@@ -267,10 +267,10 @@ export default function BottleScanner({
 
                  {/* Overlay Scanner Frame */}
                  <div className="absolute inset-0 border-[40px] border-black/60 pointer-events-none z-10 transition-colors duration-300">
-                     <div className={`absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 rounded-tl-lg -mt-1 -ml-1 transition-colors duration-200 ${showFlash === 'success' ? 'border-emerald-400' : 'border-zinc-500'}`}></div>
-                     <div className={`absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 rounded-tr-lg -mt-1 -mr-1 transition-colors duration-200 ${showFlash === 'success' ? 'border-emerald-400' : 'border-zinc-500'}`}></div>
-                     <div className={`absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 rounded-bl-lg -mb-1 -ml-1 transition-colors duration-200 ${showFlash === 'success' ? 'border-emerald-400' : 'border-zinc-500'}`}></div>
-                     <div className={`absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 rounded-br-lg -mb-1 -mr-1 transition-colors duration-200 ${showFlash === 'success' ? 'border-emerald-400' : 'border-zinc-500'}`}></div>
+                     <div className={`absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 rounded-tl-lg -mt-1 -ml-1 transition-colors duration-200 ${showFlash === 'success' ? 'border-success' : 'border-border-hover'}`}></div>
+                     <div className={`absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 rounded-tr-lg -mt-1 -mr-1 transition-colors duration-200 ${showFlash === 'success' ? 'border-success' : 'border-border-hover'}`}></div>
+                     <div className={`absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 rounded-bl-lg -mb-1 -ml-1 transition-colors duration-200 ${showFlash === 'success' ? 'border-success' : 'border-border-hover'}`}></div>
+                     <div className={`absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 rounded-br-lg -mb-1 -mr-1 transition-colors duration-200 ${showFlash === 'success' ? 'border-success' : 'border-border-hover'}`}></div>
                  </div>
             </div>
             
@@ -279,8 +279,8 @@ export default function BottleScanner({
                 key={scanFeedback.id}
                 className={`p-3 rounded-lg text-center font-bold text-xs flex items-center justify-center gap-2 animate-in zoom-in-95 slide-in-from-top-2 duration-300 ${
                 scanFeedback.type === 'success' 
-                  ? 'bg-emerald-950/30 text-emerald-400 border border-emerald-500/20' 
-                  : 'bg-red-950/30 text-red-400 border border-red-500/20'
+                  ? 'bg-success-bg text-success border border-success/20' 
+                  : 'bg-error-bg text-error border border-error/20'
               }`}>
                 {scanFeedback.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
                 {scanFeedback.msg}
@@ -289,7 +289,7 @@ export default function BottleScanner({
 
             <button 
               onClick={() => setShowScanner(false)}
-              className="w-full py-2 text-zinc-500 hover:text-white text-[10px] font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
+              className="w-full py-2 text-text-muted hover:text-text-primary text-[10px] font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
             >
               <X className="w-4 h-4" /> Schließen
             </button>

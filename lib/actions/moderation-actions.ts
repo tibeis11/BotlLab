@@ -9,7 +9,7 @@ import { createNotification } from './notification-actions';
 export type ModerationStatus = 'pending' | 'approved' | 'rejected';
 
 export interface PendingItem {
-    type: 'brew' | 'brewery';
+    type: 'brew' | 'brewery' | 'profile';
     id: string;
     name: string;
     image_url: string | null;
@@ -70,6 +70,15 @@ export async function getPendingItems() {
         
     if (breweryError) throw new Error('Fehler beim Laden der Warteschlange (Breweries)');
 
+    // 3. Pending Profile Avatars
+    const { data: profiles, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, display_name, pending_avatar_url, updated_at')
+        .not('pending_avatar_url', 'is', null)
+        .order('updated_at', { ascending: false }) as any;
+
+    if (profileError) throw new Error('Fehler beim Laden der Warteschlange (Profile)');
+
     // Combined Response
     const formattedBrews: PendingItem[] = (brews || [])
         .filter(b => {
@@ -101,19 +110,55 @@ export async function getPendingItems() {
         moderation_status: b.moderation_status as ModerationStatus
     }));
 
-    return [...formattedBrews, ...formattedBreweries].sort((a, b) => 
+    const formattedProfiles: PendingItem[] = (profiles || []).map((p: any) => ({
+        type: 'profile' as const,
+        id: p.id,
+        name: p.display_name || 'Unbekannter Nutzer',
+        image_url: p.pending_avatar_url,
+        created_at: p.updated_at || new Date().toISOString(),
+        moderation_status: 'pending' as ModerationStatus
+    }));
+
+    return [...formattedBrews, ...formattedBreweries, ...formattedProfiles].sort((a, b) => 
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
 }
 
 /**
- * Setzt ein Item (Brew oder Brewery) auf 'approved'.
+ * Setzt ein Item (Brew, Brewery oder Profile-Avatar) auf 'approved'.
  */
-export async function approveItem(id: string, type: 'brew' | 'brewery') {
+export async function approveItem(id: string, type: 'brew' | 'brewery' | 'profile') {
     const supabase = await createClient();
     const { data: { user: adminUser } } = await supabase.auth.getUser();
 
     if (!adminUser) throw new Error('Unauthorized');
+
+    if (type === 'profile') {
+        const { data: profileData } = await supabase
+            .from('profiles')
+            .select('pending_avatar_url, display_name')
+            .eq('id', id)
+            .single() as any;
+
+        const { error } = await supabase
+            .from('profiles')
+            .update({ logo_url: profileData?.pending_avatar_url, pending_avatar_url: null } as any)
+            .eq('id', id);
+
+        if (error) throw error;
+
+        try {
+            const adminClient = createAdminClient();
+            const { data: { user: recipient } } = await adminClient.auth.admin.getUserById(id);
+            await createNotification({ userId: id, actorId: adminUser.id, type: 'image_approved', data: { id, name: profileData?.display_name || 'Profilbild', type: 'profile' } });
+            if (recipient?.email) {
+                await sendImageApprovedEmail(recipient.email, profileData?.display_name || 'Profilbild', id, 'profile' as any);
+            }
+        } catch (e) { console.error('Failed to send approval notification:', e); }
+
+        revalidatePath('/admin/dashboard/moderation');
+        return;
+    }
 
     const table = type === 'brew' ? 'brews' : 'breweries';
 
@@ -185,11 +230,52 @@ export async function approveItem(id: string, type: 'brew' | 'brewery') {
 /**
  * Lehnt ein Item ab UND löscht es physikalisch aus dem Storage.
  */
-export async function rejectItem(id: string, type: 'brew' | 'brewery', reason: string, imageUrl: string | null) {
+export async function rejectItem(id: string, type: 'brew' | 'brewery' | 'profile', reason: string, imageUrl: string | null) {
     const supabase = await createClient();
     const { data: { user: adminUser } } = await supabase.auth.getUser();
 
     if (!adminUser) throw new Error('Unauthorized');
+
+    if (type === 'profile') {
+        // Delete image from storage and clear pending_avatar_url
+        if (imageUrl) {
+            try {
+                const urlObj = new URL(imageUrl);
+                const pathParts = urlObj.pathname.split('/public/');
+                if (pathParts.length > 1) {
+                    const fullPath = pathParts[1];
+                    const bucket = fullPath.split('/')[0];
+                    const filePath = fullPath.substring(bucket.length + 1);
+                    await supabase.storage.from(bucket).remove([filePath]);
+                }
+            } catch (e) { console.error('Failed to delete avatar:', e); }
+        }
+
+        const { data: profileData } = await supabase
+            .from('profiles')
+            .select('display_name')
+            .eq('id', id)
+            .single() as any;
+
+        const { error } = await supabase
+            .from('profiles')
+            .update({ pending_avatar_url: null } as any)
+            .eq('id', id);
+
+        if (error) throw error;
+
+        try {
+            const adminClient = createAdminClient();
+            const { data: { user: recipient } } = await adminClient.auth.admin.getUserById(id);
+            await createNotification({ userId: id, actorId: adminUser.id, type: 'image_rejected', data: { id, name: profileData?.display_name || 'Profilbild', type: 'profile', reason } });
+            if (recipient?.email) {
+                await sendImageRejectedEmail(recipient.email, profileData?.display_name || 'Profilbild', reason, id);
+            }
+        } catch (e) { console.error('Failed to send rejection notification:', e); }
+
+        revalidatePath('/admin/dashboard/moderation');
+        return;
+    }
 
     const table = type === 'brew' ? 'brews' : 'breweries';
 

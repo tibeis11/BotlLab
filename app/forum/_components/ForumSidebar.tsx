@@ -23,11 +23,11 @@ const iconMap: Record<string, React.ElementType> = {
 };
 
 const categoryAccents = [
-    'text-amber-400',
-    'text-emerald-400',
-    'text-blue-400',
+    'text-warning',
+    'text-success',
+    'text-brand',
     'text-purple-400',
-    'text-zinc-400',
+    'text-text-secondary',
 ];
 
 interface Props {
@@ -41,22 +41,22 @@ export default async function ForumSidebar({ activeSlug, activeSaved }: Props) {
     const categories = await getForumCategories();
 
     return (
-        <aside className="hidden md:flex w-56 lg:w-64 flex-shrink-0 flex-col border-r border-zinc-800/60 sticky top-14 self-start pt-8 pb-10 pl-6 md:pl-8 lg:pl-12 pr-6 space-y-6">
+        <aside className="hidden md:flex w-56 lg:w-64 flex-shrink-0 flex-col border-r border-border sticky top-14 self-start pt-8 pb-10 pl-6 md:pl-8 lg:pl-12 pr-6 space-y-6">
 
             {/* Navigation */}
             <div>
-                <h3 className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-2">Navigation</h3>
+                <h3 className="text-[10px] font-bold text-text-disabled uppercase tracking-widest mb-2">Navigation</h3>
                 <div className="flex flex-col">
                     <Link
                         href="/forum"
                         className={`relative text-left py-1.5 text-sm transition-colors ${
                             !activeSlug && !activeSaved
-                                ? 'text-white font-semibold'
-                                : 'text-zinc-500 hover:text-zinc-300'
+                                ? 'text-text-primary font-semibold'
+                                : 'text-text-muted hover:text-text-secondary'
                         }`}
                     >
                         {!activeSlug && !activeSaved && (
-                            <span className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 w-0.5 h-4 bg-emerald-500 rounded-full" />
+                            <span className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 w-0.5 h-4 bg-success rounded-full" />
                         )}
                         <span className="flex items-center gap-2">
                             <LayoutList className="w-3.5 h-3.5" />
@@ -67,15 +67,15 @@ export default async function ForumSidebar({ activeSlug, activeSaved }: Props) {
                         href="/forum/saved"
                         className={`relative text-left py-1.5 text-sm transition-colors ${
                             activeSaved
-                                ? 'text-amber-400 font-semibold'
-                                : 'text-zinc-500 hover:text-zinc-300'
+                                ? 'text-warning font-semibold'
+                                : 'text-text-muted hover:text-text-secondary'
                         }`}
                     >
                         {activeSaved && (
-                            <span className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 w-0.5 h-4 bg-amber-500 rounded-full" />
+                            <span className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 w-0.5 h-4 bg-warning rounded-full" />
                         )}
                         <span className="flex items-center gap-2">
-                            <Bookmark className={`w-3.5 h-3.5 ${activeSaved ? 'fill-amber-400' : ''}`} />
+                            <Bookmark className={`w-3.5 h-3.5 ${activeSaved ? 'fill-warning' : ''}`} />
                             Gespeichert
                         </span>
                     </Link>
@@ -83,12 +83,12 @@ export default async function ForumSidebar({ activeSlug, activeSaved }: Props) {
                         href="/forum/rezept-kommentare"
                         className={`relative text-left py-1.5 text-sm transition-colors ${
                             activeSlug === 'rezept-kommentare'
-                                ? 'text-cyan-400 font-semibold'
-                                : 'text-zinc-500 hover:text-cyan-400'
+                                ? 'text-brand font-semibold'
+                                : 'text-text-muted hover:text-brand'
                         }`}
                     >
                         {activeSlug === 'rezept-kommentare' && (
-                            <span className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 w-0.5 h-4 bg-cyan-500 rounded-full" />
+                            <span className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 w-0.5 h-4 bg-brand rounded-full" />
                         )}
                         <span className="flex items-center gap-2">
                             <FlaskConical className="w-3.5 h-3.5" />
@@ -100,7 +100,7 @@ export default async function ForumSidebar({ activeSlug, activeSaved }: Props) {
 
             {/* Kategorien */}
             <div>
-                <h3 className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-2">Kategorien</h3>
+                <h3 className="text-[10px] font-bold text-text-disabled uppercase tracking-widest mb-2">Kategorien</h3>
                 <div className="flex flex-col">
                     {categories.map((cat: any, i: number) => {
                         const Icon = iconMap[cat.icon ?? ''] ?? MessageSquare;
@@ -112,18 +112,18 @@ export default async function ForumSidebar({ activeSlug, activeSaved }: Props) {
                                 href={`/forum/${cat.slug}`}
                                 className={`relative text-left py-1.5 text-sm transition-colors group ${
                                     isActive
-                                        ? 'text-white font-semibold'
-                                        : 'text-zinc-500 hover:text-zinc-300'
+                                        ? 'text-text-primary font-semibold'
+                                        : 'text-text-muted hover:text-text-secondary'
                                 }`}
                             >
                                 {isActive && (
-                                    <span className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 w-0.5 h-4 bg-emerald-500 rounded-full" />
+                                    <span className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 w-0.5 h-4 bg-success rounded-full" />
                                 )}
                                 <span className="flex items-center gap-2">
-                                    <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? accentColor : 'text-zinc-600 group-hover:text-zinc-400'} transition`} />
+                                    <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? accentColor : 'text-text-disabled group-hover:text-text-secondary'} transition`} />
                                     <span className="flex-1 truncate">{cat.title}</span>
                                     {cat.thread_count > 0 && (
-                                        <span className="text-[10px] tabular-nums text-zinc-700 group-hover:text-zinc-500 transition">
+                                        <span className="text-[10px] tabular-nums text-text-disabled group-hover:text-text-muted transition">
                                             {cat.thread_count}
                                         </span>
                                     )}
@@ -137,7 +137,7 @@ export default async function ForumSidebar({ activeSlug, activeSaved }: Props) {
             {/* CTA */}
             <Link
                 href="/forum/create"
-                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold transition-colors"
+                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-success hover:bg-success/90 text-white text-sm font-bold transition-colors"
             >
                 <Plus className="w-4 h-4" />
                 Neues Thema

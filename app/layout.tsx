@@ -3,14 +3,16 @@ import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 import { AuthProvider } from "./context/AuthContext";
+import { ThemeProvider } from "./context/ThemeContext";
 import SafeDOMPatch from "./components/SafeDOMPatch";
 import AnalyticsPingClient from './components/AnalyticsPingClient';
 import { AchievementNotificationProvider } from "./context/AchievementNotificationContext";
 import { UserNotificationProvider } from "./context/UserNotificationContext";
 import CookieBanner from "./components/CookieBanner";
 import AutoLogoutHandler from "./components/AutoLogoutHandler";
+import AnonymousSessionClaimer from "./components/AnonymousSessionClaimer";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import { Toaster } from "sonner";
+import ThemedToaster from "./components/ThemedToaster";
 
 export const metadata = {
   title: 'BotlLab | Digital Brew Lab',
@@ -44,22 +46,23 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
+    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`} suppressHydrationWarning>
       <body className="font-sans antialiased">
-        <AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
           <UserNotificationProvider>
             <AchievementNotificationProvider>
               <AnalyticsPingClient />
               <AutoLogoutHandler />
+              <AnonymousSessionClaimer />
               <SafeDOMPatch />
-              <Toaster richColors theme="dark" position="top-center" closeButton />
+              <ThemedToaster />
               {children}
               <CookieBanner />
               <SpeedInsights />
             </AchievementNotificationProvider>
           </UserNotificationProvider>
-        </AuthProvider>
-      </body>
+        </AuthProvider>        </ThemeProvider>      </body>
     </html>
   );
 }

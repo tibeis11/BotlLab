@@ -88,14 +88,14 @@ export default function ShareDNAButton({ gamesPlayed }: ShareDNAButtonProps) {
       {/* Copy link */}
       <button
         onClick={handleCopyLink}
-        className="flex items-center justify-center gap-2 rounded-xl border border-zinc-700 text-zinc-300 text-sm font-medium py-3 px-4 hover:border-zinc-500 hover:text-white transition-all active:scale-95"
+        className="flex items-center justify-center gap-2 rounded-xl border border-border text-text-secondary text-sm font-medium py-3 px-4 hover:border-border-hover hover:text-text-primary transition-all active:scale-95"
       >
         {copied ? (
           <>
-            <svg className="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <svg className="h-4 w-4 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
-            <span className="text-green-400">Kopiert!</span>
+            <span className="text-success">Kopiert!</span>
           </>
         ) : (
           <>

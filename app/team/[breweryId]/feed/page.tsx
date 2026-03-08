@@ -9,16 +9,17 @@ import {
   Beer, Crown, MessageSquare, Send, Shield, Star,
   Trophy, UserPlus, Users, Newspaper, Activity, ArrowLeft
 } from 'lucide-react';
+import UserAvatar from '@/app/components/UserAvatar';
 
 /* ─── Event config ─────────────────────────────────────────── */
-const EVENT_CONFIG: Record<string, { icon: React.ElementType; color: string; accent: string }> = {
-  POST:                  { icon: MessageSquare, color: 'text-blue-400',    accent: 'border-blue-500/20 bg-blue-500/5' },
-  BREW_CREATED:          { icon: Beer,          color: 'text-cyan-400',    accent: 'border-cyan-500/20 bg-cyan-500/5' },
-  BREW_UPDATED:          { icon: Beer,          color: 'text-cyan-400',    accent: 'border-cyan-500/20 bg-cyan-500/5' },
-  BREW_RATED:            { icon: Star,          color: 'text-yellow-400',  accent: 'border-yellow-500/20 bg-yellow-500/5' },
-  MEMBER_JOINED:         { icon: UserPlus,      color: 'text-emerald-400', accent: 'border-emerald-500/20 bg-emerald-500/5' },
-  ACHIEVEMENT:           { icon: Trophy,        color: 'text-purple-400',  accent: 'border-purple-500/20 bg-purple-500/5' },
-  FORUM_THREAD_CREATED:  { icon: Newspaper,     color: 'text-orange-400',  accent: 'border-orange-500/20 bg-orange-500/5' },
+const EVENT_CONFIG: Record<string, { icon: React.ElementType; color: string }> = {
+  POST:                  { icon: MessageSquare, color: 'text-text-muted'    },
+  BREW_CREATED:          { icon: Beer,          color: 'text-brand'         },
+  BREW_UPDATED:          { icon: Beer,          color: 'text-brand'         },
+  BREW_RATED:            { icon: Star,          color: 'text-rating'        },
+  MEMBER_JOINED:         { icon: UserPlus,      color: 'text-success'       },
+  ACHIEVEMENT:           { icon: Trophy,        color: 'text-accent-purple' },
+  FORUM_THREAD_CREATED:  { icon: Newspaper,     color: 'text-accent-orange' },
 };
 
 export default function TeamFeedPage({ params }: { params: Promise<{ breweryId: string }> }) {
@@ -112,19 +113,19 @@ export default function TeamFeedPage({ params }: { params: Promise<{ breweryId: 
   function getSystemContent(item: FeedItem): React.ReactNode {
     switch(item.type) {
       case 'BREW_CREATED':
-        return <>hat <Link href={`/team/${breweryId}/brews/editor/${item.content.brew_id}`} className="text-cyan-400 hover:text-cyan-300 font-bold transition">{item.content.brew_name}</Link> entworfen</>;
+        return <>hat <Link href={`/team/${breweryId}/brews/editor/${item.content.brew_id}`} className="text-brand hover:text-brand/80 font-bold transition">{item.content.brew_name}</Link> entworfen</>;
       case 'BREW_UPDATED':
-        return <>hat <Link href={`/team/${breweryId}/brews/editor/${item.content.brew_id}`} className="text-cyan-400 hover:text-cyan-300 font-bold transition">{item.content.brew_name}</Link> aktualisiert</>;
+        return <>hat <Link href={`/team/${breweryId}/brews/editor/${item.content.brew_id}`} className="text-brand hover:text-brand/80 font-bold transition">{item.content.brew_name}</Link> aktualisiert</>;
       case 'MEMBER_JOINED':
-        return <span className="text-emerald-400 font-bold">ist dem Team beigetreten</span>;
+        return <span className="text-success font-bold">ist dem Team beigetreten</span>;
       case 'ACHIEVEMENT':
-        return <>hat <span className="text-purple-400 font-bold">{item.content.title}</span> freigeschaltet</>;
+        return <>hat <span className="text-accent-purple font-bold">{item.content.title}</span> freigeschaltet</>;
       case 'BREW_RATED':
-        return <>hat <Link href={`/team/${breweryId}/brews/${item.content.brew_id}`} className="text-cyan-400 hover:text-cyan-300 font-bold transition">{item.content.brew_name}</Link> mit <span className="text-yellow-400 font-bold">{item.content.rating}★</span> bewertet</>;
+        return <>hat <Link href={`/team/${breweryId}/brews/${item.content.brew_id}`} className="text-brand hover:text-brand/80 font-bold transition">{item.content.brew_name}</Link> mit <span className="text-rating font-bold">{item.content.rating}★</span> bewertet</>;
       case 'FORUM_THREAD_CREATED':
-        return <>hat <Link href={`/forum/thread/${item.content.thread_id}`} className="text-emerald-400 hover:text-emerald-300 font-bold transition">{item.content.title}</Link> gestartet</>;
+        return <>hat <Link href={`/forum/thread/${item.content.thread_id}`} className="text-success hover:text-success/80 font-bold transition">{item.content.title}</Link> gestartet</>;
       default:
-        return <span className="text-zinc-400">{item.content.message}</span>;
+        return <span className="text-text-muted">{item.content.message}</span>;
     }
   }
 
@@ -136,7 +137,7 @@ export default function TeamFeedPage({ params }: { params: Promise<{ breweryId: 
       </span>
     );
     if (role === 'admin') return (
-      <span className="bg-cyan-500/10 text-cyan-500 border border-cyan-500/20 text-[9px] px-1.5 py-0.5 rounded uppercase font-bold tracking-wider inline-flex items-center gap-0.5">
+      <span className="bg-brand/10 text-brand border border-brand/20 text-[9px] px-1.5 py-0.5 rounded uppercase font-bold tracking-wider inline-flex items-center gap-0.5">
         <Shield className="w-2.5 h-2.5" /> Admin
       </span>
     );
@@ -164,10 +165,9 @@ export default function TeamFeedPage({ params }: { params: Promise<{ breweryId: 
   function renderFeedItem(item: FeedItem) {
     const isPost = item.type === 'POST';
     const roleInBrewery = item.user_id ? memberRoles[item.user_id] : null;
-    const avatarUrl = item.profiles?.logo_url || '/tiers/lehrling.png';
     const displayName = item.profiles?.display_name || item.content.author || 'Braumeister';
     const isMe = user?.id === item.user_id;
-    const config = EVENT_CONFIG[item.type] || { icon: Activity, color: 'text-zinc-400', accent: 'border-zinc-800 bg-zinc-900/30' };
+    const config = EVENT_CONFIG[item.type] || { icon: Activity, color: 'text-text-muted' };
     const Icon = config.icon;
 
     return (
@@ -178,8 +178,8 @@ export default function TeamFeedPage({ params }: { params: Promise<{ breweryId: 
         <div className="flex gap-3">
           {/* Avatar */}
           <div className="shrink-0 pt-0.5">
-            <div className="w-9 h-9 rounded-full bg-zinc-900 border border-zinc-800 overflow-hidden">
-              <img src={avatarUrl} className="w-full h-full object-cover" alt={displayName} />
+            <div className="w-9 h-9 rounded-full bg-surface border border-border overflow-hidden">
+              <UserAvatar src={item.profiles?.logo_url} name={item.profiles?.display_name} userId={item.user_id ?? undefined} sizeClass="w-9 h-9" />
             </div>
           </div>
 
@@ -187,23 +187,23 @@ export default function TeamFeedPage({ params }: { params: Promise<{ breweryId: 
           <div className="flex-1 min-w-0">
             {/* Header */}
             <div className="flex items-center gap-2 mb-1">
-              <span className={`text-xs font-bold ${isMe ? 'text-cyan-400' : 'text-zinc-200'} truncate`}>
+              <span className={`text-xs font-bold ${isMe ? 'text-brand' : 'text-text-primary'} truncate`}>
                 {displayName}
               </span>
               <RoleBadge role={roleInBrewery} />
-              <span className="text-[10px] text-zinc-600 ml-auto shrink-0">{timeAgo(item.created_at)}</span>
+              <span className="text-[10px] text-text-disabled ml-auto shrink-0">{timeAgo(item.created_at)}</span>
             </div>
 
             {/* Body */}
             {isPost ? (
-              <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap break-words">
+              <div className="bg-surface border border-border rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-text-secondary leading-relaxed whitespace-pre-wrap break-words">
                 {item.content.message}
               </div>
             ) : (
-              <div className={`flex items-center gap-2 px-3 py-2 rounded-xl border ${config.accent} text-xs text-zinc-400`}>
+              <p className="text-xs text-text-secondary leading-relaxed flex items-center gap-1.5 flex-wrap">
                 <Icon className={`w-3.5 h-3.5 ${config.color} shrink-0`} />
                 <span>{getSystemContent(item)}</span>
-              </div>
+              </p>
             )}
           </div>
         </div>
@@ -221,23 +221,23 @@ export default function TeamFeedPage({ params }: { params: Promise<{ breweryId: 
     <div className="space-y-8 pb-24 animate-in fade-in slide-in-from-bottom-4 duration-500">
       
       {/* HEADER */}
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-zinc-900 pb-6">
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-border pb-6">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded text-cyan-400 bg-cyan-950/30 border border-cyan-500/20">
+            <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded text-brand bg-brand/10 border border-brand/20">
               Team Feed
             </span>
-            <span className="text-[10px] font-black px-2 py-0.5 rounded uppercase border border-emerald-500/30 text-emerald-400 bg-emerald-500/10 tracking-wider flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-[10px] font-black px-2 py-0.5 rounded uppercase border border-success/30 text-success bg-success/10 tracking-wider flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
               Live
             </span>
           </div>
-          <h1 className="text-3xl font-black text-white tracking-tight leading-none mb-2">Squad Feed</h1>
-          <p className="text-sm text-zinc-500">Euer Stammtisch — Neuigkeiten, Posts und Team-Events an einem Ort.</p>
+          <h1 className="text-3xl font-black text-text-primary tracking-tight leading-none mb-2">Squad Feed</h1>
+          <p className="text-sm text-text-muted">Euer Stammtisch — Neuigkeiten, Posts und Team-Events an einem Ort.</p>
         </div>
         <Link
           href={`/team/${breweryId}/dashboard`}
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700/50 text-xs font-bold text-zinc-300 hover:text-white transition-all"
+          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-surface-hover/50 hover:bg-surface-hover border border-border text-xs font-bold text-text-secondary hover:text-text-primary transition-all"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           Dashboard
@@ -246,27 +246,27 @@ export default function TeamFeedPage({ params }: { params: Promise<{ breweryId: 
 
       {/* METRICS ROW */}
       <div className="grid grid-cols-3 gap-3">
-        <MetricPill icon={<MessageSquare className="w-4 h-4" />} label="Posts" value={messageCount} color="text-blue-400" />
-        <MetricPill icon={<Activity className="w-4 h-4" />} label="Events" value={systemEvents} color="text-cyan-400" />
-        <MetricPill icon={<Users className="w-4 h-4" />} label="Mitglieder" value={memberCount} color="text-purple-400" />
+        <MetricPill icon={<MessageSquare className="w-4 h-4" />} label="Posts" value={messageCount} />
+        <MetricPill icon={<Activity className="w-4 h-4" />} label="Events" value={systemEvents} />
+        <MetricPill icon={<Users className="w-4 h-4" />} label="Mitglieder" value={memberCount} />
       </div>
 
       {/* MAIN LAYOUT */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6 items-start relative">
+      <div className="flex gap-6 items-start">
 
         {/* LEFT: Feed content */}
-        <div className="space-y-6 min-w-0">
+        <div className="flex-1 min-w-0 space-y-6">
           
           {/* Compose box */}
-          <div className="bg-zinc-900/30 border border-zinc-800 rounded-2xl p-4 relative overflow-hidden focus-within:border-cyan-500/30 transition-all">
-            <div className="absolute top-0 right-0 p-20 bg-cyan-500/5 blur-[80px] rounded-full pointer-events-none -mt-8 -mr-8" />
+          <div className="bg-surface border border-border rounded-2xl p-4 relative overflow-hidden focus-within:border-brand/30 transition-all">
+            <div className="absolute top-0 right-0 p-20 bg-brand/5 blur-[80px] rounded-full pointer-events-none -mt-8 -mr-8" />
             
             <form onSubmit={handlePost} className="relative z-10">
               <textarea
                 value={newPost}
                 onChange={(e) => setNewPost(e.target.value)}
                 placeholder={`Was gibt's Neues, ${user?.user_metadata?.display_name || 'Braumeister'}?`}
-                className="w-full bg-zinc-950/40 border border-zinc-800/50 focus:border-cyan-500/40 p-4 rounded-xl text-sm text-white placeholder-zinc-600 resize-none focus:outline-none min-h-[80px] transition-all"
+                className="w-full bg-surface-sunken border border-border-subtle focus:border-brand/40 p-4 rounded-xl text-sm text-text-primary placeholder-text-disabled resize-none focus:outline-none min-h-[80px] transition-all"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -275,14 +275,14 @@ export default function TeamFeedPage({ params }: { params: Promise<{ breweryId: 
                 }}
               />
               <div className="flex justify-between items-center mt-3">
-                <div className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest flex items-center gap-1.5">
-                  <span className="w-1 h-1 rounded-full bg-cyan-500 animate-pulse" />
+                <div className="text-[10px] text-text-disabled font-bold uppercase tracking-widest flex items-center gap-1.5">
+                  <span className="w-1 h-1 rounded-full bg-brand animate-pulse" />
                   Enter zum Senden
                 </div>
                 <button 
                   type="submit" 
                   disabled={!newPost.trim() || isPosting}
-                  className="bg-cyan-500 text-black hover:bg-cyan-400 disabled:opacity-40 disabled:cursor-not-allowed font-bold px-5 py-2 rounded-lg text-xs transition-all flex items-center gap-2 active:scale-95 uppercase tracking-wider"
+                  className="bg-brand text-black hover:bg-brand/80 disabled:opacity-40 disabled:cursor-not-allowed font-bold px-5 py-2 rounded-xl text-xs transition-all flex items-center gap-2 active:scale-95 uppercase tracking-wider"
                 >
                   {isPosting ? 'Sende...' : (
                     <>
@@ -298,21 +298,21 @@ export default function TeamFeedPage({ params }: { params: Promise<{ breweryId: 
           {/* Feed items */}
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500" />
-              <p className="text-xs font-bold text-zinc-600 uppercase tracking-widest mt-4">Lade Feed...</p>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand" />
+              <p className="text-xs font-bold text-text-disabled uppercase tracking-widest mt-4">Lade Feed...</p>
             </div>
           ) : feed.length === 0 ? (
-            <div className="bg-zinc-900/30 border border-zinc-800 rounded-2xl p-12 text-center">
-              <div className="w-14 h-14 bg-zinc-900 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-zinc-800">
-                <MessageSquare className="w-6 h-6 text-zinc-700" />
+            <div className="bg-surface border border-border rounded-2xl p-12 text-center">
+              <div className="w-14 h-14 bg-surface-sunken rounded-2xl flex items-center justify-center mx-auto mb-4 border border-border">
+                <MessageSquare className="w-6 h-6 text-text-disabled" />
               </div>
-              <h3 className="text-lg font-black text-white mb-1">Noch keine Aktivität</h3>
-              <p className="text-xs text-zinc-500 max-w-xs mx-auto mb-6">
+              <h3 className="text-lg font-black text-text-primary mb-1">Noch keine Aktivität</h3>
+              <p className="text-xs text-text-muted max-w-xs mx-auto mb-6">
                 Starte die Unterhaltung — dein Team wird benachrichtigt.
               </p>
               <button 
                 onClick={() => document.querySelector('textarea')?.focus()} 
-                className="text-cyan-400 hover:text-cyan-300 text-xs font-bold uppercase tracking-wider transition-colors"
+                className="text-brand hover:text-brand/80 text-xs font-bold uppercase tracking-wider transition-colors"
               >
                 Erste Nachricht schreiben →
               </button>
@@ -323,11 +323,11 @@ export default function TeamFeedPage({ params }: { params: Promise<{ breweryId: 
                 <div key={group.label}>
                   {/* Date separator */}
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="h-px flex-1 bg-zinc-800/50" />
-                    <span className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest shrink-0">
+                    <div className="h-px flex-1 bg-border-subtle" />
+                    <span className="text-[10px] text-text-disabled font-bold uppercase tracking-widest shrink-0">
                       {group.label}
                     </span>
-                    <div className="h-px flex-1 bg-zinc-800/50" />
+                    <div className="h-px flex-1 bg-border-subtle" />
                   </div>
                   
                   <div className="space-y-4">
@@ -340,21 +340,21 @@ export default function TeamFeedPage({ params }: { params: Promise<{ breweryId: 
         </div>
 
         {/* RIGHT: Sidebar */}
-        <div className="space-y-4 lg:sticky lg:top-8">
+        <aside className="hidden lg:flex flex-col w-72 flex-shrink-0 sticky top-8 space-y-4">
           
           {/* Brewery info */}
           {breweryName && (
-            <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-4">
-              <div className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest mb-1">Brauerei</div>
-              <div className="text-sm font-bold text-white truncate">{breweryName}</div>
+            <div className="bg-surface border border-border rounded-2xl p-4">
+              <div className="text-[10px] text-text-disabled font-bold uppercase tracking-widest mb-1">Brauerei</div>
+              <div className="text-sm font-bold text-text-primary truncate">{breweryName}</div>
             </div>
           )}
 
           {/* Active members */}
-          <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl overflow-hidden">
-            <div className="p-3 border-b border-zinc-800/50 bg-zinc-900/50">
-              <h3 className="text-xs font-bold text-white flex items-center gap-2">
-                <Users className="w-3.5 h-3.5 text-purple-400" />
+          <div className="bg-surface border border-border rounded-2xl overflow-hidden">
+            <div className="p-3 border-b border-border-subtle bg-surface-hover/50">
+              <h3 className="text-xs font-bold text-text-primary flex items-center gap-2">
+                <Users className="w-3.5 h-3.5 text-accent-purple" />
                 Team ({memberCount})
               </h3>
             </div>
@@ -370,10 +370,10 @@ export default function TeamFeedPage({ params }: { params: Promise<{ breweryId: 
                       key={userId} 
                       className={`w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold border ${
                         role === 'owner' 
-                          ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' 
+                          ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' 
                           : role === 'admin'
-                          ? 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400'
-                          : 'bg-zinc-800/50 border-zinc-700/50 text-zinc-400'
+                          ? 'bg-brand/10 border-brand/20 text-brand'
+                          : 'bg-surface-hover border-border text-text-muted'
                       }`}
                       title={name || userId}
                     >
@@ -382,7 +382,7 @@ export default function TeamFeedPage({ params }: { params: Promise<{ breweryId: 
                   );
                 })}
                 {Object.keys(memberRoles).length > 12 && (
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold bg-zinc-800/50 border border-zinc-700/50 text-zinc-500">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold bg-surface-hover border border-border text-text-disabled">
                     +{Object.keys(memberRoles).length - 12}
                   </div>
                 )}
@@ -391,33 +391,33 @@ export default function TeamFeedPage({ params }: { params: Promise<{ breweryId: 
           </div>
 
           {/* Quick links */}
-          <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl overflow-hidden">
-            <div className="p-3 border-b border-zinc-800/50 bg-zinc-900/50">
-              <h3 className="text-xs font-bold text-white">Schnellzugriff</h3>
+          <div className="bg-surface border border-border rounded-2xl overflow-hidden">
+            <div className="p-3 border-b border-border-subtle bg-surface-hover/50">
+              <h3 className="text-xs font-bold text-text-primary">Schnellzugriff</h3>
             </div>
             <div className="p-1.5 space-y-0.5">
               <Link
                 href={`/team/${breweryId}/members`}
-                className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-zinc-800/50 border border-transparent text-left transition-all group"
+                className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-surface-hover/50 hover:border-border border border-transparent text-left transition-all group"
               >
-                <div className="w-7 h-7 rounded-lg bg-zinc-900 flex items-center justify-center border border-zinc-800 group-hover:border-purple-500/50 group-hover:bg-purple-500/10 transition-colors">
-                  <Users className="w-3.5 h-3.5 text-zinc-400 group-hover:text-purple-400" />
+                <div className="w-7 h-7 rounded-lg bg-surface-sunken flex items-center justify-center border border-border group-hover:border-accent-purple/50 group-hover:bg-accent-purple/10 transition-colors">
+                  <Users className="w-3.5 h-3.5 text-text-muted group-hover:text-accent-purple" />
                 </div>
                 <div>
-                  <div className="text-[11px] font-bold text-zinc-200 group-hover:text-white">Mitglieder</div>
-                  <div className="text-[10px] text-zinc-500">Verwalten & einladen</div>
+                  <div className="text-[11px] font-bold text-text-secondary group-hover:text-text-primary">Mitglieder</div>
+                  <div className="text-[10px] text-text-muted group-hover:text-text-secondary">Verwalten & einladen</div>
                 </div>
               </Link>
               <Link
                 href={`/team/${breweryId}/sessions`}
-                className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-zinc-800/50 border border-transparent text-left transition-all group"
+                className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-surface-hover/50 hover:border-border border border-transparent text-left transition-all group"
               >
-                <div className="w-7 h-7 rounded-lg bg-zinc-900 flex items-center justify-center border border-zinc-800 group-hover:border-yellow-500/50 group-hover:bg-yellow-500/10 transition-colors">
-                  <Beer className="w-3.5 h-3.5 text-zinc-400 group-hover:text-yellow-400" />
+                <div className="w-7 h-7 rounded-lg bg-surface-sunken flex items-center justify-center border border-border group-hover:border-brand/50 group-hover:bg-brand/10 transition-colors">
+                  <Beer className="w-3.5 h-3.5 text-text-muted group-hover:text-brand" />
                 </div>
                 <div>
-                  <div className="text-[11px] font-bold text-zinc-200 group-hover:text-white">Sessions</div>
-                  <div className="text-[10px] text-zinc-500">Brau-Protokolle</div>
+                  <div className="text-[11px] font-bold text-text-secondary group-hover:text-text-primary">Sessions</div>
+                  <div className="text-[10px] text-text-muted group-hover:text-text-secondary">Brau-Protokolle</div>
                 </div>
               </Link>
             </div>
@@ -425,11 +425,11 @@ export default function TeamFeedPage({ params }: { params: Promise<{ breweryId: 
 
           {/* Feed hint */}
           <div className="px-3 py-3 text-center">
-            <p className="text-[10px] text-zinc-700 leading-relaxed">
+            <p className="text-[10px] text-text-disabled leading-relaxed">
               Der Feed aktualisiert sich automatisch in Echtzeit.
             </p>
           </div>
-        </div>
+        </aside>
 
       </div>
     </div>
@@ -437,18 +437,18 @@ export default function TeamFeedPage({ params }: { params: Promise<{ breweryId: 
 }
 
 /* ─── Metric Pill ────────────────────────────────────────── */
-function MetricPill({ icon, label, value, color }: {
-  icon: React.ReactNode; label: string; value: number; color: string;
+function MetricPill({ icon, label, value }: {
+  icon: React.ReactNode; label: string; value: number;
 }) {
   return (
-    <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-4 hover:border-zinc-700 transition-colors group">
+    <div className="bg-surface border border-border rounded-2xl p-4 hover:border-border-hover transition-colors">
       <div className="flex items-center gap-2 mb-2">
-        <div className={`${color} opacity-60 group-hover:opacity-100 transition-opacity`}>
+        <div className="text-text-muted">
           {icon}
         </div>
-        <span className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold">{label}</span>
+        <span className="text-[10px] text-text-disabled uppercase tracking-wider font-bold">{label}</span>
       </div>
-      <span className="text-2xl font-black text-white font-mono tracking-tight">{value}</span>
+      <span className="text-2xl font-black text-text-primary font-mono tracking-tight">{value}</span>
     </div>
   );
 }

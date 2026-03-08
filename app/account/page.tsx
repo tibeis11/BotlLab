@@ -16,6 +16,7 @@ import { SubscriptionTier } from '@/lib/premium-config';
 import { redeemCode } from '@/lib/actions/premium-actions';
 import ResponsiveTabs from '@/app/components/ResponsiveTabs';
 import { AppMode } from '@/lib/types/user-mode';
+import LegalConsentModal from '@/app/components/LegalConsentModal';
 import { User, CreditCard, Users, Key, ShieldCheck, Eye, AlertTriangle, Menu, Settings, Lock, Mail, ShieldAlert, Loader2, Construction, Check, CheckCircle, Infinity, X, Globe, Home, Factory, ArrowRight, LogOut, BarChart3, Sparkles } from 'lucide-react';
 
 export default function AccountPage() {
@@ -65,9 +66,13 @@ export default function AccountPage() {
         subscription_tier: 'free',
         subscription_status: 'active'
 	});
-	// Avatar is user-uploaded (avatar_url on profile)
-
-
+	// Avatar state
+	const [logoUrl, setLogoUrl] = useState<string | null>(null);
+	const [pendingAvatarUrl, setPendingAvatarUrl] = useState<string | null>(null);
+	const [avatarUploading, setAvatarUploading] = useState(false);
+	const [avatarMessage, setAvatarMessage] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
+	const [pendingFile, setPendingFile] = useState<File | null>(null);
+	const [showAvatarConsent, setShowAvatarConsent] = useState(false);
 
 	// --- ACCOUNT STATE ---
 	// Password State
@@ -149,10 +154,37 @@ export default function AccountPage() {
                 subscription_tier: (data.subscription_tier as SubscriptionTier) || 'free',
                 subscription_status: data.subscription_status || 'active'
 			});
+			setLogoUrl(data.logo_url || null);
+			setPendingAvatarUrl((data as any).pending_avatar_url || null);
 		}
 	}
 
-    // No uploadImage/deleteImage needed - Avatar controlled by Tier system
+    async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        // Reset input so same file can be re-selected after closing modal
+        e.target.value = '';
+        setPendingFile(file);
+        setShowAvatarConsent(true);
+    }
+
+    async function doUpload(file: File) {
+        setAvatarUploading(true);
+        setAvatarMessage(null);
+        try {
+            const formData = new FormData();
+            formData.append('avatar', file);
+            const res = await fetch('/api/upload-avatar', { method: 'POST', body: formData });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || 'Upload fehlgeschlagen');
+            setPendingAvatarUrl(json.pending_avatar_url);
+            setAvatarMessage({ type: 'success', msg: 'Bild hochgeladen. Warte auf Freigabe durch einen Moderator.' });
+        } catch (err: any) {
+            setAvatarMessage({ type: 'error', msg: err.message });
+        } finally {
+            setAvatarUploading(false);
+        }
+    }
 
 	async function saveProfile() {
 		if (!user) return;
@@ -488,25 +520,42 @@ export default function AccountPage() {
 	if (loading) {
 		return (
 			<div className="flex items-center justify-center min-h-[50vh]">
-				<Loader2 className="animate-spin w-12 h-12 text-zinc-600" />
+				<Loader2 className="animate-spin w-12 h-12 text-text-disabled" />
 			</div>
 		);
 	}
 
 	return (
 		<div className="animate-in fade-in duration-500">
+            <LegalConsentModal
+                isOpen={showAvatarConsent}
+                type="avatar"
+                onClose={() => { setShowAvatarConsent(false); setPendingFile(null); }}
+                onConfirm={() => {
+                    setShowAvatarConsent(false);
+                    if (pendingFile) doUpload(pendingFile);
+                    setPendingFile(null);
+                }}
+            />
              <div className="w-full space-y-8">
                 
                 {/* Header */}
-                <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800 pb-6">
+                <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-6">
                     <div>
                         <div className="flex items-center gap-3 mb-1">
-                            <h1 className="text-2xl font-bold text-white tracking-tight">Einstellungen</h1>
-                            <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-zinc-800 text-zinc-400 border border-zinc-700 uppercase tracking-wide">
+                            <h1 className="text-2xl font-bold text-text-primary tracking-tight">Einstellungen</h1>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-surface-hover text-text-secondary border border-border-hover uppercase tracking-wide">
                                 Account
                             </span>
                         </div>
-                        <p className="text-sm text-zinc-500">Verwalte dein Profil, deine Zugangsdaten und Sicherheitseinstellungen.</p>
+                        <p className="text-sm text-text-muted">Verwalte dein Profil, deine Zugangsdaten und Sicherheitseinstellungen.</p>
+                    </div>
+                    <div className="hidden md:block text-right">
+                        <p className="text-[10px] uppercase font-bold text-text-disabled tracking-wider mb-0.5">Angemeldet als</p>
+                        <div className="flex items-center gap-1.5 justify-end">
+                            <div className="w-1.5 h-1.5 rounded-full bg-brand"></div>
+                            <p className="text-text-secondary font-mono text-xs">{profile.display_name || user?.email}</p>
+                        </div>
                     </div>
                 </header>
 
@@ -531,8 +580,8 @@ export default function AccountPage() {
                         {activeTab === 'subscription' && (
                             <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-6">
                                 <div>
-                                    <h2 className="text-xl font-bold text-white mb-1">Dein Abonnement</h2>
-                                    <p className="text-sm text-zinc-400">Verwalte deinen Premium-Status und AI Credits.</p>
+                                    <h2 className="text-xl font-bold text-text-primary mb-1">Dein Abonnement</h2>
+                                    <p className="text-sm text-text-secondary">Verwalte deinen Premium-Status und AI Credits.</p>
                                 </div>
 
                                 <div className="space-y-6">
@@ -541,14 +590,14 @@ export default function AccountPage() {
                                         profile.subscription_tier === 'enterprise' ? 'bg-purple-950/10 border-purple-500/20' :
                                         profile.subscription_tier === 'brewery' ? 'bg-amber-950/10 border-amber-500/20' :
                                         profile.subscription_tier === 'brewer' ? 'bg-blue-950/10 border-blue-500/20' :
-                                        'bg-zinc-900 border-zinc-800'
+                                        'bg-surface border-border'
                                     }`}>
                                          {/* Background Gradient/Glow */}
                                         <div className={`absolute -top-24 -right-24 w-64 h-64 rounded-full blur-[100px] opacity-20 pointer-events-none ${
                                              profile.subscription_tier === 'enterprise' ? 'bg-purple-500' :
                                              profile.subscription_tier === 'brewery' ? 'bg-amber-500' :
                                              profile.subscription_tier === 'brewer' ? 'bg-blue-500' :
-                                             'bg-zinc-500'
+                                             'bg-text-disabled'
                                         }`} />
 
                                         <div className="relative z-10">
@@ -559,12 +608,12 @@ export default function AccountPage() {
                                                              profile.subscription_tier === 'enterprise' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' :
                                                              profile.subscription_tier === 'brewery' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
                                                              profile.subscription_tier === 'brewer' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
-                                                             'bg-zinc-800 text-zinc-400 border-zinc-700'
+                                                             'bg-surface-hover text-text-secondary border-border-hover'
                                                         }`}>
                                                             Aktueller Plan
                                                         </span>
-                                                        <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-emerald-500">
-                                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                                        <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-success">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
                                                             {profile.subscription_status}
                                                         </span>
                                                     </div>
@@ -572,7 +621,7 @@ export default function AccountPage() {
                                                          profile.subscription_tier === 'enterprise' ? 'text-purple-400' :
                                                          profile.subscription_tier === 'brewery' ? 'text-amber-400' :
                                                          profile.subscription_tier === 'brewer' ? 'text-blue-400' :
-                                                         'text-white'
+                                                         'text-text-primary'
                                                     }`}>
                                                         {profile.subscription_tier}
                                                     </h3>
@@ -583,7 +632,7 @@ export default function AccountPage() {
                                                     <div className="flex gap-3">
                                                          <button 
                                                             onClick={() => setShowCancelModal(true)}
-                                                            className="px-4 py-2 bg-black/40 hover:bg-rose-950/30 text-zinc-400 hover:text-rose-400 border border-white/5 hover:border-rose-500/30 rounded-lg text-xs font-bold transition backdrop-blur-sm"
+                                                            className="px-4 py-2 bg-surface/40 hover:bg-error-bg text-text-secondary hover:text-error border border-border/20 hover:border-error/30 rounded-lg text-xs font-bold transition backdrop-blur-sm"
                                                          >
                                                              Kündigen
                                                          </button>
@@ -601,58 +650,58 @@ export default function AccountPage() {
                                      {/* Upgrade Options (If Free) */}
                                     {profile.subscription_tier === 'free' && (
                                         <div className="grid gap-4">
-                                            <div className="p-6 bg-zinc-900 border border-zinc-800 rounded-xl">
+                                            <div className="p-6 bg-surface border border-border rounded-2xl">
                                                 <div className="flex items-center justify-between mb-4">
                                                     <div>
                                                         <h4 className="text-lg font-bold text-blue-500">Brewer Plan</h4>
-                                                        <p className="text-zinc-400 text-sm">Für Hobbybrauer mit Ambitionen.</p>
+                                                        <p className="text-text-secondary text-sm">Für Hobbybrauer mit Ambitionen.</p>
                                                     </div>
-                                                    <span className="text-white font-bold">€4.99<span className="text-zinc-500 text-xs font-normal">/Monat</span></span>
+                                                    <span className="text-text-primary font-bold">€4.99<span className="text-text-muted text-xs font-normal">/Monat</span></span>
                                                 </div>
                                                 
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
-                                                     <div className="flex items-center gap-2 text-sm text-zinc-300">
-                                                        <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                                                     <div className="flex items-center gap-2 text-sm text-text-secondary">
+                                                        <Check className="w-4 h-4 text-success flex-shrink-0" />
                                                         <span>50 AI Credits & Analytics</span>
                                                     </div>
-                                                    <div className="flex items-center gap-2 text-sm text-zinc-300">
-                                                        <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                                                    <div className="flex items-center gap-2 text-sm text-text-secondary">
+                                                        <Check className="w-4 h-4 text-success flex-shrink-0" />
                                                         <span>Erweiterte Statistiken</span>
                                                     </div>
                                                 </div>
 
                                                 <button 
                                                     disabled
-                                                    className="w-full py-3 bg-zinc-800 text-zinc-500 font-bold rounded-lg border border-zinc-700 cursor-not-allowed flex items-center justify-center gap-2"
+                                                    className="w-full py-3 bg-surface-hover text-text-disabled font-bold rounded-lg border border-border cursor-not-allowed flex items-center justify-center gap-2"
                                                 >
                                                     <Construction className="w-4 h-4" />
                                                     Momentan nicht verfügbar
                                                 </button>
                                             </div>
 
-                                             <div className="p-6 bg-zinc-900 border border-zinc-800 rounded-xl">
+                                             <div className="p-6 bg-surface border border-border rounded-2xl">
                                                 <div className="flex items-center justify-between mb-4">
                                                     <div>
                                                         <h4 className="text-lg font-bold text-amber-500">Brewery Plan</h4>
-                                                        <p className="text-zinc-400 text-sm">Für Teams und Mikrobrauereien.</p>
+                                                        <p className="text-text-secondary text-sm">Für Teams und Mikrobrauereien.</p>
                                                     </div>
-                                                    <span className="text-white font-bold">€14.99<span className="text-zinc-500 text-xs font-normal">/Monat</span></span>
+                                                    <span className="text-text-primary font-bold">€14.99<span className="text-text-muted text-xs font-normal">/Monat</span></span>
                                                 </div>
                                                 
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
-                                                     <div className="flex items-center gap-2 text-sm text-zinc-300">
-                                                        <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                                                        <span className="font-bold text-white">Unbegrenzte Rezepte</span>
+                                                     <div className="flex items-center gap-2 text-sm text-text-secondary">
+                                                        <Check className="w-4 h-4 text-success flex-shrink-0" />
+                                                        <span className="font-bold text-text-primary">Unbegrenzte Rezepte</span>
                                                     </div>
-                                                    <div className="flex items-center gap-2 text-sm text-zinc-300">
-                                                        <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                                                    <div className="flex items-center gap-2 text-sm text-text-secondary">
+                                                        <Check className="w-4 h-4 text-success flex-shrink-0" />
                                                         <span>200 AI Credits</span>
                                                     </div>
-                                                     <div className="flex items-center gap-2 text-sm text-zinc-300">
-                                                        <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                                                     <div className="flex items-center gap-2 text-sm text-text-secondary">
+                                                        <Check className="w-4 h-4 text-success flex-shrink-0" />
                                                         <span>Eigenes Branding (PDFs)</span>
                                                     </div>
-                                                     <div className="flex items-center gap-2 text-sm text-zinc-300">
+                                                     <div className="flex items-center gap-2 text-sm text-text-secondary">
                                                         <Users className="w-4 h-4 text-amber-500 flex-shrink-0" />
                                                         <span>Team Feature (Owner-Pays)</span>
                                                     </div>
@@ -660,7 +709,7 @@ export default function AccountPage() {
 
                                                 <button 
                                                     disabled
-                                                    className="w-full py-3 bg-zinc-800 text-zinc-500 font-bold rounded-lg border border-zinc-700 cursor-not-allowed flex items-center justify-center gap-2"
+                                                    className="w-full py-3 bg-surface-hover text-text-disabled font-bold rounded-lg border border-border cursor-not-allowed flex items-center justify-center gap-2"
                                                 >
                                                     <Construction className="w-4 h-4" />
                                                     Momentan nicht verfügbar
@@ -670,14 +719,14 @@ export default function AccountPage() {
                                     )}
 
                                     {/* Code Redemption Section */}
-                                    <div className="p-6 bg-zinc-900 border border-zinc-800 rounded-xl">
+                                    <div className="p-6 bg-surface border border-border rounded-2xl">
                                         <div className="flex flex-col md:flex-row gap-6 items-start">
                                              <div className="flex-1">
-                                                <h3 className="font-bold text-white mb-1.5 flex items-center gap-2">
-                                                    <Key className="w-4 h-4 text-zinc-500" />
+                                                <h3 className="font-bold text-text-primary mb-1.5 flex items-center gap-2">
+                                                    <Key className="w-4 h-4 text-text-muted" />
                                                     Enterprise Code
                                                 </h3>
-                                                <p className="text-xs text-zinc-500 leading-relaxed">
+                                                <p className="text-xs text-text-muted leading-relaxed">
                                                     Hast du einen exklusiven Zugangscode von einem Event oder Partner erhalten? 
                                                     Löse ihn hier ein, um Premium-Funktionen freizuschalten.
                                                 </p>
@@ -689,24 +738,24 @@ export default function AccountPage() {
                                                         type="text"
                                                         value={redeemInput}
                                                         onChange={e => setRedeemInput(e.target.value)}
-                                                        className="flex-1 bg-black border border-zinc-700 rounded-lg px-4 py-2 text-sm text-white focus:border-cyan-500 outline-none transition-all placeholder:text-zinc-700 font-mono"
+                                                        className="flex-1 bg-background border border-border rounded-lg px-4 py-2 text-sm text-text-primary focus:border-brand outline-none transition-all placeholder:text-text-disabled font-mono"
                                                         placeholder="LAB-XXXX-XXXX"
                                                         disabled={redeemLoading}
                                                     />
                                                     <button 
                                                         type="submit"
                                                         disabled={redeemLoading || !redeemInput.trim()}
-                                                        className="px-4 py-2 bg-white text-black hover:bg-zinc-200 rounded-lg text-sm font-bold transition disabled:opacity-50 whitespace-nowrap"
+                                                        className="px-4 py-2 bg-brand text-white hover:opacity-90 rounded-lg text-sm font-bold transition disabled:opacity-50 whitespace-nowrap"
                                                     >
                                                         {redeemLoading ? '...' : 'Einlösen'}
                                                     </button>
                                                 </form>
 
                                                 {redeemMessage && (
-                                                    <div className={`mt-3 text-xs font-bold px-3 py-2 rounded border animate-in fade-in slide-in-from-top-1 ${
+                                                    <div className={`mt-3 text-xs font-bold px-3 py-2 rounded-lg border animate-in fade-in slide-in-from-top-1 ${
                                                         redeemMessage.type === 'success' 
-                                                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
-                                                        : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+                                                        ? 'bg-success-bg border-success/20 text-success' 
+                                                        : 'bg-error-bg border-error/20 text-error'
                                                     }`}>
                                                         <div className="flex items-center gap-2">
                                                             {redeemMessage.type === 'success' 
@@ -728,20 +777,23 @@ export default function AccountPage() {
                         {activeTab === 'profile' && (
                             <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-8">
                                 <div>
-                                    <h2 className="text-xl font-bold text-white mb-1">Dein öffentliches Profil</h2>
-                                    <p className="text-sm text-zinc-400">So wirst du in der Community gesehen.</p>
+                                    <h2 className="text-xl font-bold text-text-primary mb-1">Dein öffentliches Profil</h2>
+                                    <p className="text-sm text-text-secondary">So wirst du in der Community gesehen.</p>
                                 </div>
 
                                 {/* Profil-Vervollständigungsstatus */}
                                 {(() => {
-                                    const fields: Array<{ key: keyof typeof profile; label: string; isDone?: (v: any) => boolean }> = [
+                                    const fields: Array<{ key: keyof typeof profile | '__avatar'; label: string; isDone?: (v: any) => boolean }> = [
+                                        { key: '__avatar', label: 'Profilbild', isDone: () => !!logoUrl },
                                         { key: 'display_name', label: 'Anzeigename' },
-                                        { key: 'founded_year', label: 'Dabei seit', isDone: (v) => !!(v && String(v).trim().length > 0) },
-                                        { key: 'location', label: 'Standort' },
                                         { key: 'bio', label: 'Über mich' },
+                                        { key: 'location', label: 'Standort' },
+                                        { key: 'website', label: 'Website' },
+                                        { key: 'founded_year', label: 'Dabei seit', isDone: (v: any) => !!(v && String(v).trim().length > 0) },
                                     ];
-                                    const isFilled = (key: keyof typeof profile, custom?: (v: any) => boolean) => {
-                                        const val = profile[key];
+                                    const isFilled = (key: keyof typeof profile | '__avatar', custom?: (v: any) => boolean) => {
+                                        if (key === '__avatar') return custom ? custom(null) : false;
+                                        const val = profile[key as keyof typeof profile];
                                         return custom ? custom(val) : !!(val && String(val).trim().length > 0);
                                     };
 
@@ -758,89 +810,128 @@ export default function AccountPage() {
                                 })()}
                                 
                                 <form className="space-y-8">
-                                    {/* Avatar Display */}
-                                    <div className="md:bg-black md:border md:border-zinc-800 rounded-lg p-6 md:p-8 flex flex-col sm:flex-row items-center gap-8">
-                                        <div className="relative group">
-                                            <div className="w-32 h-32 rounded-full border-4 border-zinc-900 bg-zinc-950 shadow-xl overflow-hidden relative">
-                                                <img src={'/tiers/lehrling.png'} className="w-full h-full object-cover opacity-80" alt="Avatar" />
-                                                <div className="absolute inset-0 rounded-full border border-white/5 pointer-events-none"></div>
+                                    {/* Avatar Upload */}
+                                    <div className="md:bg-surface md:border md:border-border rounded-2xl p-6 md:p-8 flex flex-col sm:flex-row items-center gap-8">
+                                        {/* Avatar preview */}
+                                        <div className="relative shrink-0">
+                                            <div className="w-32 h-32 rounded-full border-4 border-border bg-surface-hover shadow-xl overflow-hidden flex items-center justify-center">
+                                                {logoUrl ? (
+                                                    <img src={logoUrl} className="w-full h-full object-cover" alt="Avatar" />
+                                                ) : pendingAvatarUrl ? (
+                                                    <img src={pendingAvatarUrl} className="w-full h-full object-cover opacity-50" alt="Ausstehend" />
+                                                ) : (
+                                                    <span className="text-4xl font-bold text-text-primary select-none">
+                                                        {(profile.display_name || user?.email || '?')[0].toUpperCase()}
+                                                    </span>
+                                                )}
                                             </div>
+                                            {pendingAvatarUrl && !logoUrl && (
+                                                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-amber-500 text-black text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full whitespace-nowrap">
+                                                    In Prüfung
+                                                </div>
+                                            )}
                                         </div>
-                                        
+
                                         <div className="flex-1 text-center sm:text-left">
-                                            <h3 className="font-bold text-white mb-1.5 text-lg">Dein Avatar</h3>
-                                            <p className="text-xs font-medium text-zinc-500 mb-2 leading-relaxed max-w-sm mx-auto sm:mx-0">
-                                                Dein Avatar wird bald durch dein Tasting IQ-Profil ersetzt.
-                                            </p>
-                                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-bold uppercase tracking-wider">
-                                                <Lock className="w-3 h-3" />
-                                                <span>Automatisch verwaltet</span>
-                                            </div>
+                                            <h3 className="font-bold text-text-primary mb-1.5 text-lg">Dein Profilbild</h3>
+                                            {logoUrl ? (
+                                                <p className="text-xs text-text-secondary mb-3">Dein Profilbild ist aktiv und sichtbar.</p>
+                                            ) : pendingAvatarUrl ? (
+                                                <p className="text-xs text-warning mb-3">Dein Bild wartet auf Freigabe durch einen Moderator.</p>
+                                            ) : (
+                                                <p className="text-xs text-text-muted mb-3">Lade ein Bild hoch. Es wird nach der Prüfung freigeschaltet.</p>
+                                            )}
+
+                                            <label className={`inline-flex items-center gap-2 cursor-pointer px-4 py-2 rounded-lg text-sm font-bold transition ${
+                                                avatarUploading
+                                                    ? 'bg-surface-hover text-text-disabled cursor-not-allowed'
+                                                    : 'bg-surface-hover hover:bg-border-hover text-text-primary'
+                                            }`}>
+                                                {avatarUploading ? (
+                                                    <><Loader2 className="w-4 h-4 animate-spin" /> Wird hochgeladen...</>
+                                                ) : (
+                                                    <><User className="w-4 h-4" /> Bild auswählen</>
+                                                )}
+                                                <input
+                                                    type="file"
+                                                    accept="image/jpeg,image/png,image/webp,image/gif"
+                                                    className="hidden"
+                                                    disabled={avatarUploading}
+                                                    onChange={handleAvatarUpload}
+                                                />
+                                            </label>
+
+                                            {avatarMessage && (
+                                                <p className={`mt-2 text-xs ${ avatarMessage.type === 'success' ? 'text-success' : 'text-error' }`}>
+                                                    {avatarMessage.msg}
+                                                </p>
+                                            )}
+                                            <p className="mt-2 text-[10px] text-text-disabled">Max. 5 MB · JPEG, PNG, WebP, GIF</p>
                                         </div>
                                     </div>
 
-                                    <div className="md:bg-black md:border md:border-zinc-800 rounded-lg p-6 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="md:bg-surface md:border md:border-border rounded-2xl p-6 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div className="md:col-span-2">
-                                                <label className="block text-xs font-medium text-zinc-400 mb-1.5">Anzeigename</label>
+                                                <label className="block text-xs font-bold text-text-secondary mb-1.5">Anzeigename</label>
                                                 <input 
                                                     type="text" 
                                                     value={profile.display_name} 
                                                     onChange={(e) => setProfile({ ...profile, display_name: e.target.value })}
-                                                    className="w-full px-3 py-2 rounded bg-zinc-900 text-white border border-zinc-800 focus:outline-none focus:border-zinc-600 transition-colors placeholder:text-zinc-700 sm:text-sm"
+                                                    className="w-full px-3 py-2 rounded-lg bg-surface text-text-primary border border-border focus:outline-none focus:border-border-hover transition-colors placeholder:text-text-disabled sm:text-sm"
                                                     placeholder="Dein Name"
                                                 />
                                             </div>
 
                                             <div>
-                                                <label className="block text-xs font-medium text-zinc-400 mb-1.5">Standort</label>
+                                                <label className="block text-xs font-bold text-text-secondary mb-1.5">Standort</label>
                                                 <input 
                                                     type="text" 
                                                     value={profile.location} 
                                                     onChange={(e) => setProfile({ ...profile, location: e.target.value })}
-                                                    className="w-full px-3 py-2 rounded bg-zinc-900 text-white border border-zinc-800 focus:outline-none focus:border-zinc-600 transition-colors placeholder:text-zinc-700 sm:text-sm"
+                                                    className="w-full px-3 py-2 rounded-lg bg-surface text-text-primary border border-border focus:outline-none focus:border-border-hover transition-colors placeholder:text-text-disabled sm:text-sm"
                                                     placeholder="z.B. Hamburg"
                                                 />
                                             </div>
 
                                             <div>
-                                                <label className="block text-xs font-medium text-zinc-400 mb-1.5">Gründungsjahr / Start</label>
+                                                <label className="block text-xs font-bold text-text-secondary mb-1.5">Gründungsjahr / Start</label>
                                                 <input 
                                                     type="number" 
                                                     value={profile.founded_year} 
                                                     onChange={(e) => setProfile({ ...profile, founded_year: e.target.value })}
-                                                    className="w-full px-3 py-2 rounded bg-zinc-900 text-white border border-zinc-800 focus:outline-none focus:border-zinc-600 transition-colors placeholder:text-zinc-700 sm:text-sm"
+                                                    className="w-full px-3 py-2 rounded-lg bg-surface text-text-primary border border-border focus:outline-none focus:border-border-hover transition-colors placeholder:text-text-disabled sm:text-sm"
                                                     placeholder="2024"
                                                 />
                                             </div>
 
                                             <div>
-                                                <label className="block text-xs font-medium text-zinc-400 mb-1.5">Geburtsdatum</label>
+                                                <label className="block text-xs font-bold text-text-secondary mb-1.5">Geburtsdatum</label>
                                                 <input
                                                     type="date"
                                                     value={profile.birthdate || ''}
                                                     onChange={(e) => setProfile({ ...profile, birthdate: e.target.value })}
-                                                    className="w-full px-3 py-2 rounded bg-zinc-900 text-white border border-zinc-800 focus:outline-none focus:border-zinc-600 transition-colors placeholder:text-zinc-700 sm:text-sm"
+                                                    className="w-full px-3 py-2 rounded-lg bg-surface text-text-primary border border-border focus:outline-none focus:border-border-hover transition-colors placeholder:text-text-disabled sm:text-sm"
                                                     placeholder=""
                                                 />
                                             </div>
 
                                             <div className="md:col-span-2">
-                                                <label className="block text-xs font-medium text-zinc-400 mb-1.5">Webseite</label>
+                                                <label className="block text-xs font-bold text-text-secondary mb-1.5">Webseite</label>
                                                 <input 
                                                     type="url" 
                                                     value={profile.website} 
                                                     onChange={(e) => setProfile({ ...profile, website: e.target.value })}
-                                                    className="w-full px-3 py-2 rounded bg-zinc-900 text-white border border-zinc-800 focus:outline-none focus:border-zinc-600 transition-colors placeholder:text-zinc-700 sm:text-sm font-mono"
+                                                    className="w-full px-3 py-2 rounded-lg bg-surface text-text-primary border border-border focus:outline-none focus:border-border-hover transition-colors placeholder:text-text-disabled sm:text-sm font-mono"
                                                     placeholder="https://..."
                                                 />
                                             </div>
 
                                             <div className="md:col-span-2">
-                                                <label className="block text-xs font-medium text-zinc-400 mb-1.5">Über dich (Bio)</label>
+                                                <label className="block text-xs font-bold text-text-secondary mb-1.5">Über dich (Bio)</label>
                                                 <textarea 
                                                     value={profile.bio} 
                                                     onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
-                                                    className="w-full px-3 py-2 rounded bg-zinc-900 text-white border border-zinc-800 focus:outline-none focus:border-zinc-600 transition-colors placeholder:text-zinc-700 sm:text-sm min-h-[120px] resize-y"
+                                                    className="w-full px-3 py-2 rounded-lg bg-surface text-text-primary border border-border focus:outline-none focus:border-border-hover transition-colors placeholder:text-text-disabled sm:text-sm min-h-[120px] resize-y"
                                                     placeholder="Erzähle etwas über dich und deine Braukünste..."
                                                 />
                                             </div>
@@ -852,7 +943,7 @@ export default function AccountPage() {
                                             type="button"
                                             onClick={saveProfile} 
                                             disabled={savingProfile}
-                                            className="bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-bold px-8 py-3 rounded-xl hover:shadow-lg hover:shadow-cyan-500/20 transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                            className="bg-brand text-white font-bold px-8 py-3 rounded-xl hover:opacity-90 transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                                         >
                                             {savingProfile ? (
                                                 <>
@@ -865,22 +956,21 @@ export default function AccountPage() {
                                     </div>
                                 </form>
 
-                                <div className="space-y-8 pt-8 border-t border-zinc-800">
-                                            <div className="bg-zinc-900/40 border border-zinc-800 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 group hover:border-zinc-700 transition">
+                                <div className="space-y-8 pt-8 border-t border-border">
+                                            <div className="bg-surface/40 border border-border rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 group hover:border-border-hover transition">
                                                 <div className="flex items-center gap-4">
-                                                    <div className="w-12 h-12 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-center text-zinc-400 group-hover:text-cyan-400 group-hover:scale-110 transition">
+                                                    <div className="w-12 h-12 rounded-xl bg-background border border-border flex items-center justify-center text-text-muted group-hover:text-brand group-hover:scale-110 transition">
                                                         <Globe className="w-6 h-6" />
                                                     </div>
                                                     <div>
-                                                        <h4 className="text-sm font-bold text-white mb-0.5">Dein öffentliches Profil</h4>
-                                                        <p className="text-xs text-zinc-400">Teile diesen Link mit Freunden.</p>
+                                                        <h4 className="text-sm font-bold text-text-primary mb-0.5">Dein öffentliches Profil</h4>
+                                                        <p className="text-xs text-text-secondary">Teile diesen Link mit Freunden.</p>
                                                     </div>
                                                 </div>
                                                 <Link
                                                     href={`/brewer/${user?.id}`}
-
                                                     target="_blank"
-                                                    className="bg-zinc-950 hover:bg-black text-cyan-400 hover:text-cyan-300 border border-zinc-800 hover:border-cyan-900 px-4 py-2.5 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 w-full sm:w-auto"
+                                                    className="bg-background hover:bg-surface text-brand border border-border hover:border-brand/30 px-4 py-2.5 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 w-full sm:w-auto"
                                                 >
                                                     Öffnen ↗
                                                 </Link>
@@ -894,42 +984,42 @@ export default function AccountPage() {
                              <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-8">
                                 
                                 {/* 1. Join Section */}
-                                <div className="md:bg-black md:border md:border-zinc-800 rounded-lg p-4 md:p-8 relative overflow-hidden">
-                                     <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
+                                <div className="md:bg-surface md:border md:border-border rounded-2xl p-4 md:p-8 relative overflow-hidden">
+                                     <div className="absolute top-0 right-0 w-32 h-32 bg-brand/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
                                      
-                                     <h2 className="text-xl font-bold text-white mb-2 relative">Team beitreten</h2>
-                                     <p className="text-sm text-zinc-400 mb-6 max-w-lg relative">
+                                     <h2 className="text-xl font-bold text-text-primary mb-2 relative">Team beitreten</h2>
+                                     <p className="text-sm text-text-secondary mb-6 max-w-lg relative">
                                         Gib einen Einladungs-Code ein, um einem bestehenden Squad beizutreten.
                                      </p>
 
-                                     <form onSubmit={handleJoinTeam} className="flex flex-col sm:flex-row gap-3 relative z-10 text-white">
+                                     <form onSubmit={handleJoinTeam} className="flex flex-col sm:flex-row gap-3 relative z-10">
                                         <input
                                             type="text"
                                             value={joinCode}
                                             onChange={(e) => setJoinCode(e.target.value)}
                                             placeholder="Einladungs-Code eingeben..."
-                                            className="w-full sm:flex-1 bg-zinc-900 border border-zinc-800 px-3 py-2 rounded focus:border-zinc-600 outline-none transition text-white placeholder-zinc-600 font-mono text-sm"
+                                            className="w-full sm:flex-1 bg-surface border border-border px-3 py-2 rounded-lg focus:border-border-hover outline-none transition text-text-primary placeholder-text-disabled font-mono text-sm"
                                         />
                                         <button
                                             type="submit"
                                             disabled={!joinCode || joinLoading}
-                                            className="w-full sm:w-auto bg-zinc-100 text-black font-bold px-6 py-2 rounded-lg hover:bg-zinc-200 transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap text-sm"
+                                            className="w-full sm:w-auto bg-surface-hover text-text-primary font-bold px-6 py-2 rounded-lg border border-border hover:bg-border transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap text-sm"
                                         >
                                             {joinLoading ? 'Suche...' : 'Beitreten'}
                                         </button>
                                      </form>
-                                     <p className="text-[10px] text-zinc-500 mt-2 pl-1">
+                                     <p className="text-[10px] text-text-muted mt-2 pl-1">
                                         Frag den Admin eines Teams nach dem Code.
                                      </p>
                                 </div>
 
                                 {/* 1.5 Create Section */}
-                                <div className="md:bg-black md:border md:border-zinc-800 rounded-lg p-4 md:p-8">
-                                    <h3 className="text-lg font-bold text-white mb-2">Neues Team erstellen</h3>
-                                    <p className="text-sm text-zinc-400 mb-4">Gründe ein neues Team — du kannst nur ein Team besitzen.</p>
+                                <div className="md:bg-surface md:border md:border-border rounded-2xl p-4 md:p-8">
+                                    <h3 className="text-lg font-bold text-text-primary mb-2">Neues Team erstellen</h3>
+                                    <p className="text-sm text-text-secondary mb-4">Gründe ein neues Team — du kannst nur ein Team besitzen.</p>
 
                                     {createMessage && (
-                                        <div className={`text-xs font-bold px-4 py-2 rounded-lg mb-3 flex items-center gap-2 ${createMessage.type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400' : 'bg-rose-500/10 border border-rose-500/30 text-rose-400'}`}>
+                                        <div className={`text-xs font-bold px-4 py-2 rounded-lg mb-3 flex items-center gap-2 ${createMessage.type === 'success' ? 'bg-success-bg border border-success/20 text-success' : 'bg-error-bg border border-error/20 text-error'}`}>
                                             {createMessage.type === 'success' ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
                                             {createMessage.msg}
                                         </div>
@@ -941,13 +1031,13 @@ export default function AccountPage() {
                                             value={createName}
                                             onChange={(e) => setCreateName(e.target.value)}
                                             placeholder="Team-Name"
-                                            className="w-full sm:flex-1 bg-zinc-900 border border-zinc-800 px-3 py-2 rounded focus:border-zinc-600 outline-none transition text-white placeholder-zinc-600 text-sm"
+                                            className="w-full sm:flex-1 bg-surface border border-border px-3 py-2 rounded-lg focus:border-border-hover outline-none transition text-text-primary placeholder-text-disabled text-sm"
                                             disabled={createLoading}
                                         />
                                         <button
                                             type="submit"
                                             disabled={createLoading}
-                                            className="w-full sm:w-auto bg-emerald-600 text-white font-bold px-6 py-2 rounded-lg hover:bg-emerald-500 transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap text-sm"
+                                            className="w-full sm:w-auto bg-brand text-white font-bold px-6 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap text-sm"
                                         >
                                             {createLoading ? 'Erstelle...' : 'Team erstellen'}
                                         </button>
@@ -955,36 +1045,36 @@ export default function AccountPage() {
 
                                     {/* If user already owns a team, show info */}
                                     {myTeams.some(t => t.userRole === 'owner') && (
-                                        <p className="text-[12px] text-zinc-500 mt-3">Du bist bereits Besitzer eines Teams. Pro Benutzer ist nur ein eigenes Team erlaubt.</p>
+                                        <p className="text-[12px] text-text-muted mt-3">Du bist bereits Besitzer eines Teams. Pro Benutzer ist nur ein eigenes Team erlaubt.</p>
                                     )}
                                 </div>
 
                                 {/* 2. List Section */}
                                 <div>
-                                    <h2 className="text-lg font-bold text-white mb-4">Deine Teams</h2>
+                                    <h2 className="text-lg font-bold text-text-primary mb-4">Deine Teams</h2>
                                     
                                     {myTeams.length === 0 ? (
-                                        <div className="text-center py-10 bg-zinc-900/30 rounded-lg border border-zinc-800/50 border-dashed flex flex-col items-center">
-                                            <Home className="w-12 h-12 text-zinc-700 mb-3" />
-                                            <p className="text-zinc-400 font-medium">Du bist noch in keinem Team.</p>
+                                        <div className="text-center py-10 bg-surface/30 rounded-2xl border border-border/50 border-dashed flex flex-col items-center">
+                                            <Home className="w-12 h-12 text-text-disabled mb-3" />
+                                            <p className="text-text-secondary font-bold">Du bist noch in keinem Team.</p>
                                         </div>
                                     ) : (
 
                                         <div className="grid gap-4">
                                             {myTeams.map(team => (
-                                                <div key={team.id} className="md:bg-black md:border md:border-zinc-800 p-4 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4 group hover:border-zinc-700 transition">
+                                                <div key={team.id} className="md:bg-surface md:border md:border-border p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 group hover:border-border-hover transition">
                                                     <div className="flex items-center gap-4 w-full sm:w-auto">
                                                         {team.logo_url ? (
-                                                            <img src={team.logo_url} className="w-12 h-12 rounded-lg object-cover bg-black flex-shrink-0" />
+                                                            <img src={team.logo_url} className="w-12 h-12 rounded-lg object-cover bg-background flex-shrink-0" />
                                                         ) : (
-                                                            <div className="w-12 h-12 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 flex-shrink-0">
+                                                            <div className="w-12 h-12 rounded-lg bg-surface border border-border flex items-center justify-center text-text-muted flex-shrink-0">
                                                                 <Factory className="w-6 h-6" />
                                                             </div>
                                                         )}
                                                         <div className="min-w-0 flex-1">
-                                                            <h3 className="font-bold text-white group-hover:text-cyan-400 transition truncate">{team.name}</h3>
-                                                            <p className="text-xs text-zinc-500 flex items-center gap-2 flex-wrap">
-                                                                <span className="uppercase tracking-wider font-bold bg-zinc-800 px-1.5 py-0.5 rounded text-[10px] text-zinc-400 border border-zinc-700 whitespace-nowrap">
+                                                            <h3 className="font-bold text-text-primary group-hover:text-brand transition truncate">{team.name}</h3>
+                                                            <p className="text-xs text-text-muted flex items-center gap-2 flex-wrap">
+                                                                <span className="uppercase tracking-wider font-bold bg-surface-hover px-1.5 py-0.5 rounded-full text-[10px] text-text-secondary border border-border whitespace-nowrap">
                                                                     {team.userRole === 'admin' ? 'Admin' : 'Mitglied'}
                                                                 </span>
                                                                 {team.location && <span className="truncate max-w-[120px]">• {team.location}</span>}
@@ -992,10 +1082,10 @@ export default function AccountPage() {
                                                         </div>
                                                     </div>
 
-                                                    <div className="flex items-center gap-2 w-full sm:w-auto justify-end border-t border-zinc-800/50 pt-3 sm:pt-0 sm:border-0">
+                                                    <div className="flex items-center gap-2 w-full sm:w-auto justify-end border-t border-border/50 pt-3 sm:pt-0 sm:border-0">
                                                         <Link 
                                                             href={`/team/${team.id}`}
-                                                            className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded transition"
+                                                            className="p-2 text-text-secondary hover:text-text-primary hover:bg-surface-hover rounded-lg transition"
                                                             title="Zum Dashboard"
                                                         >
                                                             <span className="sr-only">Dashboard</span>
@@ -1004,7 +1094,7 @@ export default function AccountPage() {
                                                         {team.userRole !== 'owner' && (
                                                             <button
                                                                 onClick={() => handleLeaveTeam(team.id, team.name)}
-                                                                className="p-2 text-zinc-600 hover:text-red-400 hover:bg-zinc-800 rounded transition"
+                                                                className="p-2 text-text-disabled hover:text-error hover:bg-error-bg rounded-lg transition"
                                                                 title="Team verlassen"
                                                             >
                                                                 <LogOut className="w-4 h-4" />
@@ -1022,18 +1112,18 @@ export default function AccountPage() {
                         {activeTab === 'access' && (
                             <form onSubmit={handleUpdateEmail} className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                 <div>
-                                    <h2 className="text-xl font-bold text-white mb-1">E-Mail Adresse ändern</h2>
-                                    <p className="text-sm text-zinc-400">Halte deine Kontaktinformationen aktuell.</p>
+                                    <h2 className="text-xl font-bold text-text-primary mb-1">E-Mail Adresse ändern</h2>
+                                    <p className="text-sm text-text-secondary">Halte deine Kontaktinformationen aktuell.</p>
                                 </div>
 
-                                <div className="md:bg-black md:border md:border-zinc-800 rounded-lg p-6 md:p-8 space-y-6">
-                                    <div className="text-sm text-zinc-400 bg-zinc-900 p-3 rounded border border-zinc-800 flex items-center justify-between">
-                                        <span className="font-medium text-zinc-500 text-xs">Aktuell</span>
-                                        <span className="text-white font-mono">{email}</span>
+                                <div className="md:bg-surface md:border md:border-border rounded-2xl p-6 md:p-8 space-y-6">
+                                    <div className="text-sm text-text-secondary bg-surface p-3 rounded-lg border border-border flex items-center justify-between">
+                                        <span className="font-bold text-text-muted text-xs">Aktuell</span>
+                                        <span className="text-text-primary font-mono">{email}</span>
                                     </div>
 
                                     <div>
-                                        <label className="block text-xs font-medium text-zinc-400 mb-1.5">
+                                        <label className="block text-xs font-bold text-text-secondary mb-1.5">
                                             Neue E-Mail Adresse
                                         </label>
                                         <input
@@ -1041,7 +1131,7 @@ export default function AccountPage() {
                                             value={newEmail}
                                             onChange={(e) => setNewEmail(e.target.value)}
                                             placeholder="neue@email.de"
-                                            className="w-full px-3 py-2 rounded bg-zinc-900 text-white border border-zinc-800 focus:outline-none focus:border-zinc-600 transition-colors placeholder:text-zinc-700 sm:text-sm"
+                                            className="w-full px-3 py-2 rounded-lg bg-surface text-text-primary border border-border focus:outline-none focus:border-border-hover transition-colors placeholder:text-text-disabled sm:text-sm"
                                         />
                                     </div>
 
@@ -1049,7 +1139,7 @@ export default function AccountPage() {
                                         <button
                                             type="submit"
                                             disabled={emailLoading || !newEmail || newEmail === email}
-                                            className="bg-zinc-800 text-white font-bold px-6 py-2 rounded-lg hover:bg-zinc-700 hover:text-white border border-zinc-700 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                                            className="bg-surface-hover text-text-primary font-bold px-6 py-2 rounded-lg hover:bg-border border border-border transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                                         >
                                             {emailLoading ? 'Sende...' : 'E-Mail ändern'}
                                         </button>
@@ -1057,8 +1147,8 @@ export default function AccountPage() {
                                     {emailMessage && (
                                         <div className={`p-3 rounded-lg text-sm border ${
                                             emailMessage.type === 'success'
-                                                ? 'bg-green-950/40 border-green-800/40 text-green-400'
-                                                : 'bg-red-950/40 border-red-800/40 text-red-400'
+                                                ? 'bg-success-bg border-success/20 text-success'
+                                                : 'bg-error-bg border-error/20 text-error'
                                         }`}>
                                             {emailMessage.msg}
                                         </div>
@@ -1070,13 +1160,13 @@ export default function AccountPage() {
                         {activeTab === 'security' && (
                             <form onSubmit={handleUpdatePassword} className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                 <div>
-                                    <h2 className="text-xl font-bold text-white mb-1">Passwort ändern</h2>
-                                    <p className="text-sm text-zinc-400">Wähle ein sicheres Passwort mit mind. 8 Zeichen.</p>
+                                    <h2 className="text-xl font-bold text-text-primary mb-1">Passwort ändern</h2>
+                                    <p className="text-sm text-text-secondary">Wähle ein sicheres Passwort mit mind. 8 Zeichen.</p>
                                 </div>
 
-                                <div className="md:bg-black md:border md:border-zinc-800 rounded-lg p-6 md:p-8 space-y-6">
+                                <div className="md:bg-surface md:border md:border-border rounded-2xl p-6 md:p-8 space-y-6">
                                     <div>
-                                        <label className="block text-xs font-medium text-zinc-400 mb-1.5">
+                                        <label className="block text-xs font-bold text-text-secondary mb-1.5">
                                             Neues Passwort
                                         </label>
                                         <div className="relative">
@@ -1085,12 +1175,12 @@ export default function AccountPage() {
                                                 value={newPassword}
                                                 onChange={(e) => setNewPassword(e.target.value)}
                                                 placeholder="••••••••"
-                                                className="w-full px-3 py-2 rounded bg-zinc-900 text-white border border-zinc-800 focus:outline-none focus:border-zinc-600 transition-colors placeholder:text-zinc-700 sm:text-sm"
+                                                className="w-full px-3 py-2 rounded-lg bg-surface text-text-primary border border-border focus:outline-none focus:border-border-hover transition-colors placeholder:text-text-disabled sm:text-sm"
                                             />
                                             <button
                                                 type="button"
                                                 onClick={() => setShowPassword(!showPassword)}
-                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition"
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition"
                                             >
                                                 {showPassword ? (
                                                     <Eye className="w-4 h-4" />
@@ -1098,7 +1188,7 @@ export default function AccountPage() {
                                                     <div className="relative">
                                                         <Eye className="w-4 h-4 opacity-50" />
                                                         <div className="absolute inset-0 flex items-center justify-center">
-                                                            <div className="w-full h-0.5 bg-zinc-500 rotate-45"></div>
+                                                            <div className="w-full h-0.5 bg-text-muted rotate-45"></div>
                                                         </div>
                                                     </div>
                                                 )}
@@ -1107,7 +1197,7 @@ export default function AccountPage() {
                                     </div>
 
                                     <div>
-                                        <label className="block text-xs font-medium text-zinc-400 mb-1.5">
+                                        <label className="block text-xs font-bold text-text-secondary mb-1.5">
                                             Passwort bestätigen
                                         </label>
                                         <input
@@ -1115,7 +1205,7 @@ export default function AccountPage() {
                                             value={confirmPassword}
                                             onChange={(e) => setConfirmPassword(e.target.value)}
                                             placeholder="••••••••"
-                                            className="w-full px-3 py-2 rounded bg-zinc-900 text-white border border-zinc-800 focus:outline-none focus:border-zinc-600 transition-colors placeholder:text-zinc-700 sm:text-sm"
+                                            className="w-full px-3 py-2 rounded-lg bg-surface text-text-primary border border-border focus:outline-none focus:border-border-hover transition-colors placeholder:text-text-disabled sm:text-sm"
                                         />
                                     </div>
 
@@ -1123,7 +1213,7 @@ export default function AccountPage() {
                                         <button
                                             type="submit"
                                             disabled={passwordLoading || !newPassword}
-                                            className="bg-zinc-800 text-white font-bold px-6 py-2 rounded-lg hover:bg-zinc-700 hover:text-white border border-zinc-700 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                                            className="bg-surface-hover text-text-primary font-bold px-6 py-2 rounded-lg hover:bg-border border border-border transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                                         >
                                             {passwordLoading ? 'Speichere...' : 'Passwort aktualisieren'}
                                         </button>
@@ -1131,8 +1221,8 @@ export default function AccountPage() {
                                     {passwordMessage && (
                                         <div className={`p-3 rounded-lg text-sm border ${
                                             passwordMessage.type === 'success'
-                                                ? 'bg-green-950/40 border-green-800/40 text-green-400'
-                                                : 'bg-red-950/40 border-red-800/40 text-red-400'
+                                                ? 'bg-success-bg border-success/20 text-success'
+                                                : 'bg-error-bg border-error/20 text-error'
                                         }`}>
                                             {passwordMessage.msg}
                                         </div>
@@ -1144,18 +1234,18 @@ export default function AccountPage() {
                         {activeTab === 'privacy' && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                 <div>
-                                    <h2 className="text-xl font-bold text-white mb-1">Privatsphäre & Daten</h2>
-                                    <p className="text-sm text-zinc-400">Transparenz darüber, welche Daten wir sammeln.</p>
+                                    <h2 className="text-xl font-bold text-text-primary mb-1">Privatsphäre & Daten</h2>
+                                    <p className="text-sm text-text-secondary">Transparenz darüber, welche Daten wir sammeln.</p>
                                 </div>
 
-                                <div className="md:bg-black md:border md:border-zinc-800 rounded-lg p-6 md:p-8 space-y-6">
+                                <div className="md:bg-surface md:border md:border-border rounded-2xl p-6 md:p-8 space-y-6">
                                     <div className="flex items-start gap-4">
-                                        <div className="p-3 bg-purple-500/10 rounded-lg border border-purple-500/20 text-purple-400">
+                                        <div className="p-3 bg-accent-purple/10 rounded-lg border border-accent-purple/20 text-accent-purple">
                                             <BarChart3 className="w-6 h-6" />
                                         </div>
                                         <div className="flex-1">
-                                            <h3 className="font-bold text-white mb-1">Produktanalyse verbessern</h3>
-                                            <p className="text-zinc-400 text-sm leading-relaxed mb-4">
+                                            <h3 className="font-bold text-text-primary mb-1">Produktanalyse verbessern</h3>
+                                            <p className="text-text-secondary text-sm leading-relaxed mb-4">
                                                 Wir analysieren anonym, wie Features genutzt werden (z.B. "Wie oft wird gedruckt?"), um BotlLab besser zu machen. 
                                                 Es werden keine persönlichen Daten an Dritte (Werbenetzwerke) weitergegeben.
                                             </p>
@@ -1168,27 +1258,27 @@ export default function AccountPage() {
                                                         checked={!profile.analytics_opt_out}
                                                         onChange={togglePrivacy}
                                                     />
-                                                    <div className="w-11 h-6 bg-zinc-700 rounded-full peer-checked:bg-purple-500 peer-focus:ring-4 peer-focus:ring-purple-500/30 transition-all after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
+                                                    <div className="w-11 h-6 bg-surface-hover rounded-full peer-checked:bg-accent-purple peer-focus:ring-4 peer-focus:ring-accent-purple/30 transition-all after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
                                                 </div>
-                                                <span className={`font-bold text-sm ${!profile.analytics_opt_out ? 'text-white' : 'text-zinc-500'}`}>
+                                                <span className={`font-bold text-sm ${!profile.analytics_opt_out ? 'text-text-primary' : 'text-text-muted'}`}>
                                                     {!profile.analytics_opt_out ? 'Aktiv (Empfohlen)' : 'Deaktiviert'}
                                                 </span>
                                             </label>
                                         </div>
                                     </div>
                                     
-                                    <div className="text-xs text-zinc-500 pt-6 border-t border-zinc-800">
-                                        Mehr Details findest du in unserer <Link href="/privacy" className="text-zinc-400 underline hover:text-white">Datenschutzerklärung</Link>.
+                                    <div className="text-xs text-text-muted pt-6 border-t border-border">
+                                        Mehr Details findest du in unserer <Link href="/privacy" className="text-text-secondary underline hover:text-text-primary">Datenschutzerklärung</Link>.
                                     </div>
 
                                     {/* BotlGuide Insights Toggle */}
-                                    <div className="flex items-start gap-4 pt-6 border-t border-zinc-800">
-                                        <div className="p-3 bg-purple-500/10 rounded-lg border border-purple-500/20 text-purple-400">
+                                    <div className="flex items-start gap-4 pt-6 border-t border-border">
+                                        <div className="p-3 bg-accent-purple/10 rounded-lg border border-accent-purple/20 text-accent-purple">
                                             <Sparkles className="w-6 h-6" />
                                         </div>
                                         <div className="flex-1">
-                                            <h3 className="font-bold text-white mb-1">BotlGuide Proaktive Insights</h3>
-                                            <p className="text-zinc-400 text-sm leading-relaxed mb-4">
+                                            <h3 className="font-bold text-text-primary mb-1">BotlGuide Proaktive Insights</h3>
+                                            <p className="text-text-secondary text-sm leading-relaxed mb-4">
                                                 BotlGuide beobachtet automatisch deine aktiven Gärungen und warnt dich, wenn sich etwas Ungewöhnliches tut (z.B. Stuck Fermentation, Temperatur-Anomalien). Nur für Brewery+ verfügbar.
                                             </p>
                                             <label className="flex items-center gap-3 cursor-pointer group">
@@ -1199,9 +1289,9 @@ export default function AccountPage() {
                                                         checked={profile.botlguide_insights_enabled}
                                                         onChange={toggleBotlGuideInsights}
                                                     />
-                                                    <div className="w-11 h-6 bg-zinc-700 rounded-full peer-checked:bg-purple-500 peer-focus:ring-4 peer-focus:ring-purple-500/30 transition-all after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
+                                                    <div className="w-11 h-6 bg-surface-hover rounded-full peer-checked:bg-accent-purple peer-focus:ring-4 peer-focus:ring-accent-purple/30 transition-all after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
                                                 </div>
-                                                <span className={`font-bold text-sm ${profile.botlguide_insights_enabled ? 'text-white' : 'text-zinc-500'}`}>
+                                                <span className={`font-bold text-sm ${profile.botlguide_insights_enabled ? 'text-text-primary' : 'text-text-muted'}`}>
                                                     {profile.botlguide_insights_enabled ? 'Aktiviert' : 'Deaktiviert'}
                                                 </span>
                                             </label>
@@ -1214,37 +1304,41 @@ export default function AccountPage() {
                         {activeTab === 'danger' && (
                              <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
                                 <div className="mb-8">
-                                    <h2 className="text-xl font-bold text-red-400 mb-1 flex items-center gap-2">
-                                        <AlertTriangle className="w-6 h-6" />
+                                    <h2 className="text-xl font-bold text-text-primary mb-1 flex items-center gap-2">
+                                        <AlertTriangle className="w-6 h-6 text-error" />
                                         Gefahrenzone
                                     </h2>
-                                    <p className="text-sm text-zinc-400">Vorsicht! Aktionen hier sind endgültig.</p>
+                                    <p className="text-sm text-text-secondary">Vorsicht! Aktionen hier sind endgültig.</p>
                                 </div>
 
-                                <div className="border border-red-900/30 bg-red-950/5 rounded-lg overflow-hidden space-y-6 p-6 md:p-8">
+                                <div className="bg-surface border border-error/20 rounded-2xl p-6 md:p-8 space-y-6">
+                                    <h3 className="text-error text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                                        <AlertTriangle className="w-3.5 h-3.5" /> Danger Zone
+                                    </h3>
+
                                      <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
                                          <div>
-                                            <h4 className="font-bold text-zinc-200">Abmelden</h4>
-                                            <p className="text-sm text-zinc-500 mt-1 max-w-sm">Beende deine aktuelle Sitzung auf diesem Gerät.</p>
+                                            <h4 className="font-bold text-text-primary text-sm mb-1">Abmelden</h4>
+                                            <p className="text-text-muted text-xs mt-1 max-w-sm">Beende deine aktuelle Sitzung auf diesem Gerät.</p>
                                         </div>
                                          <button
-                                            onClick={() => signOut()} // Use centralized signOut
-                                            className="w-full sm:w-auto text-zinc-400 hover:text-white hover:bg-zinc-800 px-6 py-2 rounded-lg text-sm font-bold transition border border-zinc-800 hover:border-zinc-500 whitespace-nowrap"
+                                            onClick={() => signOut()}
+                                            className="w-full sm:w-auto text-text-secondary hover:text-text-primary hover:bg-surface-hover px-6 py-2 rounded-lg text-xs font-bold transition border border-border hover:border-border-hover whitespace-nowrap"
                                         >
                                             Abmelden
                                         </button>
                                      </div>
 
-                                     <div className="h-px bg-red-900/20 w-full" />
+                                     <div className="h-px bg-error/10 w-full" />
 
-                                     <div className="flex flex-col items-start gap-4">
+                                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                         <div>
-                                            <h4 className="font-bold text-red-300">Konto löschen</h4>
-                                            <p className="text-sm text-zinc-500 mt-1 max-w-lg">Dies entfernt dauerhaft alle deine Daten: Profil, Rezepte, Flaschen und Medien. Diese Aktion kann nicht rückgängig gemacht werden.</p>
+                                            <h4 className="font-bold text-text-primary text-sm mb-1">Konto löschen</h4>
+                                            <p className="text-text-muted text-xs mt-1 max-w-lg">Dies entfernt dauerhaft alle deine Daten: Profil, Rezepte, Flaschen und Medien. Diese Aktion kann nicht rückgängig gemacht werden.</p>
                                         </div>
                                         <button
                                             onClick={deleteAccount}
-                                            className="w-full sm:w-auto text-red-400 hover:text-white hover:bg-red-600 px-6 py-2 rounded-lg text-sm font-bold transition border border-red-900/50 hover:border-red-500 whitespace-nowrap bg-red-950/20 shadow-lg"
+                                            className="w-full sm:w-auto bg-red-900 hover:bg-red-700 text-white font-bold px-6 py-2 rounded-lg text-xs transition whitespace-nowrap"
                                         >
                                             Daten unwiderruflich löschen
                                         </button>
@@ -1260,15 +1354,15 @@ export default function AccountPage() {
             {/* Cancel Subscription Modal */}
             {showCancelModal && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-                    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200">
-                        <h2 className="text-2xl font-bold text-white mb-2">Abo kündigen?</h2>
-                        <p className="text-zinc-400 text-sm mb-6 leading-relaxed">
+                    <div className="bg-surface border border-border rounded-2xl p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200">
+                        <h2 className="text-2xl font-bold text-text-primary mb-2">Abo kündigen?</h2>
+                        <p className="text-text-secondary text-sm mb-6 leading-relaxed">
                             Dein Abo bleibt bis zum Ende der aktuellen Laufzeit aktiv. 
                             Danach wirst du automatisch auf den kostenlosen Plan zurückgestuft.
                         </p>
                         
-                        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mb-6">
-                            <p className="text-amber-400 text-xs font-bold flex items-center gap-2">
+                        <div className="bg-warning-bg border border-warning/30 rounded-xl p-4 mb-6">
+                            <p className="text-warning text-xs font-bold flex items-center gap-2">
                                 <AlertTriangle className="w-4 h-4" />
                                 Diese Aktion kann nicht rückgängig gemacht werden.
                             </p>
@@ -1278,14 +1372,14 @@ export default function AccountPage() {
                             <button 
                                 onClick={() => setShowCancelModal(false)}
                                 disabled={cancelLoading}
-                                className="flex-1 px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl text-sm font-bold border border-zinc-700 transition disabled:opacity-50"
+                                className="flex-1 px-6 py-3 bg-surface-hover hover:bg-border text-text-primary rounded-xl text-sm font-bold border border-border transition disabled:opacity-50"
                             >
                                 Abbrechen
                             </button>
                             <button 
                                 onClick={handleCancelSubscription}
                                 disabled={cancelLoading}
-                                className="flex-1 px-6 py-3 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-sm font-bold transition disabled:opacity-50"
+                                className="flex-1 px-6 py-3 bg-red-900 hover:bg-red-700 text-white rounded-xl text-sm font-bold transition disabled:opacity-50"
                             >
                                 {cancelLoading ? 'Kündige...' : 'Jetzt kündigen'}
                             </button>

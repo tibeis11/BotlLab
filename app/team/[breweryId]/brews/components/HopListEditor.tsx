@@ -94,21 +94,21 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
     return (
         <div>
              <div className="flex justify-between items-end mb-2">
-                <label className="text-xs font-bold text-zinc-500 uppercase ml-1 block">Hopfen</label>
+                <label className="text-xs font-bold text-text-muted uppercase ml-1 block">Hopfen</label>
             </div>
             
             {/* Mobile Modal for Editing */}
             {editingIndex !== null && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-zinc-900 border border-zinc-800 rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl relative flex flex-col max-h-[90vh]">
-                        <div className="flex justify-between items-center p-4 border-b border-zinc-800 bg-zinc-900 shrink-0">
-                            <h3 className="font-bold text-white flex items-center gap-2">
+                    <div className="bg-surface border border-border rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl relative flex flex-col max-h-[90vh]">
+                        <div className="flex justify-between items-center p-4 border-b border-border bg-surface shrink-0">
+                            <h3 className="font-bold text-text-primary flex items-center gap-2">
                                 <span className="w-8 h-8 rounded-full bg-green-500/10 text-green-500 flex items-center justify-center">
                                     <List size={16} />
                                 </span>
                                 Hopfen bearbeiten
                             </h3>
-                            <button onClick={() => setEditingIndex(null)} className="text-zinc-400 hover:text-white bg-zinc-800 p-2 rounded-full">
+                            <button onClick={() => setEditingIndex(null)} className="text-text-secondary hover:text-text-primary bg-surface-hover p-2 rounded-full">
                                 <X size={20}/>
                             </button>
                         </div>
@@ -116,12 +116,12 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
                         <div className="p-4 space-y-4 overflow-y-auto">
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
-                                    <label className="text-[10px] uppercase font-bold text-zinc-500">Menge</label>
+                                    <label className="text-[10px] uppercase font-bold text-text-muted">Menge</label>
                                     <div className="relative">
                                         <input 
                                             type="text"
                                             inputMode="decimal"
-                                            className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-3 pr-3 py-3 text-white focus:border-green-500 outline-none placeholder:text-zinc-700"
+                                            className="w-full bg-background border border-border rounded-xl pl-3 pr-3 py-3 text-text-primary focus:border-green-500 outline-none placeholder:text-text-disabled"
                                             placeholder="0"
                                             value={items[editingIndex].amount}
                                             onChange={(e) => updateRow(editingIndex, 'amount', e.target.value.replace(',', '.'))}
@@ -129,9 +129,9 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
                                     </div>
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-[10px] uppercase font-bold text-zinc-500">Einheit</label>
+                                    <label className="text-[10px] uppercase font-bold text-text-muted">Einheit</label>
                                     <input 
-                                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-3 text-white focus:border-green-500 outline-none placeholder:text-zinc-700"
+                                        className="w-full bg-background border border-border rounded-xl px-3 py-3 text-text-primary focus:border-green-500 outline-none placeholder:text-text-disabled"
                                         placeholder="g"
                                         value={items[editingIndex].unit}
                                         onChange={(e) => updateRow(editingIndex, 'unit', e.target.value)}
@@ -140,9 +140,9 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
                             </div>
 
                             <div className="space-y-1">
-                                <label className="text-[10px] uppercase font-bold text-zinc-500">Sorte / Name</label>
+                                <label className="text-[10px] uppercase font-bold text-text-muted">Sorte / Name</label>
                                 <input 
-                                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-3 text-white focus:border-green-500 outline-none placeholder:text-zinc-700"
+                                    className="w-full bg-background border border-border rounded-xl px-3 py-3 text-text-primary focus:border-green-500 outline-none placeholder:text-text-disabled"
                                     placeholder="z.B. Citra"
                                     value={items[editingIndex].name}
                                     onChange={(e) => updateRow(editingIndex, 'name', e.target.value)}
@@ -151,24 +151,24 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
-                                    <label className="text-[10px] uppercase font-bold text-zinc-500 flex items-center gap-1">
+                                    <label className="text-[10px] uppercase font-bold text-text-muted flex items-center gap-1">
                                         <Percent size={12}/> Alpha
                                     </label>
                                     <input 
                                         type="text"
                                         inputMode="decimal"
-                                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-3 text-white focus:border-green-500 outline-none placeholder:text-zinc-700"
+                                        className="w-full bg-background border border-border rounded-xl px-3 py-3 text-text-primary focus:border-green-500 outline-none placeholder:text-text-disabled"
                                         placeholder="%"
                                         value={items[editingIndex].alpha || ''}
                                         onChange={(e) => updateRow(editingIndex, 'alpha', e.target.value.replace(',', '.'))}
                                     />
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-[10px] uppercase font-bold text-zinc-500 flex items-center gap-1">
+                                    <label className="text-[10px] uppercase font-bold text-text-muted flex items-center gap-1">
                                         <Clock size={12}/> Zeit (min)
                                     </label>
                                     <input                                         type="number"
-                                        inputMode="numeric"                                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-3 text-white focus:border-green-500 outline-none placeholder:text-zinc-700"
+                                        inputMode="numeric"                                        className="w-full bg-background border border-border rounded-xl px-3 py-3 text-text-primary focus:border-green-500 outline-none placeholder:text-text-disabled"
                                         placeholder="Min"
                                         value={items[editingIndex].time || ''}
                                         onChange={(e) => updateRow(editingIndex, 'time', e.target.value)}
@@ -177,7 +177,7 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
                             </div>
 
                             <div className="space-y-1">
-                                <label className="text-[10px] uppercase font-bold text-zinc-500">Verwendung</label>
+                                <label className="text-[10px] uppercase font-bold text-text-muted">Verwendung</label>
                                 <CustomSelect 
                                     value={items[editingIndex].usage || 'Boil'}
                                     onChange={(val) => updateRow(editingIndex, 'usage', val)}
@@ -187,7 +187,7 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
                             </div>
 
                             <div className="space-y-1">
-                                <label className="text-[10px] uppercase font-bold text-zinc-500">Form</label>
+                                <label className="text-[10px] uppercase font-bold text-text-muted">Form</label>
                                 <CustomSelect 
                                     value={items[editingIndex].form || 'Pellet'}
                                     onChange={(val) => updateRow(editingIndex, 'form', val)}
@@ -197,7 +197,7 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
                             </div>
                         </div>
 
-                        <div className="p-4 border-t border-zinc-800 bg-zinc-900 shrink-0 flex gap-3">
+                        <div className="p-4 border-t border-border bg-surface shrink-0 flex gap-3">
                              <button 
                                 onClick={() => { removeRow(editingIndex); setEditingIndex(null); }} 
                                 className="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-500 text-sm font-bold px-4 py-3 rounded-xl transition flex items-center justify-center gap-2"
@@ -206,7 +206,7 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
                             </button>
                             <button 
                                 onClick={() => setEditingIndex(null)} 
-                                className="flex-[2] bg-white text-black hover:bg-zinc-200 text-sm font-bold px-4 py-3 rounded-xl transition"
+                                className="flex-[2] bg-white text-black hover:bg-surface-hover text-sm font-bold px-4 py-3 rounded-xl transition"
                             >
                                 Übernehmen
                             </button>
@@ -215,11 +215,11 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
                 </div>
             )}
 
-            <div className="space-y-2 bg-zinc-900 border border-zinc-800 rounded-xl p-3">
+            <div className="space-y-2 bg-surface border border-border rounded-xl p-3">
                 {items.length === 0 && (
                     <div className="text-center py-4">
-                        <p className="text-sm text-zinc-600 mb-2">Kein Hopfen eingetragen.</p>
-                        <button onClick={addRowMobile} className="text-xs font-bold bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-3 py-1.5 rounded-lg transition">
+                        <p className="text-sm text-text-disabled mb-2">Kein Hopfen eingetragen.</p>
+                        <button onClick={addRowMobile} className="text-xs font-bold bg-surface-hover hover:bg-surface-hover text-text-secondary px-3 py-1.5 rounded-lg transition">
                             + Hopfen hinzufügen
                         </button>
                     </div>
@@ -231,44 +231,44 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
                         <div 
                             key={idx} 
                             onClick={() => setEditingIndex(idx)}
-                            className="bg-zinc-950 border border-zinc-800 rounded-xl p-3 flex justify-between items-center active:border-green-500 transition cursor-pointer gap-4"
+                            className="bg-background border border-border rounded-xl p-3 flex justify-between items-center active:border-green-500 transition cursor-pointer gap-4"
                         >
                             <div className="flex items-center gap-4 flex-1 min-w-0">
-                                <div className="bg-zinc-900 h-12 min-w-[3.5rem] px-2 rounded-xl flex items-center justify-center border border-zinc-800 shrink-0">
-                                    <span className="text-base font-bold text-white">{item.amount || '0'}</span>
-                                    <span className="text-xs text-zinc-500 ml-1 mb-0.5">{item.unit || 'g'}</span>
+                                <div className="bg-surface h-12 min-w-[3.5rem] px-2 rounded-xl flex items-center justify-center border border-border shrink-0">
+                                    <span className="text-base font-bold text-text-primary">{item.amount || '0'}</span>
+                                    <span className="text-xs text-text-muted ml-1 mb-0.5">{item.unit || 'g'}</span>
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                    <div className="text-base font-bold text-white truncate">{item.name || 'Unbenannt'}</div>
+                                    <div className="text-base font-bold text-text-primary truncate">{item.name || 'Unbenannt'}</div>
                                     <div className="flex flex-wrap gap-1.5 mt-1.5">
                                         <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] uppercase font-bold bg-green-950/30 text-green-500 border border-green-900/30 tracking-wider">
                                             {item.usage}
                                         </span>
                                         {item.time && (
-                                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-zinc-900 text-zinc-400 border border-zinc-800">
+                                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-surface text-text-secondary border border-border">
                                                {item.time} min
                                             </span>
                                         )}
                                         {item.alpha && (
-                                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-zinc-900 text-zinc-400 border border-zinc-800">
+                                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-surface text-text-secondary border border-border">
                                                {item.alpha}%
                                             </span>
                                         )}
                                         {item.form && item.form !== 'Pellet' && (
-                                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-zinc-900 text-zinc-400 border border-zinc-800">
+                                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-surface text-text-secondary border border-border">
                                                {item.form}
                                             </span>
                                         )}
                                     </div>
                                 </div>
                             </div>
-                            <div className="text-zinc-600 shrink-0 pl-2">
+                            <div className="text-text-disabled shrink-0 pl-2">
                                 <Pencil size={18} />
                             </div>
                         </div>
                     ))}
                     {items.length > 0 && (
-                        <button onClick={addRowMobile} className="w-full py-3 text-sm font-bold text-zinc-400 hover:text-white bg-zinc-950 hover:bg-zinc-900 rounded-lg transition border border-dashed border-zinc-800 flex items-center justify-center gap-2">
+                        <button onClick={addRowMobile} className="w-full py-3 text-sm font-bold text-text-secondary hover:text-text-primary bg-background hover:bg-surface rounded-lg transition border border-dashed border-border flex items-center justify-center gap-2">
                             <Plus size={16}/> Hopfen hinzufügen
                         </button>
                     )}
@@ -277,7 +277,7 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
                 {/* Desktop View (Table) */}
                 <div className="hidden md:block">
                     {items.length > 0 && (
-                        <div className="grid grid-cols-[60px_50px_1fr_60px_60px_80px_70px_30px] gap-2 mb-2 text-[10px] uppercase font-bold text-zinc-600">
+                        <div className="grid grid-cols-[64px_52px_1fr_64px_60px_120px_90px_28px] gap-2 mb-2 text-[10px] uppercase font-bold text-text-disabled">
                             <div>Menge</div>
                             <div title="Einheit">Einh.</div>
                             <div>Sorte</div>
@@ -289,26 +289,27 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
                         </div>
                     )}
 
+                    <div className="space-y-2">
                     {items.map((item, idx) => (
-                        <div key={idx} className="grid grid-cols-[60px_50px_1fr_60px_60px_80px_70px_30px] gap-2 items-center animate-in fade-in slide-in-from-top-1 duration-200">
+                        <div key={idx} className="grid grid-cols-[64px_52px_1fr_64px_60px_120px_90px_28px] gap-2 items-center animate-in fade-in slide-in-from-top-1 duration-200">
                             <input 
                                 type="text"
                                 inputMode="decimal"
-                                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-2 text-sm text-white focus:border-cyan-500 outline-none text-right placeholder:text-zinc-700"
+                                className="w-full bg-background border border-border rounded-lg px-2 py-2.5 text-sm text-text-primary focus:border-brand outline-none text-right placeholder:text-text-disabled"
                                 placeholder="0"
                                 value={item.amount}
                                 onChange={(e) => updateRow(idx, 'amount', e.target.value.replace(',', '.'))}
                             />
 
                             <input 
-                                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-2 text-sm text-white focus:border-cyan-500 outline-none placeholder:text-zinc-700"
+                                className="w-full bg-background border border-border rounded-lg px-2 py-2.5 text-sm text-text-primary focus:border-brand outline-none placeholder:text-text-disabled"
                                 placeholder="g"
                                 value={item.unit}
                                 onChange={(e) => updateRow(idx, 'unit', e.target.value)}
                             />
                             
                             <input 
-                                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-2 text-sm text-white focus:border-cyan-500 outline-none placeholder:text-zinc-700"
+                                className="w-full bg-background border border-border rounded-lg px-2 py-2.5 text-sm text-text-primary focus:border-brand outline-none placeholder:text-text-disabled"
                                 placeholder="Name"
                                 value={item.name}
                                 onChange={(e) => updateRow(idx, 'name', e.target.value)}
@@ -316,7 +317,7 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
                             <input 
                                 type="text"
                                 inputMode="decimal"
-                                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-2 text-sm text-white focus:border-cyan-500 outline-none text-right placeholder:text-zinc-700"
+                                className="w-full bg-background border border-border rounded-lg px-2 py-2.5 text-sm text-text-primary focus:border-brand outline-none text-right placeholder:text-text-disabled"
                                 placeholder="-"
                                 value={item.alpha || ''}
                                 onChange={(e) => updateRow(idx, 'alpha', e.target.value.replace(',', '.'))}
@@ -324,7 +325,7 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
                             <input 
                                 type="text"
                                 inputMode="decimal"
-                                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-2 text-sm text-white focus:border-cyan-500 outline-none text-right placeholder:text-zinc-700"
+                                className="w-full bg-background border border-border rounded-lg px-2 py-2.5 text-sm text-text-primary focus:border-brand outline-none text-right placeholder:text-text-disabled"
                                 placeholder="-"
                                 value={item.time || ''}
                                 onChange={(e) => updateRow(idx, 'time', e.target.value)}
@@ -332,7 +333,7 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
                             <CustomSelect
                                 value={item.usage || 'Boil'}
                                 onChange={(val) => updateRow(idx, 'usage', val)}
-                                variant="zinc"
+                                variant="surface"
                                 size="sm"
                                 options={[
                                     { value: 'Boil', label: 'Kochen' },
@@ -345,7 +346,7 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
                             <CustomSelect
                                 value={item.form || 'Pellet'}
                                 onChange={(val) => updateRow(idx, 'form', val)}
-                                variant="zinc"
+                                variant="surface"
                                 size="sm"
                                 options={[
                                     { value: 'Pellet', label: 'Pellet' },
@@ -355,16 +356,17 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
                             />
                             <button 
                                 onClick={() => removeRow(idx)}
-                                className="text-zinc-600 hover:text-red-400 transition flex justify-center"
+                                className="text-text-disabled hover:text-red-400 transition flex justify-center"
                                 title="Entfernen"
                             >
                                <Trash2 size={16} />
                             </button>
                         </div>
                     ))}
+                    </div>
                     
                     {items.length > 0 && (
-                        <button onClick={addRow} className="w-full py-2 text-xs font-bold text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50 rounded-lg transition border border-dashed border-zinc-800 mt-2">
+                        <button onClick={addRow} className="w-full py-2 text-xs font-bold text-text-muted hover:text-text-secondary hover:bg-surface-hover/50 rounded-lg transition border border-dashed border-border mt-2">
                             + Weiteren Hopfen hinzufügen
                         </button>
                     )}

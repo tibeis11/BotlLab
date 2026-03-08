@@ -80,21 +80,21 @@ export default function AnalyticsSidebarNav({
           const isActive = activeSection === section;
           return (
             <div key={section}>
-              {separator && <div className="my-2 border-t border-zinc-800" />}
+              {separator && <div className="my-2 border-t border-border" />}
               <button
                 onClick={() => onNavigate(section)}
-                className={`w-full text-left px-3 py-2.5 rounded-md flex items-center gap-3 transition-all outline-none focus-visible:ring-2 focus-visible:ring-white/20 group ${
+                className={`w-full text-left px-3 py-2.5 rounded-lg flex items-center gap-3 transition-all outline-none focus-visible:ring-2 focus-visible:ring-white/20 group ${
                   isActive
-                    ? 'bg-zinc-800 text-white'
-                    : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
+                    ? 'bg-surface-hover text-text-primary'
+                    : 'text-text-secondary hover:bg-surface hover:text-text-primary'
                 }`}
               >
                 <Icon className="w-4 h-4 shrink-0" aria-hidden="true" />
                 <div className="min-w-0">
-                  <div className="text-sm font-medium truncate">{label}</div>
+                  <div className="text-sm font-bold truncate">{label}</div>
                   <div
                     className={`text-[10px] truncate ${
-                      isActive ? 'text-zinc-500' : 'text-zinc-700 group-hover:text-zinc-600'
+                      isActive ? 'text-text-muted' : 'text-text-disabled group-hover:text-text-disabled'
                     }`}
                   >
                     {description}

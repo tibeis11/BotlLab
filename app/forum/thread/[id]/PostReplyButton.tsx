@@ -34,7 +34,7 @@ export default function PostReplyButton({ post }: PostReplyButtonProps) {
     return (
         <button 
             onClick={handleReply}
-            className="flex items-center gap-1.5 py-2 px-2.5 text-zinc-500 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition text-xs font-medium"
+            className="flex items-center gap-1.5 py-2 px-2.5 text-text-muted hover:text-success hover:bg-success/10 rounded-lg transition text-xs font-medium"
             title="Auf diesen Beitrag antworten"
         >
             <Reply size={14} />

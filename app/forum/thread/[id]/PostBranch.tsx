@@ -68,7 +68,7 @@ export default async function PostBranch({
             {children.length > 0 && (
                 <div className={`mt-1.5 space-y-1.5 ${
                     depth < MAX_DEPTH
-                        ? 'ml-5 md:ml-7 border-l-2 border-zinc-700/50 pl-3'
+                        ? 'ml-5 md:ml-7 border-l-2 border-border-hover/50 pl-3'
                         : ''
                 }`}>
                     {children.map(child => (

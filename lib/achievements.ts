@@ -214,10 +214,10 @@ export async function getAllAchievements() {
  */
 export function getTierColor(tier: AchievementTier): string {
   switch (tier) {
-    case 'bronze': return 'text-amber-600 bg-amber-500/10 border-amber-500/20';
-    case 'silver': return 'text-zinc-400 bg-zinc-500/10 border-zinc-500/20';
-    case 'gold': return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20';
-    case 'platinum': return 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20';
-    default: return 'text-zinc-400 bg-zinc-500/10 border-zinc-500/20';
+    case 'bronze': return 'text-orange-700 dark:text-amber-600 bg-orange-500/10 dark:bg-amber-500/10 border-orange-600/20 dark:border-amber-500/20';
+    case 'silver': return 'text-zinc-500 dark:text-zinc-400 bg-zinc-500/10 border-zinc-400/20 dark:border-zinc-500/20';
+    case 'gold': return 'text-yellow-600 dark:text-yellow-400 bg-yellow-500/10 border-yellow-500/20';
+    case 'platinum': return 'text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 border-cyan-500/20';
+    default: return 'text-zinc-500 dark:text-zinc-400 bg-zinc-500/10 border-zinc-500/20';
   }
 }

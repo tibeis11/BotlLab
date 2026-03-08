@@ -19,10 +19,10 @@ interface Props {
 
 function TierGate() {
   return (
-    <div className="bg-black border border-zinc-800 rounded-lg p-8 text-center space-y-3">
+    <div className="bg-surface border border-border rounded-2xl p-8 text-center space-y-3">
       <Lock className="mx-auto text-cyan-400" size={28} />
-      <p className="text-sm font-medium text-zinc-300">Verfügbar ab Enterprise-Plan</p>
-      <p className="text-xs text-zinc-500">
+      <p className="text-sm font-bold text-text-secondary">Verfügbar ab Enterprise-Plan</p>
+      <p className="text-xs text-text-muted">
         Verfolge den Weg deiner Flaschen zum Trinker.
       </p>
     </div>
@@ -38,8 +38,8 @@ function JourneyTimeline({ journey }: { journey: BottleJourney }) {
   return (
     <div className="space-y-4">
       {/* Summary header */}
-      <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-4">
-        <p className="text-xs uppercase font-black tracking-widest text-zinc-500 mb-3">Zusammenfassung</p>
+      <div className="bg-surface/60 border border-border rounded-xl p-4">
+        <p className="text-xs uppercase font-black tracking-widest text-text-muted mb-3">Zusammenfassung</p>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
             { icon: <Package size={14} />, label: 'Scans', value: journey.totalScans },
@@ -47,15 +47,15 @@ function JourneyTimeline({ journey }: { journey: BottleJourney }) {
             { icon: <Clock size={14} />, label: 'Tage in Umlauf', value: journey.totalDaysInCirculation },
             { icon: <MapPin size={14} />, label: 'Städte', value: uniqueCities.length || '—' },
           ].map(({ icon, label, value }) => (
-            <div key={label} className="bg-zinc-800/50 rounded-lg p-3 text-center">
-              <div className="flex items-center justify-center gap-1 text-zinc-500 mb-1">{icon}</div>
-              <p className="text-lg font-black text-white">{value}</p>
-              <p className="text-[10px] text-zinc-600 mt-0.5">{label}</p>
+            <div key={label} className="bg-surface-hover/50 rounded-lg p-3 text-center">
+              <div className="flex items-center justify-center gap-1 text-text-muted mb-1">{icon}</div>
+              <p className="text-lg font-black text-text-primary">{value}</p>
+              <p className="text-[10px] text-text-disabled mt-0.5">{label}</p>
             </div>
           ))}
         </div>
         {journey.filledAt && (
-          <p className="text-xs text-zinc-600 mt-3">
+          <p className="text-xs text-text-disabled mt-3">
             Abgefüllt: {new Date(journey.filledAt).toLocaleDateString('de-DE')}
           </p>
         )}
@@ -63,11 +63,11 @@ function JourneyTimeline({ journey }: { journey: BottleJourney }) {
 
       {/* Timeline */}
       {journey.steps.length === 0 ? (
-        <p className="text-center text-zinc-600 text-sm py-6">Noch keine Scans für diese Flasche.</p>
+        <p className="text-center text-text-disabled text-sm py-6">Noch keine Scans für diese Flasche.</p>
       ) : (
         <div className="relative">
           {/* Vertical line */}
-          <div className="absolute left-[22px] top-4 bottom-4 w-px bg-zinc-800" />
+          <div className="absolute left-[22px] top-4 bottom-4 w-px bg-surface-hover" />
 
           <div className="space-y-1">
             {journey.steps.map((step, i) => {
@@ -80,8 +80,8 @@ function JourneyTimeline({ journey }: { journey: BottleJourney }) {
                   {/* Distance connector */}
                   {i > 0 && step.distanceFromPreviousKm != null && step.distanceFromPreviousKm > 0 && (
                     <div className="ml-[30px] pl-5 py-1 flex items-center gap-2">
-                      <Navigation size={10} className="text-zinc-600 flex-shrink-0" />
-                      <span className="text-[10px] text-zinc-600">
+                      <Navigation size={10} className="text-text-disabled flex-shrink-0" />
+                      <span className="text-[10px] text-text-disabled">
                         {step.distanceFromPreviousKm} km
                         {step.daysFromPrevious != null && step.daysFromPrevious > 0
                           ? `, ${step.daysFromPrevious} Tag${step.daysFromPrevious !== 1 ? 'e' : ''} später`
@@ -93,41 +93,41 @@ function JourneyTimeline({ journey }: { journey: BottleJourney }) {
                   {/* Step card */}
                   <button
                     className={`w-full flex items-start gap-3 pl-1 pr-3 py-2 rounded-xl text-left transition-colors
-                      ${isExpanded ? 'bg-zinc-800/60' : 'hover:bg-zinc-800/30'}`}
+                      ${isExpanded ? 'bg-border/60' : 'hover:bg-border/30'}`}
                     onClick={() => setExpandedStep(isExpanded ? null : step.scanId)}
                   >
                     {/* Numbered dot */}
                     <div className={`w-11 h-7 flex-shrink-0 flex items-center justify-center rounded-full text-[11px] font-black mt-0.5
-                      ${isOwner ? 'bg-zinc-800 text-zinc-500 border border-zinc-700' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'}`}>
+                      ${isOwner ? 'bg-surface-hover text-text-muted border border-border-hover' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'}`}>
                       #{i + 1}
                     </div>
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
-                        <p className={`text-sm font-semibold truncate ${isOwner ? 'text-zinc-500' : 'text-white'}`}>
+                        <p className={`text-sm font-semibold truncate ${isOwner ? 'text-text-muted' : 'text-text-primary'}`}>
                           {step.city ?? step.countryCode ?? 'Unbekannter Ort'}
-                          {isOwner && <span className="ml-1 text-[10px] text-zinc-600">(Brauer)</span>}
+                          {isOwner && <span className="ml-1 text-[10px] text-text-disabled">(Brauer)</span>}
                         </p>
-                        <span className="text-[10px] text-zinc-600 flex-shrink-0">
+                        <span className="text-[10px] text-text-disabled flex-shrink-0">
                           {date.toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: '2-digit' })}
                         </span>
                       </div>
 
                       {step.scanIntent && (
-                        <p className="text-[10px] text-zinc-600 mt-0.5 capitalize">{step.scanIntent}</p>
+                        <p className="text-[10px] text-text-disabled mt-0.5 capitalize">{step.scanIntent}</p>
                       )}
                     </div>
 
                     {isExpanded ? (
-                      <ChevronUp size={14} className="text-zinc-600 mt-1 flex-shrink-0" />
+                      <ChevronUp size={14} className="text-text-disabled mt-1 flex-shrink-0" />
                     ) : (
-                      <ChevronDown size={14} className="text-zinc-600 mt-1 flex-shrink-0" />
+                      <ChevronDown size={14} className="text-text-disabled mt-1 flex-shrink-0" />
                     )}
                   </button>
 
                   {/* Expanded detail */}
                   {isExpanded && (
-                    <div className="ml-14 mr-3 mb-2 bg-zinc-800/40 rounded-lg p-3 space-y-1">
+                    <div className="ml-14 mr-3 mb-2 bg-border/40 rounded-lg p-3 space-y-1">
                       {([
                         step.city ? ['Stadt', step.city] : null,
                         step.countryCode ? ['Land', step.countryCode.toUpperCase()] : null,
@@ -136,8 +136,8 @@ function JourneyTimeline({ journey }: { journey: BottleJourney }) {
                         step.scanIntent ? ['Intent', step.scanIntent] : null,
                       ] as ([string, string] | null)[]).filter((x): x is [string, string] => x !== null).map(([label, value]) => (
                         <div key={label} className="flex gap-2 text-xs">
-                          <span className="text-zinc-600 w-16 flex-shrink-0">{label}</span>
-                          <span className="text-zinc-300">{value}</span>
+                          <span className="text-text-disabled w-16 flex-shrink-0">{label}</span>
+                          <span className="text-text-secondary">{value}</span>
                         </div>
                       ))}
                     </div>
@@ -150,7 +150,7 @@ function JourneyTimeline({ journey }: { journey: BottleJourney }) {
       )}
 
       {ownerScans > 0 && (
-        <p className="text-[10px] text-zinc-700 text-right">
+        <p className="text-[10px] text-text-disabled text-right">
           {ownerScans} Brauer-Scan{ownerScans !== 1 ? 's' : ''} (grau) enthalten
         </p>
       )}
@@ -218,15 +218,15 @@ export default function BottleJourneyCard({ breweryId, userTier }: Props) {
   };
 
   return (
-    <div className="bg-black border border-zinc-800 rounded-lg p-5 space-y-5">
+    <div className="bg-surface border border-border rounded-2xl p-5 space-y-5">
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center flex-shrink-0">
           <Package size={18} className="text-amber-400" />
         </div>
         <div>
-          <h3 className="text-sm font-semibold text-white">Flaschen-Reise</h3>
-          <p className="text-xs text-zinc-500">Wähle eine Flasche aus deinem Inventar</p>
+          <h3 className="text-sm font-bold text-text-primary">Flaschen-Reise</h3>
+          <p className="text-xs text-text-muted">Wähle eine Flasche aus deinem Inventar</p>
         </div>
       </div>
 
@@ -235,10 +235,10 @@ export default function BottleJourneyCard({ breweryId, userTier }: Props) {
         {/* Selected bottle / trigger button */}
         <button
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          className="w-full flex items-center gap-3 bg-zinc-800 border border-zinc-700 rounded-xl py-2.5 px-3 text-left transition-colors hover:border-zinc-600 focus:outline-none focus:border-amber-500/50"
+          className="w-full flex items-center gap-3 bg-surface-hover border border-border-hover rounded-xl py-2.5 px-3 text-left transition-colors hover:border-border-hover focus:outline-none focus:border-amber-500/50"
         >
           {loadingBottles ? (
-            <div className="flex items-center gap-2 text-zinc-500 text-sm">
+            <div className="flex items-center gap-2 text-text-muted text-sm">
               <Loader2 size={14} className="animate-spin" />
               Flaschen laden…
             </div>
@@ -249,9 +249,9 @@ export default function BottleJourneyCard({ breweryId, userTier }: Props) {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-white font-mono">#{selectedBottle.bottleNumber}</span>
+                  <span className="text-sm font-bold text-text-primary font-mono">#{selectedBottle.bottleNumber}</span>
                   {selectedBottle.brewName && (
-                    <span className="text-xs text-zinc-400 truncate">{selectedBottle.brewName}</span>
+                    <span className="text-xs text-text-secondary truncate">{selectedBottle.brewName}</span>
                   )}
                 </div>
                 <div className="flex items-center gap-2 mt-0.5">
@@ -259,34 +259,34 @@ export default function BottleJourneyCard({ breweryId, userTier }: Props) {
                     <span className="text-[10px] text-emerald-400">{selectedBottle.scanCount} Scans</span>
                   )}
                   {selectedBottle.brewStyle && (
-                    <span className="text-[10px] text-zinc-600">{selectedBottle.brewStyle}</span>
+                    <span className="text-[10px] text-text-disabled">{selectedBottle.brewStyle}</span>
                   )}
                 </div>
               </div>
-              <ChevronDown size={16} className={`text-zinc-500 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown size={16} className={`text-text-muted transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
             </>
           ) : (
             <>
-              <Search size={14} className="text-zinc-600" />
-              <span className="text-sm text-zinc-500 flex-1">Flasche auswählen…</span>
-              <ChevronDown size={16} className={`text-zinc-500 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+              <Search size={14} className="text-text-disabled" />
+              <span className="text-sm text-text-muted flex-1">Flasche auswählen…</span>
+              <ChevronDown size={16} className={`text-text-muted transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
             </>
           )}
         </button>
 
         {/* Dropdown */}
         {isDropdownOpen && (
-          <div className="absolute z-50 mt-1 w-full bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl overflow-hidden">
+          <div className="absolute z-50 mt-1 w-full bg-surface border border-border-hover rounded-xl shadow-2xl overflow-hidden">
             {/* Search within dropdown */}
-            <div className="p-2 border-b border-zinc-800">
+            <div className="p-2 border-b border-border">
               <div className="relative">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600" />
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-disabled" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Suche nach Nummer oder Rezept…"
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 pl-9 pr-3 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-amber-500/50"
+                  className="w-full bg-surface-hover border border-border-hover rounded-lg py-2 pl-9 pr-3 text-sm text-text-primary placeholder:text-text-disabled focus:outline-none focus:border-amber-500/50"
                   autoFocus
                 />
               </div>
@@ -296,7 +296,7 @@ export default function BottleJourneyCard({ breweryId, userTier }: Props) {
             <div className="max-h-64 overflow-y-auto custom-scrollbar">
               {sortedBottles.length === 0 ? (
                 <div className="px-4 py-6 text-center">
-                  <p className="text-sm text-zinc-500">
+                  <p className="text-sm text-text-muted">
                     {bottles.length === 0 ? 'Keine Flaschen im Inventar' : 'Keine Treffer'}
                   </p>
                 </div>
@@ -305,23 +305,23 @@ export default function BottleJourneyCard({ breweryId, userTier }: Props) {
                   <button
                     key={bottle.id}
                     onClick={() => handleSelectBottle(bottle)}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-zinc-800/80 ${
-                      selectedBottleId === bottle.id ? 'bg-zinc-800/60' : ''
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-border/80 ${
+                      selectedBottleId === bottle.id ? 'bg-border/60' : ''
                     }`}
                   >
-                    <div className="w-7 h-7 rounded-lg bg-zinc-800 flex items-center justify-center flex-shrink-0 border border-zinc-700">
-                      <span className="text-[10px] font-black text-zinc-400 font-mono">#{bottle.bottleNumber}</span>
+                    <div className="w-7 h-7 rounded-lg bg-surface-hover flex items-center justify-center flex-shrink-0 border border-border-hover">
+                      <span className="text-[10px] font-black text-text-secondary font-mono">#{bottle.bottleNumber}</span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-zinc-200 truncate">
-                        {bottle.brewName ?? <span className="italic text-zinc-600">Kein Rezept</span>}
+                      <p className="text-sm text-text-primary truncate">
+                        {bottle.brewName ?? <span className="italic text-text-disabled">Kein Rezept</span>}
                       </p>
                       <div className="flex items-center gap-2 mt-0.5">
                         {bottle.brewStyle && (
-                          <span className="text-[10px] text-zinc-600">{bottle.brewStyle}</span>
+                          <span className="text-[10px] text-text-disabled">{bottle.brewStyle}</span>
                         )}
                         {bottle.filledAt && (
-                          <span className="text-[10px] text-zinc-700">
+                          <span className="text-[10px] text-text-disabled">
                             Abgefüllt {new Date(bottle.filledAt).toLocaleDateString('de-DE')}
                           </span>
                         )}
@@ -329,11 +329,11 @@ export default function BottleJourneyCard({ breweryId, userTier }: Props) {
                     </div>
                     <div className="flex flex-col items-end flex-shrink-0">
                       {bottle.scanCount > 0 ? (
-                        <span className="text-[10px] font-medium text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                        <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
                           {bottle.scanCount} Scans
                         </span>
                       ) : (
-                        <span className="text-[10px] text-zinc-700">0 Scans</span>
+                        <span className="text-[10px] text-text-disabled">0 Scans</span>
                       )}
                     </div>
                   </button>
@@ -343,7 +343,7 @@ export default function BottleJourneyCard({ breweryId, userTier }: Props) {
 
             {/* Summary footer */}
             {bottles.length > 0 && (
-              <div className="px-3 py-2 border-t border-zinc-800 text-[10px] text-zinc-600">
+              <div className="px-3 py-2 border-t border-border text-[10px] text-text-disabled">
                 {bottles.length} Flaschen im Inventar
                 {bottles.filter(b => b.scanCount > 0).length > 0 && (
                   <> · {bottles.filter(b => b.scanCount > 0).length} mit Scans</>
@@ -358,7 +358,7 @@ export default function BottleJourneyCard({ breweryId, userTier }: Props) {
       {isPending && (
         <div className="flex items-center justify-center py-6 gap-2">
           <Loader2 size={16} className="animate-spin text-amber-400" />
-          <span className="text-xs text-zinc-500">Reisedaten laden…</span>
+          <span className="text-xs text-text-muted">Reisedaten laden…</span>
         </div>
       )}
 
@@ -370,7 +370,7 @@ export default function BottleJourneyCard({ breweryId, userTier }: Props) {
         <div>
           <p className="text-xs font-black uppercase tracking-widest text-amber-500 mb-3">
             Reise von{' '}
-            <span className="text-white">
+            <span className="text-text-primary">
               {selectedBottle ? `#${selectedBottle.bottleNumber}` : ''}{' '}
               {journey.brewName ? `— ${journey.brewName}` : journey.bottleId.slice(-6)}
             </span>

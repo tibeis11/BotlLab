@@ -36,10 +36,10 @@ export default function AttributeDistribution({
         const maxCount = Math.max(...Object.values(counts));
 
         return (
-          <div key={attr} className="bg-zinc-900 rounded-xl p-4">
+          <div key={attr} className="bg-surface rounded-xl p-4">
              <div className="flex justify-between items-center mb-4">
-                <h4 className="font-bold text-white">{LABEL_MAP[attr]}</h4>
-                <span className="text-zinc-500 text-xs">{total} Bewertungen</span>
+                <h4 className="font-bold text-text-primary">{LABEL_MAP[attr]}</h4>
+                <span className="text-text-muted text-xs">{total} Bewertungen</span>
              </div>
             
             <div className="flex gap-1 items-end h-32 w-full">
@@ -51,20 +51,20 @@ export default function AttributeDistribution({
                   <div key={val} className="flex-1 flex flex-col items-center gap-1 group">
                     <div className="relative w-full flex flex-col justify-end items-center h-full"> 
                         {count > 0 && (
-                            <span className="text-[10px] text-zinc-400 mb-1 opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full">
+                            <span className="text-[10px] text-text-secondary mb-1 opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full">
                                 {count}
                             </span>
                         )}
                         <div
                             className={`w-full rounded-t transition-all duration-500 ${
-                                val <= 3 ? 'bg-zinc-700' :
+                                val <= 3 ? 'bg-border-hover' :
                                 val <= 7 ? 'bg-cyan-500/50' : 
                                 'bg-cyan-500'
                             }`}
                             style={{ height: `${heightPercentage}%`, minHeight: count > 0 ? '4px' : '0px' }}
                         />
                     </div>
-                    <span className="text-[10px] text-zinc-500 font-mono mt-1">{val}</span>
+                    <span className="text-[10px] text-text-muted font-mono mt-1">{val}</span>
                   </div>
                 );
               })}

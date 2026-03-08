@@ -57,8 +57,8 @@ export default function BreweryHeatmap({ data, geoPoints }: HeatmapProps) {
 
   if (!mounted) {
     return (
-      <div className="w-full h-[500px] bg-zinc-800 rounded-lg flex items-center justify-center">
-        <div className="text-zinc-500">Lade Karte...</div>
+      <div className="w-full h-[500px] bg-surface-hover rounded-lg flex items-center justify-center">
+        <div className="text-text-muted">Lade Karte...</div>
       </div>
     );
   }
@@ -95,7 +95,7 @@ export default function BreweryHeatmap({ data, geoPoints }: HeatmapProps) {
         popup: (
             <div className="text-sm">
             <div className="font-bold">{getCountryNameWithFlag(country)}</div>
-            <div className="text-zinc-600">{scans} Scans</div>
+            <div className="text-text-disabled">{scans} Scans</div>
             </div>
         )
       };
@@ -143,18 +143,18 @@ export default function BreweryHeatmap({ data, geoPoints }: HeatmapProps) {
       </MapContainer>
       
       {/* Legend */}
-      <div className="absolute bottom-4 right-4 bg-zinc-900/90 backdrop-blur-sm rounded-lg p-3 text-sm z-[10] border border-zinc-800">
-        <div className="font-bold text-white mb-2">Scan-Typ</div>
+      <div className="absolute bottom-4 right-4 bg-surface/90 backdrop-blur-sm rounded-lg p-3 text-sm z-[10] border border-border">
+        <div className="font-bold text-text-primary mb-2">Scan-Typ</div>
         {showCityPoints ? (
            <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-green-500"></div>
-            <span className="text-zinc-400 text-xs">Präziser Scan</span>
+            <span className="text-text-secondary text-xs">Präziser Scan</span>
           </div>
         ) : (
             <>
             <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-cyan-500/40"></div>
-            <span className="text-zinc-400 text-xs">Land (geschätzt)</span>
+            <span className="text-text-secondary text-xs">Land (geschätzt)</span>
             </div>
             </>
         )}

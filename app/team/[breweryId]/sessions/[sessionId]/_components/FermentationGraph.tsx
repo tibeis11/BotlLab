@@ -91,7 +91,7 @@ export function FermentationGraph({ height = 300, minimal = false }: { height?: 
 
     if (chartData.length === 0) {
         return (
-            <div className="flex items-center justify-center p-8 bg-zinc-900/30 border border-zinc-800 rounded-lg text-zinc-500 text-sm h-full">
+            <div className="flex items-center justify-center p-8 bg-surface border border-border rounded-lg text-text-muted text-sm h-full">
                 Keine Messdaten verfügbar
             </div>
         );
@@ -147,7 +147,7 @@ export function FermentationGraph({ height = 300, minimal = false }: { height?: 
     });
 
     return (
-        <div style={{ height }} className="w-full bg-zinc-950/30 rounded-lg p-4 border border-zinc-800/50">
+        <div style={{ height }} className="w-full bg-background/30 rounded-lg p-4 border border-border/50">
             <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />

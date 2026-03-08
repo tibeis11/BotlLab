@@ -74,10 +74,10 @@ export default async function NewQuickSessionPage({ params }: PageProps) {
   if ((ownError && savedError) || allBrews.length === 0) {
     return (
       <div className="max-w-2xl mx-auto">
-        <h1 className="text-3xl font-bold mb-4 flex items-center gap-2">
-            <Zap className="text-amber-500 w-8 h-8 fill-amber-500" /> Quick Session
+        <h1 className="text-3xl font-black tracking-tight leading-tight mb-4 flex items-center gap-3">
+            <Zap className="text-amber-500 w-8 h-8 fill-amber-500 shrink-0" /> Quick Session
         </h1>
-        <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl">
+        <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-sm">
           {ownError ? "Fehler beim Laden der Rezepte." : "Keine Rezepte gefunden. Bitte erstelle zuerst ein Rezept."}
         </div>
       </div>
@@ -86,12 +86,12 @@ export default async function NewQuickSessionPage({ params }: PageProps) {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
-        <Zap className="text-amber-500 w-8 h-8 fill-amber-500" />
+      <h1 className="text-3xl font-black tracking-tight leading-tight mb-1 flex items-center gap-3">
+        <Zap className="text-amber-500 w-8 h-8 fill-amber-500 shrink-0" />
         Quick Session
       </h1>
-      <p className="text-zinc-400 mb-8">
-        Erstelle eine Session ohne Brauprotokoll, direkt für die Flaschenverfolgung.
+      <p className="text-sm text-text-muted mb-8 ml-11">
+        Ohne Brauprotokoll — direkt zur Flaschenverfolgung.
       </p>
 
       <QuickSessionForm breweryId={breweryId} brews={allBrews} />

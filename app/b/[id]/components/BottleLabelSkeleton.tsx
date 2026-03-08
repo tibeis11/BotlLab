@@ -7,15 +7,15 @@
  */
 
 const Shimmer = ({ className }: { className: string }) => (
-  <div className={`animate-pulse bg-zinc-800 rounded ${className}`} />
+  <div className={`animate-pulse bg-surface-hover rounded ${className}`} />
 );
 
 export default function BottleLabelSkeleton() {
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col items-center">
+    <div className="min-h-screen bg-background text-foreground flex flex-col items-center">
       {/* Hero — Label-Bild Placeholder */}
       <div className="relative w-full max-w-2xl mx-auto overflow-hidden">
-        <div className="aspect-square w-full bg-zinc-900 animate-pulse" />
+        <div className="aspect-square w-full bg-surface animate-pulse" />
       </div>
 
       <div className="w-full max-w-2xl mx-auto px-4 pb-10 flex flex-col gap-5 mt-6">
@@ -32,7 +32,7 @@ export default function BottleLabelSkeleton() {
         {/* Stats-Grid: ABV / IBU / Farbe */}
         <div className="grid grid-cols-3 gap-3">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="bg-zinc-900 rounded-xl p-3 flex flex-col gap-2">
+            <div key={i} className="bg-surface rounded-xl p-3 flex flex-col gap-2">
               <Shimmer className="h-3 w-10" />
               <Shimmer className="h-6 w-14" />
             </div>
@@ -40,7 +40,7 @@ export default function BottleLabelSkeleton() {
         </div>
 
         {/* Rating CTA Placeholder */}
-        <div className="bg-zinc-900 rounded-xl p-4 flex flex-col gap-3">
+        <div className="bg-surface rounded-xl p-4 flex flex-col gap-3">
           <div className="flex items-center gap-2">
             <Shimmer className="h-5 w-28" />
             <Shimmer className="h-4 w-16 ml-auto rounded-full" />
@@ -49,7 +49,7 @@ export default function BottleLabelSkeleton() {
         </div>
 
         {/* Details-Box */}
-        <div className="bg-zinc-900 rounded-xl p-4 flex flex-col gap-2">
+        <div className="bg-surface rounded-xl p-4 flex flex-col gap-2">
           <Shimmer className="h-4 w-24" />
           <Shimmer className="h-3 w-full" />
           <Shimmer className="h-3 w-5/6" />
@@ -57,7 +57,7 @@ export default function BottleLabelSkeleton() {
         </div>
 
         {/* Brauerei-Block */}
-        <div className="flex items-center gap-3 bg-zinc-900 rounded-xl p-4">
+        <div className="flex items-center gap-3 bg-surface rounded-xl p-4">
           <Shimmer className="h-10 w-10 rounded-full shrink-0" />
           <div className="flex flex-col gap-1.5 flex-1">
             <Shimmer className="h-4 w-32" />

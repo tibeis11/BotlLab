@@ -412,7 +412,7 @@ export default function EditorSidebar(props: EditorSidebarProps) {
                                             <CustomSelect 
                                                 value={selectedElement.style.fontFamily || 'Helvetica'}
                                                 onChange={(val) => onUpdateElement(selectedElement.id, { style: { ...selectedElement.style, fontFamily: val } })}
-                                                variant="zinc"
+                                                variant="surface"
                                                 options={[
                                                     { value: "Helvetica", label: <span style={{ fontFamily: 'Helvetica' }}>Helvetica (Default)</span> },
                                                     { value: "Courier", label: <span style={{ fontFamily: 'Courier' }}>Courier (Mono)</span> },

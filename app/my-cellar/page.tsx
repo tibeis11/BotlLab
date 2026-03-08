@@ -1,19 +1,16 @@
 // ZWEI WELTEN Phase 2 + 4.3 — Consumer Dashboard (/my-cellar)
 // Server Component: fetches stats + activity feed, then renders
-import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase-server';
 import Link from 'next/link';
 import {
   Beer,
-  FlaskConical,
   ScanLine,
   Clock,
 } from 'lucide-react';
 import BecomeBrewerCTA from './components/BecomeBrewerCTA';
 import ConsumerStatsCard from './components/ConsumerStatsCard';
 import DrinkTimeline from './components/DrinkTimeline';
-import DiscoverWidgetLoader from './components/DiscoverWidgetLoader';
 import { getConsumerStats } from '@/lib/actions/consumer-stats-actions';
 import { getConsumerTimeline } from '@/lib/actions/consumer-timeline-actions';
 
@@ -128,10 +125,10 @@ export default async function MyCellarPage() {
 
       {/* Greeting */}
       <div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
-          Willkommen zurück, {displayName}! 🍻
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-text-primary">
+          Willkommen zurück, {displayName}!
         </h1>
-        <p className="text-zinc-400 mt-1 text-sm">
+        <p className="text-text-muted mt-1 text-sm">
           Hier ist dein Keller auf einen Blick.
         </p>
       </div>
@@ -139,13 +136,10 @@ export default async function MyCellarPage() {
       {/* Stats Card (Phase 4.3) */}
       <ConsumerStatsCard stats={consumerStats} />
 
-      {/* Two-column grid: Feed + Discover */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        {/* Activity Feed — 2/3 width */}
-        <section className="lg:col-span-2">
-          <h2 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
-            <Clock className="w-4 h-4 text-zinc-500" />
+      {/* Activity Feed */}
+      <section>
+          <h2 className="text-lg font-bold text-text-primary mb-3 flex items-center gap-2">
+            <Clock className="w-4 h-4 text-text-muted" />
             Letzte Aktivitäten
           </h2>
           {feed.length === 0 ? (
@@ -159,22 +153,10 @@ export default async function MyCellarPage() {
           )}
         </section>
 
-        {/* Discover Sidebar — 1/3 width */}
-        <aside>
-          <h2 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
-            <FlaskConical className="w-4 h-4 text-zinc-500" />
-            Entdecken
-          </h2>
-          <Suspense fallback={<div className="h-40 bg-zinc-900 rounded-2xl animate-pulse" />}>
-            <DiscoverWidgetLoader />
-          </Suspense>
-        </aside>
-      </div>
-
       {/* Meine Reise Timeline (Phase 4.4) */}
       <section>
-        <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-          🗺️ Meine Reise
+        <h2 className="text-lg font-bold text-text-primary mb-4 flex items-center gap-2">
+          Meine Reise
         </h2>
         <DrinkTimeline months={timelineMonths} />
       </section>
@@ -196,34 +178,34 @@ function ActivityRow({ item }: { item: ActivityItem }) {
   let detail: React.ReactNode = null;
   if (item.brew && item.brewId) {
     detail = (
-      <Link href={`/brew/${item.brewId}`} className="text-zinc-300 hover:text-white transition font-medium">
+      <Link href={`/brew/${item.brewId}`} className="text-text-secondary hover:text-text-primary transition font-medium">
         {item.brew}
       </Link>
     );
   } else {
-    detail = <span className="text-zinc-500">Unbekanntes Getränk</span>;
+    detail = <span className="text-text-disabled">Unbekanntes Getränk</span>;
   }
 
   return (
-    <div className="flex items-start gap-3 py-2.5 px-3 rounded-xl bg-zinc-900/50 hover:bg-zinc-900 transition-colors">
-      <div className="w-7 h-7 rounded-lg bg-zinc-800 flex items-center justify-center flex-shrink-0 mt-0.5">
-        <Icon className="w-3.5 h-3.5 text-zinc-400" />
+    <div className="flex items-start gap-3 py-2.5 px-3 rounded-xl bg-surface/50 hover:bg-surface transition-colors">
+      <div className="w-7 h-7 rounded-lg bg-surface-hover flex items-center justify-center flex-shrink-0 mt-0.5">
+        <Icon className="w-3.5 h-3.5 text-text-muted" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-xs text-zinc-500">{label}</p>
+        <p className="text-xs text-text-disabled">{label}</p>
         <div className="text-sm truncate">{detail}</div>
       </div>
-      <span className="text-xs text-zinc-600 flex-shrink-0 mt-0.5">{timeAgo(item.ts)}</span>
+      <span className="text-xs text-text-disabled flex-shrink-0 mt-0.5">{timeAgo(item.ts)}</span>
     </div>
   );
 }
 
 function EmptyActivityFeed() {
   return (
-    <div className="rounded-2xl bg-zinc-900 border border-zinc-800 p-8 text-center">
-      <Beer className="w-8 h-8 text-zinc-700 mx-auto mb-3" />
-      <p className="text-sm font-medium text-zinc-400">Noch keine Aktivitäten</p>
-      <p className="text-xs text-zinc-600 mt-1">
+    <div className="rounded-2xl bg-surface border border-border p-8 text-center">
+      <Beer className="w-8 h-8 text-border-hover mx-auto mb-3" />
+      <p className="text-sm font-medium text-text-muted">Noch keine Aktivitäten</p>
+      <p className="text-xs text-text-disabled mt-1">
         Scanne deinen ersten Kronkorken, um zu starten!
       </p>
     </div>

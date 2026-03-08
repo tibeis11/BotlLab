@@ -44,14 +44,14 @@ export default function MinimalStickyHeader({
       {/* Sticky bar */}
       <div
         className={[
-          'fixed top-0 left-0 right-0 z-40 bg-black/90 backdrop-blur-md border-b border-zinc-800/60',
+          'fixed top-0 left-0 right-0 z-40 bg-background/90 backdrop-blur-md border-b border-border/60',
           'transition-all duration-200 ease-out',
           visible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none',
         ].join(' ')}
       >
         <div className="max-w-7xl mx-auto px-4 h-11 flex items-center gap-4">
           {/* Brew name */}
-          <span className="font-black text-white text-sm truncate flex-1 min-w-0">
+          <span className="font-black text-text-primary text-sm truncate flex-1 min-w-0">
             {brewName}
           </span>
 
@@ -65,8 +65,8 @@ export default function MinimalStickyHeader({
                   className={[
                     'text-[10px] font-bold uppercase tracking-wider px-2.5 py-1.5 rounded-lg transition-colors',
                     activeTab === tab.id
-                      ? 'text-cyan-400 bg-cyan-950/40'
-                      : 'text-zinc-500 hover:text-zinc-300',
+                      ? 'text-brand bg-brand-bg'
+                      : 'text-text-muted hover:text-text-secondary',
                   ].join(' ')}
                 >
                   {tab.label}

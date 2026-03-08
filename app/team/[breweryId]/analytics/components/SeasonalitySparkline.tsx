@@ -30,13 +30,13 @@ function Sparkline({ distribution, peakMonth }: Pick<SeasonalityResult, 'distrib
           return (
             <div key={d.month} className="flex-1 flex flex-col items-center gap-0.5 group relative">
               <div
-                className={`w-full rounded-sm transition-all ${isPeak ? 'bg-amber-400' : d.scans > 0 ? 'bg-zinc-600 group-hover:bg-zinc-500' : 'bg-zinc-800'}`}
+                className={`w-full rounded-sm transition-all ${isPeak ? 'bg-amber-400' : d.scans > 0 ? 'bg-surface-hover group-hover:bg-border-hover' : 'bg-border'}`}
                 style={{ height: `${heightPct}%` }}
               />
               {/* Tooltip on hover */}
-              <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 hidden group-hover:flex bg-zinc-800 border border-zinc-700 rounded-md px-2 py-1 text-[10px] text-white whitespace-nowrap z-10 pointer-events-none flex-col items-center">
+              <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 hidden group-hover:flex bg-surface-hover border border-border-hover rounded-lg px-2 py-1 text-[10px] text-text-primary whitespace-nowrap z-10 pointer-events-none flex-col items-center">
                 <span className="font-bold">{d.monthName}</span>
-                <span className="text-zinc-400">{d.scans} Scans</span>
+                <span className="text-text-secondary">{d.scans} Scans</span>
               </div>
             </div>
           );
@@ -45,7 +45,7 @@ function Sparkline({ distribution, peakMonth }: Pick<SeasonalityResult, 'distrib
       {/* Month labels */}
       <div className="flex gap-[3px] mt-1">
         {distribution.map((d) => (
-          <div key={d.month} className={`flex-1 text-center text-[8px] ${d.month === peakMonth && d.scans > 0 ? 'text-amber-400 font-bold' : 'text-zinc-700'}`}>
+          <div key={d.month} className={`flex-1 text-center text-[8px] ${d.month === peakMonth && d.scans > 0 ? 'text-amber-400 font-bold' : 'text-text-disabled'}`}>
             {d.monthName.slice(0, 1)}
           </div>
         ))}
@@ -61,7 +61,7 @@ function ScoreGauge({ score }: { score: number }) {
     <div className="flex items-center gap-2">
       <div className="relative w-12 h-12 flex-shrink-0">
         <svg viewBox="0 0 48 48" className="w-12 h-12 -rotate-90">
-          <circle cx={24} cy={24} r={18} fill="none" stroke="#27272a" strokeWidth={7} />
+          <circle cx={24} cy={24} r={18} fill="none" stroke="var(--border)" strokeWidth={7} />
           <circle
             cx={24} cy={24} r={18}
             fill="none"
@@ -76,10 +76,10 @@ function ScoreGauge({ score }: { score: number }) {
         </div>
       </div>
       <div>
-        <p className="text-xs font-semibold text-white">
+        <p className="text-xs font-semibold text-text-primary">
           {pct < 15 ? 'Ganzjährig' : pct < 40 ? 'Leicht saisonal' : 'Stark saisonal'}
         </p>
-        <p className="text-[10px] text-zinc-600">Saisonalitäts-Score</p>
+        <p className="text-[10px] text-text-disabled">Saisonalitäts-Score</p>
       </div>
     </div>
   );
@@ -102,16 +102,16 @@ export default function SeasonalitySparkline({ brews, userTier }: Props) {
 
   if (!tierOk) {
     return (
-      <div className="bg-black border border-zinc-800 rounded-lg p-8 text-center space-y-3">
+      <div className="bg-surface border border-border rounded-2xl p-8 text-center space-y-3">
         <Lock className="mx-auto text-amber-400" size={28} />
-        <p className="text-sm font-medium text-zinc-300">Verfügbar ab Brewer-Plan</p>
-        <p className="text-xs text-zinc-500">Saisonalitäts-Analyse für deine Biere.</p>
+        <p className="text-sm font-bold text-text-secondary">Verfügbar ab Brewer-Plan</p>
+        <p className="text-xs text-text-muted">Saisonalitäts-Analyse für deine Biere.</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-black border border-zinc-800 rounded-lg p-5 space-y-5">
+    <div className="bg-surface border border-border rounded-2xl p-5 space-y-5">
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
@@ -119,15 +119,15 @@ export default function SeasonalitySparkline({ brews, userTier }: Props) {
             <CalendarDays size={18} className="text-sky-400" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-white">Saisonalitäts-Index</h3>
-            <p className="text-xs text-zinc-500">Wann wird dein Bier am meisten gescannt?</p>
+            <h3 className="text-sm font-bold text-text-primary">Saisonalitäts-Index</h3>
+            <p className="text-xs text-text-muted">Wann wird dein Bier am meisten gescannt?</p>
           </div>
         </div>
 
         <select
           value={selectedBrewId}
           onChange={(e) => setSelectedBrewId(e.target.value)}
-          className="bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-sky-500/50 max-w-[160px]"
+          className="bg-surface-hover border border-border-hover rounded-lg px-2 py-1.5 text-xs text-text-primary focus:outline-none focus:border-sky-500/50 max-w-[160px]"
         >
           {brews.map((b) => (
             <option key={b.id} value={b.id}>{b.name}</option>
@@ -159,21 +159,21 @@ export default function SeasonalitySparkline({ brews, userTier }: Props) {
 
               {/* Peak info */}
               <div className="flex gap-3 text-center">
-                <div className="flex-1 bg-zinc-800/50 rounded-xl p-3">
+                <div className="flex-1 bg-surface-hover/50 rounded-xl p-3">
                   <p className="text-base font-black text-amber-400">{result.peakMonthName}</p>
-                  <p className="text-[10px] text-zinc-600 mt-0.5">Peak-Monat</p>
+                  <p className="text-[10px] text-text-disabled mt-0.5">Peak-Monat</p>
                 </div>
-                <div className="flex-1 bg-zinc-800/50 rounded-xl p-3">
-                  <p className="text-base font-black text-white">{Math.round(result.seasonalityScore * 100)}</p>
-                  <p className="text-[10px] text-zinc-600 mt-0.5">Score (0–100)</p>
+                <div className="flex-1 bg-surface-hover/50 rounded-xl p-3">
+                  <p className="text-base font-black text-text-primary">{Math.round(result.seasonalityScore * 100)}</p>
+                  <p className="text-[10px] text-text-disabled mt-0.5">Score (0–100)</p>
                 </div>
               </div>
             </>
           ) : (
             <div className="text-center py-6 space-y-2">
-              <CalendarDays size={28} className="mx-auto text-zinc-700" />
-              <p className="text-xs text-zinc-500">{result.insight}</p>
-              <p className="text-[10px] text-zinc-700">Mindestens 10 Scans über mehrere Monate erforderlich.</p>
+              <CalendarDays size={28} className="mx-auto text-text-disabled" />
+              <p className="text-xs text-text-muted">{result.insight}</p>
+              <p className="text-[10px] text-text-disabled">Mindestens 10 Scans über mehrere Monate erforderlich.</p>
             </div>
           )}
         </>

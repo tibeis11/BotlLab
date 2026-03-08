@@ -100,18 +100,18 @@ export default function ModerationView() {
                         
                         {/* Image Preview Area */}
                         <div className="relative aspect-video bg-black flex items-center justify-center group-hover:scale-[1.02] transition-transform duration-500">
-                             {/* Label / Logo */}
+                             {/* Label / Logo / Avatar */}
                              {item.image_url ? (
                                 <div className={`relative ${item.cap_url ? 'w-1/2' : 'w-full'} h-full`}> 
                                     <Image 
                                         src={item.image_url} 
                                         alt="Label Check" 
                                         fill 
-                                        className="object-contain p-2"
+                                        className={item.type === 'profile' ? 'object-cover rounded-full p-8' : 'object-contain p-2'}
                                         unoptimized // Important for external storage urls
                                     />
                                     <div className="absolute top-2 left-2 bg-black/50 px-2 py-1 text-[10px] text-white rounded">
-                                        {item.type === 'brewery' ? 'Logo' : 'Label'}
+                                        {item.type === 'brewery' ? 'Logo' : item.type === 'profile' ? 'Profilbild' : 'Label'}
                                     </div>
                                 </div>
                              ) : (
@@ -151,6 +151,8 @@ export default function ModerationView() {
                                     <p className="text-xs text-zinc-400 flex items-center gap-1">
                                         {item.type === 'brewery' ? (
                                             <span className="text-purple-400">Brauerei Profil</span>
+                                        ) : item.type === 'profile' ? (
+                                            <span className="text-amber-400">Nutzer Profilbild</span>
                                         ) : (
                                             <>
                                                 by <span className="text-cyan-400">{item.brewery?.name || 'Unknown'}</span>

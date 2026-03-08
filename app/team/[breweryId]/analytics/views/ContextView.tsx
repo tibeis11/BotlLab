@@ -14,11 +14,11 @@ export default function ContextView({ breweryId, userTier = 'free', startDate, e
   return (
     <div className="space-y-6">
       {/* Section header */}
-      <div className="flex items-center gap-3 pb-2 border-b border-zinc-800">
+      <div className="flex items-center gap-3 pb-2 border-b border-border">
         <MapPin size={18} className="text-purple-400 shrink-0" />
         <div>
-          <h2 className="text-sm font-semibold text-zinc-200">Kontext & Umgebung</h2>
-          <p className="text-xs text-zinc-500 mt-0.5">
+          <h2 className="text-sm font-semibold text-text-primary">Kontext & Umgebung</h2>
+          <p className="text-xs text-text-muted mt-0.5">
             Wie Wetter, Ort und Zeitpunkt das Scan-Verhalten beeinflussen.
           </p>
         </div>

@@ -7,7 +7,7 @@ export default function TermsPage() {
       <div className="bg-surface border-b border-border py-8">
         <div className="max-w-3xl mx-auto px-6">
           <h1 className="text-4xl font-black text-foreground mb-2">Allgemeine Geschäftsbedingungen</h1>
-          <p className="text-zinc-400">BotlLab – Stand: Januar 2026</p>
+          <p className="text-text-secondary">BotlLab – Stand: Januar 2026</p>
         </div>
       </div>
 
@@ -17,7 +17,7 @@ export default function TermsPage() {
         {/* 1. Geltungsbereich */}
         <section>
           <h2 className="text-2xl font-bold text-foreground mb-4">1. Geltungsbereich</h2>
-          <p className="text-zinc-300 leading-relaxed">
+          <p className="text-text-secondary leading-relaxed">
             Diese Allgemeinen Geschäftsbedingungen (AGB) regeln die Nutzung der Plattform BotlLab (nachfolgend „Dienst" oder „Plattform"). 
             Durch die Registrierung und Nutzung erkennen Sie diese Bedingungen an. Nutzer, die diesen nicht zustimmen, dürfen den Dienst nicht verwenden.
           </p>
@@ -26,7 +26,7 @@ export default function TermsPage() {
         {/* 2. Beschreibung des Dienstes */}
         <section>
           <h2 className="text-2xl font-bold text-foreground mb-4">2. Beschreibung des Dienstes</h2>
-          <p className="text-zinc-300 leading-relaxed">
+          <p className="text-text-secondary leading-relaxed">
             BotlLab ist eine Plattform zur Verwaltung von Braurezepten, Flaschenbeständen und zur Erstellung von QR-Code-Labels. 
             Der Dienst wird im Status „wie vorhanden" bereitgestellt und ist ausschließlich für den persönlichen, nicht-kommerziellen Gebrauch bestimmt, 
             sofern nicht ausdrücklich schriftlich vereinbart.
@@ -36,7 +36,7 @@ export default function TermsPage() {
         {/* 3. Nutzerbedingungen */}
         <section>
           <h2 className="text-2xl font-bold text-foreground mb-4">3. Nutzerbedingungen</h2>
-          <div className="text-zinc-300 space-y-3">
+          <div className="text-text-secondary space-y-3">
             <p>
               <strong>3.1 Berechtigung:</strong> Du versicherst, mindestens 18 Jahre alt zu sein und das Recht zu haben, diese AGB zu akzeptieren.
             </p>
@@ -54,7 +54,7 @@ export default function TermsPage() {
         {/* 4. Community Forum & Inhalte (UGC) */}
         <section>
           <h2 className="text-2xl font-bold text-foreground mb-4">4. Community Forum & Inhalte (UGC)</h2>
-           <div className="text-zinc-300 space-y-3">
+           <div className="text-text-secondary space-y-3">
             <p>
               <strong>4.1 Nutzungsrechte:</strong> Mit dem Erstellen von Beiträgen im Forum (Threads, Posts) sowie dem Hochladen von Bildern und Medien (Brew-Labels, Kronkorken-Designs, Forum-Bilder) räumst du BotlLab ein einfaches, räumlich und zeitlich unbeschränktes Nutzungsrecht an diesen Inhalten ein, um sie auf der Plattform anzuzeigen und zu speichern. Dies dient der langfristigen Lesbarkeit von Diskussionen und der Darstellung deiner Brautätigkeit. Dieses Recht bleibt auch nach Löschung des Benutzerkontos bestehen.
             </p>
@@ -73,7 +73,7 @@ export default function TermsPage() {
         {/* 5. Datenschutz */}
         <section>
           <h2 className="text-2xl font-bold text-foreground mb-4">5. Datenschutz</h2>
-          <p className="text-zinc-300 leading-relaxed">
+          <p className="text-text-secondary leading-relaxed">
             Die Verarbeitung deiner persönlichen Daten erfolgt gemäß unserer Datenschutzerklärung. 
             Deine Daten werden nicht an Dritte weitergegeben, ohne dass du dies explizit genehmigt hast.
           </p>
@@ -82,7 +82,7 @@ export default function TermsPage() {
         {/* 6. Haftungsausschluss */}
         <section>
           <h2 className="text-2xl font-bold text-foreground mb-4">6. Haftungsausschluss</h2>
-          <div className="text-zinc-300 space-y-3">
+          <div className="text-text-secondary space-y-3">
             <p>
               <strong>6.1 Verzicht auf Garantien:</strong> Die Plattform wird ohne Mängelgewähr bereitgestellt. 
               Wir garantieren nicht für Verfügbarkeit, Genauigkeit oder Fehlerfreiheit.
@@ -100,7 +100,7 @@ export default function TermsPage() {
         {/* 7. Geistiges Eigentum */}
         <section>
           <h2 className="text-2xl font-bold text-foreground mb-4">7. Geistiges Eigentum</h2>
-          <p className="text-zinc-300 leading-relaxed">
+          <p className="text-text-secondary leading-relaxed">
             Alle Inhalte, Logos, Grafiken und Software der Plattform sind unser Eigentum oder das unserer Lizenzgeber. 
             Du darfst diese nicht ohne Genehmigung reproduzieren, ändern oder verbreiten. Deine Rezepte und Inhalte bleiben dein Eigentum, 
             aber du gewährst uns das Recht, sie zu hosten und zu betreiben.
@@ -110,7 +110,7 @@ export default function TermsPage() {
         {/* 8. Änderungen der AGB */}
         <section>
           <h2 className="text-2xl font-bold text-foreground mb-4">8. Änderungen der Bedingungen</h2>
-          <p className="text-zinc-300 leading-relaxed">
+          <p className="text-text-secondary leading-relaxed">
             Wir können diese AGB jederzeit ändern. Bedeutsame Änderungen teilen wir dir mit. 
             Fortgesetzte Nutzung nach Änderungen bedeutet Akzeptanz.
           </p>
@@ -119,7 +119,7 @@ export default function TermsPage() {
         {/* 9. Beendigung */}
         <section>
           <h2 className="text-2xl font-bold text-foreground mb-4">9. Beendigung</h2>
-          <div className="text-zinc-300 space-y-3">
+          <div className="text-text-secondary space-y-3">
             <p>
               Du kannst dein Konto jederzeit löschen. Wir können Konten bei Verstoß gegen diese AGB suspendieren oder löschen.
               Nach Löschung werden Daten gemäß unserer Datenschutzrichtlinie verwaltet.
@@ -137,7 +137,7 @@ export default function TermsPage() {
         {/* 10. Geltung */}
         <section>
           <h2 className="text-2xl font-bold text-foreground mb-4">10. Rechtswahl und Gerichtsstand</h2>
-          <p className="text-zinc-300 leading-relaxed">
+          <p className="text-text-secondary leading-relaxed">
             Diese AGB unterliegen deutschem Recht. Gerichtsstand ist der Ort deines Wohnsitzes oder unserer Niederlassung, falls anwendbar.
           </p>
         </section>
@@ -145,7 +145,7 @@ export default function TermsPage() {
         {/* 11. Kontakt */}
         <section>
           <h2 className="text-2xl font-bold text-foreground mb-4">11. Kontakt</h2>
-          <p className="text-zinc-300 leading-relaxed">
+          <p className="text-text-secondary leading-relaxed">
             Bei Fragen zu diesen AGB oder zum Dienst, kontaktiere uns über die Kontaktseite oder per E-Mail.
           </p>
         </section>

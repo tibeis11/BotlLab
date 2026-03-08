@@ -20,17 +20,17 @@ interface AnalyticsMobileNavProps {
 export default function AnalyticsMobileNav({ activeSection, onNavigate }: AnalyticsMobileNavProps) {
   return (
     <div className="lg:hidden mb-6">
-      <div className="flex gap-1 bg-black rounded-lg border border-zinc-800 p-1 overflow-x-auto">
+      <div className="flex gap-1 bg-surface rounded-xl border border-border p-1 overflow-x-auto">
         {NAV_ITEMS.map(({ section, label, Icon }) => {
           const isActive = activeSection === section;
           return (
             <button
               key={section}
               onClick={() => onNavigate(section)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium whitespace-nowrap transition-all flex-shrink-0 ${
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all flex-shrink-0 ${
                 isActive
-                  ? 'bg-zinc-800 text-white'
-                  : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900'
+                  ? 'bg-surface-hover text-text-primary'
+                  : 'text-text-muted hover:text-text-secondary hover:bg-surface'
               }`}
             >
               <Icon size={12} aria-hidden="true" />

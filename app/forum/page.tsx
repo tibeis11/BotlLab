@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { Metadata } from 'next';
-import Footer from '@/app/components/Footer';
 import {
     Megaphone, Scroll, Wrench, ShoppingBag, Coffee,
     MessageSquare, Flame, Plus, Users, FlaskConical,
@@ -15,7 +14,7 @@ const iconMap: Record<string, React.ElementType> = {
 };
 
 const categoryAccents = [
-    'text-amber-400', 'text-emerald-400', 'text-blue-400', 'text-purple-400', 'text-zinc-400',
+    'text-warning', 'text-success', 'text-brand', 'text-purple-400', 'text-text-secondary',
 ];
 
 const TABS = [
@@ -57,17 +56,17 @@ export default async function ForumIndexPage({ searchParams }: PageProps) {
     return (
         <>
             {/* ── Hero Banner ──────────────────────────────────────────── */}
-            <div className="relative overflow-hidden bg-zinc-900 border-b border-zinc-800">
-                <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/95 via-zinc-950/80 to-emerald-950/20" />
+            <div className="relative overflow-hidden bg-surface border-b border-border">
+                <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/80 to-success-bg/20" />
                 <div className="relative px-6 md:px-12 lg:px-16 py-6 md:py-10 max-w-screen-2xl mx-auto">
                     <div className="flex items-center justify-between gap-6">
                         <div>
-                            <p className="text-emerald-400 font-bold uppercase tracking-widest text-xs mb-2">Community Forum</p>
+                            <p className="text-success font-bold uppercase tracking-widest text-xs mb-2">Community Forum</p>
                             <h1 className="text-2xl md:text-4xl font-black tracking-tight mb-2 leading-tight">
                                 Diskutiere mit{' '}<br className="hidden md:block" />
-                                <span className="text-emerald-400">Craft Beer Brauern</span>
+                                <span className="text-success">Craft Beer Brauern</span>
                             </h1>
-                            <p className="hidden md:block text-zinc-400 max-w-md text-sm mb-4">
+                            <p className="hidden md:block text-text-secondary max-w-md text-sm mb-4">
                                 Fragen, Rezepte, Tipps & Tricks — alles rund ums Heimbrauen.
                             </p>
                         </div>
@@ -76,18 +75,18 @@ export default async function ForumIndexPage({ searchParams }: PageProps) {
                     {/* Stats strip */}
                     <div className="flex items-center gap-6 mt-3 flex-wrap">
                         {trending.length > 0 && (
-                            <div className="flex items-center gap-1.5 text-xs text-zinc-400">
-                                <Flame className="w-3.5 h-3.5 text-orange-400" />
-                                <span className="font-bold text-white">{trending.length}</span> Trending
+                            <div className="flex items-center gap-1.5 text-xs text-text-secondary">
+                                <Flame className="w-3.5 h-3.5 text-warning" />
+                                <span className="font-bold text-text-primary">{trending.length}</span> Trending
                             </div>
                         )}
-                        <div className="flex items-center gap-1.5 text-xs text-zinc-400">
-                            <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
-                            <span className="font-bold text-white">{stats.threadCount}</span> Threads
+                        <div className="flex items-center gap-1.5 text-xs text-text-secondary">
+                            <MessageSquare className="w-3.5 h-3.5 text-success" />
+                            <span className="font-bold text-text-primary">{stats.threadCount}</span> Threads
                         </div>
-                        <div className="flex items-center gap-1.5 text-xs text-zinc-400">
-                            <Users className="w-3.5 h-3.5 text-zinc-400" />
-                            <span className="font-bold text-white">{stats.postCount + stats.threadCount}</span> Beiträge
+                        <div className="flex items-center gap-1.5 text-xs text-text-secondary">
+                            <Users className="w-3.5 h-3.5 text-text-secondary" />
+                            <span className="font-bold text-text-primary">{stats.postCount + stats.threadCount}</span> Beiträge
                         </div>
                     </div>
                 </div>
@@ -98,7 +97,7 @@ export default async function ForumIndexPage({ searchParams }: PageProps) {
                 <div className="flex gap-2 min-w-max">
                     <Link
                         href="/forum"
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white text-sm font-bold rounded-full shrink-0"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-success text-text-primary text-sm font-bold rounded-full shrink-0"
                     >
                         Alle
                     </Link>
@@ -106,14 +105,14 @@ export default async function ForumIndexPage({ searchParams }: PageProps) {
                         <Link
                             key={cat.id}
                             href={`/forum/${cat.slug}`}
-                            className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 text-zinc-300 text-sm font-medium rounded-full shrink-0 hover:border-zinc-600 transition"
+                            className="px-3 py-1.5 bg-surface border border-border text-text-secondary text-sm font-medium rounded-full shrink-0 hover:border-border-active transition"
                         >
                             {cat.title}
                         </Link>
                     ))}
                     <Link
                         href="/forum/rezept-kommentare"
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 border border-cyan-900/40 text-cyan-400 text-sm font-medium rounded-full shrink-0 hover:border-cyan-700/50 transition"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-brand/30 text-brand text-sm font-medium rounded-full shrink-0 hover:border-brand/50 transition"
                     >
                         <FlaskConical className="w-3 h-3" />
                         Rezept-Kommentare
@@ -133,20 +132,20 @@ export default async function ForumIndexPage({ searchParams }: PageProps) {
                     {/* ── Tabbed feed ────────────────────────────────────── */}
                     <section>
                         {/* Tab bar */}
-                        <div className="flex gap-4 border-b border-zinc-800/60 mb-5">
+                        <div className="flex gap-4 border-b border-border mb-5">
                             {TABS.map(t => (
                                 <Link
                                     key={t.key}
                                     href={t.key === 'new' ? '/forum' : `/forum?tab=${t.key}`}
                                     className={`relative pb-3 text-sm font-bold transition-colors
                                         ${tab === t.key
-                                            ? 'text-white'
-                                            : 'text-zinc-500 hover:text-zinc-300'}
+                                            ? 'text-text-primary'
+                                            : 'text-text-muted hover:text-text-secondary'}
                                     `}
                                 >
                                     {t.label}
                                     {tab === t.key && (
-                                        <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500 rounded-full" />
+                                        <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-success rounded-full" />
                                     )}
                                 </Link>
                             ))}
@@ -161,11 +160,11 @@ export default async function ForumIndexPage({ searchParams }: PageProps) {
                             </div>
                         ) : (
                             <div className="text-center py-16">
-                                <p className="font-bold text-zinc-400 mb-1">Noch keine Diskussionen</p>
-                                <p className="text-sm text-zinc-600 mb-4">Sei der Erste und starte ein Thema!</p>
+                                <p className="font-bold text-text-secondary mb-1">Noch keine Diskussionen</p>
+                                <p className="text-sm text-text-disabled mb-4">Sei der Erste und starte ein Thema!</p>
                                 <Link
                                     href="/forum/create"
-                                    className="inline-flex items-center gap-2 text-sm text-emerald-500 hover:text-emerald-400 font-bold transition-colors"
+                                    className="inline-flex items-center gap-2 text-sm text-success hover:text-success font-bold transition-colors"
                                 >
                                     <Plus className="w-4 h-4" /> Thema erstellen
                                 </Link>
@@ -183,12 +182,11 @@ export default async function ForumIndexPage({ searchParams }: PageProps) {
             {/* ── Mobile FAB ──────────────────────────────────────────────── */}
             <Link
                 href="/forum/create"
-                className="md:hidden fixed bottom-6 right-6 z-50 w-14 h-14 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-xl shadow-emerald-900/40 transition"
+                className="md:hidden fixed bottom-6 right-6 z-50 w-14 h-14 bg-success hover:bg-success/90 text-white rounded-full flex items-center justify-center shadow-xl shadow-success/30 transition"
             >
                 <Plus className="w-6 h-6" />
                 <span className="sr-only">Neues Thema erstellen</span>
             </Link>
-            <Footer />
         </>
     );
 }

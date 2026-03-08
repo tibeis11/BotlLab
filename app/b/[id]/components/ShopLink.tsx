@@ -1,5 +1,7 @@
 'use client';
 
+import { Globe } from 'lucide-react';
+
 /**
  * Phase 13.1 — ShopLink
  *
@@ -43,22 +45,22 @@ export default function ShopLink({ breweryName, websiteUrl }: ShopLinkProps) {
       target="_blank"
       rel="noopener noreferrer"
       onClick={handleClick}
-      className="block group bg-zinc-900 border border-zinc-800 rounded-2xl p-5 hover:border-cyan-500/40 hover:bg-zinc-800/60 transition shadow-lg"
+      className="block group bg-surface border border-border rounded-2xl p-5 hover:border-brand/40 hover:bg-surface-hover transition shadow-lg"
     >
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-cyan-950/50 border border-cyan-500/20 flex items-center justify-center shrink-0 group-hover:border-cyan-500/40 transition">
-          <span className="text-lg">🌐</span>
+        <div className="w-10 h-10 rounded-xl bg-brand-bg/50 border border-brand/20 flex items-center justify-center shrink-0 group-hover:border-brand/40 transition">
+          <Globe className="w-5 h-5 text-brand" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] uppercase font-bold tracking-widest text-zinc-500 mb-0.5">
+          <p className="text-[10px] uppercase font-bold tracking-widest text-text-muted mb-0.5">
             Website / Shop
           </p>
-          <p className="text-sm font-bold text-white truncate group-hover:text-cyan-400 transition">
+          <p className="text-sm font-bold text-text-primary truncate group-hover:text-brand transition">
             {breweryName} besuchen ↗
           </p>
         </div>
         <svg
-          className="w-4 h-4 text-zinc-600 group-hover:text-cyan-500 transition shrink-0"
+          className="w-4 h-4 text-text-disabled group-hover:text-brand transition shrink-0"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"

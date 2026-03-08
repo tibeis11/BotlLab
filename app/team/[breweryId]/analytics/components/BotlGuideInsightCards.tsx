@@ -138,9 +138,9 @@ export default function BotlGuideInsightCards({
   // Don't render anything if no insights or tier too low
   if (loading) {
     return (
-      <div className="bg-zinc-900/50 rounded-lg border border-zinc-800 p-4 flex items-center gap-3">
-        <Loader2 size={16} className="animate-spin text-zinc-500" />
-        <span className="text-sm text-zinc-500">BotlGuide Analyst lädt…</span>
+      <div className="bg-surface/50 rounded-xl border border-border p-4 flex items-center gap-3">
+        <Loader2 size={16} className="animate-spin text-text-muted" />
+        <span className="text-sm text-text-muted">BotlGuide Analyst lädt…</span>
       </div>
     );
   }
@@ -152,10 +152,10 @@ export default function BotlGuideInsightCards({
       {/* Header */}
       <div className="flex items-center gap-2">
         <Sparkles size={14} className="text-amber-400" />
-        <h3 className="text-xs font-medium uppercase tracking-wider text-zinc-400">
+        <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-500">
           BotlGuide Analyst
         </h3>
-        {isPending && <Loader2 size={12} className="animate-spin text-zinc-500" />}
+        {isPending && <Loader2 size={12} className="animate-spin text-text-muted" />}
       </div>
 
       {/* Insight Cards */}
@@ -169,9 +169,9 @@ export default function BotlGuideInsightCards({
             <div
               key={insight.id}
               className={`
-                rounded-lg border ${config.borderColor} ${config.bgColor}
+                rounded-xl border ${config.borderColor} ${config.bgColor}
                 transition-all duration-200
-                ${!insight.isRead ? 'ring-1 ring-zinc-600' : ''}
+                ${!insight.isRead ? 'ring-1 ring-border-hover' : ''}
               `}
             >
               {/* Card Header */}
@@ -183,18 +183,18 @@ export default function BotlGuideInsightCards({
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${config.badgeColor}`}>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${config.badgeColor}`}>
                       {config.label}
                     </span>
                     {!insight.isRead && (
                       <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
                     )}
                   </div>
-                  <h4 className="text-sm font-medium text-zinc-200 leading-tight">
+                  <h4 className="text-sm font-bold text-text-primary leading-tight">
                     {insight.title}
                   </h4>
                   {!isExpanded && (
-                    <p className="text-xs text-zinc-400 mt-1 line-clamp-1">
+                    <p className="text-xs text-text-secondary mt-1 line-clamp-1">
                       {insight.body}
                     </p>
                   )}
@@ -203,7 +203,7 @@ export default function BotlGuideInsightCards({
                 <div className="flex items-center gap-1 shrink-0">
                   <ChevronRight
                     size={14}
-                    className={`text-zinc-500 transition-transform duration-200 ${
+                    className={`text-text-muted transition-transform duration-200 ${
                       isExpanded ? 'rotate-90' : ''
                     }`}
                   />
@@ -212,7 +212,7 @@ export default function BotlGuideInsightCards({
                       e.stopPropagation();
                       handleDismiss(insight.id);
                     }}
-                    className="p-1 text-zinc-600 hover:text-zinc-400 transition-colors"
+                    className="p-1 text-text-disabled hover:text-text-secondary transition-colors"
                     title="Ausblenden"
                   >
                     <X size={14} />
@@ -222,20 +222,20 @@ export default function BotlGuideInsightCards({
 
               {/* Expanded Content */}
               {isExpanded && (
-                <div className="px-4 pb-4 pt-0 border-t border-zinc-800/50 mt-0">
+                <div className="px-4 pb-4 pt-0 border-t border-border-subtle mt-0">
                   <div className="pt-3 space-y-3">
                     {/* Body */}
-                    <p className="text-sm text-zinc-300 whitespace-pre-line leading-relaxed">
+                    <p className="text-sm text-text-secondary whitespace-pre-line leading-relaxed">
                       {insight.body}
                     </p>
 
                     {/* Action Suggestion */}
                     {insight.actionSuggestion && (
-                      <div className="bg-zinc-800/50 rounded-md p-3 border border-zinc-700/50">
-                        <p className="text-xs font-medium text-zinc-400 mb-1">
+                      <div className="bg-surface-hover/50 rounded-lg p-3 border border-border-hover/50">
+                        <p className="text-xs font-bold text-text-secondary mb-1">
                           💡 Empfehlung
                         </p>
-                        <p className="text-sm text-zinc-200">
+                        <p className="text-sm text-text-primary">
                           {insight.actionSuggestion}
                         </p>
                       </div>
@@ -247,7 +247,7 @@ export default function BotlGuideInsightCards({
                         {insight.sourcePhases.map((phase) => (
                           <span
                             key={phase}
-                            className="text-[10px] text-zinc-500 bg-zinc-800 px-1.5 py-0.5 rounded"
+                            className="text-[10px] text-text-muted bg-surface-hover px-1.5 py-0.5 rounded"
                           >
                             {phase}
                           </span>
@@ -258,7 +258,7 @@ export default function BotlGuideInsightCards({
                     {/* Feedback Buttons */}
                     <div className="flex items-center gap-2 pt-1">
                       {insight.brewerReaction ? (
-                        <span className="text-xs text-zinc-500">
+                        <span className="text-xs text-text-muted">
                           {insight.brewerReaction === 'helpful'
                             ? '✅ Als hilfreich bewertet'
                             : '❌ Als nicht relevant markiert'}
@@ -270,9 +270,9 @@ export default function BotlGuideInsightCards({
                               e.stopPropagation();
                               handleReaction(insight.id, 'helpful');
                             }}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium
-                              bg-zinc-800 hover:bg-emerald-900/30 text-zinc-300 hover:text-emerald-300
-                              rounded-md border border-zinc-700 hover:border-emerald-600/50
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold
+                              bg-surface-hover hover:bg-success-bg text-text-secondary hover:text-success
+                              rounded-lg border border-border-hover hover:border-success/30
                               transition-all duration-150"
                           >
                             <ThumbsUp size={12} />
@@ -283,9 +283,9 @@ export default function BotlGuideInsightCards({
                               e.stopPropagation();
                               handleReaction(insight.id, 'not_helpful');
                             }}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium
-                              bg-zinc-800 hover:bg-red-900/30 text-zinc-300 hover:text-red-300
-                              rounded-md border border-zinc-700 hover:border-red-600/50
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold
+                              bg-surface-hover hover:bg-error-bg text-text-secondary hover:text-error
+                              rounded-lg border border-border-hover hover:border-error/30
                               transition-all duration-150"
                           >
                             <ThumbsDown size={12} />

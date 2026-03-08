@@ -43,17 +43,17 @@ const PhaseCard = ({ children, className = '' }: { children: React.ReactNode; cl
 );
 
 const PhaseTitle = ({ children }: { children: React.ReactNode }) => (
-  <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">{children}</h2>
+  <h2 className="text-2xl font-bold text-text-primary mb-2 tracking-tight">{children}</h2>
 );
 
 const PhaseDescription = ({ children }: { children: React.ReactNode }) => (
-  <p className="text-zinc-400 text-base mb-8 max-w-2xl">{children}</p>
+  <p className="text-text-muted text-base mb-8 max-w-2xl">{children}</p>
 );
 
 const InputField = (props: React.InputHTMLAttributes<HTMLInputElement>) => (
     <input 
         {...props}
-        className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 transition text-base font-mono placeholder:text-zinc-700" 
+        className="w-full bg-background border border-border rounded-lg px-4 py-3 text-text-primary outline-none focus:border-brand focus:ring-1 focus:ring-brand transition text-base font-mono placeholder:text-text-disabled" 
     />
 );
 
@@ -78,19 +78,19 @@ const TaskItem = ({ title, completed, onClick, meta }: { title: string, complete
         className={`flex items-center gap-4 p-4 rounded-lg border transition-all cursor-pointer ${
             completed 
                 ? 'bg-emerald-950/10 border-emerald-500/20 opacity-70' 
-                : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800'
+                : 'bg-surface border-border hover:border-border hover:bg-surface-hover'
         }`}
     >
         <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${
             completed 
                 ? 'bg-emerald-500 border-emerald-500 text-black' 
-                : 'bg-transparent border-zinc-700 text-transparent'
+                : 'bg-transparent border-border text-transparent'
         }`}>
             {completed && <Check className="w-3 h-3 text-black" strokeWidth={3} />}
         </div>
         <div className="flex-1">
-            <span className={`font-medium text-sm ${completed ? 'text-zinc-500 line-through' : 'text-zinc-200'}`}>{title}</span>
-            {meta && <div className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider mt-0.5">{meta}</div>}
+            <span className={`font-medium text-sm ${completed ? 'text-text-muted line-through' : 'text-text-primary'}`}>{title}</span>
+            {meta && <div className="text-[10px] text-text-muted uppercase font-bold tracking-wider mt-0.5">{meta}</div>}
         </div>
     </div>
 );
@@ -200,19 +200,19 @@ function FermentationMonitor({ session }: { session: any }) {
         };
     });
 
-    if (loading) return <div className="animate-pulse h-20 bg-zinc-900/50 rounded-xl mb-4"></div>;
+    if (loading) return <div className="animate-pulse h-20 bg-surface/50 rounded-xl mb-4"></div>;
 
     return (
-        <div className="bg-zinc-900 rounded-lg border border-zinc-800 mb-8 overflow-hidden">
-            <div className="px-4 py-3 border-b border-zinc-800 bg-zinc-950/50 flex justify-between items-center cursor-pointer" onClick={() => setExpanded(!expanded)}>
-                <h4 className="text-zinc-400 font-bold text-[10px] uppercase tracking-wider flex items-center gap-2">
+        <div className="bg-surface rounded-lg border border-border mb-8 overflow-hidden">
+            <div className="px-4 py-3 border-b border-border bg-background/50 flex justify-between items-center cursor-pointer" onClick={() => setExpanded(!expanded)}>
+                <h4 className="text-text-muted font-bold text-[10px] uppercase tracking-wider flex items-center gap-2">
                     <Activity className="w-3 h-3" /> Gärverlauf & Messwerte
                 </h4>
                 <div className="flex items-center gap-2">
-                     <span className="text-xs font-mono text-zinc-500">{measurements.length} Messungen</span>
+                     <span className="text-xs font-mono text-text-muted">{measurements.length} Messungen</span>
                      <button 
                         onClick={(e) => { e.stopPropagation(); setIsAdding(!isAdding); setExpanded(true); }}
-                        className="text-[10px] font-bold text-cyan-400 hover:text-cyan-300 bg-cyan-950/30 border border-cyan-900/50 px-2 py-1 rounded transition-colors ml-2"
+                        className="text-[10px] font-bold text-brand hover:text-brand bg-brand/10 border border-brand/20 px-2 py-1 rounded transition-colors ml-2"
                     >
                         {isAdding ? 'Abbrechen' : '+ Neuer Eintrag'}
                     </button>
@@ -220,53 +220,53 @@ function FermentationMonitor({ session }: { session: any }) {
             </div>
             
             {expanded && (
-                <div className="p-4 border-t border-zinc-800">
+                <div className="p-4 border-t border-border">
                     {isAdding && (
-                        <div className="bg-zinc-950/50 border border-zinc-800 rounded-xl p-4 mb-4 animate-in slide-in-from-top-2 fade-in duration-200">
+                        <div className="bg-background/50 border border-border rounded-xl p-4 mb-4 animate-in slide-in-from-top-2 fade-in duration-200">
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                                 <div>
-                                    <label className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">Datum & Zeit</label>
+                                    <label className="text-[10px] text-text-muted uppercase font-bold block mb-1">Datum & Zeit</label>
                                     <input 
                                         type="datetime-local" 
                                         value={date} 
                                         onChange={e => setDate(e.target.value)}
-                                        className="w-full bg-black text-white text-sm px-3 py-2 rounded-lg border border-zinc-800 focus:border-cyan-500 outline-none"
+                                        className="w-full bg-background text-text-primary text-sm px-3 py-2 rounded-lg border border-border focus:border-brand outline-none"
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">Dichte (SG)</label>
+                                    <label className="text-[10px] text-text-muted uppercase font-bold block mb-1">Dichte (SG)</label>
                                     <input 
                                         type="number" 
                                         placeholder="1.050 / 12.5"
                                         value={gravity} 
                                         onChange={e => setGravity(e.target.value)}
-                                        className="w-full bg-black text-white text-sm px-3 py-2 rounded-lg border border-zinc-800 focus:border-cyan-500 outline-none"
+                                        className="w-full bg-background text-text-primary text-sm px-3 py-2 rounded-lg border border-border focus:border-brand outline-none"
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">Temp (°C)</label>
+                                    <label className="text-[10px] text-text-muted uppercase font-bold block mb-1">Temp (°C)</label>
                                     <input 
                                         type="number" 
                                         placeholder="20.0"
                                         value={temp} 
                                         onChange={e => setTemp(e.target.value)}
-                                        className="w-full bg-black text-white text-sm px-3 py-2 rounded-lg border border-zinc-800 focus:border-cyan-500 outline-none"
+                                        className="w-full bg-background text-text-primary text-sm px-3 py-2 rounded-lg border border-border focus:border-brand outline-none"
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">Notiz</label>
+                                    <label className="text-[10px] text-text-muted uppercase font-bold block mb-1">Notiz</label>
                                     <input 
                                         type="text"
                                         placeholder="Blubbert stark..."
                                         value={note} 
                                         onChange={e => setNote(e.target.value)}
-                                        className="w-full bg-black text-white text-sm px-3 py-2 rounded-lg border border-zinc-800 focus:border-cyan-500 outline-none"
+                                        className="w-full bg-background text-text-primary text-sm px-3 py-2 rounded-lg border border-border focus:border-brand outline-none"
                                     />
                                 </div>
                             </div>
                             <button 
                                 onClick={addMeasurement}
-                                className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 rounded-lg transition-colors text-sm"
+                                className="w-full bg-brand hover:bg-brand/80 text-text-primary font-bold py-2 rounded-lg transition-colors text-sm"
                             >
                                 Messwert speichern
                             </button>
@@ -274,14 +274,14 @@ function FermentationMonitor({ session }: { session: any }) {
                     )}
 
                     {measurements.length === 0 ? (
-                        <div className="text-center py-8 border border-dashed border-zinc-800 rounded-xl bg-zinc-900/20">
-                            <Activity className="w-8 h-8 text-zinc-700 mx-auto mb-2" />
-                            <p className="text-zinc-500 text-sm">Noch keine Messwerte eingetragen.</p>
+                        <div className="text-center py-8 border border-dashed border-border rounded-xl bg-surface/20">
+                            <Activity className="w-8 h-8 text-text-disabled mx-auto mb-2" />
+                            <p className="text-text-muted text-sm">Noch keine Messwerte eingetragen.</p>
                         </div>
                     ) : (
                         <div className="space-y-6">
                             {measurements.length > 1 && (
-                                <div className="h-64 w-full bg-zinc-950/30 rounded-lg p-4 border border-zinc-800/50">
+                                <div className="h-64 w-full bg-background/30 rounded-lg p-4 border border-border/50">
                                     <ResponsiveContainer width="100%" height="100%">
                                         <LineChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                                             <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
@@ -306,7 +306,7 @@ function FermentationMonitor({ session }: { session: any }) {
                             
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm text-left border-separate border-spacing-y-1">
-                                    <thead className="text-[10px] uppercase text-zinc-500 font-bold">
+                                    <thead className="text-[10px] uppercase text-text-muted font-bold">
                                         <tr>
                                             <th className="px-3 py-1">Datum</th>
                                             <th className="px-3 py-1 text-right">Dichte</th>
@@ -316,17 +316,17 @@ function FermentationMonitor({ session }: { session: any }) {
                                     </thead>
                                     <tbody>
                                         {measurements.map((m) => (
-                                            <tr key={m.id} className="group hover:bg-zinc-900/50 transition-colors">
-                                                <td className="px-3 py-2 font-mono text-zinc-400 whitespace-nowrap bg-zinc-950/30 rounded-l">
-                                                    {new Date(m.measured_at).toLocaleDateString()} <span className="text-zinc-600 text-[10px]">{new Date(m.measured_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                            <tr key={m.id} className="group hover:bg-surface/50 transition-colors">
+                                                <td className="px-3 py-2 font-mono text-text-muted whitespace-nowrap bg-background/30 rounded-l">
+                                                    {new Date(m.measured_at).toLocaleDateString()} <span className="text-text-disabled text-[10px]">{new Date(m.measured_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                                                 </td>
-                                                <td className="px-3 py-2 font-mono font-bold text-white text-right bg-zinc-950/30">
+                                                <td className="px-3 py-2 font-mono font-bold text-text-primary text-right bg-background/30">
                                                     {m.gravity || '-'}
                                                 </td>
-                                                <td className="px-3 py-2 font-mono text-zinc-300 text-right bg-zinc-950/30">
+                                                <td className="px-3 py-2 font-mono text-text-secondary text-right bg-background/30">
                                                     {m.temperature ? `${m.temperature}°C` : '-'}
                                                 </td>
-                                                <td className="px-3 py-2 text-zinc-400 text-xs pl-6 bg-zinc-950/30 rounded-r border-l border-transparent">
+                                                <td className="px-3 py-2 text-text-muted text-xs pl-6 bg-background/30 rounded-r border-l border-transparent">
                                                     {m.note || '-'}
                                                 </td>
                                             </tr>
@@ -468,23 +468,23 @@ export function PlanningView() {
             onClick={() => toggleItem(id)}
             className={`flex justify-between items-center px-4 py-3 rounded-lg border transition-all cursor-pointer group ${
                 isChecked 
-                ? 'bg-zinc-900/50 border-zinc-800/50 opacity-50' 
-                : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'
+                ? 'bg-surface/50 border-border/50 opacity-50' 
+                : 'bg-surface border-border hover:border-border'
             }`}
         >
             <div className="flex items-center gap-3">
                 <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${
                     isChecked 
                     ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-500' 
-                    : 'border-zinc-700 group-hover:border-zinc-500'
+                    : 'border-border group-hover:border-border'
                 }`}>
                     {isChecked && <Check className="w-3 h-3" strokeWidth={3} />}
                 </div>
-                <span className={`font-medium text-sm transition-colors ${isChecked ? 'line-through text-zinc-500' : 'text-zinc-200'}`}>
+                <span className={`font-medium text-sm transition-colors ${isChecked ? 'line-through text-text-muted' : 'text-text-primary'}`}>
                     {name}
                 </span>
             </div>
-            <span className={`font-mono text-sm font-bold ${isChecked ? 'text-zinc-600' : 'text-zinc-400'}`}>
+            <span className={`font-mono text-sm font-bold ${isChecked ? 'text-text-disabled' : 'text-text-muted'}`}>
                 {amount}
             </span>
         </div>
@@ -496,19 +496,19 @@ export function PlanningView() {
       <div className="flex justify-between items-start mb-8">
         <div>
            <PhaseTitle>Vorbereitung</PhaseTitle>
-           <p className="text-zinc-400 text-sm">Prüfe deine Zutaten für <span className="text-cyan-400 font-bold">{session?.brew?.name || 'dieses Rezept'}</span></p>
+           <p className="text-text-muted text-sm">Prüfe deine Zutaten für <span className="text-brand font-bold">{session?.brew?.name || 'dieses Rezept'}</span></p>
         </div>
       </div>
 
       {/* Water Profile */}
-      <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-5 mb-8">
-          <div className="flex items-center justify-between mb-4 border-b border-zinc-800 pb-2">
-            <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
-                    <Droplets className="w-3 h-3 text-cyan-500" /> Wasser-Planung
+      <div className="bg-surface/40 border border-border rounded-xl p-5 mb-8">
+          <div className="flex items-center justify-between mb-4 border-b border-border pb-2">
+            <h3 className="text-[10px] font-bold text-text-muted uppercase tracking-widest flex items-center gap-2">
+                    <Droplets className="w-3 h-3 text-brand" /> Wasser-Planung
             </h3>
             <button
                 onClick={() => openModal('MEASUREMENT_VOLUME')}
-                className="text-[10px] font-bold text-cyan-400 hover:text-cyan-300 uppercase tracking-wider flex items-center gap-1 bg-cyan-950/30 px-2 py-1 rounded border border-cyan-900/50 hover:border-cyan-500/50 transition-colors"
+                className="text-[10px] font-bold text-brand hover:text-brand uppercase tracking-wider flex items-center gap-1 bg-brand/10 px-2 py-1 rounded border border-brand/20 hover:border-brand/50 transition-colors"
             >
                 <Plus className="w-3 h-3" />
                 Messen
@@ -516,21 +516,21 @@ export function PlanningView() {
           </div>
           
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-zinc-950 p-3 rounded-lg border border-zinc-800/50 flex flex-col items-center text-center">
-                    <span className="text-[10px] text-zinc-500 uppercase font-bold mb-1">Hauptguss</span>
-                    <span className="text-xl font-bold text-white">{waterProfile.mashWater} <span className="text-sm text-zinc-600">L</span></span>
+                <div className="bg-background p-3 rounded-lg border border-border/50 flex flex-col items-center text-center">
+                    <span className="text-[10px] text-text-muted uppercase font-bold mb-1">Hauptguss</span>
+                    <span className="text-xl font-bold text-text-primary">{waterProfile.mashWater} <span className="text-sm text-text-disabled">L</span></span>
                 </div>
-                <div className="bg-zinc-950 p-3 rounded-lg border border-zinc-800/50 flex flex-col items-center text-center">
-                    <span className="text-[10px] text-zinc-500 uppercase font-bold mb-1">Nachguss</span>
-                    <span className="text-xl font-bold text-white">{waterProfile.spargeWater} <span className="text-sm text-zinc-600">L</span></span>
+                <div className="bg-background p-3 rounded-lg border border-border/50 flex flex-col items-center text-center">
+                    <span className="text-[10px] text-text-muted uppercase font-bold mb-1">Nachguss</span>
+                    <span className="text-xl font-bold text-text-primary">{waterProfile.spargeWater} <span className="text-sm text-text-disabled">L</span></span>
                 </div>
-                <div className="bg-zinc-950 p-3 rounded-lg border border-zinc-800/50 flex flex-col items-center text-center opacity-70">
-                    <span className="text-[10px] text-zinc-500 uppercase font-bold mb-1">Gesamt</span>
-                    <span className="text-lg font-bold text-zinc-300">{waterProfile.totalWater} <span className="text-sm text-zinc-600">L</span></span>
+                <div className="bg-background p-3 rounded-lg border border-border/50 flex flex-col items-center text-center opacity-70">
+                    <span className="text-[10px] text-text-muted uppercase font-bold mb-1">Gesamt</span>
+                    <span className="text-lg font-bold text-text-secondary">{waterProfile.totalWater} <span className="text-sm text-text-disabled">L</span></span>
                 </div>
-                 <div className="bg-zinc-950 p-3 rounded-lg border border-zinc-800/50 flex flex-col items-center text-center opacity-70">
-                    <span className="text-[10px] text-zinc-500 uppercase font-bold mb-1">Pfanne voll</span>
-                    <span className="text-lg font-bold text-zinc-300">{waterProfile.preBoilVolume} <span className="text-sm text-zinc-600">L</span></span>
+                 <div className="bg-background p-3 rounded-lg border border-border/50 flex flex-col items-center text-center opacity-70">
+                    <span className="text-[10px] text-text-muted uppercase font-bold mb-1">Pfanne voll</span>
+                    <span className="text-lg font-bold text-text-secondary">{waterProfile.preBoilVolume} <span className="text-sm text-text-disabled">L</span></span>
                 </div>
           </div>
       </div>
@@ -540,7 +540,7 @@ export function PlanningView() {
           {/* Malts */}
           {ingredients.malts.length > 0 && (
               <div>
-                  <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-4 flex items-center gap-2 border-b border-zinc-800 pb-2">
+                  <h3 className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-4 flex items-center gap-2 border-b border-border pb-2">
                       <Wheat className="w-3 h-3" /> Malz & Getreide
                   </h3>
                   <div className="space-y-2">
@@ -559,7 +559,7 @@ export function PlanningView() {
           {/* Hops */}
             {ingredients.hops.length > 0 && (
               <div>
-                  <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-4 flex items-center gap-2 border-b border-zinc-800 pb-2">
+                  <h3 className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-4 flex items-center gap-2 border-b border-border pb-2">
                       <Leaf className="w-3 h-3" /> Hopfen
                   </h3>
                   <div className="space-y-2">
@@ -575,11 +575,11 @@ export function PlanningView() {
               </div>
           )}
       </div>
-      <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 mb-4">
+      <div className="bg-surface border border-border rounded-lg p-4 mb-4">
              <div className="flex gap-4">
                  <button 
                     onClick={() => openModal('MEASUREMENT_VOLUME')}
-                    className="flex-1 py-3 bg-black hover:bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-lg font-bold text-zinc-300 transition-colors flex flex-col items-center gap-1 group"
+                    className="flex-1 py-3 bg-background hover:bg-surface border border-border hover:border-border rounded-lg font-bold text-text-secondary transition-colors flex flex-col items-center gap-1 group"
                  >
                      <Droplets className="w-5 h-5 text-blue-500 mb-1 group-hover:scale-110 transition-transform" />
                      <span className="text-xs uppercase tracking-wide">Brauwasser messen</span>
@@ -593,7 +593,7 @@ export function PlanningView() {
         onSubmit={handleModalSubmit}
         defaultType={modalInitialType}
       />
-      <div className="flex justify-end pt-6 border-t border-zinc-900">
+      <div className="flex justify-end pt-6 border-t border-border">
         <button 
             onClick={() => changePhase('brewing')} 
             className="flex items-center gap-2 px-6 py-2.5 bg-zinc-100 hover:bg-white text-black font-bold rounded-lg transition-all shadow-lg active:scale-95"
@@ -877,10 +877,10 @@ export function BrewingView() {
                                 className={`
                                     relative overflow-hidden rounded-lg border transition-all cursor-pointer group
                                     ${isCompleted 
-                                        ? 'bg-zinc-900/30 border-zinc-800 opacity-60' 
+                                        ? 'bg-surface/30 border-border opacity-60' 
                                         : isDecoction
-                                        ? 'bg-zinc-900 border-amber-500/20 hover:border-amber-500/50 hover:bg-zinc-800'
-                                        : 'bg-zinc-900 border-zinc-800 hover:border-amber-500/50 hover:bg-zinc-800'
+                                        ? 'bg-surface border-amber-500/20 hover:border-amber-500/50 hover:bg-surface-hover'
+                                        : 'bg-surface border-border hover:border-amber-500/50 hover:bg-surface-hover'
                                     }
                                 `}
                            >
@@ -889,7 +889,7 @@ export function BrewingView() {
                                         w-6 h-6 flex-shrink-0 rounded-full border flex items-center justify-center transition-all
                                         ${isCompleted 
                                             ? 'bg-emerald-500 border-emerald-500 text-black' 
-                                            : 'border-zinc-700 bg-black/50 group-hover:border-zinc-500 text-transparent'
+                                            : 'border-border bg-background/50 group-hover:border-border text-transparent'
                                         }
                                     `}>
                                         <Check className="w-4 h-4" strokeWidth={3} />
@@ -897,15 +897,15 @@ export function BrewingView() {
 
                                     <div className="flex-1 flex items-center justify-between gap-4">
                                         <div className="flex items-center gap-3 md:gap-4">
-                                            <div className={`flex flex-col items-center justify-center w-12 h-12 rounded-lg border border-zinc-800/50 transition-colors ${isDecoction ? 'bg-amber-500/5' : 'bg-zinc-950'}`}>
-                                                <div className={`text-base font-bold ${isCompleted ? 'text-zinc-500' : 'text-amber-500'}`}>{temp}°</div>
-                                                <div className="text-[8px] uppercase font-bold text-zinc-600 tracking-wider">
+                                            <div className={`flex flex-col items-center justify-center w-12 h-12 rounded-lg border border-border/50 transition-colors ${isDecoction ? 'bg-amber-500/5' : 'bg-background'}`}>
+                                                <div className={`text-base font-bold ${isCompleted ? 'text-text-muted' : 'text-amber-500'}`}>{temp}°</div>
+                                                <div className="text-[8px] uppercase font-bold text-text-disabled tracking-wider">
                                                     {isDecoction ? 'Ziel' : 'Temp'}
                                                 </div>
                                             </div>
                                             <div>
                                                  <div className="flex items-center gap-2 mb-1">
-                                                     <span className={`text-sm font-bold uppercase tracking-wide ${isCompleted ? 'text-zinc-500' : 'text-zinc-300'}`}>{name}</span>
+                                                     <span className={`text-sm font-bold uppercase tracking-wide ${isCompleted ? 'text-text-muted' : 'text-text-secondary'}`}>{name}</span>
                                                      {isDecoction && (
                                                          <span className="px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded">
                                                              🔥 Dekoktion
@@ -918,29 +918,29 @@ export function BrewingView() {
                                                              <span className="text-[9px] font-mono text-amber-600">{scaleAmount(step.volume_liters, volFactor)}L {formLabel}</span>
                                                          )}
                                                          {step.decoction_boil_time && (
-                                                             <span className="text-[9px] font-mono text-zinc-500">· Kochen {step.decoction_boil_time}min</span>
+                                                             <span className="text-[9px] font-mono text-text-muted">· Kochen {step.decoction_boil_time}min</span>
                                                          )}
                                                          {step.decoction_rest_temp && step.decoction_rest_time && (
-                                                             <span className="text-[9px] font-mono text-zinc-500">· Rast {step.decoction_rest_temp}°C/{step.decoction_rest_time}min</span>
+                                                             <span className="text-[9px] font-mono text-text-muted">· Rast {step.decoction_rest_temp}°C/{step.decoction_rest_time}min</span>
                                                          )}
                                                      </div>
                                                  ) : (
-                                                     <div className="text-[10px] text-zinc-500 hidden md:block">Aufheizen auf {temp}°C</div>
+                                                     <div className="text-[10px] text-text-muted hidden md:block">Aufheizen auf {temp}°C</div>
                                                  )}
                                             </div>
                                         </div>
 
                                         {stepDuration > 0 ? (
-                                        <div className="text-right pl-4 border-l border-zinc-800/50">
-                                            <div className={`text-xl font-bold font-mono ${isCompleted ? 'text-zinc-500' : 'text-white'}`}>
-                                                {stepDuration}<span className="text-[10px] font-bold text-zinc-600 ml-1">min</span>
+                                        <div className="text-right pl-4 border-l border-border/50">
+                                            <div className={`text-xl font-bold font-mono ${isCompleted ? 'text-text-muted' : 'text-text-primary'}`}>
+                                                {stepDuration}<span className="text-[10px] font-bold text-text-disabled ml-1">min</span>
                                             </div>
-                                            <div className="text-[9px] uppercase font-bold text-zinc-600 tracking-wider">Halten</div>
+                                            <div className="text-[9px] uppercase font-bold text-text-disabled tracking-wider">Halten</div>
                                         </div>
                                         ) : (
-                                         <div className="text-right pl-4 border-l border-zinc-800/50 opacity-50">
-                                            <div className="text-xl font-bold text-zinc-600">-</div>
-                                            <div className="text-[8px] uppercase font-bold text-zinc-700 tracking-wider">Ziel</div>
+                                         <div className="text-right pl-4 border-l border-border/50 opacity-50">
+                                            <div className="text-xl font-bold text-text-disabled">-</div>
+                                            <div className="text-[8px] uppercase font-bold text-text-disabled tracking-wider">Ziel</div>
                                          </div>
                                         )}
                                     </div>
@@ -963,7 +963,7 @@ export function BrewingView() {
                     {data.boil_time && (
                         <div className="flex items-center gap-2 bg-red-950/20 px-2 py-1 rounded border border-red-500/20">
                             <span className="text-[9px] text-red-400 font-bold uppercase tracking-wider">Gesamtzeit</span>
-                            <span className="text-xs font-bold text-white">{data.boil_time}<span className="text-[9px] text-red-500/50 font-bold ml-0.5">MIN</span></span>
+                            <span className="text-xs font-bold text-text-primary">{data.boil_time}<span className="text-[9px] text-red-500/50 font-bold ml-0.5">MIN</span></span>
                         </div>
                     )}
                 </div>
@@ -994,8 +994,8 @@ export function BrewingView() {
                                 className={`
                                     relative overflow-hidden rounded-lg border transition-all cursor-pointer group
                                     ${isCompleted 
-                                        ? 'bg-zinc-900/30 border-zinc-800 opacity-60' 
-                                        : hop.isCorrected ? 'bg-zinc-900 border-zinc-800 hover:border-cyan-500/50 hover:bg-zinc-800' : 'bg-zinc-900 border-zinc-800 hover:border-red-500/50 hover:bg-zinc-800'
+                                        ? 'bg-surface/30 border-border opacity-60' 
+                                        : hop.isCorrected ? 'bg-surface border-border hover:border-brand/50 hover:bg-surface-hover' : 'bg-surface border-border hover:border-red-500/50 hover:bg-surface-hover'
                                     }
                                 `}
                            >
@@ -1005,7 +1005,7 @@ export function BrewingView() {
                                         w-6 h-6 flex-shrink-0 rounded-full border flex items-center justify-center transition-all
                                         ${isCompleted 
                                             ? 'bg-emerald-500 border-emerald-500 text-black' 
-                                            : 'border-zinc-700 bg-black/50 group-hover:border-zinc-500 text-transparent'
+                                            : 'border-border bg-background/50 group-hover:border-border text-transparent'
                                         }
                                     `}>
                                         <Check className="w-4 h-4" strokeWidth={3} />
@@ -1014,55 +1014,55 @@ export function BrewingView() {
                                     {/* 2 Time (Focus) */}
                                     <div className="flex-1 flex items-center justify-between gap-4">
                                         <div className="flex items-center gap-3 md:gap-4">
-                                            <div className="flex flex-col items-center justify-center w-12 h-12 bg-zinc-950 rounded-lg border border-zinc-800/50 transition-colors">
-                                                <div className={`text-base font-bold ${isCompleted ? 'text-zinc-500' : 'text-red-500'}`}>{hop.time}</div>
-                                                <div className="text-[8px] uppercase font-bold text-zinc-600 tracking-wider">Min</div>
+                                            <div className="flex flex-col items-center justify-center w-12 h-12 bg-background rounded-lg border border-border/50 transition-colors">
+                                                <div className={`text-base font-bold ${isCompleted ? 'text-text-muted' : 'text-red-500'}`}>{hop.time}</div>
+                                                <div className="text-[8px] uppercase font-bold text-text-disabled tracking-wider">Min</div>
                                             </div>
                                             <div>
-                                                 <div className={`text-sm font-bold uppercase tracking-wide mb-1 ${isCompleted ? 'text-zinc-500' : 'text-zinc-300'}`}>{title}</div>
-                                                 <div className="text-[10px] text-zinc-500 hidden md:block">{hop.usage || 'Boil'} Addition</div>
+                                                 <div className={`text-sm font-bold uppercase tracking-wide mb-1 ${isCompleted ? 'text-text-muted' : 'text-text-secondary'}`}>{title}</div>
+                                                 <div className="text-[10px] text-text-muted hidden md:block">{hop.usage || 'Boil'} Addition</div>
                                             </div>
                                         </div>
                                         
                                         {/* Alpha Correction Control */}
                                         <div className="alpha-control flex items-center gap-2">
                                             {isEditing ? (
-                                                <div className="flex items-center gap-1 bg-zinc-950 rounded border border-zinc-700 p-1">
+                                                <div className="flex items-center gap-1 bg-background rounded border border-border p-1">
                                                     <input 
                                                         autoFocus
                                                         type="number" 
-                                                        className="w-12 bg-transparent text-white text-xs outline-none text-right font-mono"
+                                                        className="w-12 bg-transparent text-text-primary text-xs outline-none text-right font-mono"
                                                         value={alphaInput}
                                                         onChange={(e) => setAlphaInput(e.target.value)}
                                                         onKeyDown={(e) => e.key === 'Enter' && submitAlpha(hop.name)}
                                                     />
-                                                    <span className="text-[9px] text-zinc-500">%</span>
+                                                    <span className="text-[9px] text-text-muted">%</span>
                                                     <button onClick={() => submitAlpha(hop.name)} className="text-emerald-500 hover:text-emerald-400"><Check size={12}/></button>
                                                 </div>
                                             ) : (
                                                 <div 
                                                     onClick={() => { setEditingAlpha(hop.name); setAlphaInput(hop.actualAlpha || hop.alpha || ''); }}
-                                                    className={`hidden md:flex flex-col items-end px-2 py-1 rounded border hover:border-zinc-600 transition-colors ${hop.isCorrected ? 'bg-cyan-950/20 border-cyan-900/50' : 'border-transparent'}`}
+                                                    className={`hidden md:flex flex-col items-end px-2 py-1 rounded border hover:border-border transition-colors ${hop.isCorrected ? 'bg-brand/10 border-brand/20' : 'border-transparent'}`}
                                                 >
-                                                    <span className={`text-[10px] font-bold ${hop.isCorrected ? 'text-cyan-400' : 'text-zinc-600'}`}>
+                                                    <span className={`text-[10px] font-bold ${hop.isCorrected ? 'text-brand' : 'text-text-disabled'}`}>
                                                         α {hop.actualAlpha || hop.alpha}%
                                                     </span>
-                                                    {hop.isCorrected && <span className="text-[8px] text-cyan-500/70 uppercase tracking-wider">Korrigiert</span>}
+                                                    {hop.isCorrected && <span className="text-[8px] text-brand/70 uppercase tracking-wider">Korrigiert</span>}
                                                 </div>
                                             )}
                                         </div>
 
                                         {/* 3 Amount (Right) */}
-                                        <div className="text-right pl-4 border-l border-zinc-800/50">
-                                            <div className={`text-xl font-mono font-bold flex flex-col items-end ${isCompleted ? 'text-zinc-500' : hop.isCorrected ? 'text-cyan-400' : 'text-white'}`}>
-                                                <span>{hop.amount}<span className="text-[10px] font-bold text-zinc-600 ml-1">g</span></span>
+                                        <div className="text-right pl-4 border-l border-border/50">
+                                            <div className={`text-xl font-mono font-bold flex flex-col items-end ${isCompleted ? 'text-text-muted' : hop.isCorrected ? 'text-brand' : 'text-text-primary'}`}>
+                                                <span>{hop.amount}<span className="text-[10px] font-bold text-text-disabled ml-1">g</span></span>
                                                 {hop.isCorrected && (
-                                                    <span className="text-xs text-zinc-500 line-through decoration-zinc-600/50">
+                                                    <span className="text-xs text-text-muted line-through decoration-text-disabled/50">
                                                         {hop.originalScaled}
                                                     </span>
                                                 )}
                                             </div>
-                                            <div className="text-[9px] uppercase font-bold text-zinc-600 tracking-wider">Menge</div>
+                                            <div className="text-[9px] uppercase font-bold text-text-disabled tracking-wider">Menge</div>
                                         </div>
                                     </div>
                                 </div>
@@ -1073,17 +1073,17 @@ export function BrewingView() {
           </div>
       )}
 
-      <div className="bg-zinc-900 rounded-lg border border-zinc-800 mb-8 overflow-hidden">
+      <div className="bg-surface rounded-lg border border-border mb-8 overflow-hidden">
         {/* Header with Quick Actions */}
-        <div className="px-4 py-3 border-b border-zinc-800 bg-zinc-950/50 flex justify-between items-center">
-            <h4 className="text-zinc-400 font-bold text-[10px] uppercase tracking-wider flex items-center gap-2">
+        <div className="px-4 py-3 border-b border-border bg-background/50 flex justify-between items-center">
+            <h4 className="text-text-muted font-bold text-[10px] uppercase tracking-wider flex items-center gap-2">
                 <Scale className="w-3 h-3" /> Messwerte
             </h4>
             <div className="flex gap-2">
-                <button onClick={() => openModal('MEASUREMENT_SG')} className="px-2 py-1 bg-black hover:bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded text-[10px] font-bold text-zinc-400 transition-colors">
+                <button onClick={() => openModal('MEASUREMENT_SG')} className="px-2 py-1 bg-background hover:bg-surface border border-border hover:border-border rounded text-[10px] font-bold text-text-muted transition-colors">
                     + Dichte
                 </button>
-                <button onClick={() => openModal('MEASUREMENT_PH')} className="px-2 py-1 bg-black hover:bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded text-[10px] font-bold text-zinc-400 transition-colors">
+                <button onClick={() => openModal('MEASUREMENT_PH')} className="px-2 py-1 bg-background hover:bg-surface border border-border hover:border-border rounded text-[10px] font-bold text-text-muted transition-colors">
                     + pH
                 </button>
             </div>
@@ -1100,7 +1100,7 @@ export function BrewingView() {
                     type="text"
                     inputMode="decimal"
                     step="0.001" 
-                    className="flex-1 bg-black border border-zinc-800 rounded-lg px-3 text-white font-mono text-sm placeholder:text-zinc-700 focus:border-emerald-500 focus:outline-none transition-colors"
+                    className="flex-1 bg-background border border-border rounded-lg px-3 text-text-primary font-mono text-sm placeholder:text-text-disabled focus:border-emerald-500 focus:outline-none transition-colors"
                     placeholder={lastOgEvent ? `${(lastOgEvent.data as any)?.gravity}` : "1.050"}
                     value={og}
                     onChange={(e) => setOg(e.target.value)}
@@ -1108,7 +1108,7 @@ export function BrewingView() {
                 <button 
                     onClick={handleLogOG}
                     disabled={!og}
-                    className="px-4 bg-zinc-900 hover:bg-emerald-600 disabled:opacity-50 disabled:hover:bg-zinc-900 text-white rounded-lg border border-zinc-800 font-bold transition-all"
+                    className="px-4 bg-surface hover:bg-emerald-600 disabled:opacity-50 disabled:hover:bg-surface text-text-primary rounded-lg border border-border font-bold transition-all"
                 >
                     <Check className="w-4 h-4" />
                 </button>
@@ -1118,9 +1118,9 @@ export function BrewingView() {
             <div className="flex gap-6 text-xs pl-1 mt-3">
                  {/* Target */}
                  {(data.og || data.original_gravity) && (
-                    <div className="flex items-center gap-2 text-zinc-500">
+                    <div className="flex items-center gap-2 text-text-muted">
                         <span className="uppercase font-bold text-[10px] tracking-wider">Ziel</span>
-                        <span className="font-mono text-zinc-300 border-b border-dashed border-zinc-700">
+                        <span className="font-mono text-text-secondary border-b border-dashed border-border">
                              {(() => {
                                 const val = parseFloat(data.og || data.original_gravity);
                                 if (val >= 1.5) {
@@ -1142,7 +1142,7 @@ export function BrewingView() {
         defaultType={modalInitialType}
       />
 
-      <div className="flex justify-end pt-6 border-t border-zinc-900">
+      <div className="flex justify-end pt-6 border-t border-border">
         <button 
             onClick={finishDay} 
             className="flex items-center gap-2 px-6 py-2.5 bg-zinc-100 hover:bg-white text-black font-bold rounded-lg transition-all shadow-lg active:scale-95"
@@ -1211,7 +1211,7 @@ export function FermentingView() {
                 defaultType={modalInitialType}
             />
 
-            <div className="flex justify-end pt-6 border-t border-zinc-900">
+            <div className="flex justify-end pt-6 border-t border-border">
                 <button 
                     onClick={() => changePhase('conditioning')}
                     className="flex items-center gap-2 px-6 py-2.5 bg-zinc-100 hover:bg-white text-black font-bold rounded-lg transition-all shadow-lg active:scale-95"
@@ -1276,13 +1276,13 @@ export function ConditioningView() {
             <PhaseDescription>Flaschengärung vorbereiten, Zucker berechnen und Reifung überwachen.</PhaseDescription>
 
             {/* Carbonation Calculator */}
-            <div className="bg-zinc-900 p-6 rounded-lg border border-zinc-800 mb-8">
-                 <h3 className="text-sm font-bold text-white mb-6 flex items-center gap-2">
-                     <Calculator className="w-4 h-4 text-zinc-400" /> Karbonisierung (Zucker-Rechner)
+            <div className="bg-surface p-6 rounded-lg border border-border mb-8">
+                 <h3 className="text-sm font-bold text-text-primary mb-6 flex items-center gap-2">
+                     <Calculator className="w-4 h-4 text-text-muted" /> Karbonisierung (Zucker-Rechner)
                  </h3>
                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
-                        <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-2 block">Menge (Liter)</label>
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-text-muted mb-2 block">Menge (Liter)</label>
                         <InputField 
                             type="text"
                             inputMode="decimal"
@@ -1292,7 +1292,7 @@ export function ConditioningView() {
                         />
                     </div>
                     <div>
-                        <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-2 block">Jungbier Temp (°C)</label>
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-text-muted mb-2 block">Jungbier Temp (°C)</label>
                         <InputField 
                             type="text"
                             inputMode="decimal"
@@ -1300,10 +1300,10 @@ export function ConditioningView() {
                             value={carbTemp}
                             onChange={(e) => setCarbTemp(e.target.value)}
                         />
-                        <div className="text-[10px] text-zinc-600 mt-1 uppercase tracking-wider font-bold">Höchste Temp. nach Gärung</div>
+                        <div className="text-[10px] text-text-disabled mt-1 uppercase tracking-wider font-bold">Höchste Temp. nach Gärung</div>
                     </div>
                     <div>
-                        <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-2 block">Ziel CO₂ (g/l)</label>
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-text-muted mb-2 block">Ziel CO₂ (g/l)</label>
                         <InputField 
                             type="text"
                             inputMode="decimal"
@@ -1318,7 +1318,7 @@ export function ConditioningView() {
                      <div className="mt-6 p-4 bg-emerald-950/10 border border-emerald-500/10 rounded-lg flex items-center justify-between">
                          <div>
                              <div className="text-emerald-400 font-bold text-xs uppercase tracking-wider mb-1">Benötigter Zucker</div>
-                             <div className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest">Haushaltszucker</div>
+                             <div className="text-text-muted text-[10px] uppercase font-bold tracking-widest">Haushaltszucker</div>
                          </div>
                          <div className="text-right">
                              <div className="text-2xl font-black text-emerald-400 font-mono">{sugarResult} <span className="text-sm text-emerald-600">g</span></div>
@@ -1326,26 +1326,26 @@ export function ConditioningView() {
                          </div>
                      </div>
                  ) : (
-                     <div className="mt-6 p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg text-zinc-500 text-xs font-bold uppercase tracking-widest text-center">
+                     <div className="mt-6 p-4 bg-surface/50 border border-border rounded-lg text-text-muted text-xs font-bold uppercase tracking-widest text-center">
                          Bereit zur Berechnung
                      </div>
                  )}
             </div>
 
              {/* Conditioning Timer / Plan */}
-             <div className="bg-zinc-900 p-6 rounded-lg border border-zinc-800 mb-8">
-                 <h3 className="text-sm font-bold text-white mb-6 flex items-center gap-2">
-                     <Timer className="w-4 h-4 text-zinc-400" /> {conditioningStartEvent ? 'Reifungs-Status' : 'Reifung planen'}
+             <div className="bg-surface p-6 rounded-lg border border-border mb-8">
+                 <h3 className="text-sm font-bold text-text-primary mb-6 flex items-center gap-2">
+                     <Timer className="w-4 h-4 text-text-muted" /> {conditioningStartEvent ? 'Reifungs-Status' : 'Reifung planen'}
                  </h3>
                  
                  {conditioningStartEvent ? (
-                     <div className="bg-zinc-950 rounded-lg p-5 border border-zinc-800 flex flex-col md:flex-row gap-6 items-center justify-between">
+                     <div className="bg-background rounded-lg p-5 border border-border flex flex-col md:flex-row gap-6 items-center justify-between">
                          <div className="flex-1">
-                             <div className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-1">Geplantes Ende</div>
-                             <div className="text-2xl font-black text-cyan-400 font-mono">
+                             <div className="text-text-muted text-[10px] font-bold uppercase tracking-widest mb-1">Geplantes Ende</div>
+                             <div className="text-2xl font-black text-brand font-mono">
                                  {new Date((conditioningStartEvent.data as any).targetDate).toLocaleDateString()}
                              </div>
-                             <div className="text-zinc-500 text-xs font-bold uppercase tracking-wider mt-1">
+                             <div className="text-text-muted text-xs font-bold uppercase tracking-wider mt-1">
                                  {(conditioningStartEvent.data as any).days} Tage Reifezeit
                              </div>
                          </div>
@@ -1364,7 +1364,7 @@ export function ConditioningView() {
                  ) : (
                      <div className="flex flex-col md:flex-row gap-4 items-end">
                          <div className="flex-1 w-full">
-                             <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-2 block">Dauer (Tage)</label>
+                             <label className="text-[10px] font-bold uppercase tracking-widest text-text-muted mb-2 block">Dauer (Tage)</label>
                              <div className="flex items-center gap-3">
                                 <InputField 
                                     type="number" 
@@ -1372,7 +1372,7 @@ export function ConditioningView() {
                                     onChange={(e) => setDays(parseInt(e.target.value))} 
                                     min="1"
                                 />
-                                <div className="text-zinc-400 font-bold whitespace-nowrap text-xs uppercase tracking-wider">
+                                <div className="text-text-muted font-bold whitespace-nowrap text-xs uppercase tracking-wider">
                                     ➝ {(() => {
                                         const d = new Date();
                                         d.setDate(d.getDate() + (days || 0));
@@ -1383,7 +1383,7 @@ export function ConditioningView() {
                          </div>
                          <button 
                             onClick={handleStartConditioning}
-                            className="w-full md:w-auto px-6 py-3 bg-zinc-800 hover:bg-zinc-700 font-bold text-white rounded-lg transition-colors border border-zinc-700 text-sm"
+                            className="w-full md:w-auto px-6 py-3 bg-surface-hover hover:bg-border font-bold text-text-primary rounded-lg transition-colors border border-border text-sm"
                          >
                              Plan Starten
                          </button>
@@ -1402,7 +1402,7 @@ export function ConditioningView() {
                  </div>
              )}
             
-            <div className="flex justify-end pt-6 border-t border-zinc-900">
+            <div className="flex justify-end pt-6 border-t border-border">
                 <button 
                     onClick={() => changePhase('completed')} 
                     className="flex items-center gap-2 px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-lg transition-all shadow-lg shadow-emerald-900/20 active:scale-95"
@@ -1417,12 +1417,12 @@ export function ConditioningView() {
 
 export function CompletedView() {
      return (
-        <PhaseCard className="text-center py-24 bg-zinc-900 rounded-lg border border-zinc-800 border-dashed">
-            <div className="w-24 h-24 bg-zinc-950 rounded-full flex items-center justify-center mx-auto mb-6 border border-zinc-800">
-                <Beer className="w-12 h-12 text-zinc-700" strokeWidth={1} />
+        <PhaseCard className="text-center py-24 bg-surface rounded-lg border border-border border-dashed">
+            <div className="w-24 h-24 bg-background rounded-full flex items-center justify-center mx-auto mb-6 border border-border">
+                <Beer className="w-12 h-12 text-text-disabled" strokeWidth={1} />
             </div>
-            <h2 className="text-3xl font-black text-white mb-2">Prost!</h2>
-            <p className="text-zinc-500 text-sm uppercase tracking-widest font-bold">Dieser Sud ist abgeschlossen und archiviert.</p>
+            <h2 className="text-3xl font-black text-text-primary mb-2">Prost!</h2>
+            <p className="text-text-muted text-sm uppercase tracking-widest font-bold">Dieser Sud ist abgeschlossen und archiviert.</p>
         </PhaseCard>
     );
 }

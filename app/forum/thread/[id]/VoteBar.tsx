@@ -76,8 +76,8 @@ export default function VoteBar({ targetId, targetType, initialCounts, initialUs
                             inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium
                             transition-all duration-100 select-none
                             ${voted
-                                ? 'bg-emerald-500/15 text-emerald-400'
-                                : 'text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800/60'
+                                ? 'bg-success/15 text-success'
+                                : 'text-text-disabled hover:text-text-secondary hover:bg-surface-hover/60'
                             }
                             disabled:opacity-60 disabled:cursor-not-allowed
                         `}
@@ -85,7 +85,7 @@ export default function VoteBar({ targetId, targetType, initialCounts, initialUs
                         <Icon size={12} />
                         <span className="hidden sm:inline">{label}</span>
                         {count > 0 && (
-                            <span className={`tabular-nums ${voted ? 'text-emerald-400' : 'text-zinc-600'}`}>
+                            <span className={`tabular-nums ${voted ? 'text-success' : 'text-text-disabled'}`}>
                                 {count}
                             </span>
                         )}

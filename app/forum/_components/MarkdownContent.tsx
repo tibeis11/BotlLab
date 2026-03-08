@@ -14,14 +14,14 @@ function processTextNode(text: string): ReactNode {
         if (/^https?:\/\//.test(part)) {
             return (
                 <a key={i} href={part} target="_blank" rel="noopener noreferrer"
-                    className="text-emerald-400 hover:underline break-all">
+                    className="text-success hover:underline break-all">
                     {part}
                 </a>
             );
         }
         if (part.startsWith('@') && part.length > 1) {
             return (
-                <span key={i} className="font-bold text-blue-400 bg-blue-500/10 px-1 rounded mx-0.5">
+                <span key={i} className="font-bold text-brand bg-brand/10 px-1 rounded mx-0.5">
                     {part}
                 </span>
             );
@@ -56,45 +56,45 @@ export default function MarkdownContent({ content, className }: MarkdownContentP
             </p>
         ),
         strong: ({ children }) => (
-            <strong className="font-bold text-white">{children}</strong>
+            <strong className="font-bold text-text-primary">{children}</strong>
         ),
         em: ({ children }) => (
-            <em className="italic text-zinc-300">{children}</em>
+            <em className="italic text-text-secondary">{children}</em>
         ),
         h1: ({ children }) => (
-            <h1 className="text-xl font-black text-white mt-4 mb-2 first:mt-0">{children}</h1>
+            <h1 className="text-xl font-black text-text-primary mt-4 mb-2 first:mt-0">{children}</h1>
         ),
         h2: ({ children }) => (
-            <h2 className="text-lg font-bold text-white mt-4 mb-2 first:mt-0">{children}</h2>
+            <h2 className="text-lg font-bold text-text-primary mt-4 mb-2 first:mt-0">{children}</h2>
         ),
         h3: ({ children }) => (
-            <h3 className="text-base font-bold text-zinc-200 mt-3 mb-1 first:mt-0">{children}</h3>
+            <h3 className="text-base font-bold text-foreground mt-3 mb-1 first:mt-0">{children}</h3>
         ),
         pre: ({ children }) => (
-            <pre className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 overflow-x-auto my-3 text-xs font-mono text-zinc-300">
+            <pre className="bg-background border border-border rounded-xl p-4 overflow-x-auto my-3 text-xs font-mono text-text-secondary">
                 {children}
             </pre>
         ),
         code: ({ children }) => (
-            <code className="bg-zinc-800 px-1.5 py-0.5 rounded text-[13px] font-mono text-zinc-200">
+            <code className="bg-surface-hover px-1.5 py-0.5 rounded text-[13px] font-mono text-foreground">
                 {children}
             </code>
         ),
         blockquote: ({ children }) => (
             <div className="flex gap-3 my-3">
-                <div className="w-1 rounded-full bg-zinc-700 shrink-0" />
-                <div className="text-zinc-400 italic text-sm [&_p]:mb-0">
+                <div className="w-1 rounded-full bg-border-hover shrink-0" />
+                <div className="text-text-secondary italic text-sm [&_p]:mb-0">
                     {children}
                 </div>
             </div>
         ),
         ul: ({ children }) => (
-            <ul className="list-disc list-inside text-zinc-300 space-y-1 my-2 ml-2">
+            <ul className="list-disc list-inside text-text-secondary space-y-1 my-2 ml-2">
                 {children}
             </ul>
         ),
         ol: ({ children }) => (
-            <ol className="list-decimal list-inside text-zinc-300 space-y-1 my-2 ml-2">
+            <ol className="list-decimal list-inside text-text-secondary space-y-1 my-2 ml-2">
                 {children}
             </ol>
         ),
@@ -103,15 +103,15 @@ export default function MarkdownContent({ content, className }: MarkdownContentP
         ),
         a: ({ href, children }) => (
             <a href={href} target="_blank" rel="noopener noreferrer"
-                className="text-emerald-400 hover:underline break-all">
+                className="text-success hover:underline break-all">
                 {children}
             </a>
         ),
-        hr: () => <hr className="border-zinc-800 my-4" />,
+        hr: () => <hr className="border-border my-4" />,
     };
 
     return (
-        <div className={`text-zinc-300 text-sm leading-relaxed ${className ?? ''}`}>
+        <div className={`text-text-secondary text-sm leading-relaxed ${className ?? ''}`}>
             <ReactMarkdown remarkPlugins={[remarkBreaks]} components={components}>
                 {content}
             </ReactMarkdown>

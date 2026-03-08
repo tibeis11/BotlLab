@@ -17,10 +17,10 @@ import { de } from 'date-fns/locale';
 export default function TasteEvolutionChart({ data }: { data: TimelineDataPoint[] }) {
   if (!data || data.length < 2) {
     return (
-      <div className="flex flex-col items-center justify-center h-[300px] text-zinc-500 text-sm border border-dashed border-zinc-800 rounded-xl bg-zinc-900/20">
+      <div className="flex flex-col items-center justify-center h-[300px] text-text-muted text-sm border border-dashed border-border rounded-xl bg-surface/20">
         <span className="text-2xl mb-2 grayscale opacity-50">📉</span>
         <p>Nicht genügend Zeitdaten.</p>
-        <p className="text-xs mt-1 text-zinc-600">Mindestens 2 Monate mit Bewertungen benötigt.</p>
+        <p className="text-xs mt-1 text-text-disabled">Mindestens 2 Monate mit Bewertungen benötigt.</p>
       </div>
     );
   }
@@ -35,16 +35,16 @@ export default function TasteEvolutionChart({ data }: { data: TimelineDataPoint[
     <div className="h-[300px] w-full">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
           <XAxis 
             dataKey="formattedDate" 
-            tick={{ fill: '#71717a', fontSize: 11 }}
+            tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
             axisLine={false}
             tickLine={false}
           />
           <YAxis 
             domain={[0, 10]} 
-            tick={{ fill: '#71717a', fontSize: 11 }}
+            tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
             axisLine={false}
             tickLine={false}
           />
@@ -52,13 +52,13 @@ export default function TasteEvolutionChart({ data }: { data: TimelineDataPoint[
             content={({ active, payload, label }) => {
                 if (active && payload && payload.length) {
                   return (
-                    <div className="bg-zinc-900 border border-zinc-800 p-3 rounded-lg shadow-xl">
-                      <p className="text-zinc-300 text-xs mb-2 font-medium">{payload[0].payload.fullDate}</p>
+                    <div className="bg-surface border border-border p-3 rounded-lg shadow-xl">
+                      <p className="text-text-secondary text-xs mb-2 font-medium">{payload[0].payload.fullDate}</p>
                       {payload.map((entry: any) => (
                         <div key={entry.name} className="flex items-center gap-2 text-xs mb-1">
                           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.stroke }}></div>
-                          <span className="text-zinc-400 w-16">{entry.name}:</span>
-                          <span className="text-white font-mono font-medium">{entry.value.toFixed(1)}</span>
+                          <span className="text-text-secondary w-16">{entry.name}:</span>
+                          <span className="text-text-primary font-mono font-bold">{entry.value.toFixed(1)}</span>
                         </div>
                       ))}
                     </div>

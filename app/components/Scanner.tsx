@@ -97,13 +97,22 @@ export default function Scanner({ onScanSuccess, autoStart = false }: ScannerPro
                 aspectRatio: 1.0,
             };
 
-            // Try back camera first, fallback to front camera
+            // Try back camera first, fallback to front, then any available camera
             try {
                 await scanner.start({ facingMode: "environment" }, config, onScanSuccess, undefined);
             } catch (e) {
                 const error = e as Error;
-                if (error.name === "OverconstrainedError" || error.toString().includes("OverconstrainedError")) {
-                    await scanner.start({ facingMode: "user" }, config, onScanSuccess, undefined);
+                const isConstraintError = error.name === "OverconstrainedError" || error.toString().includes("OverconstrainedError");
+                const isNotFound = error.name === "NotFoundError" || error.toString().includes("NotFoundError");
+                if (isConstraintError || isNotFound) {
+                    try {
+                        await scanner.start({ facingMode: "user" }, config, onScanSuccess, undefined);
+                    } catch (e2) {
+                        // Last resort: enumerate cameras and start with first available
+                        const cameras = await Html5Qrcode.getCameras();
+                        if (!cameras || cameras.length === 0) throw new Error("Keine Kamera gefunden.");
+                        await scanner.start(cameras[0].id, config, onScanSuccess, undefined);
+                    }
                 } else {
                     throw error;
                 }
@@ -111,9 +120,11 @@ export default function Scanner({ onScanSuccess, autoStart = false }: ScannerPro
 
             if (isMountedRef.current) setIsScanning(true);
         } catch (err) {
-            console.error("Scanner Error:", err);
+            const e = err as Error;
+            const isExpected = ["NotFoundError", "NotAllowedError", "NotReadableError"].includes(e.name);
+            if (!isExpected) console.error("Scanner Error:", err);
             if (isMountedRef.current) {
-                setErrorMsg(getErrorMessage(err as Error));
+                setErrorMsg(getErrorMessage(e));
             }
         } finally {
             if (isMountedRef.current) {

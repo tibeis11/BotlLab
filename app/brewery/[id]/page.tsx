@@ -4,11 +4,22 @@ import { useEffect, useState, use } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import Link from 'next/link';
 import { getBreweryTierConfig } from '@/lib/tier-system';
+import { MapPin, Globe, Building2, User, BookOpen } from 'lucide-react';
 
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
 import ReportButton from '@/app/components/reporting/ReportButton';
-import BrewCard from '@/app/components/BrewCard';
+import DiscoverBrewCard from '@/app/components/DiscoverBrewCard';
+
+/* ── Tiny stat pill used in the KPI grid ───────────────── */
+function StatCard({ label, value, color }: { label: string; value: string | number; color: string }) {
+  return (
+    <div className="bg-surface border border-border hover:border-border-hover rounded-2xl p-4 flex flex-col justify-center min-h-[88px] transition-colors">
+      <div className={`text-[10px] uppercase font-bold mb-1 tracking-wider ${color}`}>{label}</div>
+      <div className="font-black text-2xl text-text-primary">{value}</div>
+    </div>
+  );
+}
 
 // Read-only Client für öffentliche Daten
 const supabase = createClient(
@@ -109,162 +120,228 @@ export default function PublicBreweryPage({ params }: { params: Promise<{ id: st
 
   if (loading) {
     return (
-        <div className="min-h-screen bg-black flex items-center justify-center">
-            <div className="animate-spin text-4xl">🍺</div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Building2 className="w-12 h-12 text-text-disabled mx-auto mb-4" />
+          <p className="text-text-muted">Lade Brauerei...</p>
         </div>
+      </div>
     );
   }
 
   if (!brewery) {
-      return (
-          <div className="min-h-screen bg-black flex flex-col items-center justify-center text-zinc-500 gap-4">
-              <h1 className="text-2xl font-bold text-white">Brauerei nicht gefunden</h1>
-              <Link href="/discover" className="text-cyan-400 hover:underline">Zurück zum Entdecken</Link>
-          </div>
-      );
+    return (
+      <div className="min-h-screen bg-background text-text-muted flex flex-col items-center justify-center p-4 text-center">
+        <h1 className="text-4xl font-black mb-4 text-text-primary">404</h1>
+        <p className="text-lg mb-8">Diese Brauerei existiert nicht.</p>
+        <Link href="/discover" className="text-brand hover:text-brand-hover transition">← Zum Entdecken</Link>
+      </div>
+    );
   }
 
+  /* ── Derived values ────────────────────────────────────────────── */
   const tierConfig = getBreweryTierConfig(brewery.tier || 'garage');
   const totalRatings = Object.values(brewRatings).reduce((sum, r) => sum + r.count, 0);
-  const avgOverallRating = totalRatings > 0 
-    ? (Object.values(brewRatings).reduce((sum, r) => sum + r.avg * r.count, 0) / totalRatings).toFixed(1)
-    : null;
+  const avgOverallRating =
+    totalRatings > 0
+      ? (Object.values(brewRatings).reduce((sum, r) => sum + r.avg * r.count, 0) / totalRatings).toFixed(1)
+      : null;
 
+  /* ── Render ────────────────────────────────────────────────────── */
   return (
-    <div className="min-h-screen bg-black text-white pb-24">
-      
+    <div className="min-h-screen bg-background text-text-primary">
       <Header />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 pt-24">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
-          
-           {/* --- LEFT COLUMN: Profile Image & Basic Stats (4 cols) --- */}
-          <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-8">
-             {/* Profile Image (Smaller) */}
-             <div className="relative w-48 h-48 mx-auto shadow-2xl rounded-full overflow-hidden border border-zinc-800 bg-zinc-900">
-                {brewery.logo_url && brewery.moderation_status !== 'pending' ? (
-                  <img src={brewery.logo_url} className="w-full h-full object-cover" alt={brewery.name} />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-zinc-900 to-zinc-800 flex items-center justify-center text-6xl">
-                    🏰
-                  </div>
-                )}
-             </div>
+      {/* ── HERO ──────────────────────────────────────────────────────── */}
+      <div className="relative overflow-hidden">
+        {/* Blurred background */}
+        {brewery.logo_url && brewery.moderation_status !== 'pending' && (
+          <img
+            src={brewery.logo_url}
+            alt=""
+            aria-hidden
+            className="absolute inset-0 w-full h-full object-cover opacity-[0.12] blur-3xl scale-110 pointer-events-none"
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-background/70 to-transparent" />
 
-             {/* Bio Card */}
-              <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-5 hover:border-zinc-700 transition">
-                <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest mb-3">Über</p>
-                <div className="space-y-4">
-                     {brewery.location && (
-                      <p className="text-sm text-white flex items-center gap-2">
-                        📍 {brewery.location}
-                      </p>
-                    )}
-                    {brewery.website_url && (
-                      <a href={brewery.website_url.includes('http') ? brewery.website_url : `https://${brewery.website_url}`} target="_blank" className="text-sm text-cyan-400 hover:text-cyan-300 block truncate">
-                        🌐 {brewery.website_url.replace('https://', '')}
-                      </a>
-                    )}
-                     {brewery.description && (
-                      <p className="text-sm text-zinc-400 leading-relaxed pt-2 border-t border-zinc-800/50">
-                        {brewery.description}
-                      </p>
-                    )}
+        {/* Hero content */}
+        <div className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 pt-8 md:pt-10 pb-6">
+          <div className="flex items-end gap-5 md:gap-8">
+            {/* Logo */}
+            <div className="shrink-0 w-20 h-20 md:w-28 md:h-28 rounded-2xl overflow-hidden border border-border/60 shadow-2xl bg-surface">
+              {brewery.logo_url && brewery.moderation_status !== 'pending' ? (
+                <img src={brewery.logo_url} className="w-full h-full object-cover" alt={brewery.name} />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-surface-hover to-surface flex items-center justify-center">
+                  <Building2 className="w-10 h-10 text-text-disabled" />
                 </div>
-              </div>
-              
-              {/* Team Members */}
-               {members.length > 0 && (
-                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
-                     <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest mb-3">Das Team</p>
-                     <div className="space-y-2">
-                        {members.map((member: any) => (
-                            <Link key={member.id} href={`/brewer/${member.id}`} className="block group">
-                                <div className="flex items-center gap-3 p-2 rounded-xl hover:bg-zinc-800/50 transition border border-transparent hover:border-cyan-500/20">
-                                    <div className="w-8 h-8 rounded-full bg-zinc-800 overflow-hidden shrink-0 border border-zinc-700">
-                                        {member.logo_url ? (
-                                            <img src={member.logo_url} className="w-full h-full object-cover" />
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-xs">👤</div>
-                                        )}
-                                    </div>
-                                    <span className="font-bold text-white group-hover:text-cyan-400 transition text-sm">{member.display_name}</span>
-                                </div>
-                            </Link>
-                        ))}
-                     </div>
-                 </div>
               )}
+            </div>
+
+            {/* Name + meta */}
+            <div className="flex-1 min-w-0 pb-1">
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                <span
+                  className="text-xs font-black uppercase tracking-widest px-3 py-1 rounded-lg border"
+                  style={{
+                    borderColor: tierConfig?.color ? `${tierConfig.color}40` : undefined,
+                    color: tierConfig?.color || undefined,
+                    backgroundColor: tierConfig?.color ? `${tierConfig.color}10` : undefined,
+                  }}
+                >
+                  {tierConfig?.displayName || 'Brauerei'}
+                </span>
+                <ReportButton targetId={brewery.id} targetType="brewery" />
+              </div>
+              <h1 className="text-3xl md:text-5xl font-black text-text-primary tracking-tight drop-shadow-md leading-tight">
+                {brewery.name}
+              </h1>
+              <div className="flex flex-wrap items-center gap-4 mt-2">
+                {brewery.location && (
+                  <span className="text-sm text-text-secondary flex items-center gap-1.5">
+                    <MapPin size={12} className="text-text-disabled" />
+                    {brewery.location}
+                  </span>
+                )}
+                {brewery.website_url && (
+                  <a
+                    href={brewery.website_url.includes('http') ? brewery.website_url : `https://${brewery.website_url}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-brand hover:text-brand-hover transition flex items-center gap-1.5 truncate max-w-xs"
+                  >
+                    <Globe size={12} className="text-text-disabled shrink-0" />
+                    {brewery.website_url.replace(/https?:\/\//, '')}
+                  </a>
+                )}
+                {brews.length > 0 && (
+                  <span className="text-sm text-text-muted">{brews.length} öffentliche Rezepte</span>
+                )}
+              </div>
+            </div>
           </div>
 
-          {/* --- RIGHT COLUMN: Content (8 cols) --- */}
-          <div className="lg:col-span-8 space-y-10">
-            
-            {/* Header */}
-            <div className="text-center lg:text-left space-y-4">
-                <div className="flex flex-wrap gap-2 items-center justify-center lg:justify-start">
-                    <span 
-                        className="text-xs font-black uppercase tracking-widest px-3 py-1 rounded-lg bg-zinc-900 border shadow-sm"
-                        style={{
-                            borderColor: tierConfig?.color ? `${tierConfig.color}40` : '#3f3f46',
-                            color: tierConfig?.color || '#a1a1aa',
-                            backgroundColor: tierConfig?.color ? `${tierConfig.color}10` : undefined
-                        }}
-                    >
-                        {tierConfig?.displayName || 'Brauerei'}
-                    </span>
-                    <ReportButton targetId={brewery.id} targetType="brewery" />
+          {/* Description (mobile) */}
+          {brewery.description && (
+            <p className="lg:hidden text-sm text-text-secondary leading-relaxed mt-4 max-w-2xl">
+              {brewery.description}
+            </p>
+          )}
+
+          {/* KPI stats row — inline in hero */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-5">
+            <StatCard label="Rezepte" value={brews.length} color="text-brand" />
+            <StatCard label="Ø Bewertung" value={avgOverallRating || '–'} color="text-rating" />
+            <StatCard
+              label="Gegründet"
+              value={brewery.founded_year || new Date(brewery.created_at || Date.now()).getFullYear()}
+              color="text-text-secondary"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* ── MAIN CONTENT ─────────────────────────────────────────────── */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 pb-16">
+        <div className="flex flex-col lg:flex-row gap-8 items-start">
+
+          {/* ── DESKTOP SIDEBAR ──────────────────────────────────────── */}
+          <aside className="hidden lg:flex flex-col gap-3 w-52 flex-shrink-0 sticky top-20 self-start">
+            {brewery.description && (
+              <div className="bg-surface border border-border rounded-2xl p-4">
+                <p className="text-[10px] text-text-muted uppercase font-bold tracking-widest mb-2">Über</p>
+                <p className="text-xs text-text-secondary leading-relaxed">{brewery.description}</p>
+              </div>
+            )}
+
+            {members.length > 0 && (
+              <div className="bg-surface border border-border rounded-2xl p-4">
+                <p className="text-[10px] text-text-muted uppercase font-bold tracking-widest mb-2">Das Team</p>
+                <div className="space-y-1">
+                  {members.map((member: any) => (
+                    <Link key={member.id} href={`/brewer/${member.id}`} className="block group">
+                      <div className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-surface-hover/50 transition">
+                        <div className="w-6 h-6 rounded-full bg-surface-hover overflow-hidden shrink-0 border border-border-hover">
+                          {member.logo_url ? (
+                            <img src={member.logo_url} className="w-full h-full object-cover" alt="" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <User className="w-3.5 h-3.5 text-text-disabled" />
+                            </div>
+                          )}
+                        </div>
+                        <span className="font-bold text-text-secondary group-hover:text-brand transition text-xs truncate">
+                          {member.display_name}
+                        </span>
+                      </div>
+                    </Link>
+                  ))}
                 </div>
-                <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-none tracking-tight">{brewery.name}</h1>
-            </div>
+              </div>
+            )}
+          </aside>
 
-            {/* KPI Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                 {/* Total Brews */}
-                 <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 flex flex-col justify-center min-h-[100px]">
-                    <div className="text-cyan-500 text-[10px] uppercase font-bold mb-1 tracking-wider">Rezepte</div>
-                    <div className="font-black text-3xl text-white">{brews.length}</div>
-                 </div>
+          {/* ── CONTENT AREA ─────────────────────────────────────────── */}
+          <div className="flex-1 min-w-0 space-y-8">
 
-                 {/* Average Rating */}
-                 <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 flex flex-col justify-center min-h-[100px]">
-                    <div className="text-amber-500 text-[10px] uppercase font-bold mb-1 tracking-wider">Ø Bewertung</div>
-                    <div className="font-black text-3xl text-white">
-                        {avgOverallRating || '-'} <span className="text-xs text-zinc-600 font-bold align-top">({totalRatings})</span>
-                    </div>
-                 </div>
-                 
-                 {/* Founded */}
-                 <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 flex flex-col justify-center min-h-[100px]">
-                     <div className="text-zinc-500 text-[10px] uppercase font-bold mb-1 tracking-wider">Gegründet</div>
-                     <div className="font-black text-3xl text-white">{brewery.founded_year || new Date(brewery.created_at || Date.now()).getFullYear()}</div>
-                 </div>
-            </div>
+            {/* Team (mobile) */}
+            {members.length > 0 && (
+              <div className="lg:hidden bg-surface border border-border rounded-2xl p-4">
+                <p className="text-[10px] text-text-muted uppercase font-bold tracking-widest mb-3">Das Team</p>
+                <div className="flex flex-wrap gap-2">
+                  {members.map((member: any) => (
+                    <Link
+                      key={member.id}
+                      href={`/brewer/${member.id}`}
+                      className="flex items-center gap-2 bg-surface-hover rounded-full pl-1 pr-3 py-1 border border-border hover:border-brand/20 transition group"
+                    >
+                      <div className="w-6 h-6 rounded-full bg-surface overflow-hidden shrink-0 border border-border-hover">
+                        {member.logo_url ? (
+                          <img src={member.logo_url} className="w-full h-full object-cover" alt="" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <User className="w-3 h-3 text-text-disabled" />
+                          </div>
+                        )}
+                      </div>
+                      <span className="font-bold text-text-secondary group-hover:text-brand transition text-xs">
+                        {member.display_name}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
 
-            {/* Recipes Grid */}
-            <div className="pt-8 border-t border-zinc-800/50">
-               <h3 className="text-xs font-black uppercase tracking-[0.3em] text-zinc-500 mb-8">Öffentliche Rezepte</h3>
-               
+            {/* Recipes */}
+            <div>
+              <h3 className="text-xs font-black uppercase tracking-[0.3em] text-text-muted mb-4">
+                Öffentliche Rezepte
+              </h3>
               {brews.length === 0 ? (
-                <div className="bg-zinc-900/30 border border-dashed border-zinc-800 rounded-2xl p-12 text-center">
-                  <p className="text-zinc-500">Diese Brauerei hat noch keine öffentlichen Rezepte.</p>
+                <div className="bg-surface/30 border border-dashed border-border rounded-2xl p-12 text-center">
+                  <BookOpen className="w-8 h-8 text-text-disabled mx-auto mb-3" />
+                  <p className="text-text-muted">Diese Brauerei hat noch keine öffentlichen Rezepte.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                   {brews.map(brew => (
-                    <BrewCard
+                    <DiscoverBrewCard
                       key={brew.id}
                       brew={{
                         ...brew,
                         abv: brew.data?.abv ? parseFloat(brew.data.abv) : undefined,
                         ibu: brew.data?.ibu ? parseInt(brew.data.ibu, 10) : undefined,
                         ebc: brew.data?.color ? parseInt(brew.data.color, 10) : undefined,
-                        original_gravity: brew.data?.original_gravity || brew.data?.og || brew.data?.plato ? parseFloat(String(brew.data.original_gravity || brew.data.og || brew.data.plato)) : undefined,
-                        brewery: brewery ? {
-                          id: brewery.id,
-                          name: brewery.name,
-                          logo_url: brewery.logo_url,
-                        } : null,
+                        original_gravity:
+                          brew.data?.original_gravity || brew.data?.og || brew.data?.plato
+                            ? parseFloat(String(brew.data.original_gravity || brew.data.og || brew.data.plato))
+                            : undefined,
+                        brewery: brewery
+                          ? { id: brewery.id, name: brewery.name, logo_url: brewery.logo_url }
+                          : null,
                         ratings: brewRatings[brew.id]
                           ? Array(brewRatings[brew.id].count).fill({ rating: brewRatings[brew.id].avg })
                           : [],
@@ -275,15 +352,6 @@ export default function PublicBreweryPage({ params }: { params: Promise<{ id: st
               )}
             </div>
 
-            {/* Forum Grid Placeholder */}
-            <div className="pt-8 border-t border-zinc-800/50">
-               <h3 className="text-xs font-black uppercase tracking-[0.3em] text-zinc-500 mb-8">Forumsbeiträge (0)</h3>
-               
-              <div className="bg-zinc-900/30 border border-dashed border-zinc-800 rounded-2xl p-12 text-center">
-                  <p className="text-zinc-500">Keine öffentlichen Beiträge.</p>
-              </div>
-            </div>
-            
           </div>
         </div>
       </div>

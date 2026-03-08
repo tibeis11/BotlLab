@@ -31,10 +31,10 @@ export default function TasteProfileRadar({ profile }: { profile: TasteProfile }
     <div className="h-[300px] w-full">
       <ResponsiveContainer width="100%" height="100%">
         <RadarChart cx="50%" cy="50%" outerRadius="80%" data={data}>
-          <PolarGrid stroke="#27272a" />
+          <PolarGrid stroke="var(--border)" />
           <PolarAngleAxis 
             dataKey="subject" 
-            tick={{ fill: '#a1a1aa', fontSize: 12, fontWeight: 500 }}
+            tick={{ fill: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}
           />
           <PolarRadiusAxis angle={30} domain={[0, 10]} tick={false} axisLine={false} />
           <Radar
@@ -50,9 +50,9 @@ export default function TasteProfileRadar({ profile }: { profile: TasteProfile }
                 if (active && payload && payload.length) {
                   const data = payload[0].payload;
                   return (
-                    <div className="bg-zinc-900 border border-zinc-800 p-2 rounded shadow-xl">
-                      <p className="text-zinc-400 text-xs mb-1">{data.fullLabel}</p>
-                      <p className="text-cyan-400 font-bold font-mono text-lg">{data.value.toFixed(1)} <span className="text-zinc-600 text-xs font-normal">/ 10</span></p>
+                    <div className="bg-surface border border-border p-2 rounded shadow-xl">
+                      <p className="text-text-secondary text-xs mb-1">{data.fullLabel}</p>
+                      <p className="text-cyan-400 font-bold font-mono text-lg">{data.value.toFixed(1)} <span className="text-text-disabled text-xs font-normal">/ 10</span></p>
                     </div>
                   );
                 }

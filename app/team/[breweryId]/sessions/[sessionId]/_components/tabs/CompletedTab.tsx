@@ -45,8 +45,8 @@ function TastingNoteForm({ initialData, onSubmit, onCancel }: { initialData?: an
     };
 
     return (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 space-y-6 animate-in slide-in-from-bottom-2">
-            <h3 className="text-white font-bold flex items-center gap-2">
+        <div className="bg-surface border border-border rounded-lg p-6 space-y-6 animate-in slide-in-from-bottom-2">
+            <h3 className="text-text-primary font-bold flex items-center gap-2">
                 <Beer className="w-4 h-4 text-amber-500" />
                 Tasting Notiz erfassen
             </h3>
@@ -54,13 +54,13 @@ function TastingNoteForm({ initialData, onSubmit, onCancel }: { initialData?: an
             {/* Rating & Color */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                     <label className="text-[10px] uppercase font-bold text-zinc-500 mb-2 block tracking-wider">Gesamtbewertung</label>
+                     <label className="text-[10px] uppercase font-bold text-text-muted mb-2 block tracking-wider">Gesamtbewertung</label>
                      <div className="flex gap-1">
                          {[1, 2, 3, 4, 5].map((star) => (
                              <button 
                                 key={star}
                                 onClick={() => setRating(star)}
-                                className={`transition-transform hover:scale-110 ${star <= rating ? 'text-amber-400' : 'text-zinc-700'}`}
+                                className={`transition-transform hover:scale-110 ${star <= rating ? 'text-amber-400' : 'text-text-disabled'}`}
                              >
                                  <Star className="w-8 h-8" fill={star <= rating ? "currentColor" : "none"} strokeWidth={1.5} />
                              </button>
@@ -68,7 +68,7 @@ function TastingNoteForm({ initialData, onSubmit, onCancel }: { initialData?: an
                      </div>
                 </div>
                 <div>
-                    <label className="text-[10px] uppercase font-bold text-zinc-500 mb-2 block tracking-wider flex justify-between">
+                    <label className="text-[10px] uppercase font-bold text-text-muted mb-2 block tracking-wider flex justify-between">
                         <span>Farbe (SRM: {srm})</span>
                         <div className="w-4 h-4 rounded-full border border-white/20" style={{ backgroundColor: getSrmColor(srm) }}></div>
                     </label>
@@ -78,9 +78,9 @@ function TastingNoteForm({ initialData, onSubmit, onCancel }: { initialData?: an
                         max="40" 
                         value={srm} 
                         onChange={(e) => setSrm(Number(e.target.value))}
-                        className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                        className="w-full h-2 bg-surface-hover rounded-lg appearance-none cursor-pointer accent-amber-500"
                     />
-                    <div className="flex justify-between text-[10px] text-zinc-600 font-mono mt-1">
+                    <div className="flex justify-between text-[10px] text-text-disabled font-mono mt-1">
                         <span>Pale</span>
                         <span>Amber</span>
                         <span>Brown</span>
@@ -92,13 +92,13 @@ function TastingNoteForm({ initialData, onSubmit, onCancel }: { initialData?: an
             {/* Selection Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                    <label className="text-[10px] uppercase font-bold text-zinc-500 mb-2 block tracking-wider">Klarheit</label>
+                    <label className="text-[10px] uppercase font-bold text-text-muted mb-2 block tracking-wider">Klarheit</label>
                     <div className="flex flex-wrap gap-2">
                         {['brilliant', 'clear', 'hazy', 'cloudy', 'opaque'].map(opt => (
                             <button
                                 key={opt}
                                 onClick={() => setClarity(opt)}
-                                className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${clarity === opt ? 'bg-zinc-800 border-zinc-600 text-white' : 'bg-black border-zinc-800 text-zinc-500 hover:border-zinc-700'}`}
+                                className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${clarity === opt ? 'bg-surface-hover border-border text-text-primary' : 'bg-background border-border text-text-muted hover:border-border'}`}
                             >
                                 {opt}
                             </button>
@@ -106,13 +106,13 @@ function TastingNoteForm({ initialData, onSubmit, onCancel }: { initialData?: an
                     </div>
                 </div>
                 <div>
-                    <label className="text-[10px] uppercase font-bold text-zinc-500 mb-2 block tracking-wider">Schaum</label>
+                    <label className="text-[10px] uppercase font-bold text-text-muted mb-2 block tracking-wider">Schaum</label>
                     <div className="flex flex-wrap gap-2">
                         {['none', 'low', 'medium', 'high', 'persistent'].map(opt => (
                             <button
                                 key={opt}
                                 onClick={() => setHead(opt)}
-                                className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${head === opt ? 'bg-zinc-800 border-zinc-600 text-white' : 'bg-black border-zinc-800 text-zinc-500 hover:border-zinc-700'}`}
+                                className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${head === opt ? 'bg-surface-hover border-border text-text-primary' : 'bg-background border-border text-text-muted hover:border-border'}`}
                             >
                                 {opt}
                             </button>
@@ -120,13 +120,13 @@ function TastingNoteForm({ initialData, onSubmit, onCancel }: { initialData?: an
                     </div>
                 </div>
                 <div>
-                    <label className="text-[10px] uppercase font-bold text-zinc-500 mb-2 block tracking-wider">Karbonisierung</label>
+                    <label className="text-[10px] uppercase font-bold text-text-muted mb-2 block tracking-wider">Karbonisierung</label>
                     <div className="flex flex-wrap gap-2">
                         {['flat', 'low', 'medium', 'high'].map(opt => (
                             <button
                                 key={opt}
                                 onClick={() => setCarbonation(opt)}
-                                className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${carbonation === opt ? 'bg-zinc-800 border-zinc-600 text-white' : 'bg-black border-zinc-800 text-zinc-500 hover:border-zinc-700'}`}
+                                className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${carbonation === opt ? 'bg-surface-hover border-border text-text-primary' : 'bg-background border-border text-text-muted hover:border-border'}`}
                             >
                                 {opt}
                             </button>
@@ -156,9 +156,9 @@ function TastingNoteForm({ initialData, onSubmit, onCancel }: { initialData?: an
                     onChange={(e) => setMouthfeel(e.target.value)} 
                 />
                 <div>
-                    <label className="text-[10px] uppercase font-bold text-zinc-500 mb-2 block tracking-wider">Gesamt-Fazit</label>
+                    <label className="text-[10px] uppercase font-bold text-text-muted mb-2 block tracking-wider">Gesamt-Fazit</label>
                     <textarea 
-                        className="w-full bg-black border border-zinc-800 rounded-md p-3 text-sm text-white focus:border-zinc-600 outline-none min-h-[80px]"
+                        className="w-full bg-background border border-border rounded-md p-3 text-sm text-text-primary focus:border-brand outline-none min-h-[80px]"
                         placeholder="Zusammenfassende Meinung..."
                         value={comments}
                         onChange={(e) => setComments(e.target.value)}
@@ -167,9 +167,9 @@ function TastingNoteForm({ initialData, onSubmit, onCancel }: { initialData?: an
             </div>
 
             {/* Actions */}
-            <div className="flex justify-end gap-3 pt-4 border-t border-zinc-800">
-                <button onClick={onCancel} className="px-4 py-2 text-zinc-400 hover:text-white text-sm font-medium transition-colors">Abbrechen</button>
-                <button onClick={handleSubmit} className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold rounded-lg transition-colors flex items-center gap-2">
+            <div className="flex justify-end gap-3 pt-4 border-t border-border">
+                <button onClick={onCancel} className="px-4 py-2 text-text-muted hover:text-text-primary text-sm font-medium transition-colors">Abbrechen</button>
+                <button onClick={handleSubmit} className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-text-primary text-sm font-bold rounded-lg transition-colors flex items-center gap-2">
                     <Check className="w-4 h-4" /> Speichern
                 </button>
             </div>
@@ -306,29 +306,29 @@ export function CompletedTab() {
 
             {/* Final Stats Card */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                 <div className="md:bg-zinc-900 md:border md:border-zinc-800 md:p-4 md:rounded-lg py-2 px-1 border-b border-zinc-800 md:border-b-0">
-                    <div className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider mb-1">Stammwürze (OG)</div>
-                    <div className="text-xl font-mono font-bold text-white">{stats.og?.toFixed(3) || '—'}</div>
+                 <div className="md:bg-surface md:border md:border-border md:p-4 md:rounded-lg py-2 px-1 border-b border-border md:border-b-0">
+                    <div className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-1">Stammwürze (OG)</div>
+                    <div className="text-xl font-mono font-bold text-text-primary">{stats.og?.toFixed(3) || '—'}</div>
                  </div>
-                 <div className="md:bg-zinc-900 md:border md:border-zinc-800 md:p-4 md:rounded-lg py-2 px-1 border-b border-zinc-800 md:border-b-0">
-                    <div className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider mb-1">Restextrakt (FG)</div>
-                    <div className="text-xl font-mono font-bold text-white">{stats.fg?.toFixed(3) || '—'}</div>
+                 <div className="md:bg-surface md:border md:border-border md:p-4 md:rounded-lg py-2 px-1 border-b border-border md:border-b-0">
+                    <div className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-1">Restextrakt (FG)</div>
+                    <div className="text-xl font-mono font-bold text-text-primary">{stats.fg?.toFixed(3) || '—'}</div>
                  </div>
-                 <div className="md:bg-zinc-900 md:border md:border-zinc-800 md:p-4 md:rounded-lg py-2 px-1 border-b border-zinc-800 md:border-b-0">
-                    <div className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider mb-1">Alkohol (ABV)</div>
+                 <div className="md:bg-surface md:border md:border-border md:p-4 md:rounded-lg py-2 px-1 border-b border-border md:border-b-0">
+                    <div className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-1">Alkohol (ABV)</div>
                     <div className="text-xl font-mono font-bold text-emerald-400">{stats.abv}%</div>
                  </div>
-                 <div className="md:bg-zinc-900 md:border md:border-zinc-800 md:p-4 md:rounded-lg py-2 px-1 border-b border-zinc-800 md:border-b-0 md:last:border-0">
-                    <div className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider mb-1">Vergärungsgrad</div>
-                    <div className="text-xl font-mono font-bold text-cyan-400">{stats.attenuation}%</div>
+                 <div className="md:bg-surface md:border md:border-border md:p-4 md:rounded-lg py-2 px-1 border-b border-border md:border-b-0 md:last:border-0">
+                    <div className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-1">Vergärungsgrad</div>
+                    <div className="text-xl font-mono font-bold text-brand">{stats.attenuation}%</div>
                     <BotlGuideTrigger guideKey="effizienz.sudhausausbeute" />
                  </div>
             </div>
 
             {/* Tasting Notes */}
             <div className="mb-8">
-                <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-                    <Star className="w-4 h-4 text-zinc-400" /> Tasting Report
+                <h3 className="text-sm font-bold text-text-primary mb-4 flex items-center gap-2">
+                    <Star className="w-4 h-4 text-text-muted" /> Tasting Report
                 </h3>
                 
                 {isEditingNote ? (
@@ -338,9 +338,9 @@ export function CompletedTab() {
                         onCancel={() => setIsEditingNote(false)} 
                     />
                 ) : tastingNote ? (
-                    <div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden">
+                    <div className="bg-surface border border-border rounded-lg overflow-hidden">
                         {/* Header */}
-                        <div className="p-4 border-b border-zinc-800 bg-zinc-950 flex justify-between items-start">
+                        <div className="p-4 border-b border-border bg-background flex justify-between items-start">
                             <div>
                                 <div className="flex items-center gap-2 mb-1">
                                     <div className="flex text-amber-500">
@@ -348,59 +348,59 @@ export function CompletedTab() {
                                             <Star key={i} className="w-4 h-4" fill={i < (tastingNote as any).data.rating ? "currentColor" : "none"} />
                                         ))}
                                     </div>
-                                    <span className="text-xs font-bold text-zinc-400">{(tastingNote as any).data.rating}/5</span>
+                                    <span className="text-xs font-bold text-text-muted">{(tastingNote as any).data.rating}/5</span>
                                 </div>
-                                <div className="text-xs text-zinc-500">Erfasst am {new Date(tastingNote.date).toLocaleDateString()}</div>
+                                <div className="text-xs text-text-muted">Erfasst am {new Date(tastingNote.date).toLocaleDateString()}</div>
                             </div>
                             <div className="flex gap-2">
-                                <button onClick={() => setIsEditingNote(true)} className="p-2 hover:bg-zinc-800 rounded-md text-zinc-400 hover:text-white transition-colors"><Edit2 className="w-4 h-4" /></button>
-                                <button onClick={handleDeleteNote} className="p-2 hover:bg-zinc-800 rounded-md text-zinc-400 hover:text-red-400 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                                <button onClick={() => setIsEditingNote(true)} className="p-2 hover:bg-surface-hover rounded-md text-text-muted hover:text-text-primary transition-colors"><Edit2 className="w-4 h-4" /></button>
+                                <button onClick={handleDeleteNote} className="p-2 hover:bg-surface-hover rounded-md text-text-muted hover:text-red-400 transition-colors"><Trash2 className="w-4 h-4" /></button>
                             </div>
                         </div>
                         {/* Body */}
                         <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
                              <div>
-                                 <h4 className="text-[10px] uppercase font-bold text-zinc-500 mb-4 tracking-wider">Profil</h4>
+                                 <h4 className="text-[10px] uppercase font-bold text-text-muted mb-4 tracking-wider">Profil</h4>
                                  <div className="space-y-4">
-                                     <div className="flex justify-between items-center border-b border-zinc-800 pb-2">
-                                         <span className="text-sm text-zinc-400">Farbe</span>
+                                     <div className="flex justify-between items-center border-b border-border pb-2">
+                                         <span className="text-sm text-text-muted">Farbe</span>
                                          <div className="flex items-center gap-2">
                                              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: getSrmColor((tastingNote as any).data.srm) }}></div>
-                                             <span className="text-sm font-mono font-bold text-white">{(tastingNote as any).data.srm} SRM</span>
+                                             <span className="text-sm font-mono font-bold text-text-primary">{(tastingNote as any).data.srm} SRM</span>
                                          </div>
                                      </div>
-                                     <div className="flex justify-between items-center border-b border-zinc-800 pb-2">
-                                         <span className="text-sm text-zinc-400">Klarheit</span>
-                                         <span className="text-sm font-bold text-white capitalize">{(tastingNote as any).data.clarity}</span>
+                                     <div className="flex justify-between items-center border-b border-border pb-2">
+                                         <span className="text-sm text-text-muted">Klarheit</span>
+                                         <span className="text-sm font-bold text-text-primary capitalize">{(tastingNote as any).data.clarity}</span>
                                      </div>
-                                     <div className="flex justify-between items-center border-b border-zinc-800 pb-2">
-                                         <span className="text-sm text-zinc-400">Schaum</span>
-                                         <span className="text-sm font-bold text-white capitalize">{(tastingNote as any).data.head}</span>
+                                     <div className="flex justify-between items-center border-b border-border pb-2">
+                                         <span className="text-sm text-text-muted">Schaum</span>
+                                         <span className="text-sm font-bold text-text-primary capitalize">{(tastingNote as any).data.head}</span>
                                      </div>
-                                     <div className="flex justify-between items-center border-b border-zinc-800 pb-2">
-                                         <span className="text-sm text-zinc-400">Karbonisierung</span>
-                                         <span className="text-sm font-bold text-white capitalize">{(tastingNote as any).data.carbonation}</span>
+                                     <div className="flex justify-between items-center border-b border-border pb-2">
+                                         <span className="text-sm text-text-muted">Karbonisierung</span>
+                                         <span className="text-sm font-bold text-text-primary capitalize">{(tastingNote as any).data.carbonation}</span>
                                      </div>
                                  </div>
                              </div>
                              <div>
-                                 <h4 className="text-[10px] uppercase font-bold text-zinc-500 mb-4 tracking-wider">Notizen</h4>
+                                 <h4 className="text-[10px] uppercase font-bold text-text-muted mb-4 tracking-wider">Notizen</h4>
                                  <div className="space-y-4">
                                      <div>
-                                         <span className="text-xs font-bold text-zinc-600 block mb-1">Aroma</span>
-                                         <p className="text-sm text-zinc-300">{(tastingNote as any).data.aroma || '—'}</p>
+                                         <span className="text-xs font-bold text-text-disabled block mb-1">Aroma</span>
+                                         <p className="text-sm text-text-secondary">{(tastingNote as any).data.aroma || '—'}</p>
                                      </div>
                                      <div>
-                                         <span className="text-xs font-bold text-zinc-600 block mb-1">Geschmack</span>
-                                         <p className="text-sm text-zinc-300">{(tastingNote as any).data.taste || '—'}</p>
+                                         <span className="text-xs font-bold text-text-disabled block mb-1">Geschmack</span>
+                                         <p className="text-sm text-text-secondary">{(tastingNote as any).data.taste || '—'}</p>
                                      </div>
                                      <div>
-                                         <span className="text-xs font-bold text-zinc-600 block mb-1">Mundgefühl</span>
-                                         <p className="text-sm text-zinc-300">{(tastingNote as any).data.mouthfeel || '—'}</p>
+                                         <span className="text-xs font-bold text-text-disabled block mb-1">Mundgefühl</span>
+                                         <p className="text-sm text-text-secondary">{(tastingNote as any).data.mouthfeel || '—'}</p>
                                      </div>
                                      <div>
-                                         <span className="text-xs font-bold text-zinc-600 block mb-1">Gesamt-Fazit</span>
-                                         <p className="text-sm text-zinc-300 italic">"{(tastingNote as any).data.comments || '—'}"</p>
+                                         <span className="text-xs font-bold text-text-disabled block mb-1">Gesamt-Fazit</span>
+                                         <p className="text-sm text-text-secondary italic">"{(tastingNote as any).data.comments || '—'}"</p>
                                      </div>
                                  </div>
                              </div>
@@ -409,10 +409,10 @@ export function CompletedTab() {
                 ) : (
                     <button 
                         onClick={() => setIsEditingNote(true)}
-                        className="w-full h-32 border border-dashed border-zinc-800 rounded-lg flex flex-col items-center justify-center text-zinc-500 hover:text-white hover:border-zinc-600 hover:bg-zinc-900/50 transition-all gap-2 group"
+                        className="w-full h-32 border border-dashed border-border rounded-lg flex flex-col items-center justify-center text-text-muted hover:text-text-primary hover:border-border hover:bg-surface/50 transition-all gap-2 group"
                     >
-                        <div className="p-3 bg-zinc-900 rounded-full group-hover:bg-zinc-800 transition-colors">
-                            <Beer className="w-5 h-5 text-zinc-600 group-hover:text-amber-500 transition-colors" />
+                        <div className="p-3 bg-surface rounded-full group-hover:bg-surface-hover transition-colors">
+                            <Beer className="w-5 h-5 text-text-disabled group-hover:text-amber-500 transition-colors" />
                         </div>
                         <span className="text-sm font-medium">Tasting Note hinzufügen</span>
                     </button>
@@ -420,23 +420,23 @@ export function CompletedTab() {
             </div>
 
             {/* Actions */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-8 border-t border-zinc-900">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-8 border-t border-border">
                 <button 
                     onClick={handleDownloadPDF}
-                    className="flex flex-col items-center justify-center p-6 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-lg transition-all group"
+                    className="flex flex-col items-center justify-center p-6 bg-surface hover:bg-surface-hover border border-border rounded-lg transition-all group"
                 >
-                    <Download className="w-6 h-6 text-zinc-500 group-hover:text-cyan-400 mb-2 transition-colors" />
-                    <span className="text-sm font-bold text-white">Logbuch exportieren (PDF)</span>
-                    <span className="text-xs text-zinc-600 mt-1">Lade eine Zusammenfassung herunter</span>
+                    <Download className="w-6 h-6 text-text-muted group-hover:text-brand mb-2 transition-colors" />
+                    <span className="text-sm font-bold text-text-primary">Logbuch exportieren (PDF)</span>
+                    <span className="text-xs text-text-disabled mt-1">Lade eine Zusammenfassung herunter</span>
                 </button>
 
                 <button 
                     onClick={handleArchive}
-                    className="flex flex-col items-center justify-center p-6 bg-zinc-900 hover:bg-red-950/20 border border-zinc-800 hover:border-red-900/50 rounded-lg transition-all group"
+                    className="flex flex-col items-center justify-center p-6 bg-surface hover:bg-red-950/20 border border-border hover:border-red-900/50 rounded-lg transition-all group"
                 >
-                    <Archive className="w-6 h-6 text-zinc-500 group-hover:text-red-500 mb-2 transition-colors" />
-                    <span className="text-sm font-bold text-white group-hover:text-red-400">Session archivieren</span>
-                    <span className="text-xs text-zinc-600 mt-1 group-hover:text-red-500/50">Markiere diesen Sud als abgeschlossen</span>
+                    <Archive className="w-6 h-6 text-text-muted group-hover:text-red-500 mb-2 transition-colors" />
+                    <span className="text-sm font-bold text-text-primary group-hover:text-red-400">Session archivieren</span>
+                    <span className="text-xs text-text-disabled mt-1 group-hover:text-red-500/50">Markiere diesen Sud als abgeschlossen</span>
                 </button>
             </div>
         </div>

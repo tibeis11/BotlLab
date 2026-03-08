@@ -201,8 +201,8 @@ export default function NewSessionPage({ params }: { params: Promise<{ breweryId
         return (
             <div className="min-h-screen bg-black flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4 animate-pulse">
-                    <Beaker className="w-12 h-12 text-zinc-800" />
-                    <p className="text-zinc-500 font-medium">Lade Rezepte...</p>
+                    <Beaker className="w-12 h-12 text-border" />
+                    <p className="text-text-muted font-medium">Lade Rezepte...</p>
                 </div>
             </div>
         );
@@ -212,18 +212,18 @@ export default function NewSessionPage({ params }: { params: Promise<{ breweryId
         <div className="font-sans">
             <div className="max-w-[1600px] mx-auto space-y-6 md:space-y-8">
                 {/* Header */}
-                <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800 pb-4 md:pb-6">
+                <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4 md:pb-6">
                     <div>
                         <Link
                             href={`/team/${breweryId}/sessions`}
-                            className="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-white transition mb-2"
+                            className="inline-flex items-center gap-2 text-sm text-text-muted hover:text-text-primary transition mb-2"
                         >
                             <ArrowLeft size={16} /> Zurück zur Übersicht
                         </Link>
                         <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
                             <span className="bg-gradient-to-br from-cyan-500 to-blue-600 bg-clip-text text-transparent">Neue Brausession</span>
                         </h1>
-                        <p className="text-zinc-500 mt-1">Wähle ein Rezept und starte deinen Brautag.</p>
+                        <p className="text-text-muted mt-1">Wähle ein Rezept und starte deinen Brautag.</p>
                     </div>
                 </header>
 
@@ -232,13 +232,13 @@ export default function NewSessionPage({ params }: { params: Promise<{ breweryId
                     <div className="lg:col-span-8 space-y-6">
                         {/* Search Bar */}
                         <div className="relative">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 w-5 h-5" />
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted w-5 h-5" />
                             <input
                                 type="text"
                                 placeholder="Rezept suchen..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full bg-zinc-900/50 border border-zinc-800 rounded-lg pl-12 pr-4 py-4 text-white focus:ring-1 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition outline-none placeholder:text-zinc-600"
+                                className="w-full bg-surface/50 border border-border rounded-lg pl-12 pr-4 py-4 text-text-primary focus:ring-1 focus:ring-brand/50 focus:border-brand/50 transition outline-none placeholder:text-text-disabled"
                             />
                         </div>
 
@@ -246,7 +246,7 @@ export default function NewSessionPage({ params }: { params: Promise<{ breweryId
                             {/* Own Recipes Group */}
                             {ownRecipes.length > 0 && (
                                 <div>
-                                    <div className="flex items-center gap-2 mb-4 text-xs font-bold uppercase tracking-widest text-zinc-500 pl-1">
+                                    <div className="flex items-center gap-2 mb-4 text-xs font-bold uppercase tracking-widest text-text-disabled pl-1">
                                         <Beer size={14} /> Eigene Rezepte
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -265,7 +265,7 @@ export default function NewSessionPage({ params }: { params: Promise<{ breweryId
                             {/* Saved Recipes Group */}
                             {savedRecipes.length > 0 && (
                                 <div>
-                                    <div className="flex items-center gap-2 mb-4 text-xs font-bold uppercase tracking-widest text-zinc-500 pl-1 border-t border-zinc-800/50 pt-8 mt-4">
+                                    <div className="flex items-center gap-2 mb-4 text-xs font-bold uppercase tracking-widest text-text-disabled pl-1 border-t border-border/50 pt-8 mt-4">
                                         <BookOpen size={14} /> Bibliothek
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -282,11 +282,11 @@ export default function NewSessionPage({ params }: { params: Promise<{ breweryId
                             )}
 
                             {filteredRecipes.length === 0 && (
-                                <div className="text-center py-12 border border-zinc-800 border-dashed rounded-xl">
-                                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-zinc-900 text-zinc-600 mb-3">
+                                <div className="text-center py-12 border border-border border-dashed rounded-xl">
+                                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-surface text-text-disabled mb-3">
                                         <Search size={24} />
                                     </div>
-                                    <p className="text-zinc-500">Keine Rezepte gefunden.</p>
+                                    <p className="text-text-muted">Keine Rezepte gefunden.</p>
                                     <Link href={`/team/${breweryId}/brews/new`} className="text-cyan-500 hover:text-cyan-400 text-sm font-medium mt-2 inline-block">
                                         + Neues Rezept erstellen
                                     </Link>
@@ -297,7 +297,7 @@ export default function NewSessionPage({ params }: { params: Promise<{ breweryId
 
                     {/* RIGHT COLUMN: Configuration Sidebar */}
                     <div className="lg:col-span-4 sticky top-6">
-                        <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4 md:p-6 backdrop-blur-sm">
+                        <div className="bg-surface/50 border border-border rounded-lg p-4 md:p-6 backdrop-blur-sm">
                             <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
                                 <span className="w-1 h-6 bg-cyan-500 rounded-full mr-2"></span>
                                 Session Details
@@ -305,25 +305,25 @@ export default function NewSessionPage({ params }: { params: Promise<{ breweryId
 
                             <div className="space-y-6">
                                 {/* Selected Recipe Preview */}
-                                <div className="bg-black border border-zinc-800 rounded-lg p-4 flex items-center gap-4">
-                                    <div className="w-12 h-12 bg-zinc-800 rounded-md overflow-hidden flex-shrink-0 border border-zinc-700">
+                                <div className="bg-background border border-border rounded-lg p-4 flex items-center gap-4">
+                                    <div className="w-12 h-12 bg-surface-hover rounded-md overflow-hidden flex-shrink-0 border border-border">
                                         {selectedRecipe?.image_url ? (
                                             <img src={selectedRecipe.image_url} className="w-full h-full object-cover" />
                                         ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-zinc-600">
+                                            <div className="w-full h-full flex items-center justify-center text-text-disabled">
                                                 <Beer size={20} />
                                             </div>
                                         )}
                                     </div>
                                     <div className="min-w-0">
-                                        <p className="text-xs text-zinc-500 uppercase font-bold tracking-wider mb-0.5">Gewähltes Rezept</p>
+                                        <p className="text-xs text-text-disabled uppercase font-bold tracking-wider mb-0.5">Gewähltes Rezept</p>
                                         <p className="font-bold text-white truncate">{selectedRecipe?.name || 'Kein Rezept gewählt'}</p>
                                     </div>
                                 </div>
 
                                 {/* Scaling Options */}
                                 {selectedRecipe && (
-                                    <div className="space-y-4 pt-4 border-t border-zinc-800">
+                                    <div className="space-y-4 pt-4 border-t border-border">
                                         <h3 className="text-xs font-bold text-cyan-500 uppercase tracking-wider flex items-center gap-2">
                                             <Beaker size={12} /> Sudplanung
                                         </h3>
@@ -331,7 +331,7 @@ export default function NewSessionPage({ params }: { params: Promise<{ breweryId
                                         {/* Anlage-Dropdown */}
                                         {equipmentProfiles.length > 0 ? (
                                             <div className="space-y-2">
-                                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
+                                                <label className="text-[10px] font-bold text-text-disabled uppercase tracking-wider flex items-center gap-1.5">
                                                     <FlaskConical size={10} /> Brauanlage
                                                 </label>
                                                 <select
@@ -347,7 +347,7 @@ export default function NewSessionPage({ params }: { params: Promise<{ breweryId
                                                             setProfileLoadedName(null);
                                                         }
                                                     }}
-                                                    className="w-full bg-black border border-zinc-800 rounded-lg px-3 py-2 text-white focus:border-cyan-500 focus:outline-none transition text-sm appearance-none"
+                                                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-text-primary focus:border-brand focus:outline-none transition text-sm appearance-none"
                                                 >
                                                     <option value="">— Keine Anlage gewählt —</option>
                                                     {equipmentProfiles.map(p => (
@@ -358,7 +358,7 @@ export default function NewSessionPage({ params }: { params: Promise<{ breweryId
                                                 </select>
                                             </div>
                                         ) : (
-                                            <div className="text-[10px] text-zinc-500 bg-zinc-900/50 px-3 py-2 rounded border border-zinc-800 flex items-center gap-2">
+                                            <div className="text-[10px] text-text-muted bg-surface/50 px-3 py-2 rounded border border-border flex items-center gap-2">
                                                 <FlaskConical size={10} className="flex-shrink-0" />
                                                 <span>Keine Brauanlage hinterlegt —</span>
                                                 <a href={`/team/${breweryId}/settings?tab=equipment`} className="text-cyan-500 hover:underline font-medium">Jetzt anlegen →</a>
@@ -367,7 +367,7 @@ export default function NewSessionPage({ params }: { params: Promise<{ breweryId
 
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
-                                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">
+                                                <label className="text-[10px] font-bold text-text-disabled uppercase tracking-wider block">
                                                     Zielvolumen (L)
                                                 </label>
                                                 <input
@@ -375,11 +375,11 @@ export default function NewSessionPage({ params }: { params: Promise<{ breweryId
                                                     min="1"
                                                     value={scaleVolume}
                                                     onChange={(e) => setScaleVolume(parseFloat(e.target.value) || 0)}
-                                                    className="w-full bg-black border border-zinc-800 rounded-lg px-3 py-2 text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 transition outline-none font-mono text-sm"
+                                                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-text-primary focus:border-brand focus:ring-1 focus:ring-brand/50 transition outline-none font-mono text-sm"
                                                 />
                                             </div>
                                             <div className="space-y-2">
-                                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">
+                                                <label className="text-[10px] font-bold text-text-disabled uppercase tracking-wider block">
                                                     Effizienz (%)
                                                 </label>
                                                 <input
@@ -388,7 +388,7 @@ export default function NewSessionPage({ params }: { params: Promise<{ breweryId
                                                     max="100"
                                                     value={scaleEfficiency}
                                                     onChange={(e) => setScaleEfficiency(parseFloat(e.target.value) || 0)}
-                                                    className="w-full bg-black border border-zinc-800 rounded-lg px-3 py-2 text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 transition outline-none font-mono text-sm"
+                                                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-text-primary focus:border-brand focus:ring-1 focus:ring-brand/50 transition outline-none font-mono text-sm"
                                                 />
                                                 {profileLoadedName && (
                                                     <p className="text-[10px] text-cyan-600">
@@ -399,7 +399,7 @@ export default function NewSessionPage({ params }: { params: Promise<{ breweryId
                                         </div>
                                         
                                         {(scaleVolume !== originalVolume || scaleEfficiency !== originalEfficiency) && (
-                                            <div className="text-[10px] text-zinc-500 bg-zinc-900/50 p-2 rounded border border-zinc-800">
+                                            <div className="text-[10px] text-text-muted bg-surface/50 p-2 rounded border border-border">
                                                 Die Zutaten werden im Session-Logbuch automatisch auf diese Werte skaliert.
                                             </div>
                                         )}
@@ -408,32 +408,32 @@ export default function NewSessionPage({ params }: { params: Promise<{ breweryId
 
                                 <div className="space-y-4">
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-2">
+                                        <label className="text-xs font-bold text-text-disabled uppercase tracking-wider flex items-center gap-2">
                                             <Hash size={12} /> Batch Code
                                         </label>
                                         <input
                                             type="text"
                                             value={batchCode}
                                             onChange={(e) => setBatchCode(e.target.value)}
-                                            className="w-full bg-black border border-zinc-800 rounded-lg px-4 py-3 text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 transition outline-none font-mono text-sm"
+                                            className="w-full bg-background border border-border rounded-lg px-4 py-3 text-text-primary focus:border-brand focus:ring-1 focus:ring-brand/50 transition outline-none font-mono text-sm"
                                             placeholder="z.B. B26-001"
                                         />
                                     </div>
 
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-2">
+                                        <label className="text-xs font-bold text-text-disabled uppercase tracking-wider flex items-center gap-2">
                                             <Calendar size={12} /> Braudatum
                                         </label>
                                         <input
                                             type="date"
                                             value={brewedAt}
                                             onChange={(e) => setBrewedAt(e.target.value)}
-                                            className="w-full bg-black border border-zinc-800 rounded-lg px-4 py-3 text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 transition outline-none text-sm [color-scheme:dark]"
+                                            className="w-full bg-background border border-border rounded-lg px-4 py-3 text-text-primary focus:border-brand focus:ring-1 focus:ring-brand/50 transition outline-none text-sm [color-scheme:dark]"
                                         />
                                     </div>
                                 </div>
 
-                                <div className="pt-6 border-t border-zinc-800">
+                                <div className="pt-6 border-t border-border">
                                     <button
                                         onClick={handleCreate}
                                         disabled={creating || !selectedRecipeId}
@@ -448,7 +448,7 @@ export default function NewSessionPage({ params }: { params: Promise<{ breweryId
                                             </>
                                         )}
                                     </button>
-                                    <p className="text-center text-xs text-zinc-600 mt-4">
+                                    <p className="text-center text-xs text-text-disabled mt-4">
                                         Das Rezept wird in die neue Session kopiert.
                                     </p>
                                 </div>
@@ -469,16 +469,16 @@ function RecipeCard({ recipe, selected, onSelect }: { recipe: any, selected: boo
                 group relative flex items-center gap-4 p-4 rounded-lg border cursor-pointer transition-all duration-200
                 ${selected
                     ? 'bg-cyan-950/10 border-cyan-500/50 ring-1 ring-cyan-500/50'
-                    : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800/50'
+                    : 'bg-surface border-border hover:border-border-hover hover:bg-surface-hover/50'
                 }
             `}
         >
             {/* Image */}
-            <div className="w-16 h-16 bg-black rounded-md overflow-hidden flex-shrink-0 border border-zinc-800 relative shadow-sm">
+            <div className="w-16 h-16 bg-black rounded-md overflow-hidden flex-shrink-0 border border-border relative shadow-sm">
                 {recipe.image_url ? (
                     <img src={recipe.image_url} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                 ) : (
-                    <div className="w-full h-full flex items-center justify-center text-zinc-700 bg-zinc-900">
+                    <div className="w-full h-full flex items-center justify-center text-text-disabled bg-surface">
                         <Beer size={24} className="opacity-50" />
                     </div>
                 )}
@@ -492,11 +492,11 @@ function RecipeCard({ recipe, selected, onSelect }: { recipe: any, selected: boo
 
             {/* Content */}
             <div className="flex-1 min-w-0">
-                <h3 className={`font-bold text-base truncate mb-1 ${selected ? 'text-white' : 'text-zinc-200 group-hover:text-white'}`}>
+                <h3 className={`font-bold text-base truncate mb-1 ${selected ? 'text-white' : 'text-text-secondary group-hover:text-text-primary'}`}>
                     {recipe.name}
                 </h3>
-                <div className="flex items-center gap-2 text-xs text-zinc-500">
-                    <span className="bg-zinc-950 border border-zinc-800 px-1.5 py-0.5 rounded text-zinc-400 capitalize truncate max-w-[120px]">
+                <div className="flex items-center gap-2 text-xs text-text-muted">
+                    <span className="bg-background border border-border px-1.5 py-0.5 rounded text-text-muted capitalize truncate max-w-[120px]">
                         {recipe.style || 'Unbekannt'}
                     </span>
                     {recipe.data?.abv && (
@@ -510,7 +510,7 @@ function RecipeCard({ recipe, selected, onSelect }: { recipe: any, selected: boo
                 w-6 h-6 rounded-full border flex items-center justify-center transition-all
                 ${selected
                     ? 'bg-cyan-500 border-cyan-500 text-black scale-100'
-                    : 'border-zinc-700 bg-transparent text-transparent group-hover:border-zinc-500'
+                    : 'border-border bg-transparent text-transparent group-hover:border-border-hover'
                 }
             `}>
                 <div className="w-2.5 h-2.5 bg-current rounded-full" />

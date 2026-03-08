@@ -143,14 +143,14 @@ export default function ReportSettingsPanel({ breweryId }: Props) {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Header */}
-      <div className="bg-black rounded-lg p-6 border border-zinc-800">
+      <div className="bg-surface rounded-2xl p-6 border border-border">
         <div className="flex items-start gap-4">
           <div className="p-3 bg-cyan-900/20 border border-cyan-800/30 rounded-lg">
             <Mail className="w-6 h-6 text-cyan-400" />
           </div>
           <div className="flex-1">
-            <h2 className="text-sm font-semibold text-white mb-1">E-Mail Reports</h2>
-            <p className="text-zinc-400 text-sm">
+            <h2 className="text-sm font-bold text-text-primary mb-1">E-Mail Reports</h2>
+            <p className="text-text-secondary text-sm">
               Automatische Analytics-Updates direkt in dein Postfach.
             </p>
           </div>
@@ -158,18 +158,18 @@ export default function ReportSettingsPanel({ breweryId }: Props) {
       </div>
 
       {/* Settings Form */}
-      <div className="bg-black rounded-lg border border-zinc-800 p-6 sm:p-8">
-        <div className="flex items-center justify-between mb-8 pb-4 border-b border-zinc-900">
-             <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Einstellungen</h3>
+      <div className="bg-surface rounded-2xl border border-border p-6 sm:p-8">
+        <div className="flex items-center justify-between mb-8 pb-4 border-b border-border">
+             <h3 className="text-sm font-bold text-text-primary uppercase tracking-wider">Einstellungen</h3>
              <div className="flex items-center gap-3">
                 <input
                     type="checkbox"
                     id="enabled"
                     checked={enabled}
                     onChange={(e) => setEnabled(e.target.checked)}
-                    className="w-5 h-5 rounded border-zinc-700 bg-zinc-900 text-cyan-500 focus:ring-cyan-500 focus:ring-offset-black cursor-pointer"
+                    className="w-5 h-5 rounded border-border-hover bg-surface text-cyan-500 focus:ring-cyan-500 focus:ring-offset-black cursor-pointer"
                 />
-                <label htmlFor="enabled" className={`text-sm font-medium cursor-pointer select-none ${enabled ? 'text-white' : 'text-zinc-500'}`}>
+                <label htmlFor="enabled" className={`text-sm font-bold cursor-pointer select-none ${enabled ? 'text-text-primary' : 'text-text-muted'}`}>
                     {enabled ? 'Aktiviert' : 'Deaktiviert'}
                 </label>
              </div>
@@ -182,7 +182,7 @@ export default function ReportSettingsPanel({ breweryId }: Props) {
              <div className="space-y-6">
                  {/* Email */}
                 <div>
-                    <label className="block text-xs font-medium text-zinc-500 uppercase tracking-wider mb-2">
+                    <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2">
                     Empfänger E-Mail
                     </label>
                     <input
@@ -190,25 +190,25 @@ export default function ReportSettingsPanel({ breweryId }: Props) {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="name@brauerei.de"
-                    className="w-full px-4 py-3 rounded-xl bg-zinc-950 border border-zinc-800 text-white placeholder-zinc-700 focus:border-cyan-500 outline-none transition-colors"
+                    className="w-full px-4 py-3 rounded-xl bg-background border border-border text-text-primary placeholder:text-text-disabled focus:border-cyan-500 outline-none transition-colors"
                     />
                 </div>
 
                  {/* Content Preferences */}
                 <div>
-                    <label className="block text-xs font-medium text-zinc-500 uppercase tracking-wider mb-3">
+                    <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-3">
                     Inhalte
                     </label>
-                    <div className="space-y-3 bg-zinc-900/30 p-4 rounded-lg border border-zinc-800/50">
+                    <div className="space-y-3 bg-surface/30 p-4 rounded-lg border border-border-subtle">
                     <div className="flex items-center gap-3">
                         <input
                         type="checkbox"
                         id="topBrews"
                         checked={includeTopBrews}
                         onChange={(e) => setIncludeTopBrews(e.target.checked)}
-                        className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-cyan-500 focus:ring-offset-black"
+                        className="w-4 h-4 rounded border-border-hover bg-surface text-cyan-500 focus:ring-offset-black"
                         />
-                        <label htmlFor="topBrews" className="text-zinc-300 text-sm select-none cursor-pointer">
+                        <label htmlFor="topBrews" className="text-text-secondary text-sm select-none cursor-pointer">
                         Top Rezepte Liste
                         </label>
                     </div>
@@ -218,9 +218,9 @@ export default function ReportSettingsPanel({ breweryId }: Props) {
                         id="geographic"
                         checked={includeGeographic}
                         onChange={(e) => setIncludeGeographic(e.target.checked)}
-                        className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-cyan-500 focus:ring-offset-black"
+                        className="w-4 h-4 rounded border-border-hover bg-surface text-cyan-500 focus:ring-offset-black"
                         />
-                        <label htmlFor="geographic" className="text-zinc-300 text-sm select-none cursor-pointer">
+                        <label htmlFor="geographic" className="text-text-secondary text-sm select-none cursor-pointer">
                         Geografische Verteilung
                         </label>
                     </div>
@@ -230,9 +230,9 @@ export default function ReportSettingsPanel({ breweryId }: Props) {
                         id="deviceStats"
                         checked={includeDeviceStats}
                         onChange={(e) => setIncludeDeviceStats(e.target.checked)}
-                        className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-cyan-500 focus:ring-offset-black"
+                        className="w-4 h-4 rounded border-border-hover bg-surface text-cyan-500 focus:ring-offset-black"
                         />
-                        <label htmlFor="deviceStats" className="text-zinc-300 text-sm select-none cursor-pointer">
+                        <label htmlFor="deviceStats" className="text-text-secondary text-sm select-none cursor-pointer">
                         Geräte-Statistiken
                         </label>
                     </div>
@@ -244,16 +244,16 @@ export default function ReportSettingsPanel({ breweryId }: Props) {
              <div className="space-y-6">
                 {/* Frequency */}
                 <div>
-                    <label className="block text-xs font-medium text-zinc-500 uppercase tracking-wider mb-2">
+                    <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2">
                     Intervall
                     </label>
-                    <div className="grid grid-cols-2 gap-2 bg-zinc-950 p-1.5 rounded-xl border border-zinc-800">
+                    <div className="grid grid-cols-2 gap-2 bg-background p-1.5 rounded-xl border border-border">
                     <button
                         onClick={() => setFrequency("weekly")}
                         className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-bold transition-all ${
                         frequency === "weekly"
-                            ? "bg-zinc-800 text-white shadow-sm border border-zinc-700"
-                            : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900"
+                            ? "bg-surface-hover text-text-primary shadow-sm border border-border-hover"
+                            : "text-text-muted hover:text-text-secondary hover:bg-surface"
                         }`}
                     >
                         <Calendar className="w-3.5 h-3.5" />
@@ -263,8 +263,8 @@ export default function ReportSettingsPanel({ breweryId }: Props) {
                         onClick={() => setFrequency("monthly")}
                         className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-bold transition-all ${
                         frequency === "monthly"
-                            ? "bg-zinc-800 text-white shadow-sm border border-zinc-700"
-                            : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900"
+                            ? "bg-surface-hover text-text-primary shadow-sm border border-border-hover"
+                            : "text-text-muted hover:text-text-secondary hover:bg-surface"
                         }`}
                     >
                         <Calendar className="w-3.5 h-3.5" />
@@ -275,7 +275,7 @@ export default function ReportSettingsPanel({ breweryId }: Props) {
 
                 {/* Send Day */}
                 <div>
-                    <label className="block text-xs font-medium text-zinc-500 uppercase tracking-wider mb-2">
+                    <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2">
                     {frequency === "weekly" ? "Wochentag" : "Tag im Monat"}
                     </label>
                     {frequency === "weekly" ? (
@@ -299,10 +299,10 @@ export default function ReportSettingsPanel({ breweryId }: Props) {
                         max="28"
                         value={sendDay}
                         onChange={(e) => setSendDay(Number(e.target.value))}
-                        className="w-full px-4 py-3 rounded-xl bg-zinc-950 border border-zinc-800 text-white focus:border-cyan-500 outline-none"
+                        className="w-full px-4 py-3 rounded-xl bg-background border border-border text-text-primary focus:border-cyan-500 outline-none"
                     />
                     )}
-                    <p className="text-[10px] text-zinc-600 mt-2 flex items-center gap-1">
+                    <p className="text-[10px] text-text-disabled mt-2 flex items-center gap-1">
                         <Clock className="w-3 h-3" />
                          Versand erfolgt um ca. 09:00 Uhr
                     </p>
@@ -314,11 +314,11 @@ export default function ReportSettingsPanel({ breweryId }: Props) {
           
 
           {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-zinc-900 max-w-xl">
+          <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-border max-w-xl">
             <button
               onClick={handleSave}
               disabled={saving}
-              className="px-6 py-2.5 bg-white text-black font-bold text-sm rounded-md hover:bg-zinc-200 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              className="px-6 py-2.5 bg-white text-black font-bold text-sm rounded-lg hover:bg-zinc-200 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {saving ? (
                 <>
@@ -332,7 +332,7 @@ export default function ReportSettingsPanel({ breweryId }: Props) {
             <div className="flex gap-3">
                 <button
                 onClick={handlePreview}
-                className="px-4 py-2.5 bg-black border border-zinc-800 text-zinc-300 font-medium text-sm rounded-md hover:text-white hover:border-zinc-700 transition-all flex items-center justify-center gap-2"
+                className="px-4 py-2.5 bg-background border border-border text-text-secondary font-bold text-sm rounded-lg hover:text-text-primary hover:border-border-hover transition-all flex items-center justify-center gap-2"
                 >
                 <Eye className="w-4 h-4" />
                 Vorschau
@@ -340,7 +340,7 @@ export default function ReportSettingsPanel({ breweryId }: Props) {
                 <button
                 onClick={handleSendTest}
                 disabled={sendingTest || !email}
-                className="px-4 py-2.5 bg-black border border-zinc-800 text-zinc-300 font-medium text-sm rounded-md hover:text-white hover:border-zinc-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                className="px-4 py-2.5 bg-background border border-border text-text-secondary font-bold text-sm rounded-lg hover:text-text-primary hover:border-border-hover transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                 title={!email ? "Bitte E-Mail angeben" : "Test-Bericht jetzt senden"}
                 >
                 {sendingTest ? (
@@ -357,35 +357,35 @@ export default function ReportSettingsPanel({ breweryId }: Props) {
 
       {/* Report Logs */}
       {logs.length > 0 && (
-        <div className="bg-black rounded-lg p-6 border border-zinc-800">
-          <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-6">Versand-Historie</h3>
+        <div className="bg-surface rounded-2xl p-6 border border-border">
+          <h3 className="text-sm font-bold text-text-primary uppercase tracking-wider mb-6">Versand-Historie</h3>
           <div className="space-y-1">
             {logs.map((log) => (
-              <div key={log.id} className="flex items-center gap-4 p-3 hover:bg-zinc-900/50 rounded-lg transition-colors border border-transparent hover:border-zinc-800/50">
+              <div key={log.id} className="flex items-center gap-4 p-3 hover:bg-surface/50 rounded-lg transition-colors border border-transparent hover:border-border-subtle">
                 {log.status === "sent" ? (
-                  <div className="p-1.5 rounded-full bg-emerald-900/20 text-emerald-500">
+                  <div className="p-1.5 rounded-full bg-success-bg text-success">
                       <CheckCircle2 className="w-4 h-4" />
                   </div>
                 ) : log.status === "failed" ? (
-                  <div className="p-1.5 rounded-full bg-red-900/20 text-red-500">
+                  <div className="p-1.5 rounded-full bg-error-bg text-error">
                       <XCircle className="w-4 h-4" />
                   </div>
                 ) : (
-                   <div className="p-1.5 rounded-full bg-amber-900/20 text-amber-500">
+                   <div className="p-1.5 rounded-full bg-warning-bg text-warning">
                       <Clock className="w-4 h-4" />
                    </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <div className="text-zinc-300 text-sm font-medium flex items-center gap-2">
+                  <div className="text-text-secondary text-sm font-bold flex items-center gap-2">
                     <span>Versand an {email}</span>
-                    <span className="text-zinc-600">•</span>
-                    <span className="text-zinc-500 font-normal">{new Date(log.created_at).toLocaleDateString("de-DE", { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                    <span className="text-text-disabled">•</span>
+                    <span className="text-text-muted font-normal">{new Date(log.created_at).toLocaleDateString("de-DE", { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                   </div>
-                  <div className="text-xs text-zinc-500 mt-0.5 font-mono">
+                  <div className="text-xs text-text-muted mt-0.5 font-mono">
                     Zeitraum: {new Date(log.period_start).toLocaleDateString()} - {new Date(log.period_end).toLocaleDateString()}
                   </div>
                 </div>
-                <div className="text-xs font-mono text-zinc-500 bg-zinc-900 px-2 py-1 rounded border border-zinc-800">
+                <div className="text-xs font-mono text-text-muted bg-surface px-2 py-1 rounded border border-border">
                   {log.total_scans} Scans
                 </div>
               </div>
@@ -395,27 +395,27 @@ export default function ReportSettingsPanel({ breweryId }: Props) {
       )}
 
       {/* DSGVO / Privacy Compliance Info */}
-      <div className="bg-black rounded-lg border border-zinc-800 p-6">
+      <div className="bg-surface rounded-2xl border border-border p-6">
         <div className="flex items-center gap-2 mb-4">
           <Shield className="w-4 h-4 text-emerald-400" />
-          <h3 className="text-sm font-semibold text-white">Datenschutz & E-Mail-Versand</h3>
+          <h3 className="text-sm font-bold text-text-primary">Datenschutz & E-Mail-Versand</h3>
         </div>
-        <div className="space-y-3 text-xs text-zinc-500 leading-relaxed">
+        <div className="space-y-3 text-xs text-text-muted leading-relaxed">
           <div className="flex items-start gap-2">
-            <Info className="w-3 h-3 text-zinc-600 mt-0.5 shrink-0" />
-            <p><strong className="text-zinc-400">Rechtsgrundlage:</strong> Der Versand erfolgt ausschließlich auf Grundlage deiner ausdrücklichen Einwilligung (Art. 6 Abs. 1 lit. a DSGVO). Du kannst die Einwilligung jederzeit widerrufen.</p>
+            <Info className="w-3 h-3 text-text-disabled mt-0.5 shrink-0" />
+            <p><strong className="text-text-secondary">Rechtsgrundlage:</strong> Der Versand erfolgt ausschließlich auf Grundlage deiner ausdrücklichen Einwilligung (Art. 6 Abs. 1 lit. a DSGVO). Du kannst die Einwilligung jederzeit widerrufen.</p>
           </div>
           <div className="flex items-start gap-2">
-            <Info className="w-3 h-3 text-zinc-600 mt-0.5 shrink-0" />
-            <p><strong className="text-zinc-400">Dateninhalt:</strong> Die Reports enthalten ausschließlich aggregierte, anonymisierte Analytics-Daten deiner Brauerei. Es werden keine personenbezogenen Daten Dritter übermittelt.</p>
+            <Info className="w-3 h-3 text-text-disabled mt-0.5 shrink-0" />
+            <p><strong className="text-text-secondary">Dateninhalt:</strong> Die Reports enthalten ausschließlich aggregierte, anonymisierte Analytics-Daten deiner Brauerei. Es werden keine personenbezogenen Daten Dritter übermittelt.</p>
           </div>
           <div className="flex items-start gap-2">
-            <Info className="w-3 h-3 text-zinc-600 mt-0.5 shrink-0" />
-            <p><strong className="text-zinc-400">Empfänger:</strong> Die E-Mail wird ausschließlich an die von dir angegebene Adresse versendet. Eine Weitergabe an Dritte findet nicht statt.</p>
+            <Info className="w-3 h-3 text-text-disabled mt-0.5 shrink-0" />
+            <p><strong className="text-text-secondary">Empfänger:</strong> Die E-Mail wird ausschließlich an die von dir angegebene Adresse versendet. Eine Weitergabe an Dritte findet nicht statt.</p>
           </div>
           <div className="flex items-start gap-2">
-            <Info className="w-3 h-3 text-zinc-600 mt-0.5 shrink-0" />
-            <p><strong className="text-zinc-400">Widerruf & Löschung:</strong> Du kannst den Report jederzeit über diese Einstellungen oder den Abmelde-Link in jeder E-Mail deaktivieren. Versandprotokolle werden nach 90 Tagen automatisch gelöscht.</p>
+            <Info className="w-3 h-3 text-text-disabled mt-0.5 shrink-0" />
+            <p><strong className="text-text-secondary">Widerruf & Löschung:</strong> Du kannst den Report jederzeit über diese Einstellungen oder den Abmelde-Link in jeder E-Mail deaktivieren. Versandprotokolle werden nach 90 Tagen automatisch gelöscht.</p>
           </div>
         </div>
       </div>
@@ -423,28 +423,28 @@ export default function ReportSettingsPanel({ breweryId }: Props) {
       {/* Preview Modal */}
       {showPreview && previewData && (
         <div 
-          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
+          className="fixed inset-0 bg-surface/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
           onClick={() => setShowPreview(false)}
         >
           <div 
-            className="bg-black rounded-xl max-w-3xl w-full max-h-[90vh] overflow-hidden border border-zinc-800 flex flex-col shadow-2xl"
+            className="bg-background rounded-xl max-w-3xl w-full max-h-[90vh] overflow-hidden border border-border flex flex-col shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-4 border-b border-zinc-800 bg-black flex items-center justify-between shrink-0">
-              <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-widest">E-Mail Vorschau</h3>
+            <div className="p-4 border-b border-border bg-background flex items-center justify-between shrink-0">
+              <h3 className="text-sm font-bold text-text-secondary uppercase tracking-widest">E-Mail Vorschau</h3>
               <button
                 onClick={() => setShowPreview(false)}
-                className="text-zinc-500 hover:text-white transition-colors"
+                className="text-text-muted hover:text-text-primary transition-colors"
               >
                 ✕
               </button>
             </div>
             
-            <div className="flex-1 overflow-y-auto bg-zinc-950 p-8 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto bg-background p-8 custom-scrollbar">
               <div className="max-w-[600px] mx-auto bg-white rounded-lg shadow-sm overflow-hidden text-slate-900">
                 {/* Email Header */}
                 <div className="bg-slate-50 p-8 border-b border-slate-100">
-                  <div className="w-32 h-8 bg-zinc-200 mb-6 rounded flex items-center justify-center text-zinc-400 text-xs font-bold uppercase tracking-widest">
+                  <div className="w-32 h-8 bg-slate-200 mb-6 rounded flex items-center justify-center text-text-secondary text-xs font-bold uppercase tracking-widest">
                     Logo
                   </div>
                   <h1 className="text-xl font-bold text-slate-900 mb-2">Dein Analytics Report</h1>
@@ -514,7 +514,7 @@ export default function ReportSettingsPanel({ breweryId }: Props) {
                             <div key={brew.brew_id} className="flex items-center justify-between">
                                 <div>
                                     <div className="font-bold text-slate-800 text-sm">{brew.brew_name}</div>
-                                    <div className="text-[10px] text-slate-500 uppercase tracking-wide font-medium">{brew.brew_style}</div>
+                                    <div className="text-[10px] text-slate-500 uppercase tracking-wide font-bold">{brew.brew_style}</div>
                                 </div>
                                 <div className="font-mono font-bold text-slate-900 bg-slate-100 px-2 py-1 rounded text-xs">
                                     {brew.scan_count} Scans
@@ -527,7 +527,7 @@ export default function ReportSettingsPanel({ breweryId }: Props) {
 
                     {/* Button */}
                     <div className="mt-8 pt-8 border-t border-slate-100 text-center">
-                        <a href="#" className="inline-block px-6 py-3 bg-black text-white font-bold text-sm rounded-md hover:bg-slate-800 no-underline">
+                        <a href="#" className="inline-block px-6 py-3 bg-background text-text-primary font-bold text-sm rounded-lg hover:bg-slate-800 no-underline">
                             Zum Dashboard
                         </a>
                     </div>

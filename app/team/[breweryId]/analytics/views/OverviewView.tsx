@@ -106,11 +106,11 @@ export default function OverviewView({
           <ScansOverTimeChart data={data.scansByDate} />
         </div>
 
-        <div className="bg-black rounded-lg border border-zinc-800 p-6 flex flex-col">
+        <div className="bg-surface rounded-2xl border border-border p-6 flex flex-col">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-zinc-500 text-xs font-medium uppercase tracking-wider">Top Rezepte</h3>
+            <h3 className="text-text-muted text-[10px] font-black uppercase tracking-widest">Top Rezepte</h3>
             {features.maxTopBrews < 999 && (
-              <span className="text-[10px] text-zinc-600 bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-800">
+              <span className="text-[10px] text-text-muted bg-surface-hover px-1.5 py-0.5 rounded-full border border-border">
                 Top {features.maxTopBrews}
               </span>
             )}
@@ -118,7 +118,7 @@ export default function OverviewView({
 
           <div className="flex-1 space-y-4 overflow-y-auto pr-1 custom-scrollbar max-h-[300px]">
             {topBrewsData.length === 0 ? (
-              <div className="text-zinc-600 text-sm text-center py-8">Keine Daten verfügbar</div>
+              <div className="text-text-disabled text-sm text-center py-8">Keine Daten verfügbar</div>
             ) : (
               topBrewsData.map(([brewId, count]) => {
                 const isUnassigned = brewId === '__no_brew__';
@@ -134,23 +134,23 @@ export default function OverviewView({
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between text-xs mb-1.5">
                         <span
-                          className={`font-medium truncate pr-2 group-hover:text-cyan-400 transition-colors ${
-                            isUnassigned ? 'text-zinc-500 italic' : 'text-zinc-300'
+                          className={`font-bold truncate pr-2 group-hover:text-cyan-400 transition-colors ${
+                            isUnassigned ? 'text-text-muted italic' : 'text-text-secondary'
                           }`}
                           title={displayName}
                         >
                           {displayName}
                         </span>
-                        <span className="text-zinc-500 font-mono">{count}</span>
+                        <span className="text-text-muted font-mono">{count}</span>
                       </div>
-                      <div className="h-1.5 w-full bg-zinc-900 rounded-full overflow-hidden">
+                      <div className="h-1.5 w-full bg-surface rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-zinc-700 group-hover:bg-cyan-500 transition-colors duration-300"
+                          className="h-full bg-surface-hover group-hover:bg-cyan-500 transition-colors duration-300"
                           style={{ width: `${percentage}%` }}
                         />
                       </div>
                       {brew?.style && (
-                        <div className="text-[10px] text-zinc-600 mt-0.5 group-hover:text-zinc-500">
+                        <div className="text-[10px] text-text-disabled mt-0.5 group-hover:text-text-muted">
                           {brew.style}
                         </div>
                       )}
@@ -158,7 +158,7 @@ export default function OverviewView({
                     {!isUnassigned && (
                       <ChevronRight
                         size={16}
-                        className="text-zinc-700 group-hover:text-zinc-500 flex-shrink-0"
+                        className="text-text-disabled group-hover:text-text-muted flex-shrink-0"
                       />
                     )}
                   </div>
@@ -172,7 +172,7 @@ export default function OverviewView({
                   <Link
                     href={`/team/${breweryId}/analytics/brew/${brewId}`}
                     key={brewId}
-                    className="block group hover:bg-zinc-900/50 -mx-2 px-2 py-2 rounded transition-colors"
+                    className="block group hover:bg-surface/50 -mx-2 px-2 py-2 rounded transition-colors"
                   >
                     {innerContent}
                   </Link>
@@ -186,11 +186,11 @@ export default function OverviewView({
       {/* Secondary Grid: Geo + Devices */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Geo Map */}
-        <div className="bg-black rounded-lg border border-zinc-800 p-6">
+        <div className="bg-surface rounded-2xl border border-border p-6">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-zinc-500 text-xs font-medium uppercase tracking-wider">Geografie</h3>
+            <h3 className="text-text-muted text-[10px] font-black uppercase tracking-widest">Geografie</h3>
             <div
-              className="flex items-center gap-2 text-[10px] text-zinc-500"
+              className="flex items-center gap-2 text-[10px] text-text-muted"
               title="Standorte basieren auf Internet-Knotenpunkten, nicht GPS."
             >
               <span className="w-2 h-2 rounded-full bg-amber-500/50"></span>
@@ -204,8 +204,8 @@ export default function OverviewView({
 
         {/* Devices + Peak Hours */}
         <div className="space-y-6">
-          <div className="bg-black rounded-lg border border-zinc-800 p-6">
-            <h3 className="text-zinc-500 text-xs font-medium uppercase tracking-wider mb-6">Geräte</h3>
+          <div className="bg-surface rounded-2xl border border-border p-6">
+            <h3 className="text-text-muted text-[10px] font-black uppercase tracking-widest mb-6">Geräte</h3>
             <div className="space-y-4">
               {deviceData.map(([device, count]) => {
                 const total = deviceData.reduce((acc, curr) => acc + curr[1], 0);
@@ -222,16 +222,16 @@ export default function OverviewView({
 
                 return (
                   <div key={device} className="flex items-center gap-4">
-                    <div className="w-8 h-8 rounded-full bg-zinc-900 flex items-center justify-center text-zinc-400">
+                    <div className="w-8 h-8 rounded-full bg-surface flex items-center justify-center text-text-secondary">
                       {getIcon(device)}
                     </div>
                     <div className="flex-1">
                       <div className="flex justify-between text-xs mb-1.5">
-                        <span className="text-zinc-300 capitalize font-medium">{device}</span>
-                        <span className="text-zinc-500">{percentage.toFixed(0)}%</span>
+                        <span className="text-text-secondary capitalize font-bold">{device}</span>
+                        <span className="text-text-muted">{percentage.toFixed(0)}%</span>
                       </div>
-                      <div className="h-1.5 bg-zinc-900 rounded-full overflow-hidden">
-                        <div className="h-full bg-zinc-700" style={{ width: `${percentage}%` }} />
+                      <div className="h-1.5 bg-surface rounded-full overflow-hidden">
+                        <div className="h-full bg-surface-hover" style={{ width: `${percentage}%` }} />
                       </div>
                     </div>
                   </div>
@@ -251,9 +251,9 @@ export default function OverviewView({
       />
 
       {/* Privacy Footer */}
-      <div className="flex items-center justify-center gap-2 py-8 text-zinc-600">
+      <div className="flex items-center justify-center gap-2 py-8 text-text-disabled">
         <Shield size={12} />
-        <span className="text-[10px] uppercase tracking-wider font-medium">
+        <span className="text-[10px] uppercase tracking-wider font-bold">
           Privacy First Analytics • No Cookies • Anonymized
         </span>
       </div>

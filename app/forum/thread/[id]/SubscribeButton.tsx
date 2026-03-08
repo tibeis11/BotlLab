@@ -29,8 +29,8 @@ export default function SubscribeButton({ threadId, initialSubscribed }: Subscri
             title={subscribed ? 'Benachrichtigungen deaktivieren' : 'Benachrichtigungen aktivieren'}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition disabled:opacity-50 border ${
                 subscribed
-                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400'
-                    : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:bg-zinc-700 hover:text-white'
+                    ? 'bg-success/10 border-success/30 text-success hover:bg-error/10 hover:border-error/30 hover:text-error'
+                    : 'bg-surface-hover border-border-hover text-text-secondary hover:bg-surface-hover/80 hover:text-text-primary'
             }`}
         >
             {subscribed ? <BellOff size={13} /> : <Bell size={13} />}

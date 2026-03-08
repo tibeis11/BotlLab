@@ -63,14 +63,24 @@ export default function FlavorRadarChart({
 }: RadarChartProps) {
   const cx = size / 2;
   const cy = size / 2;
-  const maxR = size * 0.38; // Radius of outer ring
-  const labelR = size * 0.47; // Radius for label placement
+  const maxR = size * 0.35;
+  const labelR = size * 0.47;
+  const fontSize = Math.max(9, Math.round(size * 0.052));
+
+  // CSS custom property tokens — same as BTB RadarChart
+  const playerColor = 'var(--color-brand)';
+  const brewerColor = 'var(--color-rating)';
+  const bgColor = 'var(--color-surface)';
+
+  // Extra padding so labels near the SVG edges aren't clipped
+  const pad = Math.round(size * 0.12);
+  const vbSize = size + pad * 2;
 
   const gridLevels = [0.25, 0.5, 0.75, 1.0];
 
   return (
     <svg
-      viewBox={`0 0 ${size} ${size}`}
+      viewBox={`${-pad} ${-pad} ${vbSize} ${vbSize}`}
       width={size}
       height={size}
       role="img"
@@ -80,7 +90,7 @@ export default function FlavorRadarChart({
       {/* Phase 7.4: SVG-Semantik für Screen-Reader */}
       <title id="radar-chart-title">Dein Geschmacksprofil vs. Brauer-Profil</title>
       {/* Background */}
-      <circle cx={cx} cy={cy} r={maxR + 8} fill="rgba(24,24,27,0.8)" />
+      <circle cx={cx} cy={cy} r={maxR + 8} style={{ fill: bgColor }} fillOpacity={0.95} />
 
       {/* Grid rings */}
       {gridLevels.map((level) => {
@@ -119,11 +129,12 @@ export default function FlavorRadarChart({
       {secondaryProfile && (
         <polygon
           points={profileToPoints(secondaryProfile, cx, cy, maxR)}
-          fill="rgba(245,158,11,0.15)"
-          stroke="rgb(245,158,11)"
+          fillOpacity={0.15}
           strokeWidth={2}
           strokeLinejoin="round"
           style={{
+            fill: brewerColor,
+            stroke: brewerColor,
             opacity: showSecondary ? 1 : 0,
             transition: 'opacity 0.8s ease-in-out',
           }}
@@ -134,10 +145,10 @@ export default function FlavorRadarChart({
       {primaryProfile && (
         <polygon
           points={profileToPoints(primaryProfile, cx, cy, maxR)}
-          fill="rgba(6,182,212,0.18)"
-          stroke="rgb(6,182,212)"
+          fillOpacity={0.18}
           strokeWidth={2}
           strokeLinejoin="round"
+          style={{ fill: playerColor, stroke: playerColor }}
         />
       )}
 
@@ -151,8 +162,8 @@ export default function FlavorRadarChart({
             cx={x}
             cy={y}
             r={3.5}
-            fill="rgb(6,182,212)"
-            stroke="rgb(24,24,27)"
+            style={{ fill: playerColor }}
+            stroke={bgColor}
             strokeWidth={1.5}
           />
         );
@@ -169,33 +180,41 @@ export default function FlavorRadarChart({
               cx={x}
               cy={y}
               r={3.5}
-              fill="rgb(245,158,11)"
-              stroke="rgb(24,24,27)"
+              style={{ fill: brewerColor, opacity: showSecondary ? 1 : 0 }}
+              stroke={bgColor}
               strokeWidth={1.5}
-              style={{
-                opacity: showSecondary ? 1 : 0,
-                transition: 'opacity 0.8s ease-in-out 0.2s',
-              }}
             />
           );
         })}
 
-      {/* Axis labels */}
+      {/* Axis labels with background rects for legibility */}
       {DIMS.map((dim, i) => {
         const { x, y } = polarToCartesian(cx, cy, labelR, i);
+        const labelW = dim.labelShort.length * fontSize * 0.62 + 4;
+        const labelH = fontSize + 4;
         return (
-          <text
-            key={`label-${i}`}
-            x={x}
-            y={y}
-            textAnchor="middle"
-            dominantBaseline="central"
-            fill="rgb(161,161,170)"
-            fontSize={11}
-            fontWeight={500}
-          >
-            {dim.icon} {dim.label}
-          </text>
+          <g key={`label-${i}`}>
+            <rect
+              x={x - labelW / 2}
+              y={y - labelH / 2}
+              width={labelW}
+              height={labelH}
+              rx={2}
+              style={{ fill: bgColor }}
+              fillOpacity={0.85}
+            />
+            <text
+              x={x}
+              y={y}
+              textAnchor="middle"
+              dominantBaseline="central"
+              fill="rgb(161,161,170)"
+              fontSize={fontSize}
+              fontWeight={500}
+            >
+              {dim.labelShort}
+            </text>
+          </g>
         );
       })}
     </svg>

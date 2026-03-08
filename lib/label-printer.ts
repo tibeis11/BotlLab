@@ -11,6 +11,7 @@ export interface SmartBottleData {
   short_code?: string;
   bottle_number: number;
   qrUrl?: string;
+  qr_token?: string;
   // Additional data for variable replacement
   batchNr?: string;
   brewDate?: string;
@@ -228,7 +229,7 @@ export const generateLabelBatchPdf = async (
             ibu: globalVariables.ibu || '',
             ebc: globalVariables.ebc || '',
             // Use Short Code if available, otherwise ID
-            qr_code: `https://botllab.de/b/${bottle.short_code || bottle.id}`, 
+            qr_code: `https://botllab.de/b/${bottle.short_code || bottle.id}${bottle.qr_token ? `?_t=${bottle.qr_token}` : ''}`, 
             bottle_nr: String(bottle.bottle_number).padStart(3, '0'),
             total_bottles: String(bottles.length)
         };

@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { trackEvent } from '@/lib/actions/analytics-actions';
+import { rollCapTier } from '@/lib/cap-tier';
 
 export async function POST(request: Request) {
   try {
@@ -78,7 +79,9 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Rating belongs to another user' }, { status: 403 });
     }
 
-    // 3. Insert Bottle Cap
+    // 3. Roll tier + Insert Bottle Cap
+    const cap_tier = rollCapTier();
+
     // Check if cap already exists for this brew (unique constraint will catch it, but checking is nicer)
     const { error: insertError } = await supabase
         .from('collected_caps')
@@ -87,7 +90,8 @@ export async function POST(request: Request) {
             brew_id: brew_id,
             rating_id: rating_id,
             claimed_via: 'rating',
-            collected_at: new Date().toISOString()
+            collected_at: new Date().toISOString(),
+            cap_tier,
         });
 
     if (insertError) {
@@ -112,7 +116,7 @@ export async function POST(request: Request) {
             console.error('Failed to track cap_claimed event:', e);
         }
 
-        return NextResponse.json({ success: true, message: 'Bottle Cap collected!' });
+        return NextResponse.json({ success: true, message: 'Bottle Cap collected!', cap_tier });
 
   } catch (e: any) {
     console.error("Error claiming cap:", e);

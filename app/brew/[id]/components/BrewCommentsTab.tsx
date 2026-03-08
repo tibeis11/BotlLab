@@ -94,17 +94,17 @@ export default function BrewCommentsTab({ brew }: BrewCommentsTabProps) {
       {user ? (
         <div className="space-y-3">
           {replyTo && (
-            <div className="flex items-center gap-2 text-xs text-zinc-500 bg-zinc-900/40 rounded-lg px-3 py-2 border border-zinc-800">
-              <CornerDownRight size={12} className="shrink-0 text-zinc-600" />
+            <div className="flex items-center gap-2 text-xs text-text-muted bg-surface/40 rounded-lg px-3 py-2 border border-border">
+              <CornerDownRight size={12} className="shrink-0 text-text-disabled" />
               <span>
                 Antworte auf{' '}
-                <span className="text-zinc-300 font-semibold">
+                <span className="text-text-secondary font-semibold">
                   {replyTo.author?.display_name ?? 'Nutzer'}
                 </span>
               </span>
               <button
                 onClick={() => setReplyTo(null)}
-                className="ml-auto text-zinc-600 hover:text-zinc-400 leading-none"
+                className="ml-auto text-text-disabled hover:text-text-secondary leading-none"
                 aria-label="Antwort abbrechen"
               >
                 ✕
@@ -113,7 +113,7 @@ export default function BrewCommentsTab({ brew }: BrewCommentsTabProps) {
           )}
 
           <div className="flex gap-3 items-start">
-            <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xs font-black text-zinc-400 shrink-0 mt-1">
+            <div className="w-8 h-8 rounded-full bg-surface-hover border border-border-hover flex items-center justify-center text-xs font-black text-text-secondary shrink-0 mt-1">
               {(user.user_metadata?.display_name || user.email || '?')[0].toUpperCase()}
             </div>
             <div className="flex-1 space-y-2">
@@ -127,14 +127,14 @@ export default function BrewCommentsTab({ brew }: BrewCommentsTabProps) {
                 rows={3}
                 maxLength={1000}
                 placeholder={replyTo ? 'Deine Antwort...' : 'Schreib einen Kommentar...'}
-                className="w-full bg-zinc-900/60 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-600 resize-none focus:outline-none focus:border-zinc-600 transition"
+                className="w-full bg-surface/60 border border-border rounded-xl px-4 py-3 text-sm text-text-primary placeholder:text-text-disabled resize-none focus:outline-none focus:border-border-active transition"
               />
               <div className="flex items-center justify-between">
-                <span className="text-[10px] text-zinc-700 tabular-nums">{content.length}/1000</span>
+                <span className="text-[10px] text-text-disabled tabular-nums">{content.length}/1000</span>
                 <button
                   onClick={handleSubmit}
                   disabled={!content.trim() || isPending}
-                  className="flex items-center gap-2 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 disabled:cursor-not-allowed text-black font-bold text-xs px-4 py-2 rounded-xl transition"
+                  className="flex items-center gap-2 bg-brand hover:bg-brand-hover disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-xs px-4 py-2 rounded-xl transition"
                 >
                   <Send size={12} />
                   {isPending ? 'Wird gesendet...' : 'Senden'}
@@ -147,13 +147,13 @@ export default function BrewCommentsTab({ brew }: BrewCommentsTabProps) {
           </div>
         </div>
       ) : (
-        <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-6 text-center space-y-3">
-          <MessageSquare className="w-8 h-8 text-zinc-600 mx-auto" />
-          <p className="text-white font-bold text-sm">Einloggen um zu kommentieren</p>
-          <p className="text-zinc-600 text-xs">Teile deine Erfahrungen mit diesem Rezept mit der Community.</p>
+        <div className="bg-surface/40 border border-border rounded-xl p-6 text-center space-y-3">
+          <MessageSquare className="w-8 h-8 text-text-disabled mx-auto" />
+          <p className="text-text-primary font-bold text-sm">Einloggen um zu kommentieren</p>
+          <p className="text-text-disabled text-xs">Teile deine Erfahrungen mit diesem Rezept mit der Community.</p>
           <Link
             href={`/login?next=/brew/${brew.id}?tab=kommentare`}
-            className="inline-block mt-2 bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition"
+            className="inline-block mt-2 bg-surface-hover hover:bg-border/30 text-text-primary font-bold text-xs px-5 py-2.5 rounded-xl transition"
           >
             Einloggen
           </Link>
@@ -165,28 +165,28 @@ export default function BrewCommentsTab({ brew }: BrewCommentsTabProps) {
         <div className="space-y-4">
           {[1, 2, 3].map(i => (
             <div key={i} className="flex gap-3 animate-pulse">
-              <div className="w-8 h-8 rounded-full bg-zinc-900 shrink-0" />
+              <div className="w-8 h-8 rounded-full bg-surface shrink-0" />
               <div className="flex-1 space-y-2">
-                <div className="h-3 bg-zinc-900 rounded w-32" />
-                <div className="h-4 bg-zinc-900 rounded" />
-                <div className="h-4 bg-zinc-900 rounded w-3/4" />
+                <div className="h-3 bg-surface rounded w-32" />
+                <div className="h-4 bg-surface rounded" />
+                <div className="h-4 bg-surface rounded w-3/4" />
               </div>
             </div>
           ))}
         </div>
       ) : rootComments.length === 0 ? (
         <div className="text-center py-12 space-y-3">
-          <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center mx-auto">
-            <MessageCircleMore className="w-5 h-5 text-zinc-600" />
+          <div className="w-12 h-12 rounded-2xl bg-surface border border-border flex items-center justify-center mx-auto">
+            <MessageCircleMore className="w-5 h-5 text-text-disabled" />
           </div>
-          <p className="text-zinc-500 text-sm font-medium">Noch keine Kommentare</p>
-          <p className="text-zinc-700 text-xs max-w-xs mx-auto">
+          <p className="text-text-muted text-sm font-medium">Noch keine Kommentare</p>
+          <p className="text-text-disabled text-xs max-w-xs mx-auto">
             Sei der Erste! Teile deine Erfahrung oder stelle dem Brauer eine Frage.
           </p>
         </div>
       ) : (
         <div className="space-y-6">
-          <h3 className="text-[10px] font-bold uppercase tracking-widest text-zinc-600">
+          <h3 className="text-[10px] font-bold uppercase tracking-widest text-text-disabled">
             {rootComments.length} {rootComments.length === 1 ? 'Kommentar' : 'Kommentare'}
           </h3>
           {rootComments.map(comment => (
@@ -201,7 +201,7 @@ export default function BrewCommentsTab({ brew }: BrewCommentsTabProps) {
       )}
 
       {/* ── Forum-Diskussionen (mobile: unten) ──────────────────── */}
-      <div className="md:hidden border-t border-zinc-800/50 pt-6 space-y-3">
+      <div className="md:hidden border-t border-border/50 pt-6 space-y-3">
         <DiscussionsSidebar brew={brew} discussions={discussions} rootCommentCount={rootComments.length} />
       </div>
 
@@ -232,7 +232,7 @@ function DiscussionsSidebar({
 
   return (
     <div className="space-y-3">
-      <h3 className="text-[10px] font-bold uppercase tracking-widest text-zinc-600">
+      <h3 className="text-[10px] font-bold uppercase tracking-widest text-text-disabled">
         Diskussionen im Forum
       </h3>
 
@@ -242,27 +242,27 @@ function DiscussionsSidebar({
             <Link
               key={thread.id}
               href={`/forum/thread/${thread.id}`}
-              className="flex items-center justify-between gap-3 py-2.5 px-3 rounded-xl bg-zinc-900/40 border border-zinc-800/50 hover:bg-zinc-900/80 hover:border-zinc-700 transition group"
+              className="flex items-center justify-between gap-3 py-2.5 px-3 rounded-xl bg-surface/40 border border-border/50 hover:bg-surface/80 hover:border-border-hover transition group"
             >
               <div className="flex items-center gap-2.5 min-w-0">
-                <MessageSquare size={12} className="text-zinc-600 shrink-0" />
-                <span className="text-xs text-zinc-300 group-hover:text-white transition font-medium truncate">
+                <MessageSquare size={12} className="text-text-disabled shrink-0" />
+                <span className="text-xs text-text-secondary group-hover:text-text-primary transition font-medium truncate">
                   {thread.title}
                 </span>
               </div>
-              <span className="text-[10px] text-zinc-700 shrink-0 tabular-nums">
+              <span className="text-[10px] text-text-disabled shrink-0 tabular-nums">
                 {thread.reply_count ?? 0}
               </span>
             </Link>
           ))}
         </div>
       ) : (
-        <p className="text-xs text-zinc-700">Noch keine Forum-Diskussion zu diesem Rezept.</p>
+        <p className="text-xs text-text-disabled">Noch keine Forum-Diskussion zu diesem Rezept.</p>
       )}
 
       <Link
         href={createUrl}
-        className="flex items-center gap-2 text-xs text-zinc-600 hover:text-cyan-400 transition pt-1"
+        className="flex items-center gap-2 text-xs text-text-disabled hover:text-brand transition pt-1"
       >
         <MessageSquare size={12} />
         {discussions.length > 0 ? 'Neue Diskussion starten' : 'Diskussion im Forum starten'}
@@ -286,10 +286,10 @@ function CommentBlock({
     <div>
       <CommentRow comment={comment} onReply={onReply} />
       {replies.length > 0 && (
-        <div className="ml-11 mt-3 space-y-3 border-l border-zinc-800/50 pl-4">
+        <div className="ml-11 mt-3 space-y-3 border-l border-border/50 pl-4">
           <button
             onClick={() => setShowReplies(v => !v)}
-            className="text-[10px] text-zinc-600 hover:text-zinc-400 transition font-bold uppercase tracking-wider"
+            className="text-[10px] text-text-disabled hover:text-text-secondary transition font-bold uppercase tracking-wider"
           >
             {showReplies ? '▲ Antworten ausblenden' : `▼ ${replies.length} ${replies.length === 1 ? 'Antwort' : 'Antworten'}`}
           </button>
@@ -318,25 +318,25 @@ function CommentRow({
 
   return (
     <div className={`flex gap-3 group ${isReply ? '' : ''}`}>
-      <div className={`${isReply ? 'w-7 h-7' : 'w-8 h-8'} rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center font-black text-xs text-zinc-400 shrink-0 overflow-hidden`}>
+      <div className={`${isReply ? 'w-7 h-7' : 'w-8 h-8'} rounded-full bg-surface border border-border flex items-center justify-center font-black text-xs text-text-secondary shrink-0 overflow-hidden`}>
         {comment.author?.logo_url ? (
           <img src={comment.author.logo_url} alt="" className="w-full h-full object-cover" />
         ) : authorInitial}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-2 flex-wrap">
-          <span className="text-sm font-bold text-zinc-200">
+          <span className="text-sm font-bold text-text-primary">
             {comment.author?.display_name ?? 'Nutzer'}
           </span>
-          <span className="text-[10px] text-zinc-700">{date}</span>
+          <span className="text-[10px] text-text-disabled">{date}</span>
         </div>
-        <p className="text-zinc-400 text-sm mt-1 leading-relaxed whitespace-pre-line">
+        <p className="text-text-secondary text-sm mt-1 leading-relaxed whitespace-pre-line">
           {comment.content}
         </p>
         {onReply && !isReply && (
           <button
             onClick={() => onReply(comment)}
-            className="mt-2 text-[10px] font-bold uppercase tracking-wider text-zinc-700 hover:text-zinc-400 transition opacity-0 group-hover:opacity-100"
+            className="mt-2 text-[10px] font-bold uppercase tracking-wider text-text-disabled hover:text-text-secondary transition opacity-0 group-hover:opacity-100"
           >
             Antworten
           </button>

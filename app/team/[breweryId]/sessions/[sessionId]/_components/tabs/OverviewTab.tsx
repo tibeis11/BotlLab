@@ -29,31 +29,31 @@ import { TimelineEvent } from '@/lib/types/session-log';
 
 const MetricCard = ({ label, value, unit, subtext, color = 'zinc', guideKey }: { label: string, value: string | number | null, unit?: string, subtext?: string, color?: 'zinc' | 'cyan' | 'emerald' | 'orange', guideKey?: BotlGuideKey }) => {
     const colorMap = {
-        zinc: 'text-white',
-        cyan: 'text-cyan-400',
-        emerald: 'text-emerald-400',
-        orange: 'text-orange-400'
+        zinc: 'text-text-primary',
+        cyan: 'text-brand',
+        emerald: 'text-success',
+        orange: 'text-rating'
     };
     
     return (
-        <div className="flex flex-col justify-between h-full min-w-0 md:bg-zinc-900/50 md:border md:border-zinc-800 md:rounded-lg md:p-4 py-2 px-1 border-b border-zinc-800/50 md:border-b-0 last:border-0">
+        <div className="flex flex-col justify-between h-full min-w-0 bg-surface border border-border rounded-xl p-4">
             <div>
                 <div className="flex items-center justify-between mb-1 gap-2">
-                    <div className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider truncate" title={label}>{label}</div>
-                    {guideKey && <div className="shrink-0"><BotlGuideTrigger guideKey={guideKey} className="scale-75 opacity-50 hover:opacity-100" /></div>}
+                    <div className="text-[10px] text-text-muted uppercase font-bold tracking-wider truncate" title={label}>{label}</div>
+                    {guideKey && <div className="shrink-0"><BotlGuideTrigger guideKey={guideKey} /></div>}
                 </div>
                 <div className={`text-2xl font-mono font-bold tracking-tight flex items-baseline gap-1 ${colorMap[color]} truncate`}>
                     {value !== null && value !== undefined ? value : '—'} 
-                    {value && unit && <span className="text-xs text-zinc-600 font-bold ml-1">{unit}</span>}
+                    {value && unit && <span className="text-xs text-text-disabled font-bold ml-1">{unit}</span>}
                 </div>
             </div>
-            {subtext && <div className="text-[10px] text-zinc-600 font-medium mt-1 md:mt-2 md:pt-2 md:border-t md:border-zinc-800/50 truncate" title={subtext}>{subtext}</div>}
+            {subtext && <div className="text-[10px] text-text-disabled font-medium mt-2 pt-2 border-t border-border truncate" title={subtext}>{subtext}</div>}
         </div>
     );
 };
 
 const RecentActivityList = ({ events }: { events: TimelineEvent[] }) => {
-    if (!events?.length) return <div className="text-zinc-500 text-sm p-4 italic">Keine Aktivitäten vorhanden.</div>;
+    if (!events?.length) return <div className="text-text-muted text-sm p-4 italic">Keine Aktivitäten vorhanden.</div>;
 
     const sortedEvents = [...events].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
@@ -66,38 +66,38 @@ const RecentActivityList = ({ events }: { events: TimelineEvent[] }) => {
                 const dateStr = date.toLocaleDateString([], { day: '2-digit', month: '2-digit' });
                 
                 let icon = Activity;
-                let color = 'text-zinc-400';
+                let color = 'text-text-secondary';
                 
                 if (event.type.startsWith('MEASUREMENT')) {
                     icon = Scale;
-                    color = 'text-cyan-400';
+                    color = 'text-brand';
                 } else if (event.type === 'STATUS_CHANGE') {
                     icon = RefreshCcw;
-                    color = 'text-purple-400';
+                    color = 'text-accent-purple';
                 } else if (event.type === 'NOTE') {
                     icon = StickyNote;
-                    color = 'text-yellow-400';
+                    color = 'text-rating';
                 } else if (event.type === 'INGREDIENT_ADD') {
                     icon = Leaf;
-                    color = 'text-emerald-400';
+                    color = 'text-success';
                 }
 
                 const Icon = icon;
 
                 return (
-                    <div key={event.id} className="flex items-start gap-3 p-2 hover:bg-zinc-800/30 rounded-lg transition-colors group">
-                        <div className={`mt-0.5 p-1.5 rounded-md bg-zinc-900 border border-zinc-800 group-hover:border-zinc-700 ${color}`}>
+                    <div key={event.id} className="flex items-start gap-3 p-2 hover:bg-surface-hover rounded-lg transition-colors group">
+                        <div className={`mt-0.5 p-1.5 rounded-md bg-surface-hover border border-border ${color}`}>
                             <Icon className="w-3.5 h-3.5" />
                         </div>
                         <div className="flex-1 min-w-0">
                              <div className="flex items-center justify-between gap-2">
-                                <span className="text-sm text-zinc-200 font-medium truncate">{event.title}</span>
-                                <span className="text-[10px] text-zinc-500 font-mono whitespace-nowrap">
+                                <span className="text-sm text-text-primary font-medium truncate">{event.title}</span>
+                                <span className="text-[10px] text-text-muted font-mono whitespace-nowrap">
                                     {isToday ? timeStr : `${dateStr} ${timeStr}`}
                                 </span>
                              </div>
                              {event.description && (
-                                <div className="text-xs text-zinc-500 truncate mt-0.5">{event.description}</div>
+                                <div className="text-xs text-text-muted truncate mt-0.5">{event.description}</div>
                              )}
                         </div>
                     </div>
@@ -151,11 +151,11 @@ export function OverviewTab({ setActiveTab }: { setActiveTab: (tab: any) => void
 
     // Phase Card Logic
     const phaseConfig: Record<string, { label: string, action: string, icon: any, targetTab: string, color: string }> = {
-        'planning': { label: 'Planung', action: 'Zutaten vorbereiten', icon: FlaskConical, targetTab: 'planning', color: 'text-purple-400' },
-        'brewing': { label: 'Brautag', action: 'Brautag fortsetzen', icon: Flame, targetTab: 'brewing', color: 'text-orange-400' },
-        'fermenting': { label: 'Gärung', action: 'Messwert eintragen', icon: Activity, targetTab: 'fermentation', color: 'text-cyan-400' },
-        'conditioning': { label: 'Reifung', action: 'Details prüfen', icon: Activity, targetTab: 'conditioning', color: 'text-blue-400' },
-        'completed': { label: 'Abgeschlossen', action: 'Zusammenfassung', icon: CheckCircle2, targetTab: 'completed', color: 'text-emerald-400' },
+        'planning': { label: 'Planung', action: 'Zutaten vorbereiten', icon: FlaskConical, targetTab: 'planning', color: 'text-accent-purple' },
+        'brewing': { label: 'Brautag', action: 'Brautag fortsetzen', icon: Flame, targetTab: 'brewing', color: 'text-rating' },
+        'fermenting': { label: 'Gärung', action: 'Messwert eintragen', icon: Activity, targetTab: 'fermentation', color: 'text-brand' },
+        'conditioning': { label: 'Reifung', action: 'Details prüfen', icon: Activity, targetTab: 'conditioning', color: 'text-brand' },
+        'completed': { label: 'Abgeschlossen', action: 'Zusammenfassung', icon: CheckCircle2, targetTab: 'completed', color: 'text-success' },
     };
     
     const currentPhase = phaseConfig[session.phase] || phaseConfig['planning'];
@@ -166,23 +166,23 @@ export function OverviewTab({ setActiveTab }: { setActiveTab: (tab: any) => void
             {/* Header / Welcome */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                  <div>
-                    <h2 className="text-2xl font-bold text-white tracking-tight">Übersicht</h2>
-                    <p className="text-zinc-500 text-sm">Statusbericht für Sud <span className="font-mono text-zinc-400">#{session.batch_code || session.brew?.name}</span></p>
+                    <h2 className="text-2xl font-bold text-text-primary tracking-tight">Übersicht</h2>
+                    <p className="text-text-muted text-sm">Statusbericht für Sud <span className="font-mono text-text-secondary">#{session.batch_code || session.brew?.name}</span></p>
                  </div>
                  
                  {/* Active Phase CTA */}
                  <button 
                     onClick={() => setActiveTab(currentPhase.targetTab)}
-                    className="flex items-center gap-4 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800 p-1 pl-4 pr-2 rounded-full transition-all group"
+                    className="flex items-center gap-4 bg-surface border border-border hover:border-border hover:bg-surface-hover p-1 pl-4 pr-2 rounded-full transition-all group"
                  >
                     <div className="flex flex-col items-start">
-                        <span className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Aktuelle Phase</span>
+                        <span className="text-[10px] uppercase font-bold text-text-muted tracking-wider">Aktuelle Phase</span>
                         <div className={`flex items-center gap-2 font-bold ${currentPhase.color}`}>
                             <PhaseIcon className="w-4 h-4" />
                             {currentPhase.label}
                         </div>
                     </div>
-                    <div className="h-8 w-8 rounded-full bg-zinc-950 flex items-center justify-center group-hover:bg-black group-hover:text-white text-zinc-400 transition-colors">
+                    <div className="h-8 w-8 rounded-full bg-background flex items-center justify-center group-hover:bg-surface-hover group-hover:text-text-primary text-text-secondary transition-colors">
                         <ArrowRight className="w-4 h-4" />
                     </div>
                  </button>
@@ -227,31 +227,31 @@ export function OverviewTab({ setActiveTab }: { setActiveTab: (tab: any) => void
                 <div className="lg:col-span-2 space-y-6">
                     {/* Graph (if fermenting or later) */}
                     {(session.phase === 'fermenting' || session.phase === 'conditioning' || session.phase === 'completed') && measurements.length > 0 ? (
-                        <div className="md:bg-zinc-900/30 md:border md:border-zinc-800 md:rounded-xl md:p-4 -mx-1 md:mx-0">
+                        <div className="bg-surface border border-border rounded-xl p-4">
                             <div className="flex items-center justify-between mb-4 px-1 md:px-0">
-                                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                                    <Activity className="w-4 h-4 text-cyan-500" /> Gärverlauf
+                                <h3 className="text-sm font-bold text-text-primary flex items-center gap-2">
+                                    <Activity className="w-4 h-4 text-brand" /> Gärverlauf
                                 </h3>
                             </div>
                             <FermentationGraph height={300} />
                         </div>
                     ) : (
-                         <div className="md:bg-zinc-900/30 md:border md:border-zinc-800 border-dashed md:rounded-xl p-8 flex flex-col items-center justify-center text-center h-full min-h-[200px]">
-                            <Activity className="w-8 h-8 text-zinc-700 mb-2" />
-                            <p className="text-zinc-500 text-sm">Gärverlauf wird verfügbar sobald Messwerte vorhanden sind.</p>
+                         <div className="bg-surface border border-border border-dashed rounded-xl p-8 flex flex-col items-center justify-center text-center h-full min-h-[200px]">
+                            <Activity className="w-8 h-8 text-text-disabled mb-2" />
+                            <p className="text-text-muted text-sm">Gärverlauf wird verfügbar sobald Messwerte vorhanden sind.</p>
                          </div>
                     )}
                 </div>
 
                 {/* Sidebar Content (1/3) */}
                 <div className="space-y-6">
-                    <div className="md:bg-zinc-900/30 md:border md:border-zinc-800 md:rounded-xl md:p-4 h-full flex flex-col">
+                    <div className="bg-surface border border-border rounded-xl p-4 h-full flex flex-col">
                         <div className="flex items-center justify-between mb-4 md:px-0">
-                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+                            <label className="text-[10px] font-bold text-text-muted uppercase tracking-widest flex items-center gap-2">
                                 <Clock className="w-3 h-3" /> Letzte Aktivitäten
                             </label>
                         </div>
-                        <div className="flex-1 overflow-y-auto max-h-[400px] pr-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+                        <div className="flex-1 overflow-y-auto max-h-[400px] pr-1 scrollbar-thin scrollbar-thumb-surface-hover scrollbar-track-transparent">
                             <RecentActivityList events={session.timeline || []} />
                         </div>
                     </div>
@@ -259,11 +259,11 @@ export function OverviewTab({ setActiveTab }: { setActiveTab: (tab: any) => void
             </div>
             
              {/* Danger Zone */}
-             <div className="mt-12 border-t border-zinc-900 pt-8">
+             <div className="mt-12 border-t border-border pt-8">
                  <button 
                     onClick={handleDelete}
                     disabled={isDeleting}
-                    className="flex items-center gap-2 text-zinc-600 hover:text-red-500 text-xs font-bold uppercase tracking-widest transition-colors"
+                    className="flex items-center gap-2 text-text-disabled hover:text-error text-xs font-bold uppercase tracking-widest transition-colors"
                  >
                     {isDeleting ? 'Lösche...' : (
                         <>

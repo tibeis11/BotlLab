@@ -47,7 +47,7 @@ export default function RealtimePostBanner({ threadId, lastPostAt }: RealtimePos
                 setNewCount(0);
                 router.refresh();
             }}
-            className="flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-xl text-emerald-400 text-sm font-bold transition animate-in slide-in-from-top-2 duration-300"
+            className="flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-success/10 hover:bg-success/20 border border-success/30 rounded-xl text-success text-sm font-bold transition animate-in slide-in-from-top-2 duration-300"
         >
             <ArrowUp size={14} />
             <MessageSquare size={13} />

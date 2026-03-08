@@ -7,7 +7,7 @@ interface LegalConsentModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
-  type: 'label' | 'cap' | null;
+  type: 'label' | 'cap' | 'avatar' | null;
 }
 
 export default function LegalConsentModal({ isOpen, onClose, onConfirm, type }: LegalConsentModalProps) {
@@ -26,7 +26,7 @@ export default function LegalConsentModal({ isOpen, onClose, onConfirm, type }: 
           </div>
           <h2 className="text-xl font-bold text-white mb-1">Rechtlicher Hinweis</h2>
           <p className="text-amber-200/80 text-sm">
-            Bitte bestätige die Rechte an deinem {type === 'label' ? 'Etikett' : 'Kronkorken'}-Bild.
+            Bitte bestätige die Rechte an deinem {type === 'label' ? 'Etikett' : type === 'avatar' ? 'Profilbild' : 'Kronkorken'}-Bild.
           </p>
         </div>
 

@@ -88,11 +88,11 @@ export default function BeatAFriendShare({ brewId, playerProfile, matchScore }: 
         <p className="text-[10px] uppercase font-black tracking-[0.25em] text-violet-400">
           Beat a Friend
         </p>
-        <p className="text-sm font-bold text-white">
+        <p className="text-sm font-bold text-text-primary">
           Wer hat den besseren Gaumen?
         </p>
-        <p className="text-xs text-zinc-500">
-          Dein Score: <span className="text-cyan-400 font-bold">{matchScore}%</span>.
+        <p className="text-xs text-text-muted">
+          Dein Score: <span className="text-brand font-bold">{matchScore}%</span>.
           Dein Link ist 7 Tage gültig.
         </p>
       </div>
@@ -126,7 +126,7 @@ export default function BeatAFriendShare({ brewId, playerProfile, matchScore }: 
       {/* Copy link */}
       <button
         onClick={handleCopy}
-        className="flex items-center justify-center gap-2 w-full border border-zinc-700 text-zinc-400 text-sm font-medium rounded-xl py-2.5 hover:border-zinc-500 hover:text-white transition-all"
+        className="flex items-center justify-center gap-2 w-full border border-border text-text-secondary text-sm font-medium rounded-xl py-2.5 hover:border-border-hover hover:text-text-primary transition-all"
       >
         {copied ? (
           <>

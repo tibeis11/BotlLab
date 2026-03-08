@@ -25,9 +25,9 @@ const TAG_STYLES: Record<string, string> = {
   green:   'bg-green-500/10 border-green-500/30 text-green-400 hover:bg-green-500/20',
   amber:   'bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20',
   purple:  'bg-purple-500/10 border-purple-500/30 text-purple-400 hover:bg-purple-500/20',
-  emerald: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20',
+  emerald: 'bg-emerald-500/10 border-emerald-500/30 text-success hover:bg-success/20',
   rose:    'bg-rose-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500/20',
-  zinc:    'bg-zinc-800 border-zinc-700 text-zinc-400 hover:bg-zinc-700',
+  zinc:    'bg-surface-hover border-border-hover text-text-secondary hover:bg-surface-hover/80',
   orange:  'bg-orange-500/10 border-orange-500/30 text-orange-400 hover:bg-orange-500/20',
 };
 
@@ -38,7 +38,7 @@ const TAG_ACTIVE: Record<string, string> = {
   purple:  'ring-2 ring-purple-500/40',
   emerald: 'ring-2 ring-emerald-500/40',
   rose:    'ring-2 ring-rose-500/40',
-  zinc:    'ring-2 ring-zinc-500/40',
+  zinc:    'ring-2 ring-text-muted/40',
   orange:  'ring-2 ring-orange-500/40',
 };
 
@@ -75,35 +75,35 @@ export default function NewThreadForm({ categories, preselectedBrewId, initialTi
     }
 
     return (
-        <form action={formAction} className="max-w-2xl mx-auto space-y-8 bg-zinc-900/20 p-6 md:p-8 rounded-2xl border border-zinc-800/60">
+        <form action={formAction} className="max-w-2xl mx-auto space-y-8 bg-surface/20 p-6 md:p-8 rounded-2xl border border-border">
             <div>
-                 <Link href="/forum" className="text-sm text-zinc-500 hover:text-white flex items-center gap-1 mb-6 transition">
+                 <Link href="/forum" className="text-sm text-text-muted hover:text-text-primary flex items-center gap-1 mb-6 transition">
                     <ArrowLeft size={16} /> Zurück zum Forum
                 </Link>
-                <h1 className="text-2xl md:text-3xl font-black text-white mb-1">Neues Thema erstellen</h1>
-                <p className="text-sm text-zinc-400">Teile dein Wissen oder stelle eine Frage an die Community.</p>
+                <h1 className="text-2xl md:text-3xl font-black text-text-primary mb-1">Neues Thema erstellen</h1>
+                <p className="text-sm text-text-secondary">Teile dein Wissen oder stelle eine Frage an die Community.</p>
             </div>
 
             {linkedBrew && (
-                <div className="bg-zinc-950 border border-zinc-800 p-4 rounded-xl flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-lg bg-zinc-900 border border-zinc-800 overflow-hidden flex-shrink-0">
+                <div className="bg-background border border-border p-4 rounded-xl flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-lg bg-surface border border-border overflow-hidden flex-shrink-0">
                          {linkedBrew.image_url ? (
                             <img src={linkedBrew.image_url} className="w-full h-full object-cover" />
                         ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-zinc-900">
-                                <Beaker className="w-5 h-5 text-zinc-600" />
+                            <div className="w-full h-full flex items-center justify-center bg-surface">
+                                <Beaker className="w-5 h-5 text-text-disabled" />
                             </div>
                         )}
                     </div>
                     <div>
-                        <div className="text-[10px] uppercase font-bold text-emerald-500 tracking-wider">Verknüpftes Rezept</div>
-                        <div className="font-bold text-white">{linkedBrew.name}</div>
+                        <div className="text-[10px] uppercase font-bold text-success tracking-wider">Verknüpftes Rezept</div>
+                        <div className="font-bold text-text-primary">{linkedBrew.name}</div>
                     </div>
                 </div>
             )}
 
             {state.error && (
-                <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 p-4 rounded-xl text-sm font-bold">
+                <div className="bg-error/10 border border-error/20 text-error p-4 rounded-xl text-sm font-bold">
                     <AlertTriangle className="inline w-3.5 h-3.5 mr-1" />{typeof state.error === 'string' ? state.error : 'Bitte überprüfe deine Eingaben.'}
                 </div>
             )}
@@ -111,7 +111,7 @@ export default function NewThreadForm({ categories, preselectedBrewId, initialTi
             <div className="space-y-4">
                 {/* Category Selection */}
                 <div>
-                     <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Kategorie</label>
+                     <label className="block text-xs font-bold text-text-muted uppercase mb-2">Kategorie</label>
                      <CustomSelect 
                         value={selectedCategory} 
                         onChange={setSelectedCategory} 
@@ -123,7 +123,7 @@ export default function NewThreadForm({ categories, preselectedBrewId, initialTi
 
                 {/* Title */}
                  <div>
-                     <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Titel</label>
+                     <label className="block text-xs font-bold text-text-muted uppercase mb-2">Titel</label>
                      <input 
                         type="text" 
                         name="title"
@@ -132,14 +132,14 @@ export default function NewThreadForm({ categories, preselectedBrewId, initialTi
                         maxLength={100}
                         defaultValue={initialTitle || ""}
                         placeholder="Kurze, aussagekräftige Überschrift..."
-                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white focus:outline-none focus:border-zinc-600 transition placeholder:text-zinc-700 font-bold"
+                        className="w-full bg-background border border-border rounded-xl p-3 text-text-primary focus:outline-none focus:border-border-active transition placeholder:text-text-disabled font-bold"
                      />
                 </div>
 
                  {/* Content */}
                  <div>
-                     <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Inhalt</label>
-                     <div className="bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden focus-within:border-zinc-600 transition">
+                     <label className="block text-xs font-bold text-text-muted uppercase mb-2">Inhalt</label>
+                     <div className="bg-background border border-border rounded-xl overflow-hidden focus-within:border-border-active transition">
                          <MarkdownToolbar textareaRef={contentRef} value={contentValue} onChange={setContentValue} />
                          <textarea 
                             ref={contentRef}
@@ -150,7 +150,7 @@ export default function NewThreadForm({ categories, preselectedBrewId, initialTi
                             value={contentValue}
                             onChange={(e) => setContentValue(e.target.value)}
                             placeholder="Beschreibe dein Anliegen so genau wie möglich..."
-                            className="w-full bg-transparent border-0 p-3 text-white focus:outline-none focus:ring-0 placeholder:text-zinc-700 resize-y"
+                            className="w-full bg-transparent border-0 p-3 text-text-primary focus:outline-none focus:ring-0 placeholder:text-text-disabled resize-y"
                          />
                      </div>
                 </div>
@@ -160,8 +160,8 @@ export default function NewThreadForm({ categories, preselectedBrewId, initialTi
 
                 {/* Tags */}
                 <div>
-                    <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">
-                        Tags <span className="normal-case font-normal text-zinc-600">(max. 3 auswählen)</span>
+                    <label className="block text-xs font-bold text-text-muted uppercase mb-2">
+                        Tags <span className="normal-case font-normal text-text-disabled">(max. 3 auswählen)</span>
                     </label>
                     <div className="flex flex-wrap gap-2">
                         {AVAILABLE_TAGS.map(({ label, color }) => {
@@ -189,7 +189,7 @@ export default function NewThreadForm({ categories, preselectedBrewId, initialTi
                     <button 
                         type="submit" 
                         disabled={isPending}
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-xl font-bold transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[120px]"
+                        className="bg-success hover:bg-success/90 text-text-primary px-8 py-3 rounded-xl font-bold transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[120px]"
                     >
                         {isPending ? 'Speichert...' : 'Veröffentlichen'}
                     </button>

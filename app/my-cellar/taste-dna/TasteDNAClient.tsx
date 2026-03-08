@@ -9,6 +9,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { Dna, Brain, Gamepad2, Target, Trophy } from 'lucide-react';
 import {
   FLAVOR_DIMENSIONS,
   type FlavorDimensionId,
@@ -36,9 +37,11 @@ export default function TasteDNAClient({ dna }: TasteDNAClientProps) {
   if (!dna) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center space-y-4">
-        <span className="text-5xl">🧬</span>
-        <h1 className="text-2xl font-black text-white">Taste DNA</h1>
-        <p className="text-zinc-500 text-sm max-w-sm">
+        <div className="w-16 h-16 rounded-2xl bg-surface border border-border flex items-center justify-center">
+          <Dna className="w-8 h-8 text-text-disabled" />
+        </div>
+        <h1 className="text-2xl font-bold text-text-primary">Taste DNA</h1>
+        <p className="text-text-muted text-sm max-w-sm">
           Melde dich an, um dein Geschmacksprofil zu entdecken.
         </p>
       </div>
@@ -49,20 +52,22 @@ export default function TasteDNAClient({ dna }: TasteDNAClientProps) {
   if (dna.gamesPlayed === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center space-y-6">
-        <span className="text-6xl">🧬</span>
+        <div className="w-16 h-16 rounded-2xl bg-surface border border-border flex items-center justify-center">
+          <Dna className="w-8 h-8 text-text-disabled" />
+        </div>
         <div className="space-y-2">
-          <h1 className="text-3xl font-black text-white">Deine Taste DNA</h1>
-          <p className="text-zinc-500 text-sm max-w-sm mx-auto">
+          <h1 className="text-3xl font-bold text-text-primary">Deine Taste DNA</h1>
+          <p className="text-text-muted text-sm max-w-sm mx-auto">
             Spiele &quot;Beat the Brewer&quot; bei verschiedenen Bieren, um dein persönliches
             Geschmacksprofil zu entdecken.
           </p>
         </div>
 
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 max-w-xs w-full space-y-4">
-          <p className="text-sm text-zinc-400">
-            Dein Tasting IQ: <span className="text-cyan-400 font-bold">{dna.tastingIQ}</span>
+        <div className="bg-surface border border-border rounded-2xl p-8 max-w-xs w-full space-y-4">
+          <p className="text-sm text-text-muted">
+            Dein Tasting IQ: <span className="text-brand font-bold">{dna.tastingIQ}</span>
           </p>
-          <p className="text-xs text-zinc-600">
+          <p className="text-xs text-text-disabled">
             Scanne ein Bier mit Flavor-Profil und starte Beat the Brewer!
           </p>
         </div>
@@ -74,11 +79,11 @@ export default function TasteDNAClient({ dna }: TasteDNAClientProps) {
     <div className="space-y-8 pb-12">
       {/* Header */}
       <div className="text-center space-y-2 pt-4">
-        <p className="text-[10px] uppercase font-black tracking-[0.3em] text-cyan-500">
+        <p className="text-[10px] uppercase font-bold tracking-[0.3em] text-brand">
           Taste DNA
         </p>
-        <h1 className="text-3xl font-black text-white">Dein Geschmacksprofil</h1>
-        <p className="text-sm text-zinc-500">
+        <h1 className="text-3xl font-bold text-text-primary">Dein Geschmacksprofil</h1>
+        <p className="text-sm text-text-muted">
           Basierend auf {dna.gamesPlayed} Beat the Brewer {dna.gamesPlayed === 1 ? 'Runde' : 'Runden'}
         </p>
       </div>
@@ -90,42 +95,42 @@ export default function TasteDNAClient({ dna }: TasteDNAClientProps) {
 
       {/* Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard label="Tasting IQ" value={String(dna.tastingIQ)} icon="🧠" />
-        <StatCard label="Spiele" value={String(dna.gamesPlayed)} icon="🎮" />
-        <StatCard label="Ø Match" value={`${dna.averageMatchScore}%`} icon="🎯" />
-        <StatCard label="Best Match" value={`${dna.bestMatchScore}%`} icon="🏆" />
+        <StatCard label="Tasting IQ" value={String(dna.tastingIQ)} icon={Brain} />
+        <StatCard label="Spiele" value={String(dna.gamesPlayed)} icon={Gamepad2} />
+        <StatCard label="Ø Match" value={`${dna.averageMatchScore}%`} icon={Target} />
+        <StatCard label="Best Match" value={`${dna.bestMatchScore}%`} icon={Trophy} />
       </div>
 
       {/* Radar + Strongest Dimension */}
       <div className="grid md:grid-cols-2 gap-6">
         {/* Radar Chart */}
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 flex flex-col items-center space-y-4">
-          <p className="text-[10px] uppercase font-black tracking-widest text-zinc-500">
+        <div className="bg-surface border border-border rounded-2xl p-6 flex flex-col items-center space-y-4">
+          <p className="text-[10px] uppercase font-bold tracking-widest text-text-disabled">
             Dein Geschmacksprofil
           </p>
           <RadarChart
             playerProfile={dna.averageProfile}
             size={260}
           />
-          <div className="flex items-center gap-1.5 text-xs text-zinc-500">
-            <div className="w-2.5 h-2.5 rounded-full bg-cyan-500" />
+          <div className="flex items-center gap-1.5 text-xs text-text-muted">
+            <div className="w-2.5 h-2.5 rounded-full bg-brand" />
             Durchschnitt deiner Einschätzungen
           </div>
         </div>
 
         {/* Dimension Breakdown */}
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-5">
-          <p className="text-[10px] uppercase font-black tracking-widest text-zinc-500">
+        <div className="bg-surface border border-border rounded-2xl p-6 space-y-5">
+          <p className="text-[10px] uppercase font-bold tracking-widest text-text-disabled">
             Deine Dimensionen
           </p>
 
           {dna.strongestDimension && (
-            <div className="bg-cyan-500/5 border border-cyan-500/20 rounded-xl p-4 text-center space-y-1">
+            <div className="bg-brand-bg border border-brand/20 rounded-xl p-4 text-center space-y-1">
               <span className="text-2xl">{getDimIcon(dna.strongestDimension)}</span>
-              <p className="text-sm font-bold text-cyan-400">
+              <p className="text-sm font-bold text-brand">
                 {getDimLabel(dna.strongestDimension)}
               </p>
-              <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest">
+              <p className="text-[10px] text-text-disabled uppercase font-bold tracking-widest">
                 Deine stärkste Dimension
               </p>
             </div>
@@ -138,17 +143,17 @@ export default function TasteDNAClient({ dna }: TasteDNAClientProps) {
               return (
                 <div key={dim.id} className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-zinc-300 flex items-center gap-1.5">
+                    <span className="text-sm text-text-secondary flex items-center gap-1.5">
                       <span>{dim.icon}</span> {dim.label}
                     </span>
-                    <span className="text-xs font-mono text-zinc-500">{percent}%</span>
+                    <span className="text-xs font-mono text-text-muted">{percent}%</span>
                   </div>
-                  <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                  <div className="h-1.5 bg-surface-hover rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all duration-500"
                       style={{
                         width: `${percent}%`,
-                        backgroundColor: dim.color,
+                        backgroundColor: dim.hexColor,
                         opacity: 0.7,
                       }}
                     />
@@ -162,18 +167,18 @@ export default function TasteDNAClient({ dna }: TasteDNAClientProps) {
 
       {/* Style Preferences */}
       {dna.styleBreakdown.length > 0 && (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
-          <p className="text-[10px] uppercase font-black tracking-widest text-zinc-500">
+        <div className="bg-surface border border-border rounded-2xl p-6 space-y-4">
+          <p className="text-[10px] uppercase font-bold tracking-widest text-text-disabled">
             Deine Bierstile
           </p>
           <div className="flex flex-wrap gap-2">
             {dna.styleBreakdown.map(({ style, count }) => (
               <span
                 key={style}
-                className="bg-zinc-800 border border-zinc-700 rounded-full px-3 py-1.5 text-xs text-zinc-300 font-medium"
+                className="bg-surface-hover border border-border rounded-full px-3 py-1.5 text-xs text-text-secondary font-medium"
               >
                 {style}
-                <span className="text-zinc-600 ml-1.5">×{count}</span>
+                <span className="text-text-disabled ml-1.5">×{count}</span>
               </span>
             ))}
           </div>
@@ -182,30 +187,30 @@ export default function TasteDNAClient({ dna }: TasteDNAClientProps) {
 
       {/* Recent Games */}
       {dna.recentGames.length > 0 && (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
-          <p className="text-[10px] uppercase font-black tracking-widest text-zinc-500">
+        <div className="bg-surface border border-border rounded-2xl p-6 space-y-4">
+          <p className="text-[10px] uppercase font-bold tracking-widest text-text-disabled">
             Letzte Spiele
           </p>
           <div className="space-y-2">
             {dna.recentGames.map((game, i) => (
               <div
                 key={i}
-                className="flex items-center justify-between bg-zinc-800/50 rounded-xl px-4 py-3"
+                className="flex items-center justify-between bg-surface-hover/50 rounded-xl px-4 py-3"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-white truncate">{game.brewName}</p>
+                  <p className="text-sm font-bold text-text-primary truncate">{game.brewName}</p>
                   {game.brewStyle && (
-                    <p className="text-[10px] text-zinc-500">{game.brewStyle}</p>
+                    <p className="text-[10px] text-text-muted">{game.brewStyle}</p>
                   )}
                 </div>
                 <div className="flex items-center gap-4 text-right">
                   <div>
-                    <p className="text-sm font-bold text-cyan-400">{game.matchPercent}%</p>
-                    <p className="text-[9px] text-zinc-600">Match</p>
+                    <p className="text-sm font-bold text-brand">{game.matchPercent}%</p>
+                    <p className="text-[9px] text-text-disabled">Match</p>
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-green-400">+{game.pointsEarned}</p>
-                    <p className="text-[9px] text-zinc-600">IQ</p>
+                    <p className="text-sm font-bold text-success">+{game.pointsEarned}</p>
+                    <p className="text-[9px] text-text-disabled">IQ</p>
                   </div>
                 </div>
               </div>
@@ -218,12 +223,12 @@ export default function TasteDNAClient({ dna }: TasteDNAClientProps) {
 }
 
 // ─── Stat Card ───
-function StatCard({ label, value, icon }: { label: string; value: string; icon: string }) {
+function StatCard({ label, value, icon: Icon }: { label: string; value: string; icon: React.ElementType }) {
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-center space-y-1">
-      <span className="text-xl">{icon}</span>
-      <p className="text-2xl font-black text-white">{value}</p>
-      <p className="text-[10px] uppercase font-bold tracking-widest text-zinc-500">{label}</p>
+    <div className="bg-surface border border-border rounded-xl p-4 text-center space-y-1">
+      <Icon className="w-5 h-5 text-text-muted mx-auto" />
+      <p className="text-2xl font-bold text-text-primary">{value}</p>
+      <p className="text-[10px] uppercase font-bold tracking-widest text-text-disabled">{label}</p>
     </div>
   );
 }

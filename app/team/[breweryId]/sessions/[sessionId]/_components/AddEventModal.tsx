@@ -78,19 +78,19 @@ export function AddEventModal({ isOpen, onClose, onSubmit, defaultType = 'NOTE' 
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-zinc-900 border border-zinc-800 w-full max-w-lg rounded-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-surface border border-border w-full max-w-lg rounded-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         
         {/* Header */}
-        <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-950">
-            <h3 className="font-bold text-white text-base">Ereignis hinzufügen</h3>
-            <button onClick={onClose} className="p-2 hover:bg-zinc-800 rounded-lg transition text-zinc-400 hover:text-white">
+        <div className="p-4 border-b border-border flex justify-between items-center bg-background">
+            <h3 className="font-bold text-text-primary text-base">Ereignis hinzufügen</h3>
+            <button onClick={onClose} className="p-2 hover:bg-surface-hover rounded-lg transition text-text-muted hover:text-text-primary">
                 <X className="w-5 h-5" />
             </button>
         </div>
 
         {/* Type Tabs */}
-        <div className="flex gap-2 p-4 overflow-x-auto border-b border-zinc-800 bg-zinc-950/50 scrollbar-hide">
+        <div className="flex gap-2 p-4 overflow-x-auto border-b border-border bg-background/50 scrollbar-hide">
            <TabButton 
                active={['MEASUREMENT_SG', 'MEASUREMENT_OG', 'MEASUREMENT_FG'].includes(activeType)} 
                onClick={() => {
@@ -114,35 +114,35 @@ export function AddEventModal({ isOpen, onClose, onSubmit, defaultType = 'NOTE' 
                 <div className="space-y-4">
                      <div className="grid grid-cols-2 gap-4">
                          <div className="space-y-2">
-                             <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Wert</label>
+                             <label className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Wert</label>
                              <div className="relative">
                                 <input 
                                     type="number" 
                                     step={gravityUnit === 'sg' ? "0.001" : "0.1"} 
                                     value={gravity} 
                                     onChange={e => setGravity(e.target.value)}
-                                    className="w-full bg-black border border-zinc-800 rounded-lg px-4 py-3 text-white text-xl font-mono focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all placeholder:text-zinc-800"
+                                    className="w-full bg-background border border-border rounded-lg px-4 py-3 text-text-primary text-xl font-mono focus:border-brand focus:ring-1 focus:ring-brand outline-none transition-all placeholder:text-text-disabled"
                                     placeholder={gravityUnit === 'sg' ? "1.050" : "12.5"}
                                 />
                              </div>
                          </div>
                          <div className="space-y-2">
-                             <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Einheit</label>
-                             <div className="flex bg-black rounded-lg p-1 border border-zinc-800">
-                                 <button type="button" onClick={() => setGravityUnit('sg')} className={`flex-1 py-2 rounded-md text-xs font-bold transition ${gravityUnit === 'sg' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}>SG</button>
-                                 <button type="button" onClick={() => setGravityUnit('plato')} className={`flex-1 py-2 rounded-md text-xs font-bold transition ${gravityUnit === 'plato' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}>°P</button>
+                             <label className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Einheit</label>
+                             <div className="flex bg-background rounded-lg p-1 border border-border">
+                                 <button type="button" onClick={() => setGravityUnit('sg')} className={`flex-1 py-2 rounded-md text-xs font-bold transition ${gravityUnit === 'sg' ? 'bg-surface-hover text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}>SG</button>
+                                 <button type="button" onClick={() => setGravityUnit('plato')} className={`flex-1 py-2 rounded-md text-xs font-bold transition ${gravityUnit === 'plato' ? 'bg-surface-hover text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}>°P</button>
                              </div>
                          </div>
                      </div>
                      
                      <div className="space-y-2">
-                         <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Temperatur (°C)</label>
+                         <label className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Temperatur (°C)</label>
                          <input 
                             type="number" 
                             step="0.1" 
                             value={temperature} 
                             onChange={e => setTemperature(e.target.value)}
-                            className="w-full bg-black border border-zinc-800 rounded-lg px-4 py-3 text-white text-base font-mono focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all"
+                            className="w-full bg-background border border-border rounded-lg px-4 py-3 text-text-primary text-base font-mono focus:border-brand focus:ring-1 focus:ring-brand outline-none transition-all"
                         />
                      </div>
                 </div>
@@ -152,23 +152,23 @@ export function AddEventModal({ isOpen, onClose, onSubmit, defaultType = 'NOTE' 
             {activeType === 'MEASUREMENT_VOLUME' && (
                 <div className="space-y-4">
                      <div className="space-y-2">
-                         <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Gemessenes Volumen (Liter)</label>
+                         <label className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Gemessenes Volumen (Liter)</label>
                          <input 
                             type="number" 
                             step="0.1" 
                             value={volume} 
                             onChange={e => setVolume(e.target.value)}
-                            className="w-full bg-black border border-zinc-800 rounded-lg px-4 py-3 text-white text-xl font-mono focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all"
+                            className="w-full bg-background border border-border rounded-lg px-4 py-3 text-text-primary text-xl font-mono focus:border-brand focus:ring-1 focus:ring-brand outline-none transition-all"
                         />
                      </div>
                      <div className="space-y-2">
-                         <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Temperatur (°C) <span className="text-zinc-600 font-normal normal-case">(für Ausdehnungskorrektur)</span></label>
+                         <label className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Temperatur (°C) <span className="text-text-disabled font-normal normal-case">(für Ausdehnungskorrektur)</span></label>
                          <input 
                             type="number" 
                             step="0.1" 
                             value={temperature} 
                             onChange={e => setTemperature(e.target.value)}
-                            className="w-full bg-black border border-zinc-800 rounded-lg px-4 py-3 text-white text-base font-mono focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all"
+                            className="w-full bg-background border border-border rounded-lg px-4 py-3 text-text-primary text-base font-mono focus:border-brand focus:ring-1 focus:ring-brand outline-none transition-all"
                         />
                      </div>
                 </div>
@@ -178,23 +178,23 @@ export function AddEventModal({ isOpen, onClose, onSubmit, defaultType = 'NOTE' 
             {activeType === 'MEASUREMENT_PH' && (
                 <div className="space-y-4">
                      <div className="space-y-2">
-                         <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">pH-Wert</label>
+                         <label className="text-[10px] font-bold text-text-muted uppercase tracking-widest">pH-Wert</label>
                          <input 
                             type="number" 
                             step="0.01" 
                             value={ph} 
                             onChange={e => setPh(e.target.value)}
-                            className="w-full bg-black border border-zinc-800 rounded-lg px-4 py-3 text-white text-xl font-mono focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all"
+                            className="w-full bg-background border border-border rounded-lg px-4 py-3 text-text-primary text-xl font-mono focus:border-brand focus:ring-1 focus:ring-brand outline-none transition-all"
                         />
                      </div>
                      <div className="space-y-2">
-                         <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Temperatur (°C)</label>
+                         <label className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Temperatur (°C)</label>
                          <input 
                             type="number" 
                             step="0.1" 
                             value={temperature} 
                             onChange={e => setTemperature(e.target.value)}
-                            className="w-full bg-black border border-zinc-800 rounded-lg px-4 py-3 text-white text-base font-mono focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all"
+                            className="w-full bg-background border border-border rounded-lg px-4 py-3 text-text-primary text-base font-mono focus:border-brand focus:ring-1 focus:ring-brand outline-none transition-all"
                         />
                      </div>
                 </div>
@@ -203,12 +203,12 @@ export function AddEventModal({ isOpen, onClose, onSubmit, defaultType = 'NOTE' 
             {/* Note Inputs */}
             {activeType === 'NOTE' && (
                 <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Notiz</label>
+                    <label className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Notiz</label>
                     <textarea 
                         rows={4}
                         value={note}
                         onChange={e => setNote(e.target.value)}
-                        className="w-full bg-black border border-zinc-800 rounded-lg px-4 py-3 text-white text-base focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none resize-none transition-all placeholder:text-zinc-700"
+                        className="w-full bg-background border border-border rounded-lg px-4 py-3 text-text-primary text-base focus:border-brand focus:ring-1 focus:ring-brand outline-none resize-none transition-all placeholder:text-text-disabled"
                         placeholder="Was ist passiert?"
                     />
                 </div>
@@ -231,8 +231,8 @@ function TabButton({ active, onClick, Icon, label }: { active: boolean, onClick:
             onClick={onClick} 
             className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-all border ${
                 active 
-                ? 'bg-zinc-800 border-zinc-700 text-white shadow-sm' 
-                : 'bg-transparent border-transparent text-zinc-500 hover:bg-zinc-900 hover:text-zinc-300'
+                ? 'bg-surface-hover border-border text-text-primary shadow-sm' 
+                : 'bg-transparent border-transparent text-text-muted hover:bg-surface hover:text-text-secondary'
             }`}
         >
             <Icon className="w-4 h-4" />

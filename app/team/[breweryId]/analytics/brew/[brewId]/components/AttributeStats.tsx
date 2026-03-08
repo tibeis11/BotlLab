@@ -35,21 +35,21 @@ export default function AttributeStats({ data }: { data: DistributionData }) {
         const maxCount = Math.max(...chartData.map(d => d.count));
 
         return (
-          <div key={attr.key} className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl">
+          <div key={attr.key} className="bg-surface border border-border p-4 rounded-xl">
             <div className="flex justify-between items-center mb-4">
-                <h4 className="text-sm font-medium text-zinc-300">{attr.label}</h4>
-                <span className="text-[10px] text-zinc-500 bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-700">{total} Votes</span>
+                <h4 className="text-sm font-bold text-text-secondary">{attr.label}</h4>
+                <span className="text-[10px] text-text-muted bg-surface-hover px-1.5 py-0.5 rounded border border-border-hover">{total} Votes</span>
             </div>
             
             <div className="h-24 w-full">
               <ResponsiveContainer width="100%" height="100%">
                  <BarChart data={chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                     <Tooltip 
-                        cursor={{ fill: '#27272a' }}
+                        cursor={{ fill: 'var(--border)' }}
                         content={({ active, payload }) => {
                             if (active && payload && payload.length) {
                                 return (
-                                    <div className="bg-zinc-800 text-[10px] text-zinc-200 px-2 py-1 rounded border border-zinc-700 shadow-md">
+                                    <div className="bg-surface-hover text-[10px] text-text-primary px-2 py-1 rounded border border-border-hover shadow-md">
                                         Note {payload[0].payload.val}: <b>{payload[0].value}</b> Bewertungen
                                     </div>
                                 );
@@ -61,7 +61,7 @@ export default function AttributeStats({ data }: { data: DistributionData }) {
                        {chartData.map((entry, index) => (
                            <Cell 
                                 key={`cell-${index}`} 
-                                fill={entry.count === maxCount ? '#06b6d4' : '#3f3f46'} // Highlight mode
+                                fill={entry.count === maxCount ? '#06b6d4' : 'var(--border-hover)'} // Highlight mode
                            />
                        ))}
                     </Bar>
@@ -70,7 +70,7 @@ export default function AttributeStats({ data }: { data: DistributionData }) {
               </ResponsiveContainer>
             </div>
             {/* Axis Labels */}
-            <div className="flex justify-between mt-1 text-[9px] text-zinc-600 font-mono px-0.5">
+            <div className="flex justify-between mt-1 text-[9px] text-text-disabled font-mono px-0.5">
                 <span>1</span>
                 <span>5</span>
                 <span>10</span>
