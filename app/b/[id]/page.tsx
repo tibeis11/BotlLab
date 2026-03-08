@@ -1211,7 +1211,7 @@ export default function PublicScanPage() {
             <RateBrewModal
               brewId={data?.brews?.id || ''}
               onSubmit={async (submissionData) => {
-                const payload = { ...submissionData, user_id: user?.id };
+                const payload = { ...submissionData, user_id: user?.id, bottle_id: data?.id };
                 return await submitRating(payload);
               }}
               onCancel={() => setShowRatingForm(false)}

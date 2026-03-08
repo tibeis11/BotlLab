@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
             brew_id, rating, comment, author_name,
             taste_bitterness, taste_sweetness, taste_body, taste_carbonation, taste_acidity,
             flavor_tags, appearance_color, appearance_clarity, aroma_intensity,
-            user_id, form_start_time, qr_verified
+            user_id, form_start_time, qr_verified, bottle_id
         } = body;
 
         if (!brew_id || !rating || !author_name) {
@@ -189,29 +189,39 @@ export async function POST(req: NextRequest) {
 
             // 5. Trigger Achievements for the rater (using admin client to bypass RLS)
             checkAndGrantAchievements(user_id, supabaseAdmin).catch(err => console.error('Achievement check failed:', err));
+        }
 
-            // 5b. Track conversion: mark the most recent scan by this user as converted
-            // Uses admin client to bypass RLS (rater can't SELECT bottle_scans via brewery-owner policy)
-            try {
-                const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-                const { data: recentScan } = await supabaseAdmin
-                    .from('bottle_scans')
-                    .select('id')
-                    .eq('brew_id', brew_id)
-                    .eq('viewer_user_id', user_id)
-                    .gte('created_at', oneDayAgo)
-                    .order('created_at', { ascending: false })
-                    .limit(1)
-                    .maybeSingle();
+        // 5b. Track conversion: mark the most recent scan as converted_to_rating = true
+        // Works for BOTH logged-in (match by viewer_user_id) and anonymous (match by bottle_id)
+        // Uses admin client to bypass RLS
+        try {
+            const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+            let scanQuery = supabaseAdmin
+                .from('bottle_scans')
+                .select('id')
+                .gte('created_at', oneDayAgo)
+                .order('created_at', { ascending: false })
+                .limit(1);
+
+            if (user_id) {
+                // Logged-in user: match by user + brew (precise)
+                scanQuery = scanQuery.eq('brew_id', brew_id).eq('viewer_user_id', user_id);
+            } else if (bottle_id) {
+                // Anonymous user: match by bottle_id (the specific physical bottle they scanned)
+                scanQuery = scanQuery.eq('bottle_id', bottle_id);
+            }
+
+            if (user_id || bottle_id) {
+                const { data: recentScan } = await scanQuery.maybeSingle();
                 if (recentScan) {
                     await supabaseAdmin
                         .from('bottle_scans')
                         .update({ converted_to_rating: true })
                         .eq('id', recentScan.id);
                 }
-            } catch (convErr) {
-                console.error('[Ratings] Conversion tracking failed:', convErr);
             }
+        } catch (convErr) {
+            console.error('[Ratings] Conversion tracking failed:', convErr);
         }
 
         // 6. Trigger Achievements for the brew owner (e.g. popular_50, top_rated)
