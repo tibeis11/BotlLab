@@ -199,50 +199,59 @@ export default function PublicScanPage() {
       if (bottle && brew && !hasTrackedScan.current) {
         hasTrackedScan.current = true; // Set immediately to prevent race conditions
         try {
-          // Phase 7.2 — UTM params
-          const utmSource   = searchParams.get('utm_source')   ?? undefined;
-          const utmMedium   = searchParams.get('utm_medium')   ?? undefined;
-          const utmCampaign = searchParams.get('utm_campaign') ?? undefined;
+          // SessionStorage check to prevent double-tracking on page reload
+          const sessionKey = `tracked_scan_${bottle.id}`;
+          const alreadyTrackedThisSession = typeof sessionStorage !== 'undefined' && sessionStorage.getItem(sessionKey);
 
-          // Phase 7.2 — Referrer domain (client-side, normalised)
-          let referrerDomain: string | undefined;
-          try {
-            const rawRef = typeof document !== 'undefined' ? document.referrer : '';
-            referrerDomain = rawRef
-              ? new URL(rawRef).hostname.replace(/^www\./, '')
-              : undefined;
-          } catch { /* ignore malformed referrer */ }
+          if (!alreadyTrackedThisSession) {
+            // Phase 7.2 — UTM params
+            const utmSource   = searchParams.get('utm_source')   ?? undefined;
+            const utmMedium   = searchParams.get('utm_medium')   ?? undefined;
+            const utmCampaign = searchParams.get('utm_campaign') ?? undefined;
 
-          // Phase 7.3 — Derive scan source from UTM + referrer + QR token
-          // New QR codes embed an HMAC token via dot separator: /b/ID.TOKEN
-          // Legacy format via query param (?_t=TOKEN) also supported.
-          const SOCIAL_DOMAINS = [
-            'instagram.com', 'facebook.com', 'twitter.com', 'x.com',
-            'tiktok.com', 'youtube.com', 'whatsapp.com', 'linkedin.com', 'untappd.com',
-          ];
-          const hasQrToken = !!pathToken || !!searchParams.get('_t');
-          let derivedScanSource: 'qr_code' | 'direct_link' | 'social' | 'share';
-          if (hasQrToken || utmMedium === 'qr') {
-            derivedScanSource = 'qr_code';
-          } else if (!referrerDomain) {
-            // No referrer = likely QR scan (camera app) or direct URL entry
-            derivedScanSource = 'qr_code';
-          } else if (SOCIAL_DOMAINS.includes(referrerDomain)) {
-            derivedScanSource = 'social';
-          } else {
-            derivedScanSource = 'direct_link';
+            // Phase 7.2 — Referrer domain (client-side, normalised)
+            let referrerDomain: string | undefined;
+            try {
+              const rawRef = typeof document !== 'undefined' ? document.referrer : '';
+              referrerDomain = rawRef
+                ? new URL(rawRef).hostname.replace(/^www\./, '')
+                : undefined;
+            } catch { /* ignore malformed referrer */ }
+
+            // Phase 7.3 — Derive scan source from UTM + referrer + QR token
+            // New QR codes embed an HMAC token via dot separator: /b/ID.TOKEN
+            // Legacy format via query param (?_t=TOKEN) also supported.
+            const SOCIAL_DOMAINS = [
+              'instagram.com', 'facebook.com', 'twitter.com', 'x.com',
+              'tiktok.com', 'youtube.com', 'whatsapp.com', 'linkedin.com', 'untappd.com',
+            ];
+            const hasQrToken = !!pathToken || !!searchParams.get('_t');
+            let derivedScanSource: 'qr_code' | 'direct_link' | 'social' | 'share';
+            
+            if (hasQrToken || utmMedium === 'qr') {
+              derivedScanSource = 'qr_code';
+            } else if (SOCIAL_DOMAINS.includes(referrerDomain ?? '')) {
+              derivedScanSource = 'social';
+            } else {
+              // No token = not a QR scan, regardless of whether a referrer is present
+              derivedScanSource = 'direct_link';
+            }
+
+            trackBottleScan(bottle.id, {
+              brewId:         brew.id,
+              breweryId:      brew.brewery_id || undefined,
+              viewerUserId:   user?.id || undefined,
+              scanSource:     derivedScanSource,
+              utmSource,
+              utmMedium,
+              utmCampaign,
+              referrerDomain,
+            });
+
+            if (typeof sessionStorage !== 'undefined') {
+              sessionStorage.setItem(sessionKey, 'true');
+            }
           }
-
-          trackBottleScan(bottle.id, {
-            brewId:         brew.id,
-            breweryId:      brew.brewery_id || undefined,
-            viewerUserId:   user?.id || undefined,
-            scanSource:     derivedScanSource,
-            utmSource,
-            utmMedium,
-            utmCampaign,
-            referrerDomain,
-          });
         } catch (trackError) {
           console.error('[Analytics] Failed to track scan:', trackError);
           hasTrackedScan.current = false; // Reset on error to allow retry

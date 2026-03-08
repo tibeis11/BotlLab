@@ -80,14 +80,18 @@ export default function OverviewView({
           title="Scans / Besucher"
           value={data.uniqueVisitors > 0 ? (data.totalScans / data.uniqueVisitors).toFixed(1) : '0'}
         />
-        {conversionData && (
-          <AnalyticsMetricCard
-            title="Drinker Rate"
-            value={`${conversionData.rate.toFixed(1)}%`}
-            change={conversionData.rate > 5 ? 2.5 : undefined}
-            subValue={`${conversionData.conversions} Verified Drinkers`}
-          />
-        )}
+        {conversionData && (() => {
+          const verifiedDrinkers = Math.max(conversionData.conversions, data.capCollectors ?? 0);
+          const verifiedRate = data.totalScans > 0 ? (verifiedDrinkers / data.totalScans) * 100 : 0;
+          return (
+            <AnalyticsMetricCard
+              title="Drinker Rate"
+              value={`${verifiedRate.toFixed(1)}%`}
+              change={verifiedRate > 5 ? 2.5 : undefined}
+              subValue={`${verifiedDrinkers} Verified Drinkers`}
+            />
+          );
+        })()}
       </div>
 
       {/* Phase 2: Verified Drinker Funnel */}

@@ -151,7 +151,7 @@ function HeaderRow() {
 }
 
 function WeatherRow({ item, isTop }: { item: ScanWeatherBreakdownItem; isTop: boolean }) {
-  const barColor = isTop ? 'bg-sky-500' : 'bg-surface-hover';
+  const barColor = isTop ? 'bg-brand' : 'bg-brand opacity-50';
   const categoryBadge = CATEGORY_BADGE[item.category] ?? null;
 
   return (

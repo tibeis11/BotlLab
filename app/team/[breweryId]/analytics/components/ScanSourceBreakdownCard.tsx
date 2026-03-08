@@ -64,7 +64,7 @@ export default function ScanSourceBreakdownCard({
     return (
       <div className="bg-surface rounded-2xl border border-border p-6 relative overflow-hidden">
         <div className="absolute inset-0 backdrop-blur-[2px] bg-surface/60 z-10 flex flex-col items-center justify-center gap-2">
-          <Lock size={20} className="text-amber-400" />
+          <Lock size={20} className="text-rating" />
           <p className="text-sm font-bold text-text-secondary">Verfügbar ab Brewer-Plan</p>
           <p className="text-xs text-text-muted">Erfahre, woher deine Scans kommen</p>
         </div>
@@ -94,7 +94,7 @@ export default function ScanSourceBreakdownCard({
           <Globe size={16} className="text-text-muted" />
           <h3 className="text-sm font-bold text-text-secondary">Herkunftsquellen</h3>
         </div>
-        <p className="text-xs text-red-400">{error}</p>
+        <p className="text-xs text-error">{error}</p>
       </div>
     );
   }
@@ -121,7 +121,7 @@ export default function ScanSourceBreakdownCard({
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2">
-          <Globe size={16} className="text-cyan-400" />
+          <Globe size={16} className="text-brand" />
           <h3 className="text-sm font-bold text-text-primary">Herkunftsquellen</h3>
         </div>
         <span className="text-xs text-text-muted">Woher kommen die Scans?</span>
@@ -141,7 +141,7 @@ export default function ScanSourceBreakdownCard({
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function SourceRow({ item, isTop }: { item: ScanSourceBreakdownItem; isTop: boolean }) {
-  const barColor = isTop ? 'bg-cyan-500' : 'bg-surface-hover';
+  const barColor = isTop ? 'bg-brand' : 'bg-brand opacity-50';
 
   return (
     <div>
