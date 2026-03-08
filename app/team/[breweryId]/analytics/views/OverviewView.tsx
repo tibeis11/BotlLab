@@ -24,6 +24,8 @@ export interface AnalyticsPageData {
   capsClaimed?: number;
   /** Phase 2: unique users who claimed a Kronkorken */
   capCollectors?: number;
+  /** Phase A: Σ drinking_probability aller Scans — geschätzte Trinker */
+  weightedDrinkerEstimate?: number;
   scansByDate: Record<string, { scans: number; unique: number }>;
   scansByCountry: Record<string, number>;
   scansByDevice: Record<string, number>;
@@ -44,6 +46,7 @@ interface OverviewViewProps {
   deviceData: [string, number][];
   startDate?: string;
   endDate?: string;
+  brewId?: string;
 }
 
 // ============================================================================
@@ -61,6 +64,7 @@ export default function OverviewView({
   deviceData,
   startDate,
   endDate,
+  brewId,
 }: OverviewViewProps) {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -69,7 +73,7 @@ export default function OverviewView({
       <BotlGuideInsightCards breweryId={breweryId} userTier={userTier} />
 
       {/* Metric Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <AnalyticsMetricCard
           title="Aufrufe gesamt"
           value={data.totalScans.toLocaleString('de-DE')}
@@ -84,8 +88,15 @@ export default function OverviewView({
           title="Scans / Besucher"
           value={data.uniqueVisitors > 0 ? (data.totalScans / data.uniqueVisitors).toFixed(1) : '0'}
         />
+        {data.weightedDrinkerEstimate != null && (
+          <AnalyticsMetricCard
+            title="Geschätzte Trinker"
+            value={data.weightedDrinkerEstimate.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
+            subValue={conversionData ? `${conversionData.conversions} bestätigt` : undefined}
+          />
+        )}
         {conversionData && (() => {
-          const verifiedDrinkers = Math.max(conversionData.conversions, data.capCollectors ?? 0);
+          const verifiedDrinkers = conversionData.conversions;
           const verifiedRate = data.totalScans > 0 ? (verifiedDrinkers / data.totalScans) * 100 : 0;
           return (
             <AnalyticsMetricCard
@@ -99,12 +110,11 @@ export default function OverviewView({
       </div>
 
       {/* Phase 2: Verified Drinker Funnel */}
-      {/* verifiedDrinkers = max(conversions, capCollectors) because both actions prove drinking */}
       <DrinkerFunnelCard
         totalScans={data.totalScans}
         loggedInScans={data.loggedInScans ?? 0}
-        verifiedDrinkers={Math.max(conversionData?.conversions ?? 0, data.capCollectors ?? 0)}
-        capCollectors={data.capCollectors ?? 0}
+        weightedDrinkerEstimate={data.weightedDrinkerEstimate ?? 0}
+        verifiedDrinkers={conversionData?.conversions ?? 0}
         userTier={userTier}
       />
 
@@ -258,6 +268,7 @@ export default function OverviewView({
         userTier={userTier}
         startDate={startDate}
         endDate={endDate}
+        brewId={brewId}
       />
 
       {/* Privacy Footer */}

@@ -102,14 +102,13 @@ export default async function BrewAnalyticsPage({ params }: { params: { breweryI
   const demographicsData = demographicsResult.data;
   const benchmarkData = benchmarkResult.data ?? null;
 
-  // Fetch brew-level logged_in_scans from analytics_daily_stats
-  const { data: brewDailyStats } = await supabase
-    .from('analytics_daily_stats')
-    .select('logged_in_scans')
-    .eq('brew_id', brewId);
-  const brewLoggedInScans = (brewDailyStats ?? []).reduce(
-    (sum, row) => sum + ((row as any).logged_in_scans ?? 0), 0
-  );
+  // Fetch brew-level logged_in_scans directly from bottle_scans
+  // (analytics_daily_stats may not track logged_in_scans per brew reliably)
+  const { count: brewLoggedInScans } = await supabase
+    .from('bottle_scans')
+    .select('id', { count: 'exact', head: true })
+    .eq('brew_id', brewId)
+    .not('viewer_user_id', 'is', null);
 
   // Calculate detailed profile stats
   const detailedRatingsCount = ratings.filter(r => r.taste_bitterness !== null).length;
@@ -143,9 +142,8 @@ export default async function BrewAnalyticsPage({ params }: { params: { breweryI
       <div className="mb-8">
         <DrinkerFunnelCard
           totalScans={conversionData?.totalScans ?? 0}
-          loggedInScans={brewLoggedInScans}
+          loggedInScans={brewLoggedInScans ?? 0}
           verifiedDrinkers={conversionData?.conversions ?? 0}
-          capCollectors={capData?.capCollectors ?? 0}
           userTier={tier}
         />
       </div>

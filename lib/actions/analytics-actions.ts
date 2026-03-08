@@ -693,7 +693,8 @@ export async function getBreweryAnalyticsSummary(breweryId: string, options?: {
       .not('longitude', 'is', null)
       .limit(500);
     if (options?.startDate) geoQuery = geoQuery.gte('created_at', options.startDate);
-    if (options?.endDate) geoQuery = geoQuery.lte('created_at', options.endDate);
+    if (options?.endDate)   geoQuery = geoQuery.lte('created_at', options.endDate);
+    if (options?.brewId)    geoQuery = geoQuery.eq('brew_id', options.brewId);
     const { data: points } = await geoQuery;
       
     if (points) {
@@ -709,7 +710,10 @@ export async function getBreweryAnalyticsSummary(breweryId: string, options?: {
   let capCollectors = 0;
   try {
     // Collect all real brew IDs (exclude sentinel)
-    const brewIds = Object.keys(summary.topBrews).filter(id => id !== '__no_brew__');
+    // When brewId filter is active, scope caps to just that brew
+    const brewIds = options?.brewId
+      ? [options.brewId]
+      : Object.keys(summary.topBrews).filter(id => id !== '__no_brew__');
     if (brewIds.length > 0) {
       let capsQuery = supabase
         .from('collected_caps')
@@ -744,12 +748,69 @@ export async function getBreweryAnalyticsSummary(breweryId: string, options?: {
     console.warn('[Analytics] Failed to fetch cap claims:', capsErr);
   }
 
+  // Phase A: Weighted Drinker Estimate + Funnel-consistent scan counts
+  //
+  // IMPORTANT: We compute these directly from bottle_scans — the SAME table
+  // the CIS classifier writes drinking_probability to. Using analytics_daily_stats
+  // for totalScans but bottle_scans for estimates caused 200% bugs when the two
+  // tables were out of sync. We also rebuild scansByDate and uniqueVisitors from
+  // the same query so the chart always matches the metric cards.
+  let weightedDrinkerEstimate = 0;
+  let funnelTotalScans = summary.totalScans;    // fallback to aggregation table
+  let funnelLoggedInScans = summary.loggedInScans;
+  let funnelScansByDate = summary.scansByDate;
+  let funnelUniqueVisitors = summary.uniqueVisitors;
+  try {
+    let funnelQuery = (supabase as any)
+      .from('bottle_scans')
+      .select('drinking_probability, viewer_user_id, created_at, session_hash')
+      .eq('brewery_id', breweryId)
+      .eq('is_owner_scan', false);
+    if (options?.startDate) funnelQuery = funnelQuery.gte('created_at', options.startDate);
+    if (options?.endDate)   funnelQuery = funnelQuery.lte('created_at', options.endDate);
+    if (options?.brewId)    funnelQuery = funnelQuery.eq('brew_id', options.brewId);
+    const { data: funnelRows } = await funnelQuery;
+    if (funnelRows && funnelRows.length > 0) {
+      funnelTotalScans    = funnelRows.length;
+      funnelLoggedInScans = funnelRows.filter((r: any) => r.viewer_user_id != null).length;
+      weightedDrinkerEstimate = funnelRows.reduce(
+        (sum: number, r: { drinking_probability: number | null }) =>
+          sum + (r.drinking_probability ?? 0),
+        0
+      );
+
+      // Rebuild scansByDate from raw rows so chart == metric cards
+      const dateMap: Record<string, { scans: number; sessions: Set<string> }> = {};
+      for (const r of funnelRows) {
+        const date = (r.created_at as string).slice(0, 10); // YYYY-MM-DD
+        if (!dateMap[date]) dateMap[date] = { scans: 0, sessions: new Set() };
+        dateMap[date].scans++;
+        if (r.session_hash) dateMap[date].sessions.add(r.session_hash);
+      }
+      funnelScansByDate = Object.fromEntries(
+        Object.entries(dateMap).map(([date, v]) => [date, { scans: v.scans, unique: v.sessions.size }])
+      );
+
+      // Unique visitors = distinct session_hashes across the whole period
+      const allSessions = new Set(funnelRows.map((r: any) => r.session_hash).filter(Boolean));
+      funnelUniqueVisitors = allSessions.size;
+    }
+  } catch (funnelErr) {
+    console.warn('[Analytics] Failed to compute funnel metrics from bottle_scans:', funnelErr);
+  }
+
   return { 
     data: { 
-      ...summary, 
+      ...summary,
+      // Override aggregation-table numbers with bottle_scans-consistent values
+      totalScans: funnelTotalScans,
+      uniqueVisitors: funnelUniqueVisitors,
+      loggedInScans: funnelLoggedInScans,
+      scansByDate: funnelScansByDate,
       geoPoints,
       capsClaimed,
       capCollectors,
+      weightedDrinkerEstimate,
     } as any 
   };
 }
@@ -887,10 +948,10 @@ export async function getConversionRate(breweryId: string, options?: {
       return { error: 'Only brewery owners can view conversion metrics' };
     }
 
-    // Query scans with conversion flag
+    // Query scans with conversion flag + confirmed drinking
     let query = supabase
       .from('bottle_scans')
-      .select('id, converted_to_rating')
+      .select('id, converted_to_rating, confirmed_drinking')
       .eq('brewery_id', breweryId);
 
     if (options?.brewId) {
@@ -911,7 +972,10 @@ export async function getConversionRate(breweryId: string, options?: {
     }
 
     const totalScans = scans.length;
-    const conversions = scans.filter(s => s.converted_to_rating).length;
+    // Verified Drinker: rated OR confirmed drinking via prompt
+    const conversions = scans.filter(
+      (s: any) => s.converted_to_rating || s.confirmed_drinking === true
+    ).length;
     const rate = totalScans > 0 ? (conversions / totalScans) * 100 : 0;
 
     return { data: { totalScans, conversions, rate } };
@@ -1822,15 +1886,15 @@ const SOCIAL_DOMAIN_LABELS: Record<string, string> = {
 };
 
 const SOCIAL_DOMAIN_ICONS: Record<string, string> = {
-  'instagram.com': '📸',
-  'facebook.com':  '👍',
-  'twitter.com':   '🐦',
-  'x.com':         '🐦',
-  'tiktok.com':    '🎵',
-  'youtube.com':   '▶️',
-  'whatsapp.com':  '💬',
-  'linkedin.com':  '💼',
-  'untappd.com':   '🍺',
+  'instagram.com': 'Instagram',
+  'facebook.com':  'Facebook',
+  'twitter.com':   'Twitter',
+  'x.com':         'Twitter',
+  'tiktok.com':    'Music',
+  'youtube.com':   'Youtube',
+  'whatsapp.com':  'MessageCircle',
+  'linkedin.com':  'Linkedin',
+  'untappd.com':   'Beer',
 };
 
 const SCAN_SOURCE_LABELS: Record<string, string> = {
@@ -1841,15 +1905,15 @@ const SCAN_SOURCE_LABELS: Record<string, string> = {
 };
 
 const SCAN_SOURCE_ICONS: Record<string, string> = {
-  'qr_code':     '📷',
-  'direct_link': '🔗',
-  'social':      '📣',
-  'share':       '↗️',
+  'qr_code':     'ScanLine',
+  'direct_link': 'Link',
+  'social':      'Share2',
+  'share':       'ArrowUpRight',
 };
 
 export async function getScanSourceBreakdown(
   breweryId: string,
-  options?: { startDate?: string; endDate?: string }
+  options?: { startDate?: string; endDate?: string; brewId?: string }
 ): Promise<{ success: boolean; items?: ScanSourceBreakdownItem[]; error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -1863,6 +1927,7 @@ export async function getScanSourceBreakdown(
 
   if (options?.startDate) query = query.gte('created_at', options.startDate);
   if (options?.endDate)   query = query.lt('created_at', options.endDate);
+  if (options?.brewId)    query = query.eq('brew_id', options.brewId);
 
   const { data, error } = await query;
   if (error) return { success: false, error: error.message };
@@ -1888,8 +1953,8 @@ export async function getScanSourceBreakdown(
       const domainLabel = referrerDomain ? SOCIAL_DOMAIN_LABELS[referrerDomain] : null;
       const label = domainLabel ?? SCAN_SOURCE_LABELS[scanSource] ?? scanSource;
       const icon  = referrerDomain
-        ? (SOCIAL_DOMAIN_ICONS[referrerDomain] ?? '🌐')
-        : (SCAN_SOURCE_ICONS[scanSource] ?? '🔍');
+        ? (SOCIAL_DOMAIN_ICONS[referrerDomain] ?? 'Globe')
+        : (SCAN_SOURCE_ICONS[scanSource] ?? 'Search');
 
       return {
         key:            `${scanSource}::${referrerDomain ?? ''}`,
@@ -2021,137 +2086,204 @@ export async function getScanWeatherBreakdown(
 
 /**
  * Default drinking probabilities per intent category.
- * These are the initial values — Phase 9.5 EWMA will calibrate them over time.
+ * Phase 0 (2026-03-08): Categories extended with non_qr and fridge_surf.
+ * QR-based probabilities are now computed dynamically by classifyCisScans().
  */
 const INTENT_PROBABILITIES: Record<string, number> = {
   confirmed:         1.00,
   repeat:            0.85,
   event:             0.70,
   single:            0.50,
-  social_discovery:  0.30,
+  social_discovery:  0.00,   // Phase 0: non-QR → no drinking probability
   browse:            0.15,
   collection_browse: 0.05,
+  fridge_surf:       0.05,   // Phase 0: detected Fridge Surfing
+  non_qr:            0.00,   // Phase 0: hard rule — shared link, direct URL
 };
 
 const INTENT_LABELS: Record<string, { label: string; icon: string }> = {
-  single:            { label: 'Einzelscan',            icon: '📱' },
-  browse:            { label: 'Browse (Kühlschrank)',   icon: '🔍' },
-  collection_browse: { label: 'Sammlung durchstöbern', icon: '📦' },
-  repeat:            { label: 'Wiederkommer',          icon: '🔄' },
-  event:             { label: 'Event / Verkostung',    icon: '🎪' },
-  social_discovery:  { label: 'Social-Entdeckung',     icon: '📣' },
-  confirmed:         { label: 'Bestätigt',             icon: '✅' },
+  single:            { label: 'Einzelscan',            icon: 'Smartphone' },
+  browse:            { label: 'Browse (Kühlschrank)',   icon: 'Search' },
+  collection_browse: { label: 'Sammlung durchstöbern', icon: 'Archive' },
+  fridge_surf:       { label: 'Kühlschrank-Surfen',    icon: 'Layers' },
+  non_qr:            { label: 'Geteilter Link',        icon: 'Link' },
+  repeat:            { label: 'Wiederkommer',          icon: 'RefreshCw' },
+  event:             { label: 'Event / Verkostung',    icon: 'CalendarDays' },
+  social_discovery:  { label: 'Social-Entdeckung',     icon: 'Share2' },
+  confirmed:         { label: 'Bestätigt',             icon: 'CheckCircle2' },
 };
+
+// ============================================================================
+// Phase 0 — CIS Engine v2 Scoring Constants (2026-03-08)
+// Additive scoring model for session-aware classification.
+// ============================================================================
+const CIS_SCORING = {
+  BASE_SCORE:               0.30,
+  FRIDGE_SURFING_PENALTY:  -0.40,  // Another different bottle scanned within SESSION_WINDOW_MS
+  DWELL_TIME_BONUS:         0.40,  // dwell_seconds >= DWELL_TIME_THRESHOLD_S
+  LAST_IN_SESSION_BONUS:    0.20,  // No follow-up scan on a different bottle within SESSION_WINDOW_MS
+  SESSION_WINDOW_MS:        15 * 60 * 1000,  // 15 minutes
+  DWELL_TIME_THRESHOLD_S:   180,             // 3 minutes
+} as const;
 
 /**
  * 9.2 — Browse-Scan-Erkennung (Batch-Klassifikation)
  *
- * Scans in derselben Session mit ≥3 verschiedenen Brews innerhalb von
- * 5 Minuten werden als 'browse' klassifiziert (≥5 → 'collection_browse').
- * Verarbeitet nur die letzten 24 Stunden unklassifizierter Scans.
- *
- * @returns Anzahl der klassifizierten Scans
+ * @deprecated Superseded by classifyCisScans() (Phase 0, 2026-03-08).
+ * Kept as a no-op so existing call-sites do not break.
  */
 export async function classifyBrowseScans(): Promise<number> {
-  const supabase = await createClient();
+  return 0;
+}
 
-  // 1. Hole unklassifizierte Scans der letzten 24h mit session_hash
-  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+// ============================================================================
+// Phase 0 — CIS Engine v2: classifyCisScans()
+//
+// Unified, session-aware classification that replaces the old
+// classifyBrowseScans() + classifySingleScans() pipeline.
+//
+// Algorithm:
+//   1. Hard Rule (0.1): Non-QR scans  → drinking_probability = 0.0 immediately
+//   2. Session context (0.2): load all scans in the same session_hash to detect
+//      "Fridge Surfing" — another different bottle scanned within 15 min.
+//   3. Additive scoring:
+//      BASE_SCORE                         = 0.30
+//      + FRIDGE_SURFING_PENALTY  (-0.40)  if follow-up scan on different bottle < 15 min
+//      + LAST_IN_SESSION_BONUS   (+0.20)  if no follow-up scan (= decision scan)
+//      + DWELL_TIME_BONUS        (+0.40)  if dwell_seconds >= 180s
+//      Clamped to [0.0, 1.0]
+//   4. Intent label derived from final score:
+//      < 0.15 → fridge_surf  |  0.15–0.44 → browse  |  >= 0.45 → single
+//
+// Runs via cron every 15 min. Only processes scans older than 15 min
+// (session window is considered closed at that point).
+// ============================================================================
+export async function classifyCisScans(): Promise<{ nonQr: number; session: number }> {
+  const supabase = await createClient();
+  const sessionCutoff = new Date(Date.now() - CIS_SCORING.SESSION_WINDOW_MS).toISOString();
+
+  // ── 1. Load unclassified scans older than 15 min ──────────────────────────
   const { data: scans, error } = await (supabase as any)
     .from('bottle_scans')
-    .select('id, session_hash, brew_id, created_at')
+    .select('id, session_hash, bottle_id, brew_id, scan_source, dwell_seconds, created_at')
     .is('scan_intent', null)
-    .not('session_hash', 'is', null)
-    .gte('created_at', cutoff)
+    .lte('created_at', sessionCutoff)
     .order('created_at', { ascending: true })
-    .limit(2000);
+    .limit(5000);
 
-  if (error || !scans || scans.length === 0) return 0;
+  if (error || !scans || scans.length === 0) return { nonQr: 0, session: 0 };
 
-  // 2. Gruppiere nach session_hash
-  const sessionGroups = new Map<string, typeof scans>();
-  for (const scan of scans) {
-    const key = scan.session_hash as string;
-    if (!sessionGroups.has(key)) sessionGroups.set(key, []);
-    sessionGroups.get(key)!.push(scan);
-  }
+  // ── 2. Load full session context for neighbour-scan detection ─────────────
+  const sessionHashes = [
+    ...new Set(scans.map((s: any) => s.session_hash).filter(Boolean)),
+  ] as string[];
 
-  const browseIds: string[] = [];
-  const collectionIds: string[] = [];
+  const sessionContext = new Map<string, Array<{
+    id: string;
+    bottle_id: string | null;
+    created_at: string;
+  }>>();
 
-  for (const [, group] of sessionGroups) {
-    if (group.length < 3) continue; // Mindestens 3 Scans in der Session
+  if (sessionHashes.length > 0) {
+    const { data: ctx } = await (supabase as any)
+      .from('bottle_scans')
+      .select('id, session_hash, bottle_id, created_at')
+      .in('session_hash', sessionHashes)
+      .order('created_at', { ascending: true });
 
-    // Sortiere nach Zeit
-    group.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-
-    // Sliding window: finde Bursts mit ≥3 verschiedenen Brews in 5-Minuten-Fenstern
-    for (let i = 0; i < group.length; i++) {
-      const windowStart = new Date(group[i].created_at).getTime();
-      const windowEnd = windowStart + 5 * 60 * 1000; // 5 Minuten
-
-      const windowScans: typeof group = [];
-      const uniqueBrews = new Set<string>();
-
-      for (let j = i; j < group.length; j++) {
-        const ts = new Date(group[j].created_at).getTime();
-        if (ts > windowEnd) break;
-        windowScans.push(group[j]);
-        if (group[j].brew_id) uniqueBrews.add(group[j].brew_id);
-      }
-
-      // Collection-Browse: ≥5 verschiedene Brews in 10 Min
-      const windowEnd10 = windowStart + 10 * 60 * 1000;
-      const uniqueBrews10 = new Set<string>();
-      const windowScans10: typeof group = [];
-      for (let j = i; j < group.length; j++) {
-        const ts = new Date(group[j].created_at).getTime();
-        if (ts > windowEnd10) break;
-        windowScans10.push(group[j]);
-        if (group[j].brew_id) uniqueBrews10.add(group[j].brew_id);
-      }
-
-      if (uniqueBrews10.size >= 5) {
-        for (const s of windowScans10) collectionIds.push(s.id);
-      } else if (uniqueBrews.size >= 3) {
-        for (const s of windowScans) browseIds.push(s.id);
-      }
+    for (const s of ctx ?? []) {
+      if (!s.session_hash) continue;
+      if (!sessionContext.has(s.session_hash)) sessionContext.set(s.session_hash, []);
+      sessionContext.get(s.session_hash)!.push({
+        id: s.id,
+        bottle_id: s.bottle_id,
+        created_at: s.created_at,
+      });
     }
   }
 
-  // Deduplizieren (Scans könnten in mehreren Fenstern vorkommen)
-  const uniqueCollectionIds = [...new Set(collectionIds)];
-  const uniqueBrowseIds = [...new Set(browseIds)].filter(id => !uniqueCollectionIds.includes(id));
+  // ── 3. Score each scan ────────────────────────────────────────────────────
+  type UpdateRow = { id: string; scan_intent: string; drinking_probability: number };
+  const updates: UpdateRow[] = [];
+  let nonQrCount = 0;
 
-  let classified = 0;
+  for (const scan of scans) {
+    // Hard Rule 0.1 — Not from QR camera → probability 0, label by source
+    if (scan.scan_source !== 'qr_code') {
+      const intent = scan.scan_source === 'social' ? 'social_discovery' : 'non_qr';
+      updates.push({ id: scan.id, scan_intent: intent, drinking_probability: 0.0 });
+      nonQrCount++;
+      continue;
+    }
 
-  // Update collection_browse
-  if (uniqueCollectionIds.length > 0) {
+    // Additive scoring for QR scans ─────────────────────────────────────────
+    let score = CIS_SCORING.BASE_SCORE;
+    const thisScanTime = new Date(scan.created_at).getTime();
+    const sessionScans = sessionContext.get(scan.session_hash ?? '') ?? [];
+
+    // Has a DIFFERENT bottle been scanned within 15 min after this? → Fridge surfing
+    const hasFollowUpOnDifferentBottle = sessionScans.some((s) => {
+      if (s.id === scan.id) return false;
+      if (s.bottle_id === scan.bottle_id) return false; // Re-scan of same bottle: not surfing
+      const delta = new Date(s.created_at).getTime() - thisScanTime;
+      return delta > 0 && delta < CIS_SCORING.SESSION_WINDOW_MS;
+    });
+
+    if (hasFollowUpOnDifferentBottle) {
+      score += CIS_SCORING.FRIDGE_SURFING_PENALTY; // –0.40
+    } else {
+      // "Decision scan" — this is where the user committed
+      score += CIS_SCORING.LAST_IN_SESSION_BONUS; // +0.20
+    }
+
+    // Dwell time bonus — only fires once dwell_seconds is populated (Phase 0.3)
+    if (scan.dwell_seconds != null && scan.dwell_seconds >= CIS_SCORING.DWELL_TIME_THRESHOLD_S) {
+      score += CIS_SCORING.DWELL_TIME_BONUS; // +0.40
+    }
+
+    // Clamp to [0.0, 1.0]
+    score = Math.max(0.0, Math.min(1.0, score));
+
+    // Map score to intent label
+    let intent: string;
+    if (score < 0.15)       intent = 'fridge_surf';
+    else if (score < 0.45)  intent = 'browse';
+    else                    intent = 'single';
+
+    updates.push({ id: scan.id, scan_intent: intent, drinking_probability: score });
+  }
+
+  if (updates.length === 0) return { nonQr: nonQrCount, session: 0 };
+
+  // ── 4. Batch update, grouped by intent + probability to minimise DB calls ─
+  const byKey = new Map<string, string[]>();
+  const payloadMap = new Map<string, { scan_intent: string; drinking_probability: number }>();
+
+  for (const u of updates) {
+    const prob = Math.round(u.drinking_probability * 100) / 100;
+    const key = `${u.scan_intent}::${prob}`;
+    if (!byKey.has(key)) {
+      byKey.set(key, []);
+      payloadMap.set(key, { scan_intent: u.scan_intent, drinking_probability: prob });
+    }
+    byKey.get(key)!.push(u.id);
+  }
+
+  let classifiedSession = 0;
+  for (const [key, ids] of byKey) {
+    const payload = payloadMap.get(key)!;
     const { error: err } = await (supabase as any)
       .from('bottle_scans')
       .update({
-        scan_intent: 'collection_browse',
-        drinking_probability: INTENT_PROBABILITIES.collection_browse,
+        scan_intent: payload.scan_intent,
+        drinking_probability: payload.drinking_probability,
       })
-      .in('id', uniqueCollectionIds)
+      .in('id', ids)
       .is('scan_intent', null);
-    if (!err) classified += uniqueCollectionIds.length;
+    if (!err) classifiedSession += ids.length;
   }
 
-  // Update browse
-  if (uniqueBrowseIds.length > 0) {
-    const { error: err } = await (supabase as any)
-      .from('bottle_scans')
-      .update({
-        scan_intent: 'browse',
-        drinking_probability: INTENT_PROBABILITIES.browse,
-      })
-      .in('id', uniqueBrowseIds)
-      .is('scan_intent', null);
-    if (!err) classified += uniqueBrowseIds.length;
-  }
-
-  return classified;
+  return { nonQr: nonQrCount, session: classifiedSession };
 }
 
 /**
@@ -2235,69 +2367,21 @@ export async function classifyRepeatScans(): Promise<number> {
 
 /**
  * Classify social-discovery scans based on referrer or UTM.
- * Called as part of the classification pipeline.
+ * @deprecated Superseded by classifyCisScans() (Phase 0, 2026-03-08).
+ * Social scans are now classified as social_discovery with probability 0.0
+ * inside the unified CIS engine (Hard Rule 0.1).
  */
 export async function classifySocialScans(): Promise<number> {
-  const supabase = await createClient();
-
-  const SOCIAL_DOMAINS = [
-    'instagram.com', 'facebook.com', 'twitter.com', 'x.com',
-    'tiktok.com', 'youtube.com', 'whatsapp.com', 'linkedin.com', 'untappd.com',
-  ];
-
-  // Find unclassified scans with social referrer or utm_medium=social
-  const { data: scans, error } = await (supabase as any)
-    .from('bottle_scans')
-    .select('id, referrer_domain, utm_medium, scan_source')
-    .is('scan_intent', null)
-    .limit(2000);
-
-  if (error || !scans || scans.length === 0) return 0;
-
-  const socialIds: string[] = [];
-  for (const scan of scans) {
-    const isSocial =
-      (scan.referrer_domain && SOCIAL_DOMAINS.includes(scan.referrer_domain)) ||
-      scan.utm_medium === 'social' ||
-      scan.scan_source === 'social';
-    if (isSocial) socialIds.push(scan.id);
-  }
-
-  if (socialIds.length === 0) return 0;
-
-  const { error: err } = await (supabase as any)
-    .from('bottle_scans')
-    .update({
-      scan_intent: 'social_discovery',
-      drinking_probability: INTENT_PROBABILITIES.social_discovery,
-    })
-    .in('id', socialIds)
-    .is('scan_intent', null);
-
-  return err ? 0 : socialIds.length;
+  return 0;
 }
 
 /**
  * Classify remaining unclassified scans as 'single' (default fallback).
- * Only scans older than 30 minutes are classified to give Browse/Repeat classifiers time.
+ * @deprecated Superseded by classifyCisScans() (Phase 0, 2026-03-08).
+ * classifyCisScans() handles all fallback classification after the 15-min window.
  */
 export async function classifySingleScans(): Promise<number> {
-  const supabase = await createClient();
-
-  const cutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString(); // 30 Min alt
-
-  const { data, error } = await (supabase as any)
-    .from('bottle_scans')
-    .update({
-      scan_intent: 'single',
-      drinking_probability: INTENT_PROBABILITIES.single,
-    })
-    .is('scan_intent', null)
-    .lte('created_at', cutoff)
-    .select('id');
-
-  if (error) return 0;
-  return data?.length ?? 0;
+  return 0;
 }
 
 /**
@@ -2569,7 +2653,7 @@ export async function resolveScanForPrompt(
     const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
     const { data: scan } = await (supabase as any)
       .from('bottle_scans')
-      .select('id, scan_intent, drinking_probability, is_owner_scan, confirmed_drinking, viewer_user_id')
+      .select('id, scan_intent, drinking_probability, is_owner_scan, confirmed_drinking, converted_to_rating, viewer_user_id')
       .eq('bottle_id', bottleId)
       .gte('created_at', thirtyMinAgo)
       .order('created_at', { ascending: false })
@@ -2580,18 +2664,28 @@ export async function resolveScanForPrompt(
       return { shouldAsk: false, scanId: null, reason: 'no_recent_scan', samplingRate: 0 };
     }
 
-    // Hard excludes
+    // Hard excludes — Prompt-Hierarchie:
+    // If any Hard Proof is already recorded, the popup is unnecessary and must not fire.
     if (scan.is_owner_scan) {
       return { shouldAsk: false, scanId: scan.id, reason: 'owner_scan', samplingRate: 0 };
     }
+    // confirmed_drinking already answered by the prompt (or another mechanism)
     if (scan.confirmed_drinking !== null) {
       return { shouldAsk: false, scanId: scan.id, reason: 'already_confirmed', samplingRate: 0 };
     }
-    if (scan.scan_intent === 'browse' || scan.scan_intent === 'collection_browse') {
-      return { shouldAsk: false, scanId: scan.id, reason: 'browse_burst', samplingRate: 0 };
-    }
+    // scan_intent = 'confirmed' means BTB, Rating, or previous prompt already set this
     if (scan.scan_intent === 'confirmed') {
-      return { shouldAsk: false, scanId: scan.id, reason: 'already_confirmed_intent', samplingRate: 0 };
+      return { shouldAsk: false, scanId: scan.id, reason: 'hard_proof_exists', samplingRate: 0 };
+    }
+    // Rating was submitted → scan already upgraded to confirmed (Phase 0.4)
+    if (scan.converted_to_rating) {
+      return { shouldAsk: false, scanId: scan.id, reason: 'already_rated', samplingRate: 0 };
+    }
+    // Non-QR / fridge-surfing scans — drinking is implausible, skip the popup
+    if (scan.scan_intent === 'fridge_surf' || scan.scan_intent === 'non_qr' ||
+        scan.scan_intent === 'browse' || scan.scan_intent === 'collection_browse' ||
+        scan.scan_intent === 'social_discovery') {
+      return { shouldAsk: false, scanId: scan.id, reason: 'intent_excluded', samplingRate: 0 };
     }
 
     // Check user scan history for progressive disclosure

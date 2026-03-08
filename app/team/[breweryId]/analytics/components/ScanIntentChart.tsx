@@ -1,7 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Lock, Brain, Info, Users, CheckCircle2, BarChart3 } from 'lucide-react';
+import {
+  Lock, Brain, Info, Users, CheckCircle2, BarChart3,
+  Smartphone, Search, Archive, Layers, Link, RefreshCw, CalendarDays, Share2, LucideIcon,
+} from 'lucide-react';
 import { getScanIntentBreakdown, type IntentBreakdownResult } from '@/lib/actions/analytics-actions';
 import type { UserTier } from '@/lib/analytics-tier-features';
 
@@ -15,6 +18,24 @@ interface ScanIntentChartProps {
   startDate?: string;
   endDate?: string;
 }
+
+// ============================================================================
+// Intent icon map (Lucide)
+// ============================================================================
+
+const INTENT_ICONS: Record<string, LucideIcon> = {
+  single:            Smartphone,
+  browse:            Search,
+  collection_browse: Archive,
+  fridge_surf:       Layers,
+  non_qr:            Link,
+  repeat:            RefreshCw,
+  event:             CalendarDays,
+  social_discovery:  Share2,
+  confirmed:         CheckCircle2,
+};
+
+const DEFAULT_ICON = Brain;
 
 // ============================================================================
 // Intent colour map
@@ -178,11 +199,12 @@ export default function ScanIntentChart({
         {data.intents.map((item) => {
           const colors = INTENT_COLORS[item.intent] ?? DEFAULT_COLOR;
           const barWidthPct = Math.max((item.count / maxCount) * 100, 4);
+          const IntentIcon = INTENT_ICONS[item.intent] ?? DEFAULT_ICON;
 
           return (
             <div key={item.intent} className="group">
               <div className="flex items-center gap-3">
-                <span className="text-sm w-5 text-center flex-shrink-0">{item.icon}</span>
+                <IntentIcon size={14} className={`shrink-0 ${colors.text}`} />
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between text-xs mb-1">
                     <span className={`font-bold truncate pr-2 ${colors.text}`}>
@@ -206,71 +228,112 @@ export default function ScanIntentChart({
         })}
       </div>
 
-      {/* Divider */}
-      <div className="border-t border-border mt-6 pt-4">
-        {/* Metrics Footer */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {/* Raw Scans */}
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-1 mb-1">
-              <BarChart3 size={12} className="text-text-muted" />
-              <span className="text-[10px] text-text-muted uppercase tracking-wider">Rohe Scans</span>
+      {/* Footer */}
+      <div className="border-t border-zinc-800/50 mt-6 pt-5 space-y-5">
+
+        {/* Modell-Confidence */}
+        {(() => {
+          const estimated = data.weightedDrinkerEstimate;
+          const confirmed = data.confirmedDrinkers;
+          if (estimated <= 0) return null;
+
+          const confidence = Math.min(confirmed / estimated, 1.0);
+          const pct = Math.round(confidence * 100);
+
+          const [label, valueColor, trackColor] =
+            pct >= 50
+              ? ['Gut kalibriert',       'text-emerald-400', 'bg-emerald-500']
+              : pct >= 20
+              ? ['Wenig Beweise',         'text-amber-400',   'bg-amber-500']
+              : ['Mehr Feedback nötig',   'text-red-400',     'bg-red-500'];
+
+          return (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">
+                  Modell-Confidence
+                </span>
+                <span className={`text-[10px] font-bold uppercase tracking-wider ${valueColor}`}>
+                  {pct}% — {label}
+                </span>
+              </div>
+              <div className="h-1 w-full bg-zinc-800 rounded-full overflow-hidden">
+                <div
+                  className={`h-full ${trackColor} rounded-full transition-all duration-700`}
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+              <p className="text-[10px] text-zinc-600 mt-1.5">
+                {confirmed} bestätigte Trinker · ~{Math.round(estimated)} geschätzt
+              </p>
             </div>
-            <p className="text-lg font-mono font-bold text-text-primary">
+          );
+        })()}
+
+        {/* KPI Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-zinc-800/50 rounded-xl overflow-hidden">
+          {/* Rohe Scans */}
+          <div className="bg-zinc-900 px-4 py-3 flex flex-col gap-1">
+            <div className="flex items-center gap-1.5">
+              <BarChart3 size={11} className="text-zinc-500" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Scans</span>
+            </div>
+            <p className="text-xl font-black font-mono tabular-nums text-white">
               {data.totalScans.toLocaleString('de-DE')}
             </p>
           </div>
 
-          {/* Estimated Drinkers */}
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-1 mb-1">
-              <Users size={12} className="text-cyan-500" />
-              <span className="text-[10px] text-text-muted uppercase tracking-wider">Geschätzte Trinker</span>
+          {/* Geschätzte Trinker */}
+          <div className="bg-zinc-900 px-4 py-3 flex flex-col gap-1">
+            <div className="flex items-center gap-1.5">
+              <Users size={11} className="text-cyan-500" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Geschätzt</span>
             </div>
-            <p className="text-lg font-mono font-bold text-cyan-400">
+            <p className="text-xl font-black font-mono tabular-nums text-cyan-400">
               ~{Math.round(data.weightedDrinkerEstimate).toLocaleString('de-DE')}
             </p>
-            <p className="text-[10px] text-text-disabled">
+            <p className="text-[10px] text-zinc-600">
               {data.totalScans > 0
-                ? `${Math.round((data.weightedDrinkerEstimate / data.totalScans) * 100)}%`
+                ? `${Math.round((data.weightedDrinkerEstimate / data.totalScans) * 100)}% der Scans`
                 : '—'}
             </p>
           </div>
 
-          {/* Confirmed Drinkers */}
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-1 mb-1">
-              <CheckCircle2 size={12} className="text-emerald-500" />
-              <span className="text-[10px] text-text-muted uppercase tracking-wider">Bestätigt</span>
+          {/* Bestätigt */}
+          <div className="bg-zinc-900 px-4 py-3 flex flex-col gap-1">
+            <div className="flex items-center gap-1.5">
+              <CheckCircle2 size={11} className="text-emerald-500" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Bestätigt</span>
             </div>
-            <p className="text-lg font-mono font-bold text-emerald-400">
+            <p className="text-xl font-black font-mono tabular-nums text-emerald-400">
               {data.confirmedDrinkers.toLocaleString('de-DE')}
             </p>
-            <p className="text-[10px] text-text-disabled">
+            <p className="text-[10px] text-zinc-600">
               {data.totalScans > 0
-                ? `${((data.confirmedDrinkers / data.totalScans) * 100).toFixed(1)}%`
+                ? `${((data.confirmedDrinkers / data.totalScans) * 100).toFixed(1)}% Confirmed-Rate`
                 : '—'}
             </p>
           </div>
 
-          {/* Model Accuracy */}
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-1 mb-1">
-              <Brain size={12} className="text-violet-500" />
-              <span className="text-[10px] text-text-muted uppercase tracking-wider">Modell-Genauigkeit</span>
+          {/* Modell-Genauigkeit */}
+          <div className="bg-zinc-900 px-4 py-3 flex flex-col gap-1">
+            <div className="flex items-center gap-1.5">
+              <Brain size={11} className="text-violet-500" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Modell</span>
             </div>
             {data.modelAccuracy !== null ? (
               <>
-                <p className="text-lg font-mono font-bold text-violet-400">
+                <p className="text-xl font-black font-mono tabular-nums text-violet-400">
                   {Math.round(data.modelAccuracy * 100)}%
                 </p>
-                <p className="text-[10px] text-text-disabled">basierend auf Feedback</p>
+                <p className="text-[10px] text-zinc-600">aus Feedback</p>
               </>
             ) : (
-              <p className="text-xs text-text-disabled mt-1">Noch nicht genug Daten</p>
+              <p className="text-xs text-zinc-600 mt-1 leading-tight">Noch zu wenig Daten</p>
             )}
           </div>
         </div>
+
       </div>
     </div>
   );

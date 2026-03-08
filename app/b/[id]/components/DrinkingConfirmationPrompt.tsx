@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { Beer } from 'lucide-react';
+import { useEffect, useRef, useState, useCallback, useImperativeHandle, forwardRef } from 'react';
+import { Beer, Check, X, ThumbsDown } from 'lucide-react';
 import { resolveScanForPrompt, confirmDrinking } from '@/lib/actions/analytics-actions';
 
 // ============================================================================
@@ -11,6 +11,13 @@ import { resolveScanForPrompt, confirmDrinking } from '@/lib/actions/analytics-a
 interface DrinkingConfirmationPromptProps {
   bottleId: string;
   isOwner?: boolean;
+}
+
+/** Exposed ref API — lets parent components trigger the prompt after a hard proof opportunity. */
+export interface DrinkingConfirmationPromptRef {
+  /** Call this after BTB or Rating to give the user a chance to confirm via the prompt
+   *  (only fires if no hard proof was already recorded on the scan). */
+  triggerAfterProof: () => void;
 }
 
 type EngagementSignal = 'after_rating' | 'scroll_ratings' | 'dwell_30s' | 'exit_intent';
@@ -23,10 +30,10 @@ const LS_KEY_CONFIRMED_PREFIX = 'botllab_confirmed_brew_';
 // Component
 // ============================================================================
 
-export default function DrinkingConfirmationPrompt({
-  bottleId,
-  isOwner = false,
-}: DrinkingConfirmationPromptProps) {
+function DrinkingConfirmationPromptInner(
+  { bottleId, isOwner = false }: DrinkingConfirmationPromptProps,
+  ref: React.Ref<DrinkingConfirmationPromptRef>
+) {
   const [visible, setVisible] = useState(false);
   const [responded, setResponded] = useState(false);
   const [responseText, setResponseText] = useState('');
@@ -82,6 +89,13 @@ export default function DrinkingConfirmationPrompt({
     }
   }, [bottleId, isExcludedLocally]);
 
+  // ── Expose ref API ────────────────────────────────────────────────────────
+  useImperativeHandle(ref, () => ({
+    triggerAfterProof: () => {
+      showPrompt('after_rating');
+    },
+  }), [showPrompt]);
+
   // ── Engagement tracking ──────────────────────────────────────────────────
   useEffect(() => {
     if (isExcludedLocally()) return;
@@ -103,7 +117,7 @@ export default function DrinkingConfirmationPrompt({
       }
     };
 
-    // 2. Dwell time (30 seconds of active viewing)
+    // 2. Dwell time (30 s of active viewing).
     const startDwellTimer = () => {
       dwellTimer = setTimeout(() => {
         if (!promptShown.current) {
@@ -169,7 +183,7 @@ export default function DrinkingConfirmationPrompt({
       localStorage.setItem(todayKey, bottleId);
     } catch {}
 
-    setResponseText(confirmed ? 'Danke! 🍻' : 'Verstanden 👍');
+      setResponseText(confirmed ? 'Danke fürs Feedback!' : 'Verstanden');
     setResponded(true);
 
     // Slide out after 2 seconds
@@ -217,23 +231,26 @@ export default function DrinkingConfirmationPrompt({
               <div className="flex items-center gap-2 mt-3">
                 <button
                   onClick={() => handleResponse(true)}
-                  className="flex-1 bg-amber-500 hover:bg-amber-400 text-black font-bold text-sm py-2.5 px-4 rounded-xl transition-colors"
+                  className="flex-1 bg-amber-500 hover:bg-amber-400 text-black font-bold text-sm py-2.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2"
                 >
-                  Ja, Prost! 🍻
+                  <Check size={15} strokeWidth={3} />
+                  Ja, ich trinke es
                 </button>
                 <button
                   onClick={() => handleResponse(false)}
-                  className="flex-1 bg-surface-hover hover:bg-border text-text-secondary font-medium text-sm py-2.5 px-4 rounded-xl border border-border transition-colors"
+                  className="flex-1 bg-surface-hover hover:bg-border text-text-secondary font-medium text-sm py-2.5 px-4 rounded-xl border border-border transition-colors flex items-center justify-center gap-2"
                 >
+                  <ThumbsDown size={14} />
                   Nein, nur schauen
                 </button>
               </div>
 
               <button
                 onClick={handleOptOut}
-                className="mt-2 w-full text-center text-[11px] text-text-disabled hover:text-text-secondary transition-colors py-1"
+                className="mt-2 w-full text-center text-[11px] text-text-disabled hover:text-text-secondary transition-colors py-1 flex items-center justify-center gap-1"
               >
-                ✕ Nicht mehr fragen
+                <X size={11} />
+                Nicht mehr fragen
               </button>
             </>
           )}
@@ -242,3 +259,6 @@ export default function DrinkingConfirmationPrompt({
     </div>
   );
 }
+
+const DrinkingConfirmationPrompt = forwardRef(DrinkingConfirmationPromptInner);
+export default DrinkingConfirmationPrompt;

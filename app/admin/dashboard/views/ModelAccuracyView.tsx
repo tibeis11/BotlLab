@@ -6,7 +6,8 @@ import {
   AlertTriangle, CheckCircle2, Info, BarChart3,
   Activity, Users,
 } from 'lucide-react'
-import { getModelAccuracyMetrics, type ModelAccuracyMetrics } from '@/lib/actions/analytics-admin-actions'
+import { getModelAccuracyMetrics, getCisFalseNegatives, type ModelAccuracyMetrics } from '@/lib/actions/analytics-admin-actions'
+import type { CisFalseNegativeSummary } from '@/lib/types/admin-analytics'
 
 // ============================================================================
 // Helpers
@@ -38,6 +39,7 @@ function StatusBadge({ count, label }: { count: number; label: string }) {
 export default function ModelAccuracyView() {
   const [data, setData] = useState<ModelAccuracyMetrics | null>(null)
   const [loading, setLoading] = useState(true)
+  const [falseNegs, setFalseNegs] = useState<CisFalseNegativeSummary | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -45,6 +47,8 @@ export default function ModelAccuracyView() {
       try {
         const result = await getModelAccuracyMetrics()
         if (!cancelled) setData(result)
+        const fn = await getCisFalseNegatives()
+        if (!cancelled) setFalseNegs(fn)
       } catch (err) {
         console.error('Failed to load model metrics:', err)
       } finally {
@@ -424,6 +428,117 @@ export default function ModelAccuracyView() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Phase-0 Scoring-Modell */}
+      <div className="bg-zinc-900 rounded-lg border border-zinc-800 p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Activity size={15} className="text-cyan-500" />
+          <h3 className="text-sm font-medium text-zinc-300">Phase-0 Scoring-Modell</h3>
+          <span className="ml-auto text-[10px] text-zinc-600">Aktuelle Konfiguration der CIS Engine v2</span>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+          {[
+            { label: 'Base Score', value: '0.30', color: 'text-zinc-300', desc: 'Startwert jeder QR-Session' },
+            { label: 'Fridge Surfing Penalty', value: '−0.40', color: 'text-red-400', desc: 'Folgescan einer anderen Flasche in < 15 Min' },
+            { label: 'Last-in-Session Bonus', value: '+0.20', color: 'text-emerald-400', desc: 'Kein Folgescan in 15 Min → Entscheidungsscan' },
+            { label: 'Dwell Time Bonus', value: '+0.40', color: 'text-cyan-400', desc: 'Verweildauer ≥ 3 Min auf der Seite' },
+            { label: 'VibeCheck Soft Proof', value: '+0.50', color: 'text-violet-400', desc: 'VibeCheck nach Scan (Soft Proof)' },
+            { label: 'BTB Hard Proof', value: '= 1.00', color: 'text-amber-400', desc: 'Beat The Brewer → Direkt Confirmed' },
+          ].map(item => (
+            <div key={item.label} className="bg-zinc-800/60 rounded-lg p-3">
+              <div className={`text-lg font-mono font-semibold ${item.color} mb-1`}>{item.value}</div>
+              <div className="text-[11px] text-zinc-300 font-medium">{item.label}</div>
+              <div className="text-[10px] text-zinc-600 mt-0.5">{item.desc}</div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 text-[10px] text-zinc-600 border-t border-zinc-800 pt-3">
+          Intent-Label-Mapping: Score &lt; 0.15 → <code className="text-zinc-400">fridge_surf</code> ·
+          0.15–0.44 → <code className="text-zinc-400">browse</code> ·
+          ≥ 0.45 → <code className="text-zinc-400">single</code>
+        </div>
+      </div>
+
+      {/* False-Negative Tracker */}
+      <div className="bg-zinc-900 rounded-lg border border-zinc-800 p-6">
+        <div className="flex items-center gap-2 mb-1">
+          <AlertTriangle size={15} className="text-amber-500" />
+          <h3 className="text-sm font-medium text-zinc-300">False-Negative Tracker</h3>
+          <span className="ml-auto">
+            {falseNegs && (
+              <span className={`text-xs font-mono px-2 py-0.5 rounded border ${
+                falseNegs.total === 0
+                  ? 'bg-emerald-950 text-emerald-400 border-emerald-800'
+                  : 'bg-amber-950 text-amber-400 border-amber-800'
+              }`}>
+                {falseNegs.total} Falsch-Negativ{falseNegs.total !== 1 ? 'e' : ''}
+              </span>
+            )}
+          </span>
+        </div>
+        <p className="text-[10px] text-zinc-600 mb-4">
+          Scans mit drinking_probability &lt; 0.3 – bei denen der User danach ein Rating geschrieben oder BTB gespielt hat (letzte 30 Tage).
+          Diese sind unsere wichtigsten Kalibrierungsdatenpunkte.
+        </p>
+
+        {!falseNegs || falseNegs.total === 0 ? (
+          <div className="flex items-center gap-2 text-emerald-400 text-xs">
+            <CheckCircle2 size={14} />
+            <span>Keine False Negatives in den letzten 30 Tagen — Modell ist gut kalibriert.</span>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* By intent summary */}
+            <div className="flex flex-wrap gap-2">
+              {falseNegs.byIntent.map(row => (
+                <span key={row.intent}
+                  className="text-[11px] px-2 py-1 rounded bg-amber-950/50 text-amber-400 border border-amber-800/50">
+                  {row.intent}: {row.count}
+                </span>
+              ))}
+            </div>
+            {/* Top examples */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-[11px]">
+                <thead>
+                  <tr className="text-zinc-500 border-b border-zinc-800">
+                    <th className="text-left py-2">Brew</th>
+                    <th className="text-right py-2">Intent</th>
+                    <th className="text-right py-2">Prob</th>
+                    <th className="text-right py-2">Beweis</th>
+                    <th className="text-right py-2">Gescannt</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {falseNegs.examples.map(ex => (
+                    <tr key={ex.scanId} className="border-b border-zinc-800/40 hover:bg-zinc-800/30">
+                      <td className="py-1.5 text-zinc-300 font-medium max-w-[160px] truncate">
+                        {ex.brewName}
+                      </td>
+                      <td className="text-right py-1.5 font-mono text-zinc-400">{ex.scanIntent}</td>
+                      <td className="text-right py-1.5 font-mono text-red-400">
+                        {ex.drinkingProbability.toFixed(3)}
+                      </td>
+                      <td className="text-right py-1.5">
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded border ${
+                          ex.proofType === 'btb'
+                            ? 'bg-amber-950 text-amber-400 border-amber-800'
+                            : 'bg-violet-950 text-violet-400 border-violet-800'
+                        }`}>
+                          {ex.proofType === 'btb' ? 'BTB' : 'Rating'}
+                        </span>
+                      </td>
+                      <td className="text-right py-1.5 font-mono text-zinc-600">
+                        {new Date(ex.scannedAt).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

@@ -258,6 +258,24 @@ export async function submitBeatTheBrewer(
         .then(({ error }) => { if (error) console.warn('[btb-nonce] insert error (non-fatal):', error); });
     }
 
+    // Phase 0.4 — CIS Hard Proof: BTB completion = confirmed drinker → upgrade most recent scan
+    if (submission.bottleId) {
+      const { data: recentScan } = await supabase
+        .from('bottle_scans')
+        .select('id')
+        .eq('viewer_user_id', user.id)
+        .eq('bottle_id', submission.bottleId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (recentScan?.id) {
+        await (supabase as any)
+          .from('bottle_scans')
+          .update({ scan_intent: 'confirmed', drinking_probability: 1.0 })
+          .eq('id', recentScan.id);
+      }
+    }
+
     return {
       matchScore,
       matchPercent,
@@ -518,6 +536,26 @@ export async function submitVibeCheck(
           vibes: submission.vibes,
         },
       });
+
+    // Phase 0.4 — CIS Soft Proof: VibeCheck boosts drinking_probability of most recent scan
+    {
+      const { data: recentVibeScan } = await supabase
+        .from('bottle_scans')
+        .select('id, drinking_probability')
+        .eq('viewer_user_id', user.id)
+        .eq('brew_id', submission.brewId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (recentVibeScan?.id) {
+        const currentProb = (recentVibeScan as any).drinking_probability ?? 0.3;
+        const boostedProb = Math.min(1.0, currentProb + 0.5);
+        await (supabase as any)
+          .from('bottle_scans')
+          .update({ drinking_probability: boostedProb })
+          .eq('id', recentVibeScan.id);
+      }
+    }
 
     // Atomarer Tasting IQ Increment
     const adminClient = createAdminClient();

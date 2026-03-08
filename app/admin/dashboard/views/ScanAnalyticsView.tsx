@@ -10,6 +10,7 @@ import {
   getScanGeography,
   getScanDeviceSplit,
   getTopScanBrews,
+  getCisOverview,
 } from '@/lib/actions/analytics-admin-actions'
 import type {
   DateRange,
@@ -17,6 +18,7 @@ import type {
   ScanGeography,
   ScanDevice,
   TopScanBrew,
+  CisOverview,
 } from '@/lib/types/admin-analytics'
 
 const DEVICE_COLORS: Record<string, string> = {
@@ -40,6 +42,7 @@ export default function ScanAnalyticsView() {
   const [geo, setGeo] = useState<ScanGeography[]>([])
   const [devices, setDevices] = useState<ScanDevice[]>([])
   const [topBrews, setTopBrews] = useState<TopScanBrew[]>([])
+  const [cis, setCis] = useState<CisOverview | null>(null)
 
   useEffect(() => {
     loadData()
@@ -48,16 +51,18 @@ export default function ScanAnalyticsView() {
   async function loadData() {
     setLoading(true)
     try {
-      const [ov, g, d, t] = await Promise.all([
+      const [ov, g, d, t, cisData] = await Promise.all([
         getScanOverview(dateRange),
         getScanGeography(dateRange, 10),
         getScanDeviceSplit(dateRange),
         getTopScanBrews(dateRange, 10),
+        getCisOverview(dateRange),
       ])
       setOverview(ov)
       setGeo(g)
       setDevices(d)
       setTopBrews(t)
+      setCis(cisData)
     } catch (err) {
       console.error(err)
     } finally {
@@ -212,6 +217,128 @@ export default function ScanAnalyticsView() {
           </table>
         </div>
       </div>
+
+      {/* ── CIS Block ───────────────────────────────────────────────────── */}
+      {cis && (
+        <div className="space-y-4">
+          <div>
+            <h2 className="text-base font-semibold text-white">Consumer Intent Score (CIS)</h2>
+            <p className="text-zinc-500 text-xs mt-0.5">
+              Phase-0-Engine · Additive Scoring · QR-Hard-Rule
+            </p>
+          </div>
+
+          {/* CIS KPI strip */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+              <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Gesch. Trinker</p>
+              <p className="text-2xl font-mono font-semibold text-cyan-400">
+                {cis.weightedDrinkerEstimate.toLocaleString('de-DE', { maximumFractionDigits: 1 })}
+              </p>
+              <p className="text-[10px] text-zinc-600 mt-1">Σ drinking_probability (nur QR)</p>
+            </div>
+            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+              <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">QR-Scans</p>
+              <p className="text-2xl font-mono font-semibold text-white">
+                {cis.qrScanCount.toLocaleString()}
+              </p>
+              <p className="text-[10px] text-zinc-600 mt-1">Scan Source = qr_code</p>
+            </div>
+            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+              <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Hard Proofs</p>
+              <p className="text-2xl font-mono font-semibold text-emerald-400">
+                {cis.confirmedScans.toLocaleString()}
+              </p>
+              <p className="text-[10px] text-zinc-600 mt-1">
+                {(cis.confirmedRate * 100).toFixed(1)}% aller QR-Scans bestätigt
+              </p>
+            </div>
+            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+              <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Klassifizierungs-Backlog</p>
+              <p className={`text-2xl font-mono font-semibold ${
+                cis.pendingClassification > 500 ? 'text-amber-400' : 'text-white'
+              }`}>
+                {cis.pendingClassification.toLocaleString()}
+              </p>
+              <p className="text-[10px] text-zinc-600 mt-1">Scans im 15-Min-Wartezeitfenster</p>
+            </div>
+          </div>
+
+          {/* Source breakdown + Intent distribution */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Scan Source Breakdown */}
+            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+              <h3 className="text-sm font-semibold text-zinc-300 mb-1 uppercase tracking-wider">
+                Scan-Quelle (Hard Rule 0.1)
+              </h3>
+              <p className="text-[10px] text-zinc-600 mb-4">
+                Nicht-QR-Scans werden zwingend auf drinking_probability = 0.0 gesetzt
+              </p>
+              <div className="space-y-2.5">
+                {cis.sourceBreakdown.map(row => (
+                  <div key={row.source}>
+                    <div className="flex justify-between text-xs text-zinc-400 mb-1">
+                      <span className="flex items-center gap-1.5">
+                        {row.isHardZero && (
+                          <span className="text-[9px] px-1 py-0.5 rounded bg-red-950 text-red-400 border border-red-800 uppercase tracking-wider">
+                            0.0
+                          </span>
+                        )}
+                        <code className="text-zinc-300 text-[11px]">{row.source}</code>
+                      </span>
+                      <span>{row.count.toLocaleString()} ({row.pct}%)</span>
+                    </div>
+                    <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                      <div
+                        className={`h-1.5 rounded-full ${
+                          row.isHardZero ? 'bg-red-700/60' : 'bg-cyan-500'
+                        }`}
+                        style={{ width: `${row.pct}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Intent Distribution */}
+            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+              <h3 className="text-sm font-semibold text-zinc-300 mb-1 uppercase tracking-wider">
+                Intent-Verteilung (klassifiziert)
+              </h3>
+              <p className="text-[10px] text-zinc-600 mb-4">Ø Wahrscheinlichkeit pro Intent</p>
+              <div className="overflow-x-auto">
+                <table className="w-full text-[11px]">
+                  <thead>
+                    <tr className="text-zinc-500 border-b border-zinc-800">
+                      <th className="text-left py-1.5">Intent</th>
+                      <th className="text-right py-1.5">Scans</th>
+                      <th className="text-right py-1.5">Anteil</th>
+                      <th className="text-right py-1.5">Ø Prob</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cis.intentDistribution.map(row => (
+                      <tr key={row.intent} className="border-b border-zinc-800/40">
+                        <td className="py-1.5 text-zinc-300 font-medium">{row.intent}</td>
+                        <td className="text-right py-1.5 font-mono text-zinc-400">{row.count.toLocaleString()}</td>
+                        <td className="text-right py-1.5 font-mono text-zinc-400">{row.pct}%</td>
+                        <td className={`text-right py-1.5 font-mono ${
+                          row.avgProbability >= 0.7 ? 'text-emerald-400'
+                          : row.avgProbability >= 0.3 ? 'text-amber-400'
+                          : 'text-red-400'
+                        }`}>
+                          {row.avgProbability.toFixed(3)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

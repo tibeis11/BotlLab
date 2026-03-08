@@ -255,3 +255,54 @@ export type TopScanBrew = {
   breweryName: string
   scans: number
 }
+
+// ============================================================================
+// Phase D — CIS Admin Monitoring
+// ============================================================================
+export type CisSourceRow = {
+  source: string
+  count: number
+  pct: number
+  isHardZero: boolean
+}
+
+export type CisIntentRow = {
+  intent: string
+  count: number
+  pct: number
+  avgProbability: number
+}
+
+export type CisOverview = {
+  /** Per scan_source breakdown — tells us how many scans are zeroed by Hard Rule 0.1 */
+  sourceBreakdown: CisSourceRow[]
+  /** Σ drinking_probability of QR scans in the period — the platform-wide CIS */
+  weightedDrinkerEstimate: number
+  /** Number of QR scans in the period (denominator for the estimate) */
+  qrScanCount: number
+  /** Scans still waiting in the 15-min classification window (scan_intent IS NULL) */
+  pendingClassification: number
+  /** How classified scans are distributed across intents */
+  intentDistribution: CisIntentRow[]
+  /** Scans marked scan_intent = 'confirmed' (Hard Proofs) */
+  confirmedScans: number
+  /** confirmedScans / qrScanCount */
+  confirmedRate: number
+}
+
+export type CisFalseNegative = {
+  scanId: string
+  userId: string
+  brewId: string
+  brewName: string
+  scanIntent: string
+  drinkingProbability: number
+  scannedAt: string
+  proofType: 'rating' | 'btb'
+}
+
+export type CisFalseNegativeSummary = {
+  total: number
+  byIntent: { intent: string; count: number }[]
+  examples: CisFalseNegative[]
+}

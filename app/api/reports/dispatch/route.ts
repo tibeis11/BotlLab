@@ -136,12 +136,12 @@ export async function POST(req: Request) {
     }
 
     // ── Extended metrics ────────────────────────────────────────────────────
-    // 1. Verified drinker rate
+    // 1. Verified drinker rate (converted_to_rating OR confirmed_drinking)
     const { count: verifiedCount } = await sb
       .from("bottle_scans")
       .select("*", { count: "exact", head: true })
       .eq("brewery_id", brewery_id)
-      .eq("converted_to_rating" as never, true)
+      .or("converted_to_rating.eq.true,confirmed_drinking.eq.true")
       .gte("created_at", startIso)
       .lt("created_at", endIso);
 

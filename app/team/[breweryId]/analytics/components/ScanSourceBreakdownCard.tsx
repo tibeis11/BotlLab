@@ -1,9 +1,30 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Globe, Lock } from 'lucide-react';
+import {
+  Globe, Lock,
+  ScanLine, Link, Share2, ArrowUpRight, Search,
+  Music, Youtube, MessageCircle, Linkedin, Beer,
+  Instagram, Facebook, Twitter,
+  type LucideIcon,
+} from 'lucide-react';
 import { getScanSourceBreakdown, type ScanSourceBreakdownItem } from '@/lib/actions/analytics-actions';
 import type { UserTier } from '@/lib/analytics-tier-features';
+
+// ============================================================================
+// Icon lookup
+// ============================================================================
+
+const SOURCE_ICON_MAP: Record<string, LucideIcon> = {
+  ScanLine, Link, Share2, ArrowUpRight, Search, Globe,
+  Music, Youtube, MessageCircle, Linkedin, Beer,
+  Instagram, Facebook, Twitter,
+};
+
+function SourceIcon({ name, className }: { name: string; className?: string }) {
+  const Icon = SOURCE_ICON_MAP[name] ?? Globe;
+  return <Icon size={13} className={className} />;
+}
 
 // ============================================================================
 // Types
@@ -14,6 +35,7 @@ interface ScanSourceBreakdownCardProps {
   userTier?: UserTier;
   startDate?: string;
   endDate?: string;
+  brewId?: string;
 }
 
 // ============================================================================
@@ -25,6 +47,7 @@ export default function ScanSourceBreakdownCard({
   userTier = 'free',
   startDate,
   endDate,
+  brewId,
 }: ScanSourceBreakdownCardProps) {
   const [items, setItems]     = useState<ScanSourceBreakdownItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,7 +64,7 @@ export default function ScanSourceBreakdownCard({
       setLoading(true);
       setError(null);
       try {
-        const result = await getScanSourceBreakdown(breweryId, { startDate, endDate });
+        const result = await getScanSourceBreakdown(breweryId, { startDate, endDate, brewId });
         if (cancelled) return;
         if (result.success) {
           setItems(result.items ?? []);
@@ -57,7 +80,7 @@ export default function ScanSourceBreakdownCard({
 
     fetchData();
     return () => { cancelled = true; };
-  }, [breweryId, isLocked, startDate, endDate]);
+  }, [breweryId, isLocked, startDate, endDate, brewId]);
 
   // ── Locked State ────────────────────────────────────────────────────────────
   if (isLocked) {
@@ -147,7 +170,7 @@ function SourceRow({ item, isTop }: { item: ScanSourceBreakdownItem; isTop: bool
     <div>
       <div className="flex items-center justify-between text-xs mb-1">
         <span className="flex items-center gap-1.5 text-text-secondary font-bold truncate max-w-[65%]">
-          <span>{item.icon}</span>
+          <SourceIcon name={item.icon} className="shrink-0 text-text-muted" />
           <span className="truncate">{item.label}</span>
         </span>
         <span className="flex items-center gap-2 shrink-0 text-text-secondary">

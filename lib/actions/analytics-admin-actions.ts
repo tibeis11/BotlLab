@@ -26,6 +26,8 @@ import {
   ScanGeography,
   ScanDevice,
   TopScanBrew,
+  CisOverview,
+  CisFalseNegativeSummary,
 } from '@/lib/types/admin-analytics'
 
 // ============================================================================
@@ -1042,7 +1044,7 @@ export async function getRevenueStats(dateRange: DateRange = '30d'): Promise<Rev
   const { data: events } = await service
     .from('subscription_history')
     .select('*')
-    .gte('changed_at', cutoff)
+    .gte('changed_at', cutoff.toISOString())
     .order('changed_at', { ascending: false })
 
   const upgradeLast30d = (events || []).filter(e =>
@@ -1149,7 +1151,7 @@ export async function getEmailReportStats(): Promise<EmailReportStats> {
     service
       .from('analytics_report_logs')
       .select('status')
-      .gte('created_at', cutoff30d),
+      .gte('created_at', cutoff30d.toISOString()),
   ])
 
   const activeSubscriptions = (settings || []).length
@@ -1199,11 +1201,12 @@ export async function getRecentEmailReportLogs(limit: number = 50): Promise<Emai
 export async function getScanOverview(dateRange: DateRange = '30d'): Promise<ScanOverview> {
   const service = getServiceRoleClient()
   const cutoff = getCutoffDate(dateRange)
+  const cutoffIso = cutoff.toISOString()
 
   const { data } = await service
     .from('bottle_scans')
     .select('id, session_hash, viewer_user_id, is_owner_scan, created_at')
-    .gte('created_at', cutoff)
+    .gte('created_at', cutoffIso)
 
   const rows = data ?? []
   const totalScans = rows.length
@@ -1213,7 +1216,7 @@ export async function getScanOverview(dateRange: DateRange = '30d'): Promise<Sca
   const uniqueVisitors = visitors.size
 
   const now = new Date()
-  const from = new Date(cutoff)
+  const from = new Date(cutoffIso)
   const days = Math.max(
     1,
     Math.round((now.getTime() - from.getTime()) / (1000 * 60 * 60 * 24))
@@ -1236,7 +1239,7 @@ export async function getScanGeography(
   const { data } = await service
     .from('bottle_scans')
     .select('country_code')
-    .gte('created_at', cutoff)
+    .gte('created_at', cutoff.toISOString())
     .not('country_code', 'is', null)
 
   const rows = data ?? []
@@ -1263,7 +1266,7 @@ export async function getScanDeviceSplit(dateRange: DateRange = '30d'): Promise<
   const { data } = await service
     .from('bottle_scans')
     .select('device_type')
-    .gte('created_at', cutoff)
+    .gte('created_at', cutoff.toISOString())
 
   const rows = data ?? []
   const total = Math.max(rows.length, 1)
@@ -1292,7 +1295,7 @@ export async function getTopScanBrews(
   const { data } = await service
     .from('bottle_scans')
     .select('brew_id, brews(name, breweries(name))')
-    .gte('created_at', cutoff)
+    .gte('created_at', cutoff.toISOString())
     .not('brew_id', 'is', null)
 
   const rows = data ?? []
@@ -1316,6 +1319,189 @@ export async function getTopScanBrews(
     .sort(([, a], [, b]) => b.scans - a.scans)
     .slice(0, limit)
     .map(([brewId, v]) => ({ brewId, ...v }))
+}
+
+// ============================================================================
+// PHASE D — CIS Admin Monitoring (2026-03-08)
+// ============================================================================
+
+/**
+ * D.1 — Platform-wide CIS overview for the admin Scan Analytics view.
+ * Returns source breakdown, weighted drinker estimate, classification backlog,
+ * intent distribution, and Hard Proof (confirmed) rate.
+ */
+export async function getCisOverview(dateRange: DateRange = '30d'): Promise<CisOverview> {
+  const service = getServiceRoleClient()
+  const cutoff = getCutoffDate(dateRange)
+  const pendingCutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString()
+
+  // ── Fetch all scans in range (only fields we need) ─────────────────────────
+  const { data: scans } = await service
+    .from('bottle_scans')
+    .select('id, scan_source, drinking_probability, scan_intent, created_at')
+    .gte('created_at', cutoff.toISOString())
+
+  const rows = scans ?? []
+  const total = Math.max(rows.length, 1)
+
+  // ── Source breakdown (Hard Rule 0.1 impact) ───────────────────────────────
+  const sourceMap: Record<string, number> = {}
+  rows.forEach((r: any) => {
+    const src = (r.scan_source as string) || 'unknown'
+    sourceMap[src] = (sourceMap[src] || 0) + 1
+  })
+  const sourceBreakdown = Object.entries(sourceMap)
+    .sort(([, a], [, b]) => b - a)
+    .map(([source, count]) => ({
+      source,
+      count,
+      pct: Math.round((count / total) * 100),
+      isHardZero: source !== 'qr_code',
+    }))
+
+  // ── Weighted drinker estimate (QR scans only) ─────────────────────────────
+  const qrRows = rows.filter((r: any) => r.scan_source === 'qr_code')
+  const qrScanCount = qrRows.length
+  const weightedDrinkerEstimate =
+    Math.round(
+      qrRows.reduce((sum: number, r: any) => sum + ((r.drinking_probability as number) ?? 0), 0) * 10
+    ) / 10
+
+  // ── Pending classification backlog ────────────────────────────────────────
+  const { count: pendingClassification } = await service
+    .from('bottle_scans')
+    .select('id', { count: 'exact', head: true })
+    .is('scan_intent', null)
+    .gte('created_at', pendingCutoff) as any
+
+  // ── Intent distribution ───────────────────────────────────────────────────
+  const intentMap: Record<string, { count: number; probSum: number }> = {}
+  rows.forEach((r: any) => {
+    const intent = (r.scan_intent as string) || '__unclassified__'
+    if (!intentMap[intent]) intentMap[intent] = { count: 0, probSum: 0 }
+    intentMap[intent].count++
+    intentMap[intent].probSum += (r.drinking_probability as number) ?? 0
+  })
+  const classifiedRows = rows.filter((r: any) => r.scan_intent != null)
+  const classifiedTotal = Math.max(classifiedRows.length, 1)
+  const intentDistribution = Object.entries(intentMap)
+    .filter(([intent]) => intent !== '__unclassified__')
+    .sort(([, a], [, b]) => b.count - a.count)
+    .map(([intent, { count, probSum }]) => ({
+      intent,
+      count,
+      pct: Math.round((count / classifiedTotal) * 100),
+      avgProbability: count > 0 ? Math.round((probSum / count) * 1000) / 1000 : 0,
+    }))
+
+  // ── Confirmed (Hard Proof) stats ──────────────────────────────────────────
+  const confirmedScans = rows.filter((r: any) => r.scan_intent === 'confirmed').length
+  const confirmedRate = qrScanCount > 0
+    ? Math.round((confirmedScans / qrScanCount) * 1000) / 1000
+    : 0
+
+  return {
+    sourceBreakdown,
+    weightedDrinkerEstimate,
+    qrScanCount,
+    pendingClassification: pendingClassification ?? 0,
+    intentDistribution,
+    confirmedScans,
+    confirmedRate,
+  }
+}
+
+/**
+ * D.2 — False-Negative Tracker for the admin Model Health view.
+ * Finds scans classified with drinking_probability < 0.3 where the user
+ * later confirmed they were drinking (rating or BTB).
+ * Limited to last 30 days to keep queries fast.
+ */
+export async function getCisFalseNegatives(): Promise<CisFalseNegativeSummary> {
+  const service = getServiceRoleClient()
+  const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+
+  // ── Load candidate scans (low probability, classified, authenticated) ─────
+  const { data: candidateScans } = await service
+    .from('bottle_scans')
+    .select('id, viewer_user_id, brew_id, drinking_probability, scan_intent, created_at')
+    .gte('created_at', cutoff)
+    .lt('drinking_probability', 0.3)
+    .not('scan_intent', 'is', null)
+    .neq('scan_intent', 'confirmed')
+    .not('viewer_user_id', 'is', null)
+    .limit(2000) as any
+
+  if (!candidateScans || candidateScans.length === 0) {
+    return { total: 0, byIntent: [], examples: [] }
+  }
+
+  // ── Load ratings in the same period ──────────────────────────────────────
+  const { data: ratings } = await service
+    .from('ratings')
+    .select('user_id, brew_id, created_at')
+    .gte('created_at', cutoff) as any
+
+  const ratingSet = new Set<string>(
+    (ratings ?? []).map((r: any) => `${r.user_id}::${r.brew_id}`)
+  )
+
+  // ── Load BTB events ───────────────────────────────────────────────────────
+  const { data: btbEvents } = await service
+    .from('tasting_score_events')
+    .select('user_id, brew_id, created_at')
+    .gte('created_at', cutoff)
+    .eq('event_type', 'beat_the_brewer') as any
+
+  const btbSet = new Set<string>(
+    (btbEvents ?? []).map((r: any) => `${r.user_id}::${r.brew_id}`)
+  )
+
+  // ── Find false negatives ──────────────────────────────────────────────────
+  const falseNegs = candidateScans.filter((s: any) => {
+    const key = `${s.viewer_user_id}::${s.brew_id}`
+    return ratingSet.has(key) || btbSet.has(key)
+  })
+
+  if (falseNegs.length === 0) {
+    return { total: 0, byIntent: [], examples: [] }
+  }
+
+  // ── Resolve brew names for top examples ──────────────────────────────────
+  const topExamples = falseNegs.slice(0, 20)
+  const brewIds = [...new Set(topExamples.map((s: any) => s.brew_id))].filter(Boolean)
+  const { data: brews } = await service
+    .from('brews')
+    .select('id, name')
+    .in('id', brewIds) as any
+
+  const brewNameMap: Record<string, string> = {}
+  ;(brews ?? []).forEach((b: any) => { brewNameMap[b.id] = b.name })
+
+  const examples = topExamples.map((s: any) => {
+    const ratingKey = `${s.viewer_user_id}::${s.brew_id}`
+    return {
+      scanId: s.id,
+      userId: s.viewer_user_id,
+      brewId: s.brew_id,
+      brewName: brewNameMap[s.brew_id] ?? 'Unbekannt',
+      scanIntent: s.scan_intent,
+      drinkingProbability: s.drinking_probability,
+      scannedAt: s.created_at,
+      proofType: (btbSet.has(ratingKey) ? 'btb' : 'rating') as 'btb' | 'rating',
+    }
+  })
+
+  // ── Aggregate by intent ───────────────────────────────────────────────────
+  const intentCounts: Record<string, number> = {}
+  falseNegs.forEach((s: any) => {
+    intentCounts[s.scan_intent] = (intentCounts[s.scan_intent] || 0) + 1
+  })
+  const byIntent = Object.entries(intentCounts)
+    .sort(([, a], [, b]) => b - a)
+    .map(([intent, count]) => ({ intent, count }))
+
+  return { total: falseNegs.length, byIntent, examples }
 }
 
 // ============================================================================

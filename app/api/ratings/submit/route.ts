@@ -198,7 +198,7 @@ export async function POST(req: NextRequest) {
             const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
             let scanQuery = supabaseAdmin
                 .from('bottle_scans')
-                .select('id')
+                .select('id, confirmed_drinking')
                 .gte('created_at', oneDayAgo)
                 .order('created_at', { ascending: false })
                 .limit(1);
@@ -214,9 +214,20 @@ export async function POST(req: NextRequest) {
             if (user_id || bottle_id) {
                 const { data: recentScan } = await scanQuery.maybeSingle();
                 if (recentScan) {
+                    // Phase 0.4 — CIS Hard Proof: Rating = confirmed drinker
+                    // Exception: if user explicitly said "Nein" to the drinking prompt,
+                    // honour that — converted_to_rating still tracks the conversion but
+                    // we do NOT override confirmed_drinking=false with intent='confirmed'.
+                    const deniedDrinking = recentScan.confirmed_drinking === false;
                     await supabaseAdmin
                         .from('bottle_scans')
-                        .update({ converted_to_rating: true })
+                        .update({
+                            converted_to_rating: true,
+                            ...(deniedDrinking ? {} : {
+                                scan_intent: 'confirmed',
+                                drinking_probability: 1.0,
+                            }),
+                        })
                         .eq('id', recentScan.id);
                 }
             }

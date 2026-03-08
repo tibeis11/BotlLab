@@ -590,9 +590,10 @@ export default function BreweryAnalyticsPage() {
                   deviceData={deviceData}
                   startDate={timeRange === 'custom' ? (customStartDate || undefined) : timeRange === '7d' ? new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10) : timeRange === '30d' ? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10) : timeRange === '90d' ? new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10) : undefined}
                   endDate={timeRange === 'custom' ? (customEndDate || undefined) : undefined}
+                  brewId={selectedBrewId || undefined}
                 />
               )}
-              {section === 'audience' && <AudienceView brews={breweryBrews} breweryId={breweryId} userTier={userTier} />}
+              {section === 'audience' && <AudienceView brews={breweryBrews} breweryId={breweryId} userTier={userTier} startDate={timeRange === 'custom' ? (customStartDate || undefined) : timeRange === '7d' ? new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10) : timeRange === '30d' ? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10) : timeRange === '90d' ? new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10) : undefined} endDate={timeRange === 'custom' ? (customEndDate || undefined) : undefined} />}
               {section === 'quality'  && <QualityView brews={breweryBrews} breweryId={breweryId} userTier={userTier} />}
               {section === 'context'  && <ContextView breweryId={breweryId} userTier={userTier} />}
               {section === 'market'   && <MarketView  breweryId={breweryId} userTier={userTier} />}

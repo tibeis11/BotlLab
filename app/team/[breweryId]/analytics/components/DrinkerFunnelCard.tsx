@@ -20,8 +20,9 @@ interface FunnelStage {
 export interface DrinkerFunnelCardProps {
   totalScans: number;
   loggedInScans: number;
-  verifiedDrinkers: number;  // scans that led to a rating
-  capCollectors: number;     // unique users who claimed a Kronkorken
+  /** Phase A: Σ drinking_probability — geschätzte Trinker (CIS) */
+  weightedDrinkerEstimate?: number;
+  verifiedDrinkers: number;  // scans that led to a rating or confirmed drinking
   isLoading?: boolean;
   userTier?: UserTier;
 }
@@ -42,22 +43,18 @@ function pct(numerator: number, denominator: number): string {
 export default function DrinkerFunnelCard({
   totalScans,
   loggedInScans,
+  weightedDrinkerEstimate = 0,
   verifiedDrinkers,
-  capCollectors,
   isLoading = false,
   userTier = 'free',
 }: DrinkerFunnelCardProps) {
 
   const isLocked = userTier === 'free';
 
-  // Funnel invariants:
-  // - Cap Collectors ⊂ Verified Drinkers (cap = strongest engagement signal)
-  // - Verified Drinkers can include anonymous raters → NOT necessarily ⊂ Logged-In
-  // - Logged-In ⊂ Total
-  const safeCaps     = capCollectors;
-  const safeVerified = Math.max(verifiedDrinkers, safeCaps);
-  const safeLoggedIn = loggedInScans; // no longer forced ≥ safeVerified
-  const safeTotal    = Math.max(totalScans, safeLoggedIn);
+  const safeVerified  = verifiedDrinkers;
+  const safeLoggedIn  = loggedInScans;
+  const safeTotal     = Math.max(totalScans, safeLoggedIn);
+  const safeEstimated = Math.round(weightedDrinkerEstimate);
 
   const stages: FunnelStage[] = [
     {
@@ -79,22 +76,22 @@ export default function DrinkerFunnelCard({
       tooltip: 'Aufrufe von registrierten und eingeloggten BotlLab-Nutzern.',
     },
     {
+      id: 'estimated',
+      label: 'Geschätzte Trinker',
+      sublabel: `${pct(safeEstimated, safeTotal)} aller Aufrufe`,
+      value: safeEstimated,
+      color: 'text-cyan-400',
+      barColor: 'bg-cyan-500/50',
+      tooltip: 'KI-Schätzung (CIS): Wahrscheinliche Trinker basierend auf Verweildauer, Session-Muster und Interaktion.',
+    },
+    {
       id: 'verified',
       label: 'Verified Drinkers',
       sublabel: `${pct(safeVerified, safeTotal)} aller Aufrufe`,
       value: safeVerified,
       color: 'text-success',
       barColor: 'bg-success/70',
-      tooltip: 'Personen, die nachweislich getrunken haben — per Bewertung (eingeloggt oder anonym) oder Kronkorken-Sammlung bestätigt.',
-    },
-    {
-      id: 'caps',
-      label: 'Cap Collectors',
-      sublabel: `${pct(safeCaps, safeVerified)} der Verified Drinkers`,
-      value: safeCaps,
-      color: 'text-warning',
-      barColor: 'bg-warning/70',
-      tooltip: 'Verified Drinkers, die zusätzlich einen Kronkorken gesammelt haben — deine engagierteste Community.',
+      tooltip: 'Personen, die nachweislich getrunken haben — per Bewertung oder Trink-Bestätigung.',
     },
   ];
 
@@ -157,7 +154,7 @@ export default function DrinkerFunnelCard({
                 {/* Bar */}
                 <div className="h-1.5 w-full bg-surface rounded-full overflow-hidden">
                   <div
-                    className={`h-full ${stage.barColor} transition-all duration-700`}
+                    className={`h-full ${stage.barColor} transition-all duration-700${stage.id === 'estimated' ? ' border border-dashed border-cyan-400/60' : ''}`}
                     style={{ width: `${barWidth}%` }}
                   />
                 </div>

@@ -12,9 +12,11 @@ interface AudienceViewProps {
   brews: Array<{ id: string; name: string; style: string }>;
   breweryId: string;
   userTier: UserTier;
+  startDate?: string;
+  endDate?: string;
 }
 
-export default function AudienceView({ brews, breweryId, userTier }: AudienceViewProps) {
+export default function AudienceView({ brews, breweryId, userTier, startDate, endDate }: AudienceViewProps) {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Phase 13.4 — Loyalty Segment Chart */}
@@ -26,7 +28,7 @@ export default function AudienceView({ brews, breweryId, userTier }: AudienceVie
         <SeasonalitySparkline brews={brews} userTier={userTier} />
 
         {/* Phase 9.7 — Scan Intent Breakdown */}
-        <ScanIntentChart breweryId={breweryId} userTier={userTier} />
+        <ScanIntentChart breweryId={breweryId} userTier={userTier} startDate={startDate} endDate={endDate} />
       </div>
     </div>
   );

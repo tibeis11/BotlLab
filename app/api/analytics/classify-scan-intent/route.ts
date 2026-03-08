@@ -1,15 +1,24 @@
 import { NextResponse } from 'next/server';
 import {
-  classifyBrowseScans,
+  classifyCisScans,
   classifyRepeatScans,
+  // Legacy stubs kept for backwards-compatibility but return 0:
+  classifyBrowseScans,
   classifySocialScans,
   classifySingleScans,
 } from '@/lib/actions/analytics-actions';
 
 // ============================================================================
-// Phase 9.9 — Cron: Classify Scan Intent
-// Runs every 15 minutes via Vercel Cron (see vercel.json or migration cron)
-// Classifies unclassified bottle_scans in order: browse → repeat → social → single
+// Phase 0 — Cron: Classify Scan Intent (CIS Engine v2, 2026-03-08)
+// Runs every 15 minutes via Vercel Cron.
+//
+// New pipeline:
+//   1. classifyRepeatScans()  — loyal returning users (cross-day evidence)
+//   2. classifyCisScans()     — session-aware additive scoring for all remaining
+//                               unclassified scans (replaces browse + single)
+//
+// Legacy classifyBrowseScans / classifySocialScans / classifySingleScans are
+// kept as no-ops to avoid breaking any direct invocations.
 // ============================================================================
 
 export async function POST(req: Request) {
@@ -23,28 +32,27 @@ export async function POST(req: Request) {
   const startTime = Date.now();
 
   try {
-    // Run classifiers in sequence (order matters — most specific first)
-    const browseCount  = await classifyBrowseScans();
-    const repeatCount  = await classifyRepeatScans();
-    const socialCount  = await classifySocialScans();
-    const singleCount  = await classifySingleScans();
+    // 1. Repeat scans first — loyal users get highest-priority classification
+    const repeatCount = await classifyRepeatScans();
 
-    const totalClassified = browseCount + repeatCount + socialCount + singleCount;
+    // 2. CIS Engine v2 — session-aware, additive scoring
+    const cisResult = await classifyCisScans();
+
+    const totalClassified = repeatCount + cisResult.nonQr + cisResult.session;
     const durationMs = Date.now() - startTime;
 
     console.log(
       `[classify-scan-intent] Done in ${durationMs}ms — ` +
-      `browse: ${browseCount}, repeat: ${repeatCount}, social: ${socialCount}, single: ${singleCount} ` +
+      `repeat: ${repeatCount}, cis_session: ${cisResult.session}, cis_non_qr: ${cisResult.nonQr} ` +
       `(total: ${totalClassified})`
     );
 
     return NextResponse.json({
       success: true,
       classified: {
-        browse: browseCount,
         repeat: repeatCount,
-        social: socialCount,
-        single: singleCount,
+        cis_session: cisResult.session,
+        cis_non_qr: cisResult.nonQr,
         total: totalClassified,
       },
       durationMs,
@@ -60,3 +68,4 @@ export async function POST(req: Request) {
     );
   }
 }
+
