@@ -50,12 +50,13 @@ export default function DrinkerFunnelCard({
 
   const isLocked = userTier === 'free';
 
-  // Self-healing guardrail: enforce logical funnel invariant
-  // Cap Collector ⊂ Verified Drinker ⊂ Eingeloggt ⊂ Gesamt
-  // If historical data wasn't backfilled yet, these ensure consistency.
+  // Funnel invariants:
+  // - Cap Collectors ⊂ Verified Drinkers (cap = strongest engagement signal)
+  // - Verified Drinkers can include anonymous raters → NOT necessarily ⊂ Logged-In
+  // - Logged-In ⊂ Total
   const safeCaps     = capCollectors;
   const safeVerified = Math.max(verifiedDrinkers, safeCaps);
-  const safeLoggedIn = Math.max(loggedInScans, safeVerified);
+  const safeLoggedIn = loggedInScans; // no longer forced ≥ safeVerified
   const safeTotal    = Math.max(totalScans, safeLoggedIn);
 
   const stages: FunnelStage[] = [
@@ -80,11 +81,11 @@ export default function DrinkerFunnelCard({
     {
       id: 'verified',
       label: 'Verified Drinkers',
-      sublabel: `${pct(safeVerified, safeLoggedIn)} eingeloggter Besuche`,
+      sublabel: `${pct(safeVerified, safeTotal)} aller Aufrufe`,
       value: safeVerified,
       color: 'text-success',
       barColor: 'bg-success/70',
-      tooltip: 'Nutzer, die nachweislich getrunken haben — per Bewertung oder Kronkorken-Sammlung bestätigt.',
+      tooltip: 'Personen, die nachweislich getrunken haben — per Bewertung (eingeloggt oder anonym) oder Kronkorken-Sammlung bestätigt.',
     },
     {
       id: 'caps',
