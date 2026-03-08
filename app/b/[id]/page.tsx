@@ -692,7 +692,7 @@ export default function PublicScanPage() {
   const batchVolume = session?.volume_liters ?? estimatedBatchVolume;
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col items-center">
+    <div className="min-h-screen bg-background text-foreground flex flex-col items-center overflow-x-hidden">
       {/* Moderation Alerts */}
       {/* Pending Banner */}
       {brew.moderation_status === 'pending' && (

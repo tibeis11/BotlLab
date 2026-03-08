@@ -45,7 +45,7 @@ export default function FlavorTagSelector({
             <span className="text-[10px] text-text-disabled">{selectedTags.length}/{maxSelection}</span>
           )}
         </div>
-        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+        <div className="flex flex-wrap gap-1.5">
           {allTags.map((tag) => {
             const isSelected = selectedTags.includes(tag.id);
             const isDisabled = !isSelected && selectedTags.length >= maxSelection;
