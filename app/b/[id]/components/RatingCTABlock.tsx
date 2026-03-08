@@ -10,6 +10,7 @@
 
 import Link from 'next/link';
 import CrownCap from '@/app/components/CrownCap';
+import { QrCode } from 'lucide-react';
 
 import { type CapTier } from '@/lib/cap-tier';
 
@@ -21,6 +22,7 @@ interface RatingCTABlockProps {
   capTier?: CapTier;
   collectingCap: boolean;
   capUrl?: string | null;
+  isQrVerified: boolean;
   onRate: () => void;
   onClaim: () => void;
 }
@@ -33,6 +35,7 @@ export default function RatingCTABlock({
   capTier,
   collectingCap,
   capUrl,
+  isQrVerified,
   onRate,
   onClaim,
 }: RatingCTABlockProps) {
@@ -111,13 +114,18 @@ export default function RatingCTABlock({
                 '🥇 Kronkorken sichern'
               )}
             </button>
-          ) : (
+          ) : isQrVerified ? (
             <button
               onClick={onRate}
               className="inline-flex items-center justify-center gap-1.5 bg-white hover:bg-brand-hover active:scale-95 text-black font-black text-xs rounded-xl px-4 py-2.5 transition-all w-full sm:w-auto"
             >
               💬 Bewerten
             </button>
+          ) : (
+            <p className="text-[10px] text-text-disabled flex items-center gap-1.5">
+              <QrCode className="w-3 h-3 shrink-0" />
+              QR-Code scannen um zu bewerten
+            </p>
           )}
         </div>
       </div>

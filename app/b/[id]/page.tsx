@@ -1088,7 +1088,7 @@ export default function PublicScanPage() {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-[10px] uppercase font-black tracking-[0.25em] text-text-muted">Bewertungen</p>
-              {!hasAlreadyRated && (
+              {!hasAlreadyRated && isQrVerified && (
                 <button 
                   onClick={handleStartRating}
                   className="text-xs font-bold text-brand hover:text-brand-hover transition flex items-center gap-1 bg-brand/10 px-3 py-1.5 rounded-full"
@@ -1130,7 +1130,7 @@ export default function PublicScanPage() {
               <p className="text-sm font-medium text-text-primary">Noch keine Bewertungen</p>
               <p className="text-xs text-text-muted mt-1">Wie schmeckt dir dieser Brew? Teile deine Meinung.</p>
             </div>
-            {!hasAlreadyRated && (
+            {!hasAlreadyRated && isQrVerified && (
               <button 
                 onClick={handleStartRating}
                 className="mt-2 text-xs font-bold bg-brand text-background hover:bg-brand-hover transition px-4 py-2 rounded-xl"
@@ -1150,7 +1150,7 @@ export default function PublicScanPage() {
 
         {/* ── Gamification & Community Section ── */}
 
-        <div id="gamification-cta-section" className="scroll-mt-6 space-y-4">
+        <div id="gamification-cta-section" className="scroll-mt-6 space-y-3">
           {/* VibeCheck */}
           {isQrVerified ? (
           <VibeCheck
@@ -1178,8 +1178,9 @@ export default function PublicScanPage() {
             capTier={capTier}
             collectingCap={collectingCap}
             capUrl={brew.cap_url}
+            isQrVerified={isQrVerified}
             onRate={() => {
-              // Now we duplicate the check logic here instead directly when clicking in the CTA component
+              if (!isQrVerified) return; // Gate: nur mit QR-Token
               fetch('/api/ratings/check', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -1197,72 +1198,63 @@ export default function PublicScanPage() {
             }}
             onClaim={() => claimCap()}
           />
-          {!isQrVerified && !hasAlreadyRated && (
-            <p className="text-[10px] text-text-disabled text-center mt-1.5 flex items-center justify-center gap-1">
-              <QrCode className="w-3 h-3" /> QR-Scan-verifizierte Bewertungen werden besonders gekennzeichnet
-            </p>
-          )}
           </div>
-        </div>
 
-        {/* Rating Modal */}
-        <div id="rating-form-section" className="scroll-mt-6">
-          {showRatingForm && (
-            <RateBrewModal
-              brewId={data?.brews?.id || ''}
-              onSubmit={async (submissionData) => {
-                const payload = { ...submissionData, user_id: user?.id, bottle_id: data?.id };
-                return await submitRating(payload);
-              }}
-              onCancel={() => setShowRatingForm(false)}
-              isSubmitting={submitting}
-              onClaimCap={claimCap}
-              existingRatingId={existingRatingId}
-              currentUser={user}
-              onRatingComplete={() => {
-                // Phase 12.1: Show GeoConsentPrompt 2s after rating submit
-                // Conditions: not already asked, not brewer mode, geolocation API available
-                const alreadyAsked = localStorage.getItem('botllab_geo_asked');
-                const isBrewer = userAppMode === 'brewer';
-                const hasGeoApi = typeof navigator !== 'undefined' && 'geolocation' in navigator;
-                if (!alreadyAsked && !isBrewer && hasGeoApi) {
-                  setTimeout(() => setShowGeoConsent(true), 2000);
-                }
-              }}
-            />
-          )}
-        </div>
-
-        {/* Beat the Brewer — sichtbar wenn Server bestätigt, dass Flavor Profile existiert.
-            Actual profile values stay server-side until after submit (Late Reveal).
-            showBeatTheBrewer steuert nur den Einblende-Effekt nach Rating, nicht die Sichtbarkeit. */}
-        {hasFlavorProfile && !isBreweryMember && (
-          isQrVerified ? (
-          <div className={showBeatTheBrewer ? 'animate-in fade-in slide-in-from-bottom-4 duration-300' : ''}>
-            {showBeatTheBrewer && (
-              <p className="text-[10px] uppercase font-black tracking-[0.25em] text-brand text-center mb-2">
-                Zeig, ob du den Geschmack genauso wahrnimmst wie der Brauer →
-              </p>
+          {/* Rating Modal */}
+          <div id="rating-form-section" className="scroll-mt-6">
+            {showRatingForm && (
+              <RateBrewModal
+                brewId={data?.brews?.id || ''}
+                onSubmit={async (submissionData) => {
+                  const payload = { ...submissionData, user_id: user?.id, bottle_id: data?.id };
+                  return await submitRating(payload);
+                }}
+                onCancel={() => setShowRatingForm(false)}
+                isSubmitting={submitting}
+                onClaimCap={claimCap}
+                existingRatingId={existingRatingId}
+                currentUser={user}
+                onRatingComplete={() => {
+                  const alreadyAsked = localStorage.getItem('botllab_geo_asked');
+                  const isBrewer = userAppMode === 'brewer';
+                  const hasGeoApi = typeof navigator !== 'undefined' && 'geolocation' in navigator;
+                  if (!alreadyAsked && !isBrewer && hasGeoApi) {
+                    setTimeout(() => setShowGeoConsent(true), 2000);
+                  }
+                }}
+              />
             )}
-            <BeatTheBrewerGame
-              brewId={brew.id}
-              brewName={brew.name || 'Dieses Bier'}
-              isLoggedIn={!!user}
-              challengeToken={challengeToken}
-              challengerName={challengerName}
-              ratingId={existingRatingId}
-              qrToken={qrToken}
-              bottleId={data?.id}
-            />
           </div>
-          ) : (
-          <div className="bg-surface/50 border border-dashed border-border rounded-2xl p-5 text-center space-y-2">
-            <Lock className="w-6 h-6 mx-auto text-text-disabled" />
-            <p className="text-sm font-medium text-text-secondary">Beat the Brewer</p>
-            <p className="text-xs text-text-muted">Scanne den QR-Code auf der Flasche, um gegen den Brauer anzutreten.</p>
-          </div>
-          )
-        )}
+
+          {/* Beat the Brewer */}
+          {hasFlavorProfile && !isBreweryMember && (
+            isQrVerified ? (
+            <div className={showBeatTheBrewer ? 'animate-in fade-in slide-in-from-bottom-4 duration-300' : ''}>
+              {showBeatTheBrewer && (
+                <p className="text-[10px] uppercase font-black tracking-[0.25em] text-brand text-center mb-2">
+                  Zeig, ob du den Geschmack genauso wahrnimmst wie der Brauer →
+                </p>
+              )}
+              <BeatTheBrewerGame
+                brewId={brew.id}
+                brewName={brew.name || 'Dieses Bier'}
+                isLoggedIn={!!user}
+                challengeToken={challengeToken}
+                challengerName={challengerName}
+                ratingId={existingRatingId}
+                qrToken={qrToken}
+                bottleId={data?.id}
+              />
+            </div>
+            ) : (
+            <div className="bg-surface/50 border border-dashed border-border rounded-2xl p-5 text-center space-y-2">
+              <Lock className="w-6 h-6 mx-auto text-text-disabled" />
+              <p className="text-sm font-medium text-text-secondary">Beat the Brewer</p>
+              <p className="text-xs text-text-muted">Scanne den QR-Code auf der Flasche, um gegen den Brauer anzutreten.</p>
+            </div>
+            )
+          )}
+        </div>
 
         {/* ── Tier 3 / Tier 4 Trenner ── */}
         <div className="relative flex items-center gap-3 my-2">
