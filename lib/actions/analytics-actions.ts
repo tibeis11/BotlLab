@@ -767,7 +767,10 @@ export async function getBreweryAnalyticsSummary(breweryId: string, options?: {
       .eq('brewery_id', breweryId)
       .eq('is_owner_scan', false);
     if (options?.startDate) funnelQuery = funnelQuery.gte('created_at', options.startDate);
-    if (options?.endDate)   funnelQuery = funnelQuery.lte('created_at', options.endDate);
+    // Append T23:59:59 so the full end day is included — bare date '2026-03-08' on a
+    // timestamptz column is cast to '2026-03-08 00:00:00 UTC' by PostgreSQL, which
+    // would exclude all scans from that day after midnight UTC.
+    if (options?.endDate)   funnelQuery = funnelQuery.lte('created_at', options.endDate + 'T23:59:59');
     if (options?.brewId)    funnelQuery = funnelQuery.eq('brew_id', options.brewId);
     const { data: funnelRows } = await funnelQuery;
     if (funnelRows && funnelRows.length > 0) {
@@ -965,7 +968,7 @@ export async function getConversionRate(breweryId: string, options?: {
       query = query.gte('created_at', options.startDate);
     }
     if (options?.endDate) {
-      query = query.lte('created_at', options.endDate);
+      query = query.lte('created_at', options.endDate + 'T23:59:59');
     }
 
     const { data: scans, error } = await query;
