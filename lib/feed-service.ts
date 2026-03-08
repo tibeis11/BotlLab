@@ -19,6 +19,7 @@ export interface FeedItem {
   };
   created_at: string;
   profiles?: {
+    id: string;
     display_name: string;
     logo_url: string;
     subscription_tier: string;
