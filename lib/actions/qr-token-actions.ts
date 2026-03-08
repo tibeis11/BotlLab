@@ -1,10 +1,11 @@
 'use server';
 
-import { createHmac, timingSafeEqual } from 'crypto';
-import { generateQrToken } from '@/lib/qr-token';
+import { timingSafeEqual } from 'crypto';
+import { generateQrToken, generateQrTokenLegacy } from '@/lib/qr-token';
 
 /**
  * Verifies a QR token against a bottle ID server-side.
+ * Supports both legacy hex tokens (16 chars) and new Base62 tokens (9 chars).
  * The secret never leaves the server — only a boolean result is returned.
  */
 export async function verifyQrToken(
@@ -15,22 +16,25 @@ export async function verifyQrToken(
     const secret = process.env.QR_TOKEN_SECRET;
     if (!secret) return { valid: false, reason: 'misconfigured' };
 
-    const expected = createHmac('sha256', secret)
-      .update(bottleId)
-      .digest('hex')
-      .slice(0, 16);
-
-    // Length mismatch check before timingSafeEqual (would throw otherwise)
-    if (token.length !== expected.length) {
-      return { valid: false, reason: 'invalid_signature' };
+    // Try new Base62 format first (9-char tokens)
+    const expectedNew = generateQrToken(bottleId);
+    if (
+      token.length === expectedNew.length &&
+      timingSafeEqual(Buffer.from(token, 'utf8'), Buffer.from(expectedNew, 'utf8'))
+    ) {
+      return { valid: true };
     }
 
-    const match = timingSafeEqual(
-      Buffer.from(token, 'utf8'),
-      Buffer.from(expected, 'utf8'),
-    );
+    // Fall back to legacy hex format (16-char tokens) for old QR codes
+    const expectedLegacy = generateQrTokenLegacy(bottleId);
+    if (
+      token.length === expectedLegacy.length &&
+      timingSafeEqual(Buffer.from(token, 'utf8'), Buffer.from(expectedLegacy, 'utf8'))
+    ) {
+      return { valid: true };
+    }
 
-    return match ? { valid: true } : { valid: false, reason: 'invalid_signature' };
+    return { valid: false, reason: 'invalid_signature' };
   } catch {
     return { valid: false, reason: 'parse_error' };
   }

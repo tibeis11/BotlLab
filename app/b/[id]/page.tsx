@@ -36,8 +36,13 @@ export default function PublicScanPage() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const id = params?.id as string;
+  const rawId = params?.id as string;
   const { user } = useAuth();
+
+  // Parse dot-separated format: /b/ID.TOKEN → bottleId + pathToken
+  const dotIndex = rawId?.indexOf('.') ?? -1;
+  const id = dotIndex > 0 ? rawId.substring(0, dotIndex) : rawId;
+  const pathToken = dotIndex > 0 ? rawId.substring(dotIndex + 1) : null;
 
   const [data, setData] = useState<BottleWithBrew | null>(null);
   const [profile, setProfile] = useState<BrewerProfile | null>(null);
@@ -89,7 +94,8 @@ export default function PublicScanPage() {
   const [challengerName, setChallengerName] = useState<string | null>(null);
 
   // QR Verification: Check if user arrived via physical QR scan
-  const { isQrVerified, isVerifying: isQrVerifying, qrToken } = useQrVerification(data?.id ?? null);
+  // Supports new dot-separator format (/b/ID.TOKEN) and legacy query param (?_t=TOKEN)
+  const { isQrVerified, isVerifying: isQrVerifying, qrToken } = useQrVerification(data?.id ?? null, pathToken);
 
   useEffect(() => {
     if (!challengeToken) return;
@@ -208,14 +214,13 @@ export default function PublicScanPage() {
           } catch { /* ignore malformed referrer */ }
 
           // Phase 7.3 — Derive scan source from UTM + referrer + QR token
-          // New QR codes embed an HMAC token: /b/ABC123?_t=<token>
-          // The _t parameter is a strong signal for QR scan origin.
-          // Legacy /q/ redirect and old no-referrer heuristic also supported.
+          // New QR codes embed an HMAC token via dot separator: /b/ID.TOKEN
+          // Legacy format via query param (?_t=TOKEN) also supported.
           const SOCIAL_DOMAINS = [
             'instagram.com', 'facebook.com', 'twitter.com', 'x.com',
             'tiktok.com', 'youtube.com', 'whatsapp.com', 'linkedin.com', 'untappd.com',
           ];
-          const hasQrToken = !!searchParams.get('_t');
+          const hasQrToken = !!pathToken || !!searchParams.get('_t');
           let derivedScanSource: 'qr_code' | 'direct_link' | 'social' | 'share';
           if (hasQrToken || utmMedium === 'qr') {
             derivedScanSource = 'qr_code';
@@ -557,29 +562,20 @@ export default function PublicScanPage() {
   }
 
   function handleStartRating() {
-    if (!data?.brews?.id) return;
-    fetch('/api/ratings/check', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ brew_id: data.brews.id, ...(user ? { user_id: user.id } : {}) }),
-    })
-      .then(res => res.json())
-      .then(res => {
-        if (res.hasRated && res.ratingId) {
-          setExistingRatingId(res.ratingId);
-          setShowRatingForm(true);
-          // Modal direkt auf 'success' setzen
-          setTimeout(() => {
-            const modal = document.querySelector('.RateBrewModal');
-            if (modal) {
-              // Simuliere den Schrittwechsel
-              // Alternativ: setStep('success') im Modal per Prop
-            }
-          }, 100);
-        } else {
-          setShowRatingForm(true);
+    // Smooth scroll down to the gamification CTA section
+    const scrollToCTA = () => {
+      setTimeout(() => {
+        const ctaSection = document.getElementById('gamification-cta-section');
+        if (ctaSection) {
+          ctaSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Highlight it briefly
+          setRatingCTAHighlight(true);
+          setTimeout(() => setRatingCTAHighlight(false), 2000);
         }
-      });
+      }, 50);
+    };
+
+    scrollToCTA();
   }
 
   if (loading) {
@@ -1066,53 +1062,74 @@ export default function PublicScanPage() {
           <BookOpen className="w-4 h-4" /> Vollständiges Rezept
         </Link>
 
-        {/* Phase 2.3: Bewertungen inline — max. 3, mit Mehr-anzeigen-Toggle */}
+        {/* Phase 2.3: Bewertungen - Horizontal scrollbar, Button oben rechts */}
         {ratingsLoading ? (
           <div className="space-y-3 animate-pulse" aria-label="Bewertungen werden geladen">
-            {[1, 2].map(i => (
-              <div key={i} className="bg-surface/50 border border-border rounded-xl p-4 space-y-2">
-                <div className="h-3 bg-surface-hover rounded w-1/3" />
-                <div className="h-2 bg-surface-hover rounded w-1/4 mt-1" />
-                <div className="h-3 bg-surface-hover rounded w-3/4 mt-2" />
-              </div>
-            ))}
+            <div className="flex gap-3 overflow-hidden">
+              {[1, 2].map(i => (
+                <div key={i} className="min-w-[280px] shrink-0 bg-surface/50 border border-border rounded-xl p-4 space-y-2">
+                  <div className="h-3 bg-surface-hover rounded w-1/3" />
+                  <div className="h-2 bg-surface-hover rounded w-1/4 mt-1" />
+                  <div className="h-3 bg-surface-hover rounded w-3/4 mt-2" />
+                </div>
+              ))}
+            </div>
           </div>
         ) : ratings.length > 0 ? (
           <div className="space-y-3">
-            <p className="text-[10px] uppercase font-black tracking-[0.25em] text-text-muted">Bewertungen</p>
-            {ratings.slice(0, showAllRatings ? undefined : 3).map(rating => (
-              <div key={rating.id} className="bg-surface/50 border border-border rounded-xl p-4">
-                <div className="flex items-start justify-between mb-2">
-                  <div>
-                    <p className="font-bold text-text-primary">{rating.author_name}</p>
-                    <div className="flex gap-0.5 mt-1">
-                      {[1, 2, 3, 4, 5].map(star => (
-                        <Star key={star} className={`w-3.5 h-3.5 ${star <= rating.rating ? 'fill-amber-400 text-amber-400' : 'text-text-disabled'}`} />
-                      ))}
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] uppercase font-black tracking-[0.25em] text-text-muted">Bewertungen</p>
+              {!hasAlreadyRated && (
+                <button 
+                  onClick={handleStartRating}
+                  className="text-xs font-bold text-brand hover:text-brand-hover transition flex items-center gap-1 bg-brand/10 px-3 py-1.5 rounded-full"
+                >
+                  <Star className="w-3.5 h-3.5" /> Bewerten
+                </button>
+              )}
+            </div>
+            
+            <div className="flex gap-3 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide -mx-6 px-6 md:mx-0 md:px-0">
+              {ratings.map(rating => (
+                <div key={rating.id} className="snap-center shrink-0 w-[280px] md:w-[320px] bg-surface/50 border border-border rounded-xl p-4 flex flex-col">
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <p className="font-bold text-text-primary text-sm truncate max-w-[140px]">{rating.author_name}</p>
+                      <div className="flex gap-0.5 mt-1">
+                        {[1, 2, 3, 4, 5].map(star => (
+                          <Star key={star} className={`w-3.5 h-3.5 ${star <= rating.rating ? 'fill-amber-400 text-amber-400' : 'text-text-disabled'}`} />
+                        ))}
+                      </div>
                     </div>
+                    <span className="text-xs text-text-disabled whitespace-nowrap">
+                      {new Date(rating.created_at).toLocaleDateString('de-DE')}
+                    </span>
                   </div>
-                  <span className="text-xs text-text-disabled">
-                    {new Date(rating.created_at).toLocaleDateString('de-DE')}
-                  </span>
+                  {rating.comment && (
+                    <p className="text-sm text-text-secondary leading-relaxed line-clamp-4 mt-1">{rating.comment}</p>
+                  )}
                 </div>
-                {rating.comment && (
-                  <p className="text-sm text-text-secondary leading-relaxed">{rating.comment}</p>
-                )}
-              </div>
-            ))}
-            {ratings.length > 3 && (
-              <button
-                onClick={() => setShowAllRatings(prev => !prev)}
-                className="w-full text-xs text-text-muted hover:text-text-secondary py-2 transition flex items-center justify-center gap-1"
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="bg-surface/50 border border-dashed border-border rounded-2xl p-6 text-center space-y-3">
+            <div className="mx-auto w-10 h-10 bg-surface rounded-full flex items-center justify-center border border-border">
+              <Star className="w-5 h-5 text-amber-400" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-text-primary">Noch keine Bewertungen</p>
+              <p className="text-xs text-text-muted mt-1">Wie schmeckt dir dieser Brew? Teile deine Meinung.</p>
+            </div>
+            {!hasAlreadyRated && (
+              <button 
+                onClick={handleStartRating}
+                className="mt-2 text-xs font-bold bg-brand text-background hover:bg-brand-hover transition px-4 py-2 rounded-xl"
               >
-                {showAllRatings ? <><ChevronUp className="w-3 h-3" /> Weniger anzeigen</> : <><ChevronDown className="w-3 h-3" /> Alle {ratings.length} Bewertungen anzeigen</>}
+                Erste Bewertung abgeben
               </button>
             )}
           </div>
-        ) : (
-          <p className="text-center text-text-disabled text-sm py-2 italic">
-            Noch keine Bewertungen — sei der Erste! <Star className="w-3.5 h-3.5 inline text-amber-400" />
-          </p>
         )}
 
         {/* ── Trenner: Inhalt → Interaktion ── */}
@@ -1124,68 +1141,88 @@ export default function PublicScanPage() {
 
         {/* ── Gamification & Community Section ── */}
 
-        {/* VibeCheck */}
-        {isQrVerified ? (
-        <VibeCheck
-          brewId={brew.id}
-          isLoggedIn={!!user}
-          onComplete={() => {
-            setRatingCTAHighlight(true);
-            setTimeout(() => setRatingCTAHighlight(false), 2000);
-          }}
-        />
-        ) : (
-          <div className="bg-surface/50 border border-dashed border-border rounded-2xl p-5 text-center space-y-2">
-            <QrCode className="w-6 h-6 mx-auto text-text-disabled" />
-            <p className="text-sm text-text-muted">Scanne den QR-Code auf der Flasche, um am VibeCheck teilzunehmen.</p>
-          </div>
-        )}
+        <div id="gamification-cta-section" className="scroll-mt-6 space-y-4">
+          {/* VibeCheck */}
+          {isQrVerified ? (
+          <VibeCheck
+            brewId={brew.id}
+            isLoggedIn={!!user}
+            onComplete={() => {
+              setRatingCTAHighlight(true);
+              setTimeout(() => setRatingCTAHighlight(false), 2000);
+            }}
+          />
+          ) : (
+            <div className="bg-surface/50 border border-dashed border-border rounded-2xl p-5 text-center space-y-2">
+              <QrCode className="w-6 h-6 mx-auto text-text-disabled" />
+              <p className="text-sm text-text-muted">Scanne den QR-Code auf der Flasche, um am VibeCheck teilzunehmen.</p>
+            </div>
+          )}
 
-        {/* Rating + Cap CTA */}
-        <div className={ratingCTAHighlight ? 'ring-2 ring-brand/40 rounded-2xl animate-pulse' : ''}>
-        <RatingCTABlock
-          avgRating={avgRating}
-          ratingCount={ratings.length}
-          hasAlreadyRated={hasAlreadyRated}
-          capCollected={capCollected}
-          capTier={capTier}
-          collectingCap={collectingCap}
-          capUrl={brew.cap_url}
-          onRate={() => setShowRatingForm(true)}
-          onClaim={() => claimCap()}
-        />
-        {!isQrVerified && !hasAlreadyRated && (
-          <p className="text-[10px] text-text-disabled text-center mt-1.5 flex items-center justify-center gap-1">
-            <QrCode className="w-3 h-3" /> QR-Scan-verifizierte Bewertungen werden besonders gekennzeichnet
-          </p>
-        )}
+          {/* Rating + Cap CTA */}
+          <div className={ratingCTAHighlight ? 'ring-2 ring-brand/40 rounded-2xl animate-pulse' : ''}>
+          <RatingCTABlock
+            avgRating={avgRating}
+            ratingCount={ratings.length}
+            hasAlreadyRated={hasAlreadyRated}
+            capCollected={capCollected}
+            capTier={capTier}
+            collectingCap={collectingCap}
+            capUrl={brew.cap_url}
+            onRate={() => {
+              // Now we duplicate the check logic here instead directly when clicking in the CTA component
+              fetch('/api/ratings/check', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ brew_id: brew.id, ...(user ? { user_id: user.id } : {}) }),
+              })
+                .then(res => res.json())
+                .then(res => {
+                  if (res.hasRated && res.ratingId) {
+                    setExistingRatingId(res.ratingId);
+                    setShowRatingForm(true);
+                  } else {
+                    setShowRatingForm(true);
+                  }
+                });
+            }}
+            onClaim={() => claimCap()}
+          />
+          {!isQrVerified && !hasAlreadyRated && (
+            <p className="text-[10px] text-text-disabled text-center mt-1.5 flex items-center justify-center gap-1">
+              <QrCode className="w-3 h-3" /> QR-Scan-verifizierte Bewertungen werden besonders gekennzeichnet
+            </p>
+          )}
+          </div>
         </div>
 
         {/* Rating Modal */}
-        {showRatingForm && (
-          <RateBrewModal
-            brewId={data?.brews?.id || ''}
-            onSubmit={async (submissionData) => {
-              const payload = { ...submissionData, user_id: user?.id };
-              return await submitRating(payload);
-            }}
-            onCancel={() => setShowRatingForm(false)}
-            isSubmitting={submitting}
-            onClaimCap={claimCap}
-            existingRatingId={existingRatingId}
-            currentUser={user}
-            onRatingComplete={() => {
-              // Phase 12.1: Show GeoConsentPrompt 2s after rating submit
-              // Conditions: not already asked, not brewer mode, geolocation API available
-              const alreadyAsked = localStorage.getItem('botllab_geo_asked');
-              const isBrewer = userAppMode === 'brewer';
-              const hasGeoApi = typeof navigator !== 'undefined' && 'geolocation' in navigator;
-              if (!alreadyAsked && !isBrewer && hasGeoApi) {
-                setTimeout(() => setShowGeoConsent(true), 2000);
-              }
-            }}
-          />
-        )}
+        <div id="rating-form-section" className="scroll-mt-6">
+          {showRatingForm && (
+            <RateBrewModal
+              brewId={data?.brews?.id || ''}
+              onSubmit={async (submissionData) => {
+                const payload = { ...submissionData, user_id: user?.id };
+                return await submitRating(payload);
+              }}
+              onCancel={() => setShowRatingForm(false)}
+              isSubmitting={submitting}
+              onClaimCap={claimCap}
+              existingRatingId={existingRatingId}
+              currentUser={user}
+              onRatingComplete={() => {
+                // Phase 12.1: Show GeoConsentPrompt 2s after rating submit
+                // Conditions: not already asked, not brewer mode, geolocation API available
+                const alreadyAsked = localStorage.getItem('botllab_geo_asked');
+                const isBrewer = userAppMode === 'brewer';
+                const hasGeoApi = typeof navigator !== 'undefined' && 'geolocation' in navigator;
+                if (!alreadyAsked && !isBrewer && hasGeoApi) {
+                  setTimeout(() => setShowGeoConsent(true), 2000);
+                }
+              }}
+            />
+          )}
+        </div>
 
         {/* Beat the Brewer — sichtbar wenn Server bestätigt, dass Flavor Profile existiert.
             Actual profile values stay server-side until after submit (Late Reveal).

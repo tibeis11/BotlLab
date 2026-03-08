@@ -228,8 +228,8 @@ export const generateLabelBatchPdf = async (
             abv: globalVariables.abv || '',
             ibu: globalVariables.ibu || '',
             ebc: globalVariables.ebc || '',
-            // Use Short Code if available, otherwise ID
-            qr_code: `https://botllab.de/b/${bottle.short_code || bottle.id}${bottle.qr_token ? `?_t=${bottle.qr_token}` : ''}`, 
+            // Use Short Code if available, otherwise ID — token appended with dot separator
+            qr_code: `https://botllab.de/b/${bottle.short_code || bottle.id}${bottle.qr_token ? `.${bottle.qr_token}` : ''}`, 
             bottle_nr: String(bottle.bottle_number).padStart(3, '0'),
             total_bottles: String(bottles.length)
         };

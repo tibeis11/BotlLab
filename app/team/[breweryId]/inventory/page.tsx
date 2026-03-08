@@ -541,8 +541,8 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 					abv: b.brews?.abv !== undefined ? String(b.brews.abv) : '',
 					ibu: b.brews?.ibu !== undefined ? String(b.brews.ibu) : '',
 					ebc: b.brews?.ebc !== undefined ? String(b.brews.ebc) : '',
-					// Use Short Code if available, otherwise fallback to ID
-					qr_code: `${baseUrl}/b/${b.short_code || b.id}${qrTokens[b.id] ? `?_t=${qrTokens[b.id]}` : ''}`,
+					// Use Short Code if available, otherwise fallback to ID — dot-separated token
+					qr_code: `${baseUrl}/b/${b.short_code || b.id}${qrTokens[b.id] ? `.${qrTokens[b.id]}` : ''}`,
 					bottle_nr: String(b.bottle_number),
 					total_bottles: total
 				});
@@ -704,7 +704,7 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 			} catch (e) {
 				console.error("Label Gen Error for ZIP", e);
 				// Fallback to simple QR if complex render fails
-				const scanUrl = `${baseUrl}/b/${bottle.short_code || bottle.id}${qrTokens[bottle.id] ? `?_t=${qrTokens[bottle.id]}` : ''}`;
+				const scanUrl = `${baseUrl}/b/${bottle.short_code || bottle.id}${qrTokens[bottle.id] ? `.${qrTokens[bottle.id]}` : ''}`;
 				const qrDataUrl = await generateQRWithLogo(scanUrl);
 				const base64Data = qrDataUrl.split(',')[1];
 				folder.file(`QR_Fallback_${bottle.bottle_number}.png`, base64Data, { base64: true });
@@ -1124,7 +1124,7 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 
 	async function showQrModal(bottle: any) {
 		const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://botllab.de';
-		const scanUrl = `${baseUrl}/b/${bottle.short_code || bottle.id}${qrTokens[bottle.id] ? `?_t=${qrTokens[bottle.id]}` : ''}`;
+		const scanUrl = `${baseUrl}/b/${bottle.short_code || bottle.id}${qrTokens[bottle.id] ? `.${qrTokens[bottle.id]}` : ''}`;
 		const qrDataUrl = await generateQRWithLogo(scanUrl);
 		// Pass ID or Shortcode for display URL
 		setViewQr({ url: qrDataUrl, bottleNumber: bottle.bottle_number, id: bottle.short_code || bottle.id });

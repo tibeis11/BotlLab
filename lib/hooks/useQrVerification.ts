@@ -25,11 +25,29 @@ function cacheVerification(bottleId: string) {
   } catch { /* localStorage unavailable */ }
 }
 
+/**
+ * Remove the QR token from the visible URL.
+ * Handles both new dot-separator format (/b/ID.TOKEN) and legacy query param (?_t=TOKEN).
+ */
 function cleanUrlToken() {
   try {
     const url = new URL(window.location.href);
+    let changed = false;
+
+    // Legacy: remove ?_t= query parameter
     if (url.searchParams.has('_t')) {
       url.searchParams.delete('_t');
+      changed = true;
+    }
+
+    // New: remove .TOKEN suffix from /b/ID.TOKEN path
+    const pathMatch = url.pathname.match(/^(\/b\/[^/.]+)\.[A-Za-z0-9]+$/);
+    if (pathMatch) {
+      url.pathname = pathMatch[1];
+      changed = true;
+    }
+
+    if (changed) {
       window.history.replaceState(null, '', url.pathname + url.search + url.hash);
     }
   } catch { /* SSR or error */ }
@@ -37,13 +55,18 @@ function cleanUrlToken() {
 
 /**
  * Verifies whether the current page visit originated from a physical QR code scan.
- * Checks the `_t` URL parameter (HMAC token) against the server, caches the result
- * in localStorage for 24h, and cleans the token from the URL.
  *
- * @param bottleId - The bottle UUID (pass null while loading)
- * @returns { isQrVerified, isVerifying }
+ * Token sources (checked in order):
+ * 1. `pathToken` — extracted from dot-separated URL: /b/ID.TOKEN  (new format)
+ * 2. `_t` search param — legacy format: /b/ID?_t=TOKEN
+ *
+ * Caches the result in localStorage for 24h and cleans the token from the URL.
+ *
+ * @param bottleId  - The bottle UUID (pass null while loading)
+ * @param pathToken - Token extracted from the dot-separated path (optional)
+ * @returns { isQrVerified, isVerifying, qrToken }
  */
-export function useQrVerification(bottleId: string | null) {
+export function useQrVerification(bottleId: string | null, pathToken?: string | null) {
   const searchParams = useSearchParams();
   const [isQrVerified, setIsQrVerified] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -65,8 +88,8 @@ export function useQrVerification(bottleId: string | null) {
       return;
     }
 
-    // 2. Check URL token
-    const token = searchParams.get('_t');
+    // 2. Resolve token: prefer pathToken (new .format), fall back to ?_t= (legacy)
+    const token = pathToken || searchParams.get('_t');
     if (!token) return; // No token, no verification
 
     verifiedRef.current = true; // prevent re-runs
@@ -86,7 +109,7 @@ export function useQrVerification(bottleId: string | null) {
       cleanUrlToken();
       setIsVerifying(false);
     });
-  }, [bottleId, searchParams]);
+  }, [bottleId, pathToken, searchParams]);
 
   return { isQrVerified, isVerifying, qrToken: qrTokenRef.current };
 }
