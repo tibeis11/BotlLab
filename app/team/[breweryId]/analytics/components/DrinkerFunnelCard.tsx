@@ -171,15 +171,20 @@ export default function DrinkerFunnelCard({
 
       {/* Conversation summary sentence */}
       {!isLoading && safeTotal > 0 && (
-        <p className="mt-5 text-xs text-text-disabled border-t border-border pt-4">
-          Von{' '}
-          <span className="text-text-secondary font-bold">{safeTotal.toLocaleString('de-DE')}</span>{' '}
-          Aufrufen haben{' '}
-          <span className="text-emerald-400 font-medium">{safeVerified.toLocaleString('de-DE')}</span>{' '}
-          Menschen dieses Bier nachweislich getrunken —{' '}
-          <span className="text-text-secondary font-bold">{pct(safeVerified, safeTotal)}</span>{' '}
-          Conversion.
-        </p>
+        <div className="mt-5 border-t border-border pt-4 space-y-2">
+          <p className="text-xs text-text-disabled">
+            Von{' '}
+            <span className="text-text-secondary font-bold">{safeTotal.toLocaleString('de-DE')}</span>{' '}
+            Aufrufen haben{' '}
+            <span className="text-emerald-400 font-medium">{safeVerified.toLocaleString('de-DE')}</span>{' '}
+            Menschen dieses Bier nachweislich getrunken —{' '}
+            <span className="text-text-secondary font-bold">{pct(safeVerified, safeTotal)}</span>{' '}
+            Conversion.
+          </p>
+          <p className="text-[10px] text-text-disabled/60 leading-relaxed">
+            Geschätzte Trinker werden einmal täglich durch den CIS-Algorithmus berechnet. Tagesaktuelle Werte basieren auf einem Schätzwert und können vom Endergebnis abweichen.
+          </p>
+        </div>
       )}
 
       {/* Tier-gate blur overlay */}
