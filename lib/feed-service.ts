@@ -60,6 +60,7 @@ export async function getBreweryFeed(client: SupabaseClient, breweryId: string) 
     .select(`
       *,
       profiles (
+        id,
         display_name,
         logo_url,
         subscription_tier
