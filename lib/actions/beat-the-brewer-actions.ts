@@ -62,6 +62,8 @@ export interface BeatTheBrewerSubmission {
   qrToken?: string | null;
   /** Bottle UUID — required together with qrToken for nonce validation. */
   bottleId?: string | null;
+  /** Brewing session UUID — scopes BTB per batch (different batches can taste differently). */
+  sessionId?: string | null;
   playerProfile: {
     sweetness: number;
     bitterness: number;
@@ -187,16 +189,24 @@ export async function submitBeatTheBrewer(
 
   // ──── Authenticated Path ────
   if (user) {
-    // Check if user already played this brew
-    const { count: existingCount } = await supabase
+    // Check if user already played this session/brew
+    // Scoped per session (batch) when sessionId is available, else per brew (fallback)
+    let dupeQuery = supabase
       .from('tasting_score_events')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id)
-      .eq('brew_id', submission.brewId)
       .eq('event_type', 'beat_the_brewer');
 
+    if (submission.sessionId) {
+      dupeQuery = (dupeQuery as any).filter('metadata->>session_id', 'eq', submission.sessionId);
+    } else {
+      dupeQuery = dupeQuery.eq('brew_id', submission.brewId);
+    }
+
+    const { count: existingCount } = await dupeQuery;
+
     if (existingCount && existingCount > 0) {
-      throw new Error('Du hast Beat the Brewer für dieses Bier bereits gespielt.');
+      throw new Error('Du hast Beat the Brewer für diesen Batch bereits gespielt.');
     }
 
     // Insert tasting_score_event
@@ -214,6 +224,7 @@ export async function submitBeatTheBrewer(
           brew_style: brew.style,
           brew_name: brew.name,
           qr_nonce: submission.qrToken ?? null,
+          session_id: submission.sessionId ?? null,
         },
       });
 
@@ -223,21 +234,23 @@ export async function submitBeatTheBrewer(
     }
 
     // Upsert flavor_profile für Analytics
+    // Scoped per session when available, else per brew (fallback)
+    const flavorPayload: Record<string, unknown> = {
+      brew_id: submission.brewId,
+      user_id: user.id,
+      rating_id: submission.ratingId ?? null,
+      sweetness:  submission.playerProfile.sweetness,
+      bitterness: submission.playerProfile.bitterness,
+      body:       submission.playerProfile.body,
+      roast:      submission.playerProfile.roast,
+      fruitiness: submission.playerProfile.fruitiness,
+    };
+    if (submission.sessionId) flavorPayload.session_id = submission.sessionId;
+    const flavorConflict = submission.sessionId ? 'user_id,session_id' : 'user_id,brew_id';
+
     const { error: flavorError } = await supabase
       .from('flavor_profiles')
-      .upsert(
-        {
-          brew_id: submission.brewId,
-          user_id: user.id,
-          rating_id: submission.ratingId ?? null,
-          sweetness:  submission.playerProfile.sweetness,
-          bitterness: submission.playerProfile.bitterness,
-          body:       submission.playerProfile.body,
-          roast:      submission.playerProfile.roast,
-          fruitiness: submission.playerProfile.fruitiness,
-        },
-        { onConflict: 'user_id,brew_id', ignoreDuplicates: false },
-      );
+      .upsert(flavorPayload, { onConflict: flavorConflict, ignoreDuplicates: false });
 
     if (flavorError) {
       console.error('[beat-the-brewer] flavor_profiles upsert error:', flavorError);
@@ -292,18 +305,21 @@ export async function submitBeatTheBrewer(
   const adminClient = createAdminClient();
 
   // Step 1: Insert anonymous flavor_profile (feeds Community Radar natively)
+  const anonFlavorPayload: Record<string, unknown> = {
+    brew_id: submission.brewId,
+    user_id: null,
+    ip_hash: ipHash,
+    sweetness:  submission.playerProfile.sweetness,
+    bitterness: submission.playerProfile.bitterness,
+    body:       submission.playerProfile.body,
+    roast:      submission.playerProfile.roast,
+    fruitiness: submission.playerProfile.fruitiness,
+  };
+  if (submission.sessionId) anonFlavorPayload.session_id = submission.sessionId;
+
   const { data: fp, error: fpError } = await adminClient
     .from('flavor_profiles')
-    .insert({
-      brew_id: submission.brewId,
-      user_id: null,
-      ip_hash: ipHash,
-      sweetness:  submission.playerProfile.sweetness,
-      bitterness: submission.playerProfile.bitterness,
-      body:       submission.playerProfile.body,
-      roast:      submission.playerProfile.roast,
-      fruitiness: submission.playerProfile.fruitiness,
-    })
+    .insert(anonFlavorPayload)
     .select('id')
     .single();
 
@@ -311,15 +327,22 @@ export async function submitBeatTheBrewer(
     // Unique constraint → anonymous user already played from this device
     // Load their stored session and return it instead of throwing
     if (fpError.code === '23505') {
-      const { data: existingSession } = await adminClient
+      let sessionQuery = adminClient
         .from('anonymous_game_sessions')
         .select('session_token, match_score, match_percent, payload')
-        .eq('brew_id', submission.brewId)
         .eq('ip_hash', ipHash)
         .eq('event_type', 'beat_the_brewer')
         .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .limit(1);
+
+      // Scope recovery query by session when available, else by brew
+      if (submission.sessionId) {
+        sessionQuery = (sessionQuery as any).eq('session_id', submission.sessionId);
+      } else {
+        sessionQuery = sessionQuery.eq('brew_id', submission.brewId);
+      }
+
+      const { data: existingSession } = await sessionQuery.maybeSingle();
 
       if (existingSession) {
         const meta = existingSession.payload as any;
@@ -357,30 +380,33 @@ export async function submitBeatTheBrewer(
       }
 
       // Session not found (edge case) — soft error
-      throw new Error('Du hast Beat the Brewer für dieses Bier bereits von diesem Gerät gespielt.');
+      throw new Error('Du hast Beat the Brewer für diesen Batch bereits von diesem Gerät gespielt.');
     }
     console.error('[beat-the-brewer] anonymous flavor_profile insert error:', fpError);
     throw new Error('Fehler beim Speichern.');
   }
 
   // Step 2: Insert anonymous_game_session (state persistence + claiming)
+  const anonSessionPayload: Record<string, unknown> = {
+    session_token: sessionToken,
+    event_type: 'beat_the_brewer',
+    brew_id: submission.brewId,
+    payload: {
+      slider_values: submission.playerProfile,
+      brewer_values: brewerProfileResult,
+      brew_style: brew.style,
+      brew_name: brew.name,
+    },
+    match_score: matchScore,
+    match_percent: matchPercent,
+    ip_hash: ipHash,
+    flavor_profile_id: fp.id,
+  };
+  if (submission.sessionId) anonSessionPayload.session_id = submission.sessionId;
+
   const { error: sessionError } = await adminClient
     .from('anonymous_game_sessions')
-    .insert({
-      session_token: sessionToken,
-      event_type: 'beat_the_brewer',
-      brew_id: submission.brewId,
-      payload: {
-        slider_values: submission.playerProfile,
-        brewer_values: brewerProfileResult,
-        brew_style: brew.style,
-        brew_name: brew.name,
-      },
-      match_score: matchScore,
-      match_percent: matchPercent,
-      ip_hash: ipHash,
-      flavor_profile_id: fp.id,
-    });
+    .insert(anonSessionPayload);
 
   if (sessionError) {
     console.error('[beat-the-brewer] anonymous_game_sessions insert error:', sessionError);
@@ -488,6 +514,7 @@ export async function getLeaderboard(limit = 50): Promise<LeaderboardEntry[]> {
 
 export interface VibeCheckSubmission {
   brewId: string;
+  bottleId: string; // Per-bottle scope — different batches can taste differently
   vibes: string[]; // e.g. ['bbq', 'outdoor', 'friends']
 }
 
@@ -511,16 +538,17 @@ export async function submitVibeCheck(
 
   // ──── Authenticated Path ────
   if (user) {
-    // Check if already submitted vibe for this brew
+    // Check if already submitted vibe for this specific bottle
     const { count: existingCount } = await supabase
       .from('tasting_score_events')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id)
       .eq('brew_id', submission.brewId)
-      .eq('event_type', 'vibe_check');
+      .eq('event_type', 'vibe_check')
+      .filter('metadata->>bottle_id', 'eq', submission.bottleId);
 
     if (existingCount && existingCount > 0) {
-      throw new Error('Du hast für dieses Bier bereits einen Vibe Check gemacht.');
+      throw new Error('Du hast für diese Flasche bereits einen Vibe Check gemacht.');
     }
 
     // Insert event
@@ -534,6 +562,7 @@ export async function submitVibeCheck(
         match_score: null,
         metadata: {
           vibes: submission.vibes,
+          bottle_id: submission.bottleId,
         },
       });
 
@@ -585,13 +614,14 @@ export async function submitVibeCheck(
       session_token: sessionToken,
       event_type: 'vibe_check',
       brew_id: submission.brewId,
+      bottle_id: submission.bottleId,
       payload: { vibes: submission.vibes },
       ip_hash: ipHash,
     });
 
   if (sessionError) {
     if (sessionError.code === '23505') {
-      throw new Error('Du hast den Vibe Check für dieses Bier bereits von diesem Gerät gemacht.');
+      throw new Error('Du hast den Vibe Check für diese Flasche bereits von diesem Gerät gemacht.');
     }
     console.error('[vibe-check] anonymous session insert error:', sessionError);
     throw new Error('Fehler beim Speichern.');
@@ -669,33 +699,45 @@ export async function getCommunityVibes(
 // Check if user already played this brew (for conditional button)
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function hasPlayedBeatTheBrewer(brewId: string): Promise<boolean> {
+export async function hasPlayedBeatTheBrewer(brewId: string, sessionId?: string | null): Promise<boolean> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return false;
 
-  const { count } = await supabase
+  let query = supabase
     .from('tasting_score_events')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', user.id)
-    .eq('brew_id', brewId)
     .eq('event_type', 'beat_the_brewer');
 
+  if (sessionId) {
+    query = (query as any).filter('metadata->>session_id', 'eq', sessionId);
+  } else {
+    query = query.eq('brew_id', brewId);
+  }
+
+  const { count } = await query;
   return (count ?? 0) > 0;
 }
 
-export async function hasSubmittedVibeCheck(brewId: string): Promise<boolean> {
+export async function hasSubmittedVibeCheck(brewId: string, bottleId?: string): Promise<boolean> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return false;
 
-  const { count } = await supabase
+  let query = supabase
     .from('tasting_score_events')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', user.id)
     .eq('brew_id', brewId)
     .eq('event_type', 'vibe_check');
 
+  // If bottleId is provided, scope to this bottle only
+  if (bottleId) {
+    query = query.filter('metadata->>bottle_id', 'eq', bottleId);
+  }
+
+  const { count } = await query;
   return (count ?? 0) > 0;
 }
 

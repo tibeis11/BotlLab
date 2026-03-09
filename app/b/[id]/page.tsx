@@ -1155,6 +1155,7 @@ export default function PublicScanPage() {
           {isQrVerified ? (
           <VibeCheck
             brewId={brew.id}
+            bottleId={data.id}
             isLoggedIn={!!user}
             onComplete={() => {
               setRatingCTAHighlight(true);
@@ -1244,6 +1245,7 @@ export default function PublicScanPage() {
                 ratingId={existingRatingId}
                 qrToken={qrToken}
                 bottleId={data?.id}
+                sessionId={data?.session_id ?? null}
               />
             </div>
             ) : (

@@ -51,6 +51,8 @@ interface BeatTheBrewerGameProps {
   qrToken?: string | null;
   /** Bottle UUID for nonce validation */
   bottleId?: string | null;
+  /** Brewing session UUID — scopes BTB per batch */
+  sessionId?: string | null;
 }
 
 // ──── Score tier labels ────
@@ -73,6 +75,7 @@ export default function BeatTheBrewerGame({
   ratingId,
   qrToken,
   bottleId,
+  sessionId,
 }: BeatTheBrewerGameProps) {
   // ─── State ───
   const [phase, setPhase] = useState<'cta' | 'playing' | 'submitting' | 'reveal' | 'error'>(
@@ -151,6 +154,7 @@ export default function BeatTheBrewerGame({
         playerProfile: sliders,
         qrToken: qrToken ?? null,
         bottleId: bottleId ?? null,
+        sessionId: sessionId ?? null,
       });
       setResult(res);
       // Sync sliders to the actual result player profile so radar and bars always match.

@@ -31,6 +31,7 @@ const VIBE_OPTIONS = [
 
 interface VibeCheckProps {
   brewId: string;
+  bottleId: string;
   alreadySubmitted?: boolean;
   isLoggedIn?: boolean;
   communityVibes?: { vibe: string; percentage: number }[];
@@ -40,6 +41,7 @@ interface VibeCheckProps {
 
 export default function VibeCheck({
   brewId,
+  bottleId,
   alreadySubmitted = false,
   isLoggedIn = false,
   communityVibes: initialVibes,
@@ -77,6 +79,7 @@ export default function VibeCheck({
     try {
       const res = await submitVibeCheck({
         brewId,
+        bottleId,
         vibes: Array.from(selectedVibes),
       });
       setResult(res);
