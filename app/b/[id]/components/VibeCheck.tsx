@@ -35,6 +35,10 @@ interface VibeCheckProps {
   alreadySubmitted?: boolean;
   isLoggedIn?: boolean;
   communityVibes?: { vibe: string; percentage: number }[];
+  /** QR token for HMAC validation + nonce-based anti-replay */
+  qrToken?: string | null;
+  /** Brewing session UUID — scopes nonce per batch */
+  sessionId?: string | null;
   /** Called after successful VibeCheck submit — triggers Tier-2 highlight */
   onComplete?: () => void;
 }
@@ -45,6 +49,8 @@ export default function VibeCheck({
   alreadySubmitted = false,
   isLoggedIn = false,
   communityVibes: initialVibes,
+  qrToken,
+  sessionId,
   onComplete,
 }: VibeCheckProps) {
   const [phase, setPhase] = useState<'pick' | 'submitting' | 'result'>(
@@ -77,10 +83,15 @@ export default function VibeCheck({
     setError(null);
 
     try {
+      if (!qrToken) {
+        throw new Error('QR-Code erforderlich. Bitte scanne den QR-Code auf der Flasche.');
+      }
       const res = await submitVibeCheck({
         brewId,
         bottleId,
         vibes: Array.from(selectedVibes),
+        qrToken,
+        sessionId: sessionId ?? null,
       });
       setResult(res);
       setPhase('result');
@@ -97,7 +108,7 @@ export default function VibeCheck({
       setError(err.message || 'Fehler beim Senden.');
       setPhase('pick');
     }
-  }, [brewId, selectedVibes]);
+  }, [brewId, bottleId, selectedVibes, qrToken, sessionId, onComplete]);
 
   // ─── Already submitted (no result data) ───
   if (alreadySubmitted && !result) {

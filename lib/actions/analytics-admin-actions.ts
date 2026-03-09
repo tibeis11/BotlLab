@@ -1446,12 +1446,13 @@ export async function getCisFalseNegatives(): Promise<CisFalseNegativeSummary> {
     (ratings ?? []).map((r: any) => `${r.user_id}::${r.brew_id}`)
   )
 
-  // ── Load BTB events ───────────────────────────────────────────────────────
+  // ── Load BTB events (Phase 8.7: exclude anonymous events to prevent null::brew_id false matches) ──
   const { data: btbEvents } = await service
     .from('tasting_score_events')
     .select('user_id, brew_id, created_at')
     .gte('created_at', cutoff)
-    .eq('event_type', 'beat_the_brewer') as any
+    .eq('event_type', 'beat_the_brewer')
+    .not('user_id', 'is', null) as any
 
   const btbSet = new Set<string>(
     (btbEvents ?? []).map((r: any) => `${r.user_id}::${r.brew_id}`)

@@ -170,9 +170,13 @@ export default function BeatTheBrewerGame({
       setPhase('reveal');
 
       // Store anonymous session token for post-registration claiming
+      // Phase 6.4: Scope by sessionId (or brewId fallback) so multiple plays don't overwrite
       if (res.isAnonymous && res.sessionToken) {
         try {
-          localStorage.setItem('btb_pending_token', res.sessionToken);
+          const storageKey = sessionId
+            ? `btb_pending_token_${sessionId}`
+            : `btb_pending_token_${brewId}`;
+          localStorage.setItem(storageKey, res.sessionToken);
         } catch { /* localStorage may be unavailable */ }
       }
 
@@ -206,8 +210,9 @@ export default function BeatTheBrewerGame({
       // Staggered reveal animation
       showBrewerTimerRef.current = setTimeout(() => setShowBrewer(true), 600);
     } catch (err: any) {
-      console.error('[beat-the-brewer] submit error:', err);
-      setError('Ein Fehler ist aufgetreten. Bitte versuche es erneut.');
+      const msg = err?.message ?? 'Ein Fehler ist aufgetreten. Bitte versuche es erneut.';
+      if (!msg.includes('Als Brauer')) console.error('[beat-the-brewer] submit error:', err);
+      setError(msg);
       setPhase('error');
     }
   }, [brewId, sliders, isLoggedIn, challengeToken]);
@@ -273,24 +278,33 @@ export default function BeatTheBrewerGame({
 
   // ─── Error Phase (3.5) ───
   if (phase === 'error') {
+    const isBrewerInfo = error?.includes('Als Brauer');
     return (
-      <div className="bg-surface border border-error/20 rounded-2xl p-6 space-y-5">
+      <div className={`bg-surface border rounded-2xl p-6 space-y-5 ${isBrewerInfo ? 'border-border' : 'border-error/20'}`}>
         <div className="text-center space-y-3">
-          <AlertTriangle size={36} className="mx-auto text-error" />
-          <h3 className="text-lg font-black text-text-primary">Etwas ist schiefgelaufen</h3>
+          {isBrewerInfo
+            ? <Gamepad2 size={36} className="mx-auto text-text-disabled" />
+            : <AlertTriangle size={36} className="mx-auto text-error" />}
+          <h3 className="text-lg font-black text-text-primary">
+            {isBrewerInfo ? 'Beat the Brewer' : 'Etwas ist schiefgelaufen'}
+          </h3>
           <p className="text-sm text-text-muted">
             {error || 'Ein Fehler ist aufgetreten. Bitte versuche es erneut.'}
           </p>
         </div>
-        <button
-          onClick={() => { setError(null); setPhase('playing'); }}
-          className="w-full bg-brand hover:bg-brand-hover text-white font-black py-3.5 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-95 shadow-lg shadow-brand/20 flex items-center justify-center gap-2"
-        >
-          <RefreshCw size={16} /> Erneut versuchen
-        </button>
-        <p className="text-[10px] text-text-disabled text-center">
-          Deine Einstellungen bleiben erhalten.
-        </p>
+        {!isBrewerInfo && (
+          <>
+            <button
+              onClick={() => { setError(null); setPhase('playing'); }}
+              className="w-full bg-brand hover:bg-brand-hover text-white font-black py-3.5 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-95 shadow-lg shadow-brand/20 flex items-center justify-center gap-2"
+            >
+              <RefreshCw size={16} /> Erneut versuchen
+            </button>
+            <p className="text-[10px] text-text-disabled text-center">
+              Deine Einstellungen bleiben erhalten.
+            </p>
+          </>
+        )}
       </div>
     );
   }
@@ -391,14 +405,17 @@ export default function BeatTheBrewerGame({
         {/* Score Header */}
         <div className="text-center space-y-3">
 
-          {/* Already-played notice — shown for historical (logged-in) AND anonymous repeat plays */}
-          {(isHistorical || result.isAnonymous) && (
-            <p className="text-[10px] uppercase font-bold tracking-widest text-text-disabled">
-              Dein gespeichertes Ergebnis
-              {isHistorical && (historicalResult as HistoricalBTBResult).playedAt && (
-                <> · {new Date((historicalResult as HistoricalBTBResult).playedAt).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}</>
-              )}
-            </p>
+          {/* Already-played notice — shown for historical, anonymous repeat, and nonce-reused plays */}
+          {(isHistorical || result.alreadyPlayed) && (
+            <div className="bg-brand-bg border border-brand/20 rounded-xl px-4 py-2.5 text-xs text-brand flex items-center justify-center gap-2">
+              <Info size={14} className="flex-shrink-0" />
+              <span>
+                Du hast dieses Bier bereits gespielt — hier ist dein Ergebnis.
+                {isHistorical && (historicalResult as HistoricalBTBResult).playedAt && (
+                  <> ({new Date((historicalResult as HistoricalBTBResult).playedAt).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })})</>
+                )}
+              </span>
+            </div>
           )}
 
           <div className={`flex justify-center ${tier.color}`}>{tier.icon}</div>
@@ -414,7 +431,7 @@ export default function BeatTheBrewerGame({
           </div>
 
           {/* Points / CTA */}
-          {result.isAnonymous ? (
+          {result.alreadyPlayed ? null : result.isAnonymous ? (
             <div className="space-y-1">
               <p className="text-xs text-text-muted">
                 Registriere dich um{' '}

@@ -16,6 +16,7 @@ import OverviewView, { type AnalyticsPageData } from './views/OverviewView';
 import AudienceView from './views/AudienceView';
 import QualityView from './views/QualityView';
 import ContextView from './views/ContextView';
+import VibesView from './views/VibesView';
 import MarketView from './views/MarketView';
 
 export default function BreweryAnalyticsPage() {
@@ -595,6 +596,7 @@ export default function BreweryAnalyticsPage() {
               )}
               {section === 'audience' && <AudienceView brews={breweryBrews} breweryId={breweryId} userTier={userTier} startDate={timeRange === 'custom' ? (customStartDate || undefined) : timeRange === '7d' ? new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10) : timeRange === '30d' ? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10) : timeRange === '90d' ? new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10) : undefined} endDate={timeRange === 'custom' ? (customEndDate || undefined) : undefined} />}
               {section === 'quality'  && <QualityView brews={breweryBrews} breweryId={breweryId} userTier={userTier} />}
+              {section === 'vibes'    && <VibesView breweryId={breweryId} />}
               {section === 'context'  && <ContextView breweryId={breweryId} userTier={userTier} />}
               {section === 'market'   && <MarketView  breweryId={breweryId} userTier={userTier} />}
               {section === 'reports'  && <ReportSettingsPanel breweryId={breweryId} />}

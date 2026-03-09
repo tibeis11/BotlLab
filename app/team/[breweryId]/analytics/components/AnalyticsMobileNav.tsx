@@ -1,12 +1,13 @@
 'use client';
 
-import { LayoutDashboard, Users, FlaskConical, MapPin, Mail, TrendingUp } from 'lucide-react';
+import { LayoutDashboard, Users, FlaskConical, MapPin, Mail, TrendingUp, Sparkles } from 'lucide-react';
 import type { AnalyticsSection } from './AnalyticsSidebarNav';
 
 const NAV_ITEMS: { section: AnalyticsSection; label: string; Icon: React.ElementType }[] = [
   { section: 'overview', label: 'Übersicht',  Icon: LayoutDashboard },
   { section: 'audience', label: 'Zielgruppe', Icon: Users },
   { section: 'quality',  label: 'Geschmack',  Icon: FlaskConical },
+  { section: 'vibes',    label: 'Vibes',      Icon: Sparkles },
   { section: 'context',  label: 'Kontext',    Icon: MapPin },
   { section: 'market',   label: 'Markt',      Icon: TrendingUp },
   { section: 'reports',  label: 'Reports',    Icon: Mail },

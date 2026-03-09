@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.1"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       achievements: {
@@ -846,66 +871,6 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      anonymous_game_sessions: {
-        Row: {
-          brew_id: string
-          claimed_by_user_id: string | null
-          created_at: string
-          event_type: string
-          expires_at: string
-          flavor_profile_id: string | null
-          id: string
-          ip_hash: string
-          match_percent: number | null
-          match_score: number | null
-          payload: Json
-          session_token: string
-        }
-        Insert: {
-          brew_id: string
-          claimed_by_user_id?: string | null
-          created_at?: string
-          event_type: string
-          expires_at?: string
-          flavor_profile_id?: string | null
-          id?: string
-          ip_hash: string
-          match_percent?: number | null
-          match_score?: number | null
-          payload: Json
-          session_token: string
-        }
-        Update: {
-          brew_id?: string
-          claimed_by_user_id?: string | null
-          created_at?: string
-          event_type?: string
-          expires_at?: string
-          flavor_profile_id?: string | null
-          id?: string
-          ip_hash?: string
-          match_percent?: number | null
-          match_score?: number | null
-          payload?: Json
-          session_token?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "anonymous_game_sessions_brew_id_fkey"
-            columns: ["brew_id"]
-            isOneToOne: false
-            referencedRelation: "brews"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "anonymous_game_sessions_flavor_profile_id_fkey"
-            columns: ["flavor_profile_id"]
-            isOneToOne: false
-            referencedRelation: "flavor_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -2023,20 +1988,32 @@ export type Database = {
         Row: {
           bottle_id: string
           brew_id: string
+          id: string
+          ip_hash: string | null
           nonce: string
+          session_id: string | null
           used_at: string
+          user_id: string | null
         }
         Insert: {
           bottle_id: string
           brew_id: string
+          id?: string
+          ip_hash?: string | null
           nonce: string
+          session_id?: string | null
           used_at?: string
+          user_id?: string | null
         }
         Update: {
           bottle_id?: string
           brew_id?: string
+          id?: string
+          ip_hash?: string | null
           nonce?: string
+          session_id?: string | null
           used_at?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -2051,6 +2028,20 @@ export type Database = {
             columns: ["brew_id"]
             isOneToOne: false
             referencedRelation: "brews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "btb_used_nonces_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "brewing_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "btb_used_nonces_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -2256,6 +2247,7 @@ export type Database = {
           ip_hash: string | null
           rating_id: string | null
           roast: number | null
+          session_id: string | null
           sweetness: number | null
           user_id: string | null
         }
@@ -2269,6 +2261,7 @@ export type Database = {
           ip_hash?: string | null
           rating_id?: string | null
           roast?: number | null
+          session_id?: string | null
           sweetness?: number | null
           user_id?: string | null
         }
@@ -2282,6 +2275,7 @@ export type Database = {
           ip_hash?: string | null
           rating_id?: string | null
           roast?: number | null
+          session_id?: string | null
           sweetness?: number | null
           user_id?: string | null
         }
@@ -2298,6 +2292,13 @@ export type Database = {
             columns: ["rating_id"]
             isOneToOne: false
             referencedRelation: "ratings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flavor_profiles_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "brewing_sessions"
             referencedColumns: ["id"]
           },
         ]
@@ -2886,6 +2887,68 @@ export type Database = {
           },
         ]
       }
+      rating_used_nonces: {
+        Row: {
+          bottle_id: string
+          brew_id: string
+          id: string
+          ip_hash: string | null
+          nonce: string
+          session_id: string | null
+          used_at: string
+          user_id: string | null
+        }
+        Insert: {
+          bottle_id: string
+          brew_id: string
+          id?: string
+          ip_hash?: string | null
+          nonce: string
+          session_id?: string | null
+          used_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          bottle_id?: string
+          brew_id?: string
+          id?: string
+          ip_hash?: string | null
+          nonce?: string
+          session_id?: string | null
+          used_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rating_used_nonces_bottle_id_fkey"
+            columns: ["bottle_id"]
+            isOneToOne: false
+            referencedRelation: "bottles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rating_used_nonces_brew_id_fkey"
+            columns: ["brew_id"]
+            isOneToOne: false
+            referencedRelation: "brews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rating_used_nonces_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "brewing_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rating_used_nonces_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ratings: {
         Row: {
           appearance_clarity: string | null
@@ -3191,41 +3254,67 @@ export type Database = {
       }
       tasting_score_events: {
         Row: {
+          bottle_id: string | null
           brew_id: string | null
           created_at: string
           event_type: string
           id: string
+          ip_hash: string | null
           match_score: number | null
           metadata: Json | null
           points_delta: number
-          user_id: string
+          session_id: string | null
+          session_token: string | null
+          user_id: string | null
         }
         Insert: {
+          bottle_id?: string | null
           brew_id?: string | null
           created_at?: string
           event_type: string
           id?: string
+          ip_hash?: string | null
           match_score?: number | null
           metadata?: Json | null
           points_delta: number
-          user_id: string
+          session_id?: string | null
+          session_token?: string | null
+          user_id?: string | null
         }
         Update: {
+          bottle_id?: string | null
           brew_id?: string | null
           created_at?: string
           event_type?: string
           id?: string
+          ip_hash?: string | null
           match_score?: number | null
           metadata?: Json | null
           points_delta?: number
-          user_id?: string
+          session_id?: string | null
+          session_token?: string | null
+          user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "tasting_score_events_bottle_id_fkey"
+            columns: ["bottle_id"]
+            isOneToOne: false
+            referencedRelation: "bottles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tasting_score_events_brew_id_fkey"
             columns: ["brew_id"]
             isOneToOne: false
             referencedRelation: "brews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasting_score_events_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "brewing_sessions"
             referencedColumns: ["id"]
           },
           {
@@ -3440,6 +3529,68 @@ export type Database = {
             columns: ["brew_id"]
             isOneToOne: false
             referencedRelation: "brews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vibe_check_used_nonces: {
+        Row: {
+          bottle_id: string
+          brew_id: string
+          id: string
+          ip_hash: string | null
+          nonce: string
+          session_id: string | null
+          used_at: string
+          user_id: string | null
+        }
+        Insert: {
+          bottle_id: string
+          brew_id: string
+          id?: string
+          ip_hash?: string | null
+          nonce: string
+          session_id?: string | null
+          used_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          bottle_id?: string
+          brew_id?: string
+          id?: string
+          ip_hash?: string | null
+          nonce?: string
+          session_id?: string | null
+          used_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vibe_check_used_nonces_bottle_id_fkey"
+            columns: ["bottle_id"]
+            isOneToOne: false
+            referencedRelation: "bottles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vibe_check_used_nonces_brew_id_fkey"
+            columns: ["brew_id"]
+            isOneToOne: false
+            referencedRelation: "brews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vibe_check_used_nonces_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "brewing_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vibe_check_used_nonces_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -3896,6 +4047,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       report_reason: ["spam", "nsfw", "harassment", "copyright", "other"],

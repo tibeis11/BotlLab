@@ -13,6 +13,7 @@ import { useAuth } from '@/app/context/AuthContext';
 import { claimAnonymousSession, type ClaimResult } from '@/lib/actions/beat-the-brewer-actions';
 
 const STORAGE_KEYS = ['btb_pending_token', 'vibe_pending_token'] as const;
+const STORAGE_KEY_PREFIXES = ['btb_pending_token_', 'vibe_pending_token_'] as const;
 
 export function useClaimAnonymousSessions() {
   const { user, loading } = useAuth();
@@ -39,7 +40,7 @@ export function useClaimAnonymousSessions() {
         }
       } catch { /* URL parsing may fail in some contexts */ }
 
-      // 2. Check localStorage for pending tokens
+      // 2. Check localStorage for pending tokens (legacy global keys)
       for (const key of STORAGE_KEYS) {
         try {
           const token = localStorage.getItem(key);
@@ -48,6 +49,20 @@ export function useClaimAnonymousSessions() {
           }
         } catch { /* localStorage may be unavailable */ }
       }
+
+      // 2b. Phase 6.4: Check session-scoped localStorage keys (btb_pending_token_*, vibe_pending_token_*)
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (!key) continue;
+          if (STORAGE_KEY_PREFIXES.some(prefix => key.startsWith(prefix))) {
+            const token = localStorage.getItem(key);
+            if (token && !tokensToClaim.includes(token)) {
+              tokensToClaim.push(token);
+            }
+          }
+        }
+      } catch { /* localStorage may be unavailable */ }
 
       if (tokensToClaim.length === 0) return;
 
@@ -62,12 +77,20 @@ export function useClaimAnonymousSessions() {
         }
       }
 
-      // 4. Clean up localStorage after successful claims
+      // 4. Clean up localStorage after successful claims (legacy + session-scoped keys)
       for (const key of STORAGE_KEYS) {
-        try {
-          localStorage.removeItem(key);
-        } catch { /* ignore */ }
+        try { localStorage.removeItem(key); } catch { /* ignore */ }
       }
+      try {
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && STORAGE_KEY_PREFIXES.some(prefix => key.startsWith(prefix))) {
+            keysToRemove.push(key);
+          }
+        }
+        for (const key of keysToRemove) localStorage.removeItem(key);
+      } catch { /* ignore */ }
 
       // Log successful claims for debugging
       const successCount = results.filter(r => r.success).length;

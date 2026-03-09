@@ -5,6 +5,7 @@ import crypto from 'crypto';
 import { trackEvent } from '@/lib/actions/analytics-actions';
 import { notifyNewRating } from '@/lib/actions/notification-actions';
 import { checkAndGrantAchievements } from '@/lib/achievements';
+import { verifyQrToken } from '@/lib/actions/qr-token-actions';
 
 export async function POST(req: NextRequest) {
     const routeStartTime = Date.now()
@@ -14,7 +15,7 @@ export async function POST(req: NextRequest) {
             brew_id, rating, comment, author_name,
             taste_bitterness, taste_sweetness, taste_body, taste_carbonation, taste_acidity,
             flavor_tags, appearance_color, appearance_clarity, aroma_intensity,
-            user_id, form_start_time, qr_verified, bottle_id
+            user_id, form_start_time, qr_verified, bottle_id, qr_token, session_id
         } = body;
 
         if (!brew_id || !rating || !author_name) {
@@ -45,6 +46,72 @@ export async function POST(req: NextRequest) {
         }
 
         const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+
+        // ── Phase 5.2: HMAC Token Validation + Nonce Burn ──
+        // Step 1: QR token MUST be present and valid
+        if (!qr_token || !bottle_id) {
+            return NextResponse.json({
+                error: 'QR-Code erforderlich. Bitte scanne den QR-Code auf der Flasche.',
+                code: 'QR_REQUIRED'
+            }, { status: 400 });
+        }
+
+        const { valid: tokenValid } = await verifyQrToken(qr_token, bottle_id);
+        if (!tokenValid) {
+            return NextResponse.json({
+                error: 'QR-Code konnte nicht verifiziert werden.',
+                code: 'QR_INVALID'
+            }, { status: 400 });
+        }
+
+        // Step 2: Nonce burn — INSERT ON CONFLICT (TOCTOU-safe)
+        const { error: nonceError } = await supabaseAdmin
+            .from('rating_used_nonces')
+            .insert({
+                nonce: qr_token,
+                bottle_id,
+                brew_id,
+                session_id: session_id ?? null,
+                user_id: user_id ?? null,
+                ip_hash: crypto.createHash('sha256').update(
+                    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+                    ?? req.headers.get('x-real-ip')
+                    ?? 'unknown'
+                ).digest('hex'),
+            });
+
+        if (nonceError) {
+            if (nonceError.code === '23505') {
+                return NextResponse.json({
+                    error: 'Dieser Scan wurde bereits für eine Bewertung genutzt.',
+                    code: 'NONCE_USED'
+                }, { status: 409 });
+            }
+            console.error('[ratings/submit] nonce insert error:', nonceError);
+            return NextResponse.json({ error: 'Datenbankfehler beim Prüfen des QR-Codes.' }, { status: 500 });
+        }
+
+        // Step 3: Recipe-level duplicate check for authenticated users
+        if (user_id) {
+            const { data: existingRating } = await supabaseAdmin
+                .from('ratings')
+                .select('id, rating, created_at')
+                .eq('brew_id', brew_id)
+                .eq('user_id', user_id)
+                .maybeSingle();
+
+            if (existingRating) {
+                return NextResponse.json({
+                    error: 'Du hast dieses Rezept bereits bewertet.',
+                    code: 'RECIPE_DUPLICATE',
+                    existingRating: {
+                        id: existingRating.id,
+                        rating: existingRating.rating,
+                        created_at: existingRating.created_at,
+                    }
+                }, { status: 409 });
+            }
+        }
 
         // --- Auth Verification (User Linking) ---
         // If user_id is provided, we MUST verify it's the actual logged in user

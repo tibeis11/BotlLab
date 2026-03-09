@@ -306,7 +306,7 @@ async function aggregateDailyMetrics(supabase: any, specificDate?: string) {
           .gte('created_at', `${dateStr}T00:00:00.000`)
           .lt('created_at', `${dateStr}T23:59:59.999`)
 
-        // BTB Play Counts: Authenticated + Anonymous
+        // BTB Play Counts: Single-table query on tasting_score_events (Phase 8.6)
         // Fetch brew IDs for this brewery to count BTB plays across all brews
         const { data: breweryBrews } = await supabase
           .from('brews')
@@ -317,7 +317,8 @@ async function aggregateDailyMetrics(supabase: any, specificDate?: string) {
         let btbAuth = 0
         let btbAnon = 0
         if (brewIdsForBrewery.length > 0) {
-          const { count: btbAuthCount } = await supabase
+          // Total BTB plays (auth + anon) from tasting_score_events
+          const { count: btbTotalCount } = await supabase
             .from('tasting_score_events')
             .select('id', { count: 'exact', head: true })
             .eq('event_type', 'beat_the_brewer')
@@ -325,16 +326,18 @@ async function aggregateDailyMetrics(supabase: any, specificDate?: string) {
             .gte('created_at', `${dateStr}T00:00:00.000`)
             .lt('created_at', `${dateStr}T23:59:59.999`)
 
+          // Anonymous BTB plays: user_id IS NULL
           const { count: btbAnonCount } = await supabase
-            .from('anonymous_game_sessions')
+            .from('tasting_score_events')
             .select('id', { count: 'exact', head: true })
             .eq('event_type', 'beat_the_brewer')
+            .is('user_id', null)
             .in('brew_id', brewIdsForBrewery)
             .gte('created_at', `${dateStr}T00:00:00.000`)
             .lt('created_at', `${dateStr}T23:59:59.999`)
 
-          btbAuth = btbAuthCount || 0
           btbAnon = btbAnonCount || 0
+          btbAuth = (btbTotalCount || 0) - btbAnon
         }
 
         const { error } = await supabase.from('analytics_brewery_daily').upsert({

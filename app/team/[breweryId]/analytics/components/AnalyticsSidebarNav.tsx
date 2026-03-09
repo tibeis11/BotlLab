@@ -1,12 +1,12 @@
 'use client';
 
-import { LayoutDashboard, Users, FlaskConical, MapPin, Mail, TrendingUp } from 'lucide-react';
+import { LayoutDashboard, Users, FlaskConical, MapPin, Mail, TrendingUp, Sparkles } from 'lucide-react';
 
 // ============================================================================
 // Types
 // ============================================================================
 
-export type AnalyticsSection = 'overview' | 'audience' | 'quality' | 'context' | 'market' | 'reports';
+export type AnalyticsSection = 'overview' | 'audience' | 'quality' | 'vibes' | 'context' | 'market' | 'reports';
 
 interface NavItem {
   section: AnalyticsSection;
@@ -38,6 +38,12 @@ const NAV_ITEMS: NavItem[] = [
     label: 'Geschmack',
     description: 'Die Bier-Sensorik',
     Icon: FlaskConical,
+  },
+  {
+    section: 'vibes',
+    label: 'Trinkanlässe',
+    description: 'In welcher Situation?',
+    Icon: Sparkles,
   },
   {
     section: 'context',

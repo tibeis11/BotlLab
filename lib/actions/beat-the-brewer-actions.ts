@@ -12,6 +12,7 @@
 'use server';
 
 import { createClient, createAdminClient } from '@/lib/supabase-server';
+import { verifyQrToken } from '@/lib/actions/qr-token-actions';
 import { headers } from 'next/headers';
 import { createHash } from 'crypto';
 import {
@@ -90,6 +91,8 @@ export interface BeatTheBrewerResult {
   isAnonymous?: boolean;
   /** Token to claim this session after registration */
   sessionToken?: string;
+  /** True when the user already played and the stored result is returned */
+  alreadyPlayed?: boolean;
 }
 
 export interface TastingIQInfo {
@@ -105,6 +108,75 @@ export interface LeaderboardEntry {
   logoUrl: string | null;
   tastingIQ: number;
   rank: number;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helper: Look up existing BTB result for already-played recovery
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function lookupExistingBTBResult(
+  client: { from: (...args: any[]) => any },
+  user: { id: string } | null,
+  submission: BeatTheBrewerSubmission,
+  brewerProfile: FlavorProfile,
+): Promise<BeatTheBrewerResult | null> {
+  let query = client
+    .from('tasting_score_events')
+    .select('match_score, metadata, session_token, ip_hash')
+    .eq('event_type', 'beat_the_brewer')
+    .eq('brew_id', submission.brewId)
+    .order('created_at', { ascending: false })
+    .limit(1);
+
+  if (user) {
+    query = query.eq('user_id', user.id);
+  } else {
+    query = query.is('user_id', null);
+    const ipHash = await computeIpHash();
+    query = query.eq('ip_hash', ipHash);
+  }
+
+  if (submission.sessionId) {
+    query = query.eq('session_id', submission.sessionId);
+  }
+
+  const { data } = await query.maybeSingle();
+  if (!data) return null;
+
+  const meta = data.metadata as any;
+  const sliderValues = meta?.slider_values;
+  const brewerValues = meta?.brewer_values;
+  if (!sliderValues || !brewerValues) return null;
+
+  const storedScore = data.match_score ?? 0;
+  const storedPercent = Math.round(storedScore * 100);
+
+  const dims: FlavorDimensionId[] = ['sweetness', 'bitterness', 'body', 'roast', 'fruitiness'];
+  const storedDimScores = {} as Record<FlavorDimensionId, { player: number; brewer: number; diff: number }>;
+  for (const dim of dims) {
+    storedDimScores[dim] = {
+      player: sliderValues[dim] ?? 0.5,
+      brewer: brewerValues[dim] ?? 0.5,
+      diff: Math.abs((sliderValues[dim] ?? 0.5) - (brewerValues[dim] ?? 0.5)),
+    };
+  }
+
+  return {
+    matchScore: storedScore,
+    matchPercent: storedPercent,
+    pointsAwarded: 0,
+    newTastingIQ: 0,
+    brewerProfile: {
+      sweetness: brewerValues.sweetness ?? 0.5,
+      bitterness: brewerValues.bitterness ?? 0.5,
+      body: brewerValues.body ?? 0.5,
+      roast: brewerValues.roast ?? 0.5,
+      fruitiness: brewerValues.fruitiness ?? 0.5,
+    },
+    dimensionScores: storedDimScores,
+    isAnonymous: !user,
+    sessionToken: data.session_token ?? undefined,
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -141,25 +213,57 @@ export async function submitBeatTheBrewer(
       .eq('user_id', user.id)
       .maybeSingle();
     if (membership) {
-      throw new Error('Als Brauer kannst du dein eigenes Bier nicht spielen.');
+      // Friendly info — not a system error, so don't log as error
+      throw new Error('Als Brauer kannst du dein eigenes Bier nicht spielen. Du kennst das Rezept ja bereits 😄');
     }
   }
 
   const brewerProfile = brew.flavor_profile as FlavorProfile;
 
-  // Phase 3.2: Nonce check — each QR token can only be used once per bottle+brew
+  // Phase 6.3: HMAC validation + atomic nonce burn (INSERT ON CONFLICT)
   if (submission.qrToken && submission.bottleId) {
-    const adminClient = createAdminClient();
-    const { data: existingNonce } = await adminClient
-      .from('btb_used_nonces')
-      .select('nonce')
-      .eq('nonce', submission.qrToken)
-      .eq('bottle_id', submission.bottleId)
-      .eq('brew_id', submission.brewId)
-      .maybeSingle();
+    // Step 1: Verify HMAC signature
+    const hmacValid = await verifyQrToken(submission.bottleId, submission.qrToken);
+    if (!hmacValid) {
+      throw new Error('QR_INVALID: Ungültiger QR-Code — Manipulation erkannt.');
+    }
 
-    if (existingNonce) {
-      throw new Error('Dieser QR-Code wurde bereits für Beat the Brewer verwendet. Scanne die Flasche erneut.');
+    // Step 2: Atomic nonce burn — INSERT ON CONFLICT prevents TOCTOU
+    const adminClient = createAdminClient();
+    const { error: nonceError } = await adminClient
+      .from('btb_used_nonces')
+      .insert({
+        nonce: submission.qrToken,
+        bottle_id: submission.bottleId,
+        brew_id: submission.brewId,
+      });
+
+    if (nonceError) {
+      if (nonceError.code === '23505') {
+        // Nonce already used — look up existing result and return it gracefully
+        const storedResult = await lookupExistingBTBResult(
+          adminClient, user, submission, brew.flavor_profile as FlavorProfile,
+        );
+        if (storedResult) return { ...storedResult, alreadyPlayed: true };
+        // Fallback: compute fresh result from submitted sliders (no double-write)
+        const fbMatchScore = calculateMatchScore(submission.playerProfile, brew.flavor_profile as FlavorProfile);
+        const fbMatchPercent = Math.round(fbMatchScore * 100);
+        const fbDims: FlavorDimensionId[] = ['sweetness', 'bitterness', 'body', 'roast', 'fruitiness'];
+        const fbDimScores = {} as Record<FlavorDimensionId, { player: number; brewer: number; diff: number }>;
+        const bp = brew.flavor_profile as FlavorProfile;
+        for (const d of fbDims) {
+          fbDimScores[d] = { player: submission.playerProfile[d], brewer: bp[d], diff: Math.abs(submission.playerProfile[d] - bp[d]) };
+        }
+        return {
+          matchScore: fbMatchScore, matchPercent: fbMatchPercent,
+          pointsAwarded: 0, newTastingIQ: 0,
+          brewerProfile: { sweetness: bp.sweetness, bitterness: bp.bitterness, body: bp.body, roast: bp.roast, fruitiness: bp.fruitiness },
+          dimensionScores: fbDimScores,
+          isAnonymous: !user, alreadyPlayed: true,
+        };
+      }
+      console.error('[btb-nonce] unexpected insert error:', nonceError);
+      throw new Error('Fehler bei der QR-Validierung.');
     }
   }
 
@@ -206,7 +310,16 @@ export async function submitBeatTheBrewer(
     const { count: existingCount } = await dupeQuery;
 
     if (existingCount && existingCount > 0) {
-      throw new Error('Du hast Beat the Brewer für diesen Batch bereits gespielt.');
+      // Return stored result gracefully instead of throwing
+      const storedResult = await lookupExistingBTBResult(
+        supabase, user, submission, brewerProfile,
+      );
+      if (storedResult) return { ...storedResult, alreadyPlayed: true };
+      // Fallback: compute from submitted sliders (no double-write)
+      return {
+        matchScore, matchPercent, pointsAwarded: 0, newTastingIQ: 0,
+        brewerProfile: brewerProfileResult, dimensionScores, alreadyPlayed: true,
+      };
     }
 
     // Insert tasting_score_event
@@ -263,14 +376,6 @@ export async function submitBeatTheBrewer(
       p_delta: pointsAwarded,
     });
 
-    // Phase 3.2: Consume nonce after successful submit
-    if (submission.qrToken && submission.bottleId) {
-      await createAdminClient()
-        .from('btb_used_nonces')
-        .insert({ nonce: submission.qrToken, bottle_id: submission.bottleId, brew_id: submission.brewId })
-        .then(({ error }) => { if (error) console.warn('[btb-nonce] insert error (non-fatal):', error); });
-    }
-
     // Phase 0.4 — CIS Hard Proof: BTB completion = confirmed drinker → upgrade most recent scan
     if (submission.bottleId) {
       const { data: recentScan } = await supabase
@@ -325,31 +430,32 @@ export async function submitBeatTheBrewer(
 
   if (fpError) {
     // Unique constraint → anonymous user already played from this device
-    // Load their stored session and return it instead of throwing
+    // Load their stored result and return it instead of throwing
     if (fpError.code === '23505') {
-      let sessionQuery = adminClient
-        .from('anonymous_game_sessions')
-        .select('session_token, match_score, match_percent, payload')
+      // Phase 8: Recovery from tasting_score_events (consolidated table)
+      let recoveryQuery = adminClient
+        .from('tasting_score_events')
+        .select('session_token, match_score, metadata')
         .eq('ip_hash', ipHash)
         .eq('event_type', 'beat_the_brewer')
+        .is('user_id', null)
         .order('created_at', { ascending: false })
         .limit(1);
 
-      // Scope recovery query by session when available, else by brew
       if (submission.sessionId) {
-        sessionQuery = (sessionQuery as any).eq('session_id', submission.sessionId);
+        recoveryQuery = recoveryQuery.eq('session_id', submission.sessionId);
       } else {
-        sessionQuery = sessionQuery.eq('brew_id', submission.brewId);
+        recoveryQuery = recoveryQuery.eq('brew_id', submission.brewId);
       }
 
-      const { data: existingSession } = await sessionQuery.maybeSingle();
+      const { data: existingEvent } = await recoveryQuery.maybeSingle();
 
-      if (existingSession) {
-        const meta = existingSession.payload as any;
+      if (existingEvent) {
+        const meta = existingEvent.metadata as any;
         const storedSliders = meta?.slider_values ?? submission.playerProfile;
         const storedBrewer = meta?.brewer_values ?? brewerProfileResult;
-        const storedMatchScore = existingSession.match_score ?? matchScore;
-        const storedMatchPercent = existingSession.match_percent ?? matchPercent;
+        const storedMatchScore = existingEvent.match_score ?? matchScore;
+        const storedMatchPercent = Math.round((storedMatchScore) * 100);
 
         const dims: FlavorDimensionId[] = ['sweetness', 'bitterness', 'body', 'roast', 'fruitiness'];
         const storedDimensionScores = {} as Record<FlavorDimensionId, { player: number; brewer: number; diff: number }>;
@@ -375,50 +481,54 @@ export async function submitBeatTheBrewer(
           },
           dimensionScores: storedDimensionScores,
           isAnonymous: true,
-          sessionToken: existingSession.session_token,
+          sessionToken: existingEvent.session_token,
         };
       }
 
-      // Session not found (edge case) — soft error
-      throw new Error('Du hast Beat the Brewer für diesen Batch bereits von diesem Gerät gespielt.');
+      // No recovery possible — return the freshly calculated result as fallback
+      // (flavor_profile duplicate doesn't mean no result — just means device already played)
+      return {
+        matchScore,
+        matchPercent,
+        pointsAwarded: 0,
+        newTastingIQ: 0,
+        brewerProfile: brewerProfileResult,
+        dimensionScores,
+        isAnonymous: true,
+        sessionToken: '',
+      };
     }
     console.error('[beat-the-brewer] anonymous flavor_profile insert error:', fpError);
     throw new Error('Fehler beim Speichern.');
   }
 
-  // Step 2: Insert anonymous_game_session (state persistence + claiming)
-  const anonSessionPayload: Record<string, unknown> = {
-    session_token: sessionToken,
+  // Step 2: Insert into tasting_score_events (consolidated — Phase 8)
+  const anonEventPayload: Record<string, unknown> = {
+    user_id: null,
     event_type: 'beat_the_brewer',
     brew_id: submission.brewId,
-    payload: {
+    session_id: submission.sessionId ?? null,
+    points_delta: pointsAwarded,
+    match_score: matchScore,
+    session_token: sessionToken,
+    ip_hash: ipHash,
+    metadata: {
       slider_values: submission.playerProfile,
       brewer_values: brewerProfileResult,
       brew_style: brew.style,
       brew_name: brew.name,
+      qr_nonce: submission.qrToken ?? null,
+      flavor_profile_id: fp.id,
     },
-    match_score: matchScore,
-    match_percent: matchPercent,
-    ip_hash: ipHash,
-    flavor_profile_id: fp.id,
   };
-  if (submission.sessionId) anonSessionPayload.session_id = submission.sessionId;
 
-  const { error: sessionError } = await adminClient
-    .from('anonymous_game_sessions')
-    .insert(anonSessionPayload);
+  const { error: eventError } = await adminClient
+    .from('tasting_score_events')
+    .insert(anonEventPayload);
 
-  if (sessionError) {
-    console.error('[beat-the-brewer] anonymous_game_sessions insert error:', sessionError);
+  if (eventError) {
+    console.error('[beat-the-brewer] anonymous tasting_score_events insert error:', eventError);
     // Non-fatal: flavor_profile was already written, game data is preserved
-  }
-
-  // Phase 3.2: Consume nonce after successful submit (anonymous path)
-  if (submission.qrToken && submission.bottleId) {
-    await adminClient
-      .from('btb_used_nonces')
-      .insert({ nonce: submission.qrToken, bottle_id: submission.bottleId, brew_id: submission.brewId })
-      .then(({ error }) => { if (error) console.warn('[btb-nonce] insert error (non-fatal):', error); });
   }
 
   return {
@@ -514,8 +624,12 @@ export async function getLeaderboard(limit = 50): Promise<LeaderboardEntry[]> {
 
 export interface VibeCheckSubmission {
   brewId: string;
-  bottleId: string; // Per-bottle scope — different batches can taste differently
-  vibes: string[]; // e.g. ['bbq', 'outdoor', 'friends']
+  bottleId: string;
+  vibes: string[];
+  /** QR token (nonce) — required for HMAC validation + anti-replay */
+  qrToken: string;
+  /** Brewing session UUID — scopes nonce per batch (refill-safe) */
+  sessionId?: string | null;
 }
 
 export interface VibeCheckResult {
@@ -534,24 +648,45 @@ export async function submitVibeCheck(
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const pointsAwarded = 3; // Fixed points for vibe check
+  const pointsAwarded = 3;
+
+  // ── Step 1: HMAC-Validierung — QR-Token MUSS vorhanden und gültig sein ──
+  if (!submission.qrToken || !submission.bottleId) {
+    throw new Error('QR-Code erforderlich. Bitte scanne den QR-Code auf der Flasche.');
+  }
+
+  const { valid } = await verifyQrToken(submission.qrToken, submission.bottleId);
+  if (!valid) {
+    throw new Error('QR-Code konnte nicht verifiziert werden.');
+  }
+
+  // ── Step 2: Nonce verbrauchen — INSERT ON CONFLICT (TOCTOU-safe) ──
+  const adminClient = createAdminClient();
+  const ipHash = await computeIpHash();
+
+  const { error: nonceError } = await adminClient
+    .from('vibe_check_used_nonces')
+    .insert({
+      nonce: submission.qrToken,
+      bottle_id: submission.bottleId,
+      brew_id: submission.brewId,
+      session_id: submission.sessionId ?? null,
+      user_id: user?.id ?? null,
+      ip_hash: ipHash,
+    });
+
+  if (nonceError) {
+    if (nonceError.code === '23505') {
+      throw new Error('Du hast für diese Flasche bereits einen Vibe Check gemacht.');
+    }
+    console.error('[vibe-check] nonce insert error:', nonceError);
+    throw new Error('Datenbankfehler beim Prüfen des QR-Codes.');
+  }
+
+  // ── Step 3: Event persistieren ──
 
   // ──── Authenticated Path ────
   if (user) {
-    // Check if already submitted vibe for this specific bottle
-    const { count: existingCount } = await supabase
-      .from('tasting_score_events')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('brew_id', submission.brewId)
-      .eq('event_type', 'vibe_check')
-      .eq('bottle_id', submission.bottleId);
-
-    if (existingCount && existingCount > 0) {
-      throw new Error('Du hast für diese Flasche bereits einen Vibe Check gemacht.');
-    }
-
-    // Insert event
     await supabase
       .from('tasting_score_events')
       .insert({
@@ -559,14 +694,13 @@ export async function submitVibeCheck(
         event_type: 'vibe_check',
         brew_id: submission.brewId,
         bottle_id: submission.bottleId,
+        session_id: submission.sessionId ?? null,
         points_delta: pointsAwarded,
         match_score: null,
-        metadata: {
-          vibes: submission.vibes,
-        },
+        metadata: { vibes: submission.vibes },
       });
 
-    // Phase 0.4 — CIS Soft Proof: VibeCheck boosts drinking_probability of most recent scan
+    // CIS Soft Proof: VibeCheck boosts drinking_probability of most recent scan
     {
       const { data: recentVibeScan } = await supabase
         .from('bottle_scans')
@@ -587,7 +721,6 @@ export async function submitVibeCheck(
     }
 
     // Atomarer Tasting IQ Increment
-    const adminClient = createAdminClient();
     const { data: iqResult } = await adminClient.rpc('increment_tasting_iq', {
       p_user_id: user.id,
       p_delta: pointsAwarded,
@@ -603,25 +736,27 @@ export async function submitVibeCheck(
   }
 
   // ──── Anonymous Path ────
-  const ipHash = await computeIpHash();
   const sessionToken = crypto.randomUUID();
-  const adminClient = createAdminClient();
 
-  // Insert anonymous_game_session
   const { error: sessionError } = await adminClient
-    .from('anonymous_game_sessions')
+    .from('tasting_score_events')
     .insert({
-      session_token: sessionToken,
+      user_id: null,
       event_type: 'vibe_check',
       brew_id: submission.brewId,
-      bottle_id: submission.bottleId,
-      payload: { vibes: submission.vibes },
+      session_id: submission.sessionId ?? null,
+      session_token: sessionToken,
       ip_hash: ipHash,
+      points_delta: pointsAwarded,
+      metadata: {
+        vibes: submission.vibes,
+        bottle_id: submission.bottleId,
+      },
     });
 
   if (sessionError) {
     if (sessionError.code === '23505') {
-      throw new Error('Du hast den Vibe Check für diese Flasche bereits von diesem Gerät gemacht.');
+      throw new Error('Du hast für diese Flasche bereits einen Vibe Check gemacht.');
     }
     console.error('[vibe-check] anonymous session insert error:', sessionError);
     throw new Error('Fehler beim Speichern.');
@@ -645,40 +780,19 @@ export async function submitVibeCheck(
 export async function getCommunityVibes(
   brewId: string,
 ): Promise<{ vibe: string; percentage: number }[]> {
-  const supabase = await createClient();
-
-  // Authenticated vibe events
-  const { data: events } = await supabase
+  // Phase 8.x: Single-table query — all vibe events (auth + anon) in tasting_score_events
+  const adminClient = createAdminClient();
+  const { data: events } = await adminClient
     .from('tasting_score_events')
     .select('metadata')
-    .eq('brew_id', brewId)
-    .eq('event_type', 'vibe_check');
-
-  // Anonymous vibe events (via service role)
-  const adminClient = createAdminClient();
-  const { data: anonEvents } = await adminClient
-    .from('anonymous_game_sessions')
-    .select('payload')
     .eq('brew_id', brewId)
     .eq('event_type', 'vibe_check');
 
   const vibeCounts: Record<string, number> = {};
   let total = 0;
 
-  // Count authenticated vibes
   for (const ev of events || []) {
     const vibes = (ev.metadata as any)?.vibes;
-    if (Array.isArray(vibes)) {
-      total++;
-      for (const v of vibes) {
-        vibeCounts[v] = (vibeCounts[v] || 0) + 1;
-      }
-    }
-  }
-
-  // Count anonymous vibes
-  for (const ev of anonEvents || []) {
-    const vibes = (ev.payload as any)?.vibes;
     if (Array.isArray(vibes)) {
       total++;
       for (const v of vibes) {
@@ -693,52 +807,6 @@ export async function getCommunityVibes(
       percentage: total > 0 ? Math.round((count / total) * 100) : 0,
     }))
     .sort((a, b) => b.percentage - a.percentage);
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Check if user already played this brew (for conditional button)
-// ─────────────────────────────────────────────────────────────────────────────
-
-export async function hasPlayedBeatTheBrewer(brewId: string, sessionId?: string | null): Promise<boolean> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return false;
-
-  let query = supabase
-    .from('tasting_score_events')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .eq('event_type', 'beat_the_brewer');
-
-  if (sessionId) {
-    query = query.eq('session_id', sessionId);
-  } else {
-    query = query.eq('brew_id', brewId);
-  }
-
-  const { count } = await query;
-  return (count ?? 0) > 0;
-}
-
-export async function hasSubmittedVibeCheck(brewId: string, bottleId?: string): Promise<boolean> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return false;
-
-  let query = supabase
-    .from('tasting_score_events')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .eq('brew_id', brewId)
-    .eq('event_type', 'vibe_check');
-
-  // If bottleId is provided, scope to this bottle only
-  if (bottleId) {
-    query = query.eq('bottle_id', bottleId);
-  }
-
-  const { count } = await query;
-  return (count ?? 0) > 0;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

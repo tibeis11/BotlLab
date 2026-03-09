@@ -3765,3 +3765,201 @@ export async function getStyleSeasonality(
     hasEnoughData: true,
   };
 }
+
+// ============================================================================
+// Phase 9 — Vibe Analytics for Brewery Dashboard
+// ============================================================================
+
+export interface VibeCount {
+  vibe: string;
+  count: number;
+  percentage: number;
+}
+
+export interface VibeBrewSummary {
+  brewId: string;
+  brewName: string;
+  totalVibeChecks: number;
+  topVibes: VibeCount[];
+}
+
+export interface BreweryVibeAnalytics {
+  totalVibeChecks: number;
+  breweryTopVibes: VibeCount[];
+  brewSummaries: VibeBrewSummary[];
+  socialVsSolo: { social: number; solo: number; other: number };
+}
+
+const SOCIAL_VIBES = new Set(['party', 'friends', 'festival', 'bbq', 'date', 'feierabend', 'teambuilding']);
+const SOLO_VIBES = new Set(['couch', 'gaming', 'reading', 'meditation', 'cooking', 'bath', 'alone', 'relax', 'selfcare']);
+
+/**
+ * Phase 9.1: Get brewery-wide vibe analytics.
+ * Fetches all vibe_check events from tasting_score_events for all brews of this brewery.
+ */
+export async function getBreweryVibeAnalytics(
+  breweryId: string,
+): Promise<BreweryVibeAnalytics> {
+  const supabase = await createClient();
+
+  // Verify membership
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { totalVibeChecks: 0, breweryTopVibes: [], brewSummaries: [], socialVsSolo: { social: 0, solo: 0, other: 0 } };
+
+  const { data: member } = await supabase
+    .from('brewery_members')
+    .select('id')
+    .eq('brewery_id', breweryId)
+    .eq('user_id', user.id)
+    .maybeSingle();
+  if (!member) return { totalVibeChecks: 0, breweryTopVibes: [], brewSummaries: [], socialVsSolo: { social: 0, solo: 0, other: 0 } };
+
+  // Get all brews for this brewery
+  const { data: brews } = await supabase
+    .from('brews')
+    .select('id, name')
+    .eq('brewery_id', breweryId);
+
+  if (!brews || brews.length === 0) {
+    return { totalVibeChecks: 0, breweryTopVibes: [], brewSummaries: [], socialVsSolo: { social: 0, solo: 0, other: 0 } };
+  }
+
+  const brewIds = brews.map(b => b.id);
+  const brewNameMap: Record<string, string> = {};
+  brews.forEach(b => { brewNameMap[b.id] = b.name; });
+
+  // Fetch all vibe_check events for this brewery's brews
+  const { data: events } = await supabase
+    .from('tasting_score_events')
+    .select('brew_id, metadata, created_at')
+    .eq('event_type', 'vibe_check')
+    .in('brew_id', brewIds);
+
+  if (!events || events.length === 0) {
+    return { totalVibeChecks: 0, breweryTopVibes: [], brewSummaries: [], socialVsSolo: { social: 0, solo: 0, other: 0 } };
+  }
+
+  // Aggregate vibes
+  const breweryVibeCounts: Record<string, number> = {};
+  const perBrewVibeCounts: Record<string, Record<string, number>> = {};
+  const perBrewTotal: Record<string, number> = {};
+  let totalChecks = 0;
+  let socialCount = 0, soloCount = 0, otherCount = 0;
+
+  for (const ev of events) {
+    const vibes = (ev.metadata as any)?.vibes;
+    if (!Array.isArray(vibes) || vibes.length === 0) continue;
+    totalChecks++;
+    const bId = ev.brew_id;
+    perBrewTotal[bId] = (perBrewTotal[bId] || 0) + 1;
+
+    // Categorize this check (use first vibe for social/solo classification)
+    let classified = false;
+    for (const v of vibes) {
+      if (SOCIAL_VIBES.has(v)) { socialCount++; classified = true; break; }
+      if (SOLO_VIBES.has(v)) { soloCount++; classified = true; break; }
+    }
+    if (!classified) otherCount++;
+
+    for (const v of vibes) {
+      breweryVibeCounts[v] = (breweryVibeCounts[v] || 0) + 1;
+      if (!perBrewVibeCounts[bId]) perBrewVibeCounts[bId] = {};
+      perBrewVibeCounts[bId][v] = (perBrewVibeCounts[bId][v] || 0) + 1;
+    }
+  }
+
+  // Build brewery-wide top vibes
+  const breweryTopVibes = Object.entries(breweryVibeCounts)
+    .map(([vibe, count]) => ({ vibe, count, percentage: totalChecks > 0 ? Math.round((count / totalChecks) * 100) : 0 }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10);
+
+  // Build per-brew summaries (only brews with data)
+  const brewSummaries: VibeBrewSummary[] = Object.entries(perBrewTotal)
+    .map(([brewId, total]) => {
+      const counts = perBrewVibeCounts[brewId] || {};
+      const topVibes = Object.entries(counts)
+        .map(([vibe, count]) => ({ vibe, count, percentage: total > 0 ? Math.round((count / total) * 100) : 0 }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5);
+      return { brewId, brewName: brewNameMap[brewId] || 'Unbekannt', totalVibeChecks: total, topVibes };
+    })
+    .sort((a, b) => b.totalVibeChecks - a.totalVibeChecks);
+
+  return {
+    totalVibeChecks: totalChecks,
+    breweryTopVibes,
+    brewSummaries,
+    socialVsSolo: { social: socialCount, solo: soloCount, other: otherCount },
+  };
+}
+
+export interface VibeTimeSlot {
+  hour: number;
+  vibe: string;
+  count: number;
+}
+
+/**
+ * Phase 9.4: Get vibe × time-of-day heatmap data.
+ * Returns counts of each vibe per hour of day (0-23).
+ */
+export async function getVibeTimeHeatmap(
+  breweryId: string,
+): Promise<{ slots: VibeTimeSlot[]; vibes: string[]; totalChecks: number }> {
+  const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { slots: [], vibes: [], totalChecks: 0 };
+
+  const { data: member } = await supabase
+    .from('brewery_members')
+    .select('id')
+    .eq('brewery_id', breweryId)
+    .eq('user_id', user.id)
+    .maybeSingle();
+  if (!member) return { slots: [], vibes: [], totalChecks: 0 };
+
+  // Get brew IDs
+  const { data: brews } = await supabase
+    .from('brews')
+    .select('id')
+    .eq('brewery_id', breweryId);
+
+  if (!brews || brews.length === 0) return { slots: [], vibes: [], totalChecks: 0 };
+
+  const { data: events } = await supabase
+    .from('tasting_score_events')
+    .select('metadata, created_at')
+    .eq('event_type', 'vibe_check')
+    .in('brew_id', brews.map(b => b.id));
+
+  if (!events || events.length === 0) return { slots: [], vibes: [], totalChecks: 0 };
+
+  const slotMap: Record<string, number> = {}; // "hour:vibe" → count
+  const vibeSet = new Set<string>();
+  let totalChecks = 0;
+
+  for (const ev of events) {
+    const vibes = (ev.metadata as any)?.vibes;
+    if (!Array.isArray(vibes) || vibes.length === 0) continue;
+    totalChecks++;
+    const hour = new Date(ev.created_at).getHours();
+    for (const v of vibes) {
+      vibeSet.add(v);
+      const key = `${hour}:${v}`;
+      slotMap[key] = (slotMap[key] || 0) + 1;
+    }
+  }
+
+  const slots: VibeTimeSlot[] = Object.entries(slotMap).map(([key, count]) => {
+    const [h, ...rest] = key.split(':');
+    return { hour: parseInt(h), vibe: rest.join(':'), count };
+  });
+
+  return {
+    slots,
+    vibes: [...vibeSet].sort(),
+    totalChecks,
+  };
+}

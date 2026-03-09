@@ -37,7 +37,7 @@ export default function PublicScanPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const rawId = params?.id as string;
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   // Parse dot-separated format: /b/ID.TOKEN → bottleId + pathToken
   const dotIndex = rawId?.indexOf('.') ?? -1;
@@ -121,6 +121,7 @@ export default function PublicScanPage() {
   useEffect(() => {
     async function fetchBottleInfo() {
       if (!id) return;
+      if (authLoading) return; // Phase 1: warten bis Auth resolved
 
       // Check if ID is UUID or ShortCode
       const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id as string);
@@ -313,7 +314,7 @@ export default function PublicScanPage() {
     }
 
     fetchBottleInfo();
-  }, [id]); // Only re-run when bottle ID changes
+  }, [id, authLoading]); // Phase 1: authLoading als dep — re-run wenn Auth resolved
 
   async function loadRatings(brewId: string) {
     setRatingsLoading(true);
@@ -380,6 +381,8 @@ export default function PublicScanPage() {
         ...submissionData,
         brew_id: brewId,
         qr_verified: isQrVerified,
+        qr_token: qrToken ?? undefined,
+        session_id: data?.session_id ?? undefined,
       };
 
       const response = await fetch('/api/ratings/submit', {
@@ -393,11 +396,40 @@ export default function PublicScanPage() {
       const result = await response.json();
 
       if (!response.ok) {
-        // Special Handling for Duplicate Rating (409)
+        // Phase 5.4: Differentiated error handling by code
         if (response.status === 409) {
-          setHasAlreadyRated(true);
+          const code = result.code;
 
-          // Try to recover ID via safe API check
+          if (code === 'NONCE_USED') {
+            toast.error('Dieser Scan wurde bereits für eine Bewertung genutzt.');
+            setShowRatingForm(false);
+            return null;
+          }
+
+          if (code === 'RECIPE_DUPLICATE') {
+            setHasAlreadyRated(true);
+            // Phase 5.3: Show existing rating info instead of generic error
+            if (result.existingRating?.id) {
+              setExistingRatingId(result.existingRating.id);
+              const existingStars = result.existingRating.rating;
+              const existingDate = result.existingRating.created_at
+                ? new Date(result.existingRating.created_at).toLocaleDateString('de-DE')
+                : null;
+              toast.info(
+                existingDate
+                  ? `Du hast dieses Rezept am ${existingDate} mit ${existingStars} Sternen bewertet.`
+                  : `Du hast dieses Rezept bereits mit ${existingStars} Sternen bewertet.`
+              );
+              setShowRatingForm(false);
+              return result.existingRating.id;
+            }
+            toast.info('Du hast dieses Rezept bereits bewertet.');
+            setShowRatingForm(false);
+            return null;
+          }
+
+          // Legacy 409 fallback
+          setHasAlreadyRated(true);
           try {
             const checkRes = await fetch('/api/ratings/check', {
               method: 'POST',
@@ -409,10 +441,14 @@ export default function PublicScanPage() {
               return checkData.ratingId;
             }
           } catch (e) { console.error('[b/[id]] 409 recovery:', e); }
-
-          // Fallback
           toast.info('Du hast dieses Rezept bereits bewertet.');
           setShowRatingForm(false);
+          return null;
+        }
+
+        // Phase 5.4: QR-specific errors (400)
+        if (result.code === 'QR_REQUIRED' || result.code === 'QR_INVALID') {
+          toast.error(result.error ?? 'QR-Code konnte nicht verifiziert werden.');
           return null;
         }
 
@@ -422,7 +458,8 @@ export default function PublicScanPage() {
       } else {
         setHasAlreadyRated(true);
         setShowBeatTheBrewer(true);
-        localStorage.setItem('botllab_rated_' + brewId, '1');
+        // Phase 2.1: localStorage nur für anonyme User — eingeloggte sind server-authoritative
+        if (!user) localStorage.setItem('botllab_rated_' + brewId, '1');
         await loadRatings(brewId);
 
         // Track conversion + Achievements werden jetzt server-seitig in der API Route geprüft
@@ -489,8 +526,8 @@ export default function PublicScanPage() {
 
       setShowRatingForm(false);
       setCapCollected(true);
-      // Phase 10.2: persist cap status in localStorage for fast-path on return visits
-      if (data?.brews?.id) localStorage.setItem('botllab_cap_' + data.brews.id, '1');
+      // Phase 2.3: user-scoped localStorage key
+      if (data?.brews?.id && user?.id) localStorage.setItem(`botllab_cap_${user.id}_${data.brews.id}`, '1');
       // Phase 8.1: drinker-aware Sammlung-Link im Erfolgs-Toast
       const collectionUrl = userAppMode === 'drinker' ? '/my-cellar/collection' : '/dashboard/collection';
       toast.success('Kronkorken gesammelt! 🍺', {
@@ -545,16 +582,14 @@ export default function PublicScanPage() {
   }, [user, data, searchParams, id]);
 
   async function checkCapCollected(brewId: string) {
-    // Phase 10.2: fast-path from localStorage (avoids DB round-trip on return visits)
-    if (typeof window !== 'undefined' && localStorage.getItem('botllab_cap_' + brewId) === '1') {
+    // Phase 2.2: user-scoped cache keys (caps require login)
+    if (user?.id && typeof window !== 'undefined' && localStorage.getItem(`botllab_cap_${user.id}_${brewId}`) === '1') {
       setCapCollected(true);
-      // Tier from localStorage (stored after first claim)
-      const storedTier = localStorage.getItem('botllab_cap_tier_' + brewId) as CapTier | null;
+      const storedTier = localStorage.getItem(`botllab_cap_tier_${user.id}_${brewId}`) as CapTier | null;
       if (storedTier) setCapTier(storedTier);
       return;
     }
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) return; // Caps require login — skip DB check for anon
     const { data } = await supabase
       .from('collected_caps')
       .select('id, cap_tier')
@@ -565,8 +600,8 @@ export default function PublicScanPage() {
     if (data) {
       const tier = (data.cap_tier as CapTier) ?? 'zinc';
       setCapTier(tier);
-      localStorage.setItem('botllab_cap_' + brewId, '1');
-      localStorage.setItem('botllab_cap_tier_' + brewId, tier);
+      localStorage.setItem(`botllab_cap_${user.id}_${brewId}`, '1');
+      localStorage.setItem(`botllab_cap_tier_${user.id}_${brewId}`, tier);
     }
   }
 
@@ -1157,6 +1192,8 @@ export default function PublicScanPage() {
             brewId={brew.id}
             bottleId={data.id}
             isLoggedIn={!!user}
+            qrToken={qrToken}
+            sessionId={data?.session_id ?? null}
             onComplete={() => {
               setRatingCTAHighlight(true);
               setTimeout(() => setRatingCTAHighlight(false), 2000);
