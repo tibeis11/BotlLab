@@ -806,21 +806,29 @@ export interface HistoricalBTBResult extends BeatTheBrewerResult {
 
 export async function getBrewBTBResult(
   brewId: string,
+  sessionId?: string | null,
 ): Promise<HistoricalBTBResult | null> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) return null;
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('tasting_score_events')
     .select('match_score, points_delta, metadata, created_at')
     .eq('user_id', user.id)
     .eq('brew_id', brewId)
     .eq('event_type', 'beat_the_brewer')
     .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
+
+  // When a sessionId is provided, only return a result for this exact session.
+  // A play on a different batch should not block playing again.
+  if (sessionId) {
+    query = (query as any).filter('metadata->>session_id', 'eq', sessionId);
+  }
+
+  const { data, error } = await query.maybeSingle();
 
   if (error || !data) return null;
 

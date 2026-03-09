@@ -112,7 +112,7 @@ export default function BeatTheBrewerGame({
   useEffect(() => {
     if (!isLoggedIn) return;
     setHistoricalLoading(true);
-    getBrewBTBResult(brewId)
+    getBrewBTBResult(brewId, sessionId)
       .then((res) => {
         if (res) {
           setHistoricalResult(res);
@@ -130,7 +130,7 @@ export default function BeatTheBrewerGame({
       })
       .catch(() => { /* silent — show CTA as fallback */ })
       .finally(() => setHistoricalLoading(false));
-  }, [brewId, isLoggedIn]);
+  }, [brewId, sessionId, isLoggedIn]);
 
   // ─── Handlers ───
   const handleSliderChange = useCallback((dim: FlavorDimensionId, value: number) => {
