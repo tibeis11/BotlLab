@@ -363,7 +363,7 @@ export async function submitBeatTheBrewer(
 
     const { error: flavorError } = await supabase
       .from('flavor_profiles')
-      .upsert(flavorPayload, { onConflict: flavorConflict, ignoreDuplicates: false });
+      .upsert(flavorPayload as any, { onConflict: flavorConflict, ignoreDuplicates: false });
 
     if (flavorError) {
       console.error('[beat-the-brewer] flavor_profiles upsert error:', flavorError);
@@ -424,7 +424,7 @@ export async function submitBeatTheBrewer(
 
   const { data: fp, error: fpError } = await adminClient
     .from('flavor_profiles')
-    .insert(anonFlavorPayload)
+    .insert(anonFlavorPayload as any)
     .select('id')
     .single();
 
@@ -481,7 +481,7 @@ export async function submitBeatTheBrewer(
           },
           dimensionScores: storedDimensionScores,
           isAnonymous: true,
-          sessionToken: existingEvent.session_token,
+          sessionToken: existingEvent.session_token ?? undefined,
         };
       }
 
@@ -524,7 +524,7 @@ export async function submitBeatTheBrewer(
 
   const { error: eventError } = await adminClient
     .from('tasting_score_events')
-    .insert(anonEventPayload);
+    .insert(anonEventPayload as any);
 
   if (eventError) {
     console.error('[beat-the-brewer] anonymous tasting_score_events insert error:', eventError);

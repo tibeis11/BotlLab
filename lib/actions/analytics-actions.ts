@@ -3826,7 +3826,7 @@ export async function getBreweryVibeAnalytics(
 
   const brewIds = brews.map(b => b.id);
   const brewNameMap: Record<string, string> = {};
-  brews.forEach(b => { brewNameMap[b.id] = b.name; });
+  brews.forEach(b => { brewNameMap[b.id] = b.name ?? b.id; });
 
   // Fetch all vibe_check events for this brewery's brews
   const { data: events } = await supabase
@@ -3851,6 +3851,7 @@ export async function getBreweryVibeAnalytics(
     if (!Array.isArray(vibes) || vibes.length === 0) continue;
     totalChecks++;
     const bId = ev.brew_id;
+    if (!bId) continue;
     perBrewTotal[bId] = (perBrewTotal[bId] || 0) + 1;
 
     // Categorize this check (use first vibe for social/solo classification)
