@@ -198,7 +198,7 @@ export async function submitBeatTheBrewer(
       .eq('event_type', 'beat_the_brewer');
 
     if (submission.sessionId) {
-      dupeQuery = (dupeQuery as any).filter('metadata->>session_id', 'eq', submission.sessionId);
+      dupeQuery = dupeQuery.eq('session_id', submission.sessionId);
     } else {
       dupeQuery = dupeQuery.eq('brew_id', submission.brewId);
     }
@@ -216,6 +216,7 @@ export async function submitBeatTheBrewer(
         user_id: user.id,
         event_type: 'beat_the_brewer',
         brew_id: submission.brewId,
+        session_id: submission.sessionId ?? null,
         points_delta: pointsAwarded,
         match_score: matchScore,
         metadata: {
@@ -224,7 +225,6 @@ export async function submitBeatTheBrewer(
           brew_style: brew.style,
           brew_name: brew.name,
           qr_nonce: submission.qrToken ?? null,
-          session_id: submission.sessionId ?? null,
         },
       });
 
@@ -545,7 +545,7 @@ export async function submitVibeCheck(
       .eq('user_id', user.id)
       .eq('brew_id', submission.brewId)
       .eq('event_type', 'vibe_check')
-      .filter('metadata->>bottle_id', 'eq', submission.bottleId);
+      .eq('bottle_id', submission.bottleId);
 
     if (existingCount && existingCount > 0) {
       throw new Error('Du hast für diese Flasche bereits einen Vibe Check gemacht.');
@@ -558,11 +558,11 @@ export async function submitVibeCheck(
         user_id: user.id,
         event_type: 'vibe_check',
         brew_id: submission.brewId,
+        bottle_id: submission.bottleId,
         points_delta: pointsAwarded,
         match_score: null,
         metadata: {
           vibes: submission.vibes,
-          bottle_id: submission.bottleId,
         },
       });
 
@@ -711,7 +711,7 @@ export async function hasPlayedBeatTheBrewer(brewId: string, sessionId?: string 
     .eq('event_type', 'beat_the_brewer');
 
   if (sessionId) {
-    query = (query as any).filter('metadata->>session_id', 'eq', sessionId);
+    query = query.eq('session_id', sessionId);
   } else {
     query = query.eq('brew_id', brewId);
   }
@@ -734,7 +734,7 @@ export async function hasSubmittedVibeCheck(brewId: string, bottleId?: string): 
 
   // If bottleId is provided, scope to this bottle only
   if (bottleId) {
-    query = query.filter('metadata->>bottle_id', 'eq', bottleId);
+    query = query.eq('bottle_id', bottleId);
   }
 
   const { count } = await query;
@@ -825,7 +825,7 @@ export async function getBrewBTBResult(
   // When a sessionId is provided, only return a result for this exact session.
   // A play on a different batch should not block playing again.
   if (sessionId) {
-    query = (query as any).filter('metadata->>session_id', 'eq', sessionId);
+    query = query.eq('session_id', sessionId);
   }
 
   const { data, error } = await query.maybeSingle();
