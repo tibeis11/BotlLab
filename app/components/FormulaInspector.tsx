@@ -273,8 +273,8 @@ function OGInspector({ data }: { data: FormulaInspectorProps['data'] }) {
 
             <div className="space-y-4">
                 <h3 className="font-bold text-text-primary text-sm uppercase tracking-wide">Beiträge der Malze</h3>
-                <div className="rounded-lg border border-border overflow-hidden">
-                    <table className="w-full text-sm text-left">
+                <div className="rounded-lg border border-border overflow-x-auto">
+                    <table className="w-full text-sm text-left min-w-[350px]">
                         <thead className="bg-background border-b border-border text-text-muted font-medium">
                             <tr>
                                 <th className="p-3 text-xs uppercase tracking-wider">Malz</th>
@@ -392,7 +392,7 @@ function IBUInspector({ data }: { data: FormulaInspectorProps['data'] }) {
                     <span className="text-text-muted text-[10px] uppercase font-bold tracking-widest">Gesamt IBU</span>
                     <span className="text-3xl font-black text-rating">{totalIBU}</span>
                 </div>
-                <div className="h-1 w-full bg-surface rounded-full overflow-hidden">
+                <div className="h-1 w-full bg-surface rounded-full overflow-x-auto">
                     <div className="h-full bg-rating/50 w-full" />
                 </div>
             </div>
@@ -425,8 +425,8 @@ function IBUInspector({ data }: { data: FormulaInspectorProps['data'] }) {
 
             <div className="space-y-4">
                 <h3 className="font-bold text-text-primary text-sm uppercase tracking-wide">Beiträge der Hopfen</h3>
-                <div className="rounded-lg border border-border overflow-hidden">
-                    <table className="w-full text-sm text-left">
+                <div className="rounded-lg border border-border overflow-x-auto">
+                    <table className="w-full text-sm text-left min-w-[350px]">
                         <thead className="bg-background border-b border-border text-text-muted font-medium">
                             <tr>
                                 <th className="p-3 text-xs uppercase tracking-wider">Hopfen</th>
@@ -509,8 +509,8 @@ function ColorInspector({ data }: { data: FormulaInspectorProps['data'] }) {
 
             <div className="space-y-4">
                 <h3 className="font-bold text-text-primary text-sm uppercase tracking-wide">Beiträge der Malze</h3>
-                <div className="rounded-lg border border-border overflow-hidden">
-                    <table className="w-full text-sm text-left">
+                <div className="rounded-lg border border-border overflow-x-auto">
+                    <table className="w-full text-sm text-left min-w-[350px]">
                         <thead className="bg-background border-b border-border text-text-muted font-medium">
                             <tr>
                                 <th className="p-3 text-xs uppercase tracking-wider">Malz</th>
