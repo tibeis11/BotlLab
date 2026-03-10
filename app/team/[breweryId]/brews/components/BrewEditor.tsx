@@ -145,9 +145,9 @@ function NumberInput({
                                 {onInspectorOpen ? 'i' : 'ƒ'}
                             </div>
                             {calculationInfo && (
-                                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-48 bg-surface border border-border p-2 rounded-lg text-[10px] text-text-secondary pointer-events-none opacity-0 group-hover/info:opacity-100 transition-opacity z-50 shadow-xl">
+                                <div className="absolute bottom-full mb-2 right-0 w-48 max-w-[calc(100vw-2rem)] bg-surface border border-border p-2 rounded-lg text-[10px] text-text-secondary pointer-events-none opacity-0 group-hover/info:opacity-100 transition-opacity z-50 shadow-xl">
                                     {calculationInfo}
-                                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-surface border-r border-b border-border rotate-45"></div>
+                                    <div className="absolute -bottom-1 right-2 w-2 h-2 bg-surface border-r border-b border-border rotate-45"></div>
                                 </div>
                             )}
                         </div>
@@ -1767,7 +1767,7 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                     {/* Content */}
                     <div className="flex-1 min-w-0 w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
                     {/* Content Area */}
-                    <main className="w-full space-y-8">
+                    <main className="w-full space-y-8 overflow-x-hidden">
 
                         {activeTab === 'input' && (
                             <div className="space-y-8">
