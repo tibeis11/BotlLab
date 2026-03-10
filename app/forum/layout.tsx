@@ -21,7 +21,9 @@ export default function ForumLayout({
       <div className="flex-1 w-full pt-0 pb-4">
         {children}
       </div>
-      <Footer />
+      <div className="hidden md:block">
+        <Footer />
+      </div>
     </div>
   );
 }
