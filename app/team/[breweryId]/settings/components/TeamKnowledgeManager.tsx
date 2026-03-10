@@ -138,8 +138,28 @@ export default function TeamKnowledgeManager({ breweryId }: TeamKnowledgeManager
     });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
-    setSuccess(`"${filename}" wird verarbeitet. Embeddings werden generiert…`);
+    setSuccess(`„${filename}“ eingebettet und bereit.`);
     loadDocuments();
+  }
+
+  async function handleRetry(documentId: string, filename: string) {
+    setError(null);
+    try {
+      const res = await fetch('/api/botlguide/team-knowledge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'process', breweryId, documentId }),
+      });
+      const data = await res.json();
+      if (data.error) {
+        setError(data.error);
+        return;
+      }
+      setSuccess(`„${filename}“ wurde erneut verarbeitet.`);
+      loadDocuments();
+    } catch {
+      setError('Fehler beim erneuten Verarbeiten.');
+    }
   }
 
   async function handleDelete(documentId: string, filename: string) {
@@ -349,13 +369,24 @@ export default function TeamKnowledgeManager({ breweryId }: TeamKnowledgeManager
                   <p className="text-xs text-error mt-1">{doc.error_message}</p>
                 )}
               </div>
-              <button
-                onClick={() => handleDelete(doc.id, doc.filename)}
-                className="p-2 text-text-disabled hover:text-error transition-colors flex-shrink-0"
-                title="Löschen"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                {(doc.status === 'error' || doc.status === 'pending') && (
+                  <button
+                    onClick={() => handleRetry(doc.id, doc.filename)}
+                    className="p-2 text-text-disabled hover:text-accent-purple transition-colors"
+                    title="Erneut verarbeiten"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                  </button>
+                )}
+                <button
+                  onClick={() => handleDelete(doc.id, doc.filename)}
+                  className="p-2 text-text-disabled hover:text-error transition-colors"
+                  title="Löschen"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           ))}
         </div>

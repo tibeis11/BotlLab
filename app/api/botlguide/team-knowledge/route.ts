@@ -16,6 +16,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase-server';
 import { getUserPremiumStatus } from '@/lib/premium-checks';
 
+// Allow up to 60s — embedding large documents can take time
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -67,6 +70,8 @@ export async function POST(req: NextRequest) {
       return handleList(supabase, breweryId);
     case 'upload':
       return handleUpload(supabase, user.id, breweryId, body);
+    case 'process':
+      return handleProcess(supabase, breweryId, body.documentId as string);
     case 'delete':
       return handleDelete(supabase, breweryId, body.documentId as string);
     default:
@@ -151,34 +156,119 @@ async function handleUpload(supabase: any, userId: string, breweryId: string, bo
     return NextResponse.json({ error: insertError.message }, { status: 500 });
   }
 
-  // Trigger edge function for chunking + embedding
+  // Trigger edge function for chunking + embedding.
+  // Must await — fire-and-forget is killed by Vercel before the fetch completes.
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  // Use Service Role Key for server-to-server calls (never expose to client)
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (supabaseUrl && supabaseAnonKey) {
-    // Fire-and-forget — don't block the response
-    fetch(`${supabaseUrl}/functions/v1/botlguide-team-embed`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${supabaseAnonKey}`,
-      },
-      body: JSON.stringify({
-        type: 'text',
-        document_id: doc.id,
-        brewery_id: breweryId,
-        text,
-      }),
-    }).catch((err) => {
-      console.error('[team-knowledge] Edge function trigger failed:', err);
-    });
+  if (supabaseUrl && serviceRoleKey) {
+    try {
+      const embedRes = await fetch(`${supabaseUrl}/functions/v1/botlguide-team-embed`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${serviceRoleKey}`,
+        },
+        body: JSON.stringify({
+          type: 'text',
+          document_id: doc.id,
+          brewery_id: breweryId,
+          text,
+        }),
+      });
+
+      if (!embedRes.ok) {
+        const errBody = await embedRes.text().catch(() => '');
+        console.error('[team-knowledge] Edge function error:', embedRes.status, errBody.slice(0, 200));
+        // Mark document as error so UI doesn't spin forever
+        await supabase
+          .from('team_knowledge_base')
+          .update({ status: 'error', error_message: `Embedding-Service Fehler (${embedRes.status})` })
+          .eq('id', doc.id);
+        return NextResponse.json({ error: 'Embedding-Verarbeitung fehlgeschlagen. Bitte erneut versuchen.' }, { status: 500 });
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error('[team-knowledge] Edge function call failed:', msg);
+      await supabase
+        .from('team_knowledge_base')
+        .update({ status: 'error', error_message: 'Embedding-Service nicht erreichbar.' })
+        .eq('id', doc.id);
+      return NextResponse.json({ error: 'Embedding-Service nicht erreichbar.' }, { status: 500 });
+    }
+  } else {
+    console.warn('[team-knowledge] Missing SUPABASE_SERVICE_ROLE_KEY — embedding skipped');
   }
 
   return NextResponse.json({
     success: true,
     documentId: doc.id,
-    message: 'Dokument wird verarbeitet. Embeddings werden im Hintergrund generiert.',
+    message: 'Dokument wurde eingebettet und ist bereit.',
   });
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function handleProcess(supabase: any, breweryId: string, documentId: string) {
+  if (!documentId) {
+    return NextResponse.json({ error: 'documentId required' }, { status: 400 });
+  }
+
+  // Fetch document text from storage to re-trigger embedding
+  const { data: doc } = await supabase
+    .from('team_knowledge_base')
+    .select('id, file_path, filename')
+    .eq('id', documentId)
+    .eq('brewery_id', breweryId)
+    .maybeSingle();
+
+  if (!doc) {
+    return NextResponse.json({ error: 'Dokument nicht gefunden' }, { status: 404 });
+  }
+
+  const { data: fileBlob, error: dlErr } = await supabase.storage
+    .from('team-documents')
+    .download(doc.file_path);
+
+  if (dlErr || !fileBlob) {
+    return NextResponse.json({ error: 'Datei konnte nicht geladen werden.' }, { status: 500 });
+  }
+
+  const text = await fileBlob.text();
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    return NextResponse.json({ error: 'Server-Konfiguration fehlt.' }, { status: 500 });
+  }
+
+  // Reset status to pending before re-processing
+  await supabase
+    .from('team_knowledge_base')
+    .update({ status: 'pending', error_message: null })
+    .eq('id', documentId);
+
+  const embedRes = await fetch(`${supabaseUrl}/functions/v1/botlguide-team-embed`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${serviceRoleKey}`,
+    },
+    body: JSON.stringify({ type: 'text', document_id: documentId, brewery_id: breweryId, text }),
+  });
+
+  if (!embedRes.ok) {
+    const errBody = await embedRes.text().catch(() => '');
+    await supabase
+      .from('team_knowledge_base')
+      .update({ status: 'error', error_message: `Embedding-Service Fehler (${embedRes.status})` })
+      .eq('id', documentId);
+    console.error('[team-knowledge/process] Edge function error:', embedRes.status, errBody.slice(0, 200));
+    return NextResponse.json({ error: 'Embedding-Verarbeitung fehlgeschlagen.' }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true, documentId });
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
