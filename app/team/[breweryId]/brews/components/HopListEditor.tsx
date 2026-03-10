@@ -103,7 +103,7 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
                     <div className="bg-surface border border-border rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl relative flex flex-col max-h-[90vh]">
                         <div className="flex justify-between items-center p-4 border-b border-border bg-surface shrink-0">
                             <h3 className="font-bold text-text-primary flex items-center gap-2">
-                                <span className="w-8 h-8 rounded-full bg-green-500/10 text-green-500 flex items-center justify-center">
+                                <span className="w-8 h-8 rounded-full bg-success-bg text-success flex items-center justify-center">
                                     <List size={16} />
                                 </span>
                                 Hopfen bearbeiten
@@ -241,7 +241,7 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
                                 <div className="min-w-0 flex-1">
                                     <div className="text-base font-bold text-text-primary truncate">{item.name || 'Unbenannt'}</div>
                                     <div className="flex flex-wrap gap-1.5 mt-1.5">
-                                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] uppercase font-bold bg-green-950/30 text-green-500 border border-green-900/30 tracking-wider">
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] uppercase font-bold bg-success-bg text-success border border-success/20 tracking-wider">
                                             {item.usage}
                                         </span>
                                         {item.time && (
