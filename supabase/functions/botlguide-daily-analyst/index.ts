@@ -471,7 +471,7 @@ serve(async (req: Request) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    const geminiApiKey = Deno.env.get('GEMINI_API_KEY') ?? ''
+    const geminiApiKey = Deno.env.get('GEMINI_API_KEY') ?? Deno.env.get('GOOGLE_AI_API_KEY') ?? ''
 
     if (!supabaseUrl || !serviceKey) {
       return new Response(JSON.stringify({ error: 'Missing SUPABASE env vars' }), {
