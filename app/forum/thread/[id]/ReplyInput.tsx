@@ -165,8 +165,8 @@ export default function ReplyInput({ threadId }: { threadId: string }) {
 
     return (
         <div className="sticky bottom-0 z-20 bg-background/95 backdrop-blur-sm border-t border-border/50
-            px-3 py-2.5
-            md:mt-8 md:pt-5 md:pb-6 md:px-0 md:border-border/50">
+            -mx-6 px-3 py-2.5
+            md:mx-0 md:mt-8 md:pt-5 md:pb-6 md:px-0 md:border-border/50">
 
             {/* â”€â”€ Mobile: compact reply-target indicator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
             {replyTarget && (

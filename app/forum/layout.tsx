@@ -18,7 +18,7 @@ export default function ForumLayout({
   return (
     <div className="min-h-screen flex flex-col bg-background text-text-primary selection:bg-success/30">
       <Header forumSearchSlot={forumSearchSlot} forumMobileActions={forumMobileActions} />
-      <div className="flex-1 w-full pt-0 pb-20">
+      <div className="flex-1 w-full pt-0 pb-4">
         {children}
       </div>
       <Footer />
