@@ -306,3 +306,62 @@ export type CisFalseNegativeSummary = {
   byIntent: { intent: string; count: number }[]
   examples: CisFalseNegative[]
 }
+
+// ============================================================================
+// Enterprise Codes
+// ============================================================================
+export type EnterpriseCode = {
+  id: string
+  code: string
+  createdAt: string | null
+  createdBy: string | null
+  currentUses: number
+  maxUses: number | null
+  expiresAt: string | null
+  isActive: boolean
+}
+
+// ============================================================================
+// Scan Geo-Events (scan_events + scan_event_members)
+// ============================================================================
+export type AdminScanEvent = {
+  id: string
+  createdAt: string
+  eventStart: string
+  eventEnd: string | null
+  city: string | null
+  countryCode: string | null
+  totalScans: number
+  uniqueSessions: number
+  uniqueBrews: number | null
+  eventType: string
+  confidence: number
+  centerLat: number | null
+  centerLng: number | null
+  radiusM: number | null
+  breweries: string[]
+  memberCount: number
+}
+
+// ============================================================================
+// Nonce monitoring (btb_used_nonces, vibe_check_used_nonces, rating_used_nonces)
+// ============================================================================
+export type NonceStats = {
+  btb: { total: number; last24h: number; last7d: number }
+  vibeCheck: { total: number; last24h: number; last7d: number }
+  rating: { total: number; last24h: number; last7d: number }
+}
+
+// ============================================================================
+// Database Health (get_db_health_stats RPC)
+// ============================================================================
+export type DbHealthStats = {
+  dbSizeBytes: number
+  dbSizePretty: string
+  activeConnections: number
+  idleConnections: number
+  totalConnections: number
+  tableCount: number
+  cacheHitRatio: number | null
+  biggestTables: { name: string; totalSize: string; totalSizeBytes: number }[]
+}

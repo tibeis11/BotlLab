@@ -68,6 +68,12 @@
   --rating:             var(--color-amber-400);
   --like:               var(--color-red-500);
 
+  /* Charts */
+  --chart-grid:         var(--color-zinc-800);
+  --chart-axis:         var(--color-zinc-500);
+  --chart-tooltip-bg:   var(--color-zinc-900);
+  --chart-tooltip-border: var(--color-zinc-800);
+
   /* Scrollbar */
   --scrollbar-track:    var(--color-zinc-950);
   --scrollbar-thumb:    var(--color-zinc-800);
@@ -115,6 +121,11 @@
     --rating:             var(--color-amber-500);
     --like:               var(--color-red-500);
 
+    --chart-grid:         var(--color-zinc-200);
+    --chart-axis:         var(--color-zinc-500);
+    --chart-tooltip-bg:   var(--color-white);
+    --chart-tooltip-border: var(--color-zinc-200);
+
     --scrollbar-track:    var(--color-zinc-50);
     --scrollbar-thumb:    var(--color-zinc-300);
     --scrollbar-thumb-hover: var(--color-zinc-400);
@@ -155,6 +166,10 @@
   --error-bg:           rgba(239, 68, 68, 0.1);
   --rating:             var(--color-amber-400);
   --like:               var(--color-red-500);
+  --chart-grid:         var(--color-zinc-800);
+  --chart-axis:         var(--color-zinc-500);
+  --chart-tooltip-bg:   var(--color-zinc-900);
+  --chart-tooltip-border: var(--color-zinc-800);
   --scrollbar-track:    var(--color-zinc-950);
   --scrollbar-thumb:    var(--color-zinc-800);
   --scrollbar-thumb-hover: var(--color-zinc-600);
@@ -191,6 +206,10 @@
   --error-bg:           var(--color-red-50);
   --rating:             var(--color-amber-500);
   --like:               var(--color-red-500);
+  --chart-grid:         var(--color-zinc-200);
+  --chart-axis:         var(--color-zinc-500);
+  --chart-tooltip-bg:   var(--color-white);
+  --chart-tooltip-border: var(--color-zinc-200);
   --scrollbar-track:    var(--color-zinc-50);
   --scrollbar-thumb:    var(--color-zinc-300);
   --scrollbar-thumb-hover: var(--color-zinc-400);
@@ -233,6 +252,11 @@
   --color-error-bg:       var(--error-bg);
   --color-rating:         var(--rating);
   --color-like:           var(--like);
+
+  --color-chart-grid:     var(--chart-grid);
+  --color-chart-axis:     var(--chart-axis);
+  --color-chart-tooltip-bg: var(--chart-tooltip-bg);
+  --color-chart-tooltip-border: var(--chart-tooltip-border);
 
   /* Radius Tokens */
   --radius-xl:  0.75rem;  /* Buttons */

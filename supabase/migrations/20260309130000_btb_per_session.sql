@@ -25,29 +25,45 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_flavor_profiles_user_session
   ON public.flavor_profiles(user_id, session_id)
   WHERE session_id IS NOT NULL AND user_id IS NOT NULL;
 
--- Anon users: 1 profile per session per IP (replaces brew-scoped unique when session present)
-CREATE UNIQUE INDEX IF NOT EXISTS idx_flavor_profiles_anon_session_ip
-  ON public.flavor_profiles(session_id, ip_hash)
-  WHERE user_id IS NULL AND session_id IS NOT NULL;
+-- Anon users: 1 profile per session per IP (only if ip_hash column already exists)
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'flavor_profiles' AND column_name = 'ip_hash'
+  ) THEN
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_flavor_profiles_anon_session_ip
+      ON public.flavor_profiles(session_id, ip_hash)
+      WHERE user_id IS NULL AND session_id IS NOT NULL;
+  END IF;
+END $$;
 
--- 2. session_id on anonymous_game_sessions
-ALTER TABLE public.anonymous_game_sessions
-  ADD COLUMN IF NOT EXISTS session_id UUID
-    REFERENCES public.brewing_sessions(id) ON DELETE SET NULL;
+-- 2. session_id on anonymous_game_sessions (only if table already exists)
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'anonymous_game_sessions'
+  ) THEN
+    ALTER TABLE public.anonymous_game_sessions
+      ADD COLUMN IF NOT EXISTS session_id UUID
+        REFERENCES public.brewing_sessions(id) ON DELETE SET NULL;
 
--- Drop old BTB brew+ip unique index
-DROP INDEX IF EXISTS idx_anon_sessions_btb_limit;
+    -- Drop old BTB brew+ip unique index
+    DROP INDEX IF EXISTS idx_anon_sessions_btb_limit;
 
--- New: 1 anonymous BTB per session + IP (where session is available)
-CREATE UNIQUE INDEX IF NOT EXISTS idx_anon_sessions_btb_session_limit
-  ON public.anonymous_game_sessions (session_id, ip_hash)
-  WHERE claimed_by_user_id IS NULL
-    AND event_type = 'beat_the_brewer'
-    AND session_id IS NOT NULL;
+    -- New: 1 anonymous BTB per session + IP (where session is available)
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_anon_sessions_btb_session_limit
+      ON public.anonymous_game_sessions (session_id, ip_hash)
+      WHERE claimed_by_user_id IS NULL
+        AND event_type = 'beat_the_brewer'
+        AND session_id IS NOT NULL;
 
--- Fallback: keep brew+ip uniqueness for bottles without a session
-CREATE UNIQUE INDEX IF NOT EXISTS idx_anon_sessions_btb_brew_limit
-  ON public.anonymous_game_sessions (brew_id, ip_hash)
-  WHERE claimed_by_user_id IS NULL
-    AND event_type = 'beat_the_brewer'
-    AND session_id IS NULL;
+    -- Fallback: keep brew+ip uniqueness for bottles without a session
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_anon_sessions_btb_brew_limit
+      ON public.anonymous_game_sessions (brew_id, ip_hash)
+      WHERE claimed_by_user_id IS NULL
+        AND event_type = 'beat_the_brewer'
+        AND session_id IS NULL;
+  END IF;
+END $$;

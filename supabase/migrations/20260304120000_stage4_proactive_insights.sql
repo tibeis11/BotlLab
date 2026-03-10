@@ -12,13 +12,17 @@ BEGIN
   IF EXISTS (
     SELECT 1 FROM pg_extension WHERE extname = 'pg_cron'
   ) THEN
-    -- Unschedule if already exists to avoid duplicates
-    PERFORM cron.unschedule('botlguide-proactive-check');
+    -- Unschedule if already exists to avoid duplicates (ignore if not found)
+    BEGIN
+      PERFORM cron.unschedule('botlguide-proactive-check');
+    EXCEPTION WHEN OTHERS THEN
+      NULL;
+    END;
 
     PERFORM cron.schedule(
       'botlguide-proactive-check',
       '0 */6 * * *',  -- every 6 hours
-      $$
+      $cron$
         SELECT net.http_post(
           url := (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'supabase_edge_functions_url') || '/botlguide-proactive-check',
           headers := jsonb_build_object(
@@ -27,7 +31,7 @@ BEGIN
           ),
           body := jsonb_build_object('source', 'cron')
         );
-      $$
+      $cron$
     );
   END IF;
 END $$;

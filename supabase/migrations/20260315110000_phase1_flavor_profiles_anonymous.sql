@@ -22,6 +22,19 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_flavor_profiles_anon_ip
   ON public.flavor_profiles (brew_id, ip_hash)
   WHERE user_id IS NULL;
 
+-- Session+IP index (for migrated installs where session_id was added by 20260309130000)
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'flavor_profiles' AND column_name = 'session_id'
+  ) THEN
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_flavor_profiles_anon_session_ip
+      ON public.flavor_profiles(session_id, ip_hash)
+      WHERE user_id IS NULL AND session_id IS NOT NULL;
+  END IF;
+END $$;
+
 -- 4. RLS-Policy: Service Role darf anonyme Profile einfügen
 --    (Server Actions nutzen createAdminClient() für anonyme Inserts)
 CREATE POLICY "flavor_profiles_insert_anon_service"

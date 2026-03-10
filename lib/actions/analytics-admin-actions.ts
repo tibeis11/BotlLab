@@ -28,6 +28,10 @@ import {
   TopScanBrew,
   CisOverview,
   CisFalseNegativeSummary,
+  EnterpriseCode,
+  AdminScanEvent,
+  NonceStats,
+  DbHealthStats,
 } from '@/lib/types/admin-analytics'
 
 // ============================================================================
@@ -1940,5 +1944,207 @@ export async function getModelAccuracyMetrics(): Promise<ModelAccuracyMetrics | 
     calibrationCurve,
     drift,
     alerts,
+  }
+}
+
+// ============================================================================
+// Enterprise Codes — Admin CRUD
+// ============================================================================
+
+export async function getAdminEnterpriseCodes(): Promise<EnterpriseCode[]> {
+  const service = getServiceRoleClient()
+  const { data, error } = await service
+    .from('enterprise_codes')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('[Admin] getAdminEnterpriseCodes error:', error.message)
+    return []
+  }
+
+  return (data ?? []).map((row: any) => ({
+    id: row.id,
+    code: row.code,
+    createdAt: row.created_at,
+    createdBy: row.created_by,
+    currentUses: row.current_uses ?? 0,
+    maxUses: row.max_uses,
+    expiresAt: row.expires_at,
+    isActive: row.is_active ?? true,
+  }))
+}
+
+export async function createEnterpriseCode(params: {
+  code: string
+  maxUses: number | null
+  expiresAt: string | null
+}): Promise<{ success: boolean; error?: string }> {
+  const service = getServiceRoleClient()
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const { error } = await service
+    .from('enterprise_codes')
+    .insert({
+      code: params.code.trim().toUpperCase(),
+      max_uses: params.maxUses,
+      expires_at: params.expiresAt,
+      is_active: true,
+      current_uses: 0,
+      created_by: user?.id ?? null,
+    })
+
+  if (error) {
+    console.error('[Admin] createEnterpriseCode error:', error.message)
+    return { success: false, error: error.message }
+  }
+
+  await logAdminAction('create_enterprise_code', params.code, { maxUses: params.maxUses, expiresAt: params.expiresAt })
+  return { success: true }
+}
+
+export async function toggleEnterpriseCode(id: string, isActive: boolean): Promise<{ success: boolean; error?: string }> {
+  const service = getServiceRoleClient()
+  const { error } = await service
+    .from('enterprise_codes')
+    .update({ is_active: isActive })
+    .eq('id', id)
+
+  if (error) {
+    console.error('[Admin] toggleEnterpriseCode error:', error.message)
+    return { success: false, error: error.message }
+  }
+
+  await logAdminAction(isActive ? 'activate_enterprise_code' : 'deactivate_enterprise_code', id, {})
+  return { success: true }
+}
+
+export async function deleteEnterpriseCode(id: string): Promise<{ success: boolean; error?: string }> {
+  const service = getServiceRoleClient()
+  const { error } = await service
+    .from('enterprise_codes')
+    .delete()
+    .eq('id', id)
+
+  if (error) {
+    console.error('[Admin] deleteEnterpriseCode error:', error.message)
+    return { success: false, error: error.message }
+  }
+
+  await logAdminAction('delete_enterprise_code', id, {})
+  return { success: true }
+}
+
+// ============================================================================
+// Admin Scan Geo-Events (scan_events + scan_event_members)
+// ============================================================================
+
+export async function getAdminScanEvents(limit = 50): Promise<AdminScanEvent[]> {
+  const service = getServiceRoleClient()
+
+  const { data: events, error } = await service
+    .from('scan_events')
+    .select('id, created_at, event_start, event_end, city, country_code, total_scans, unique_sessions, unique_brews, event_type, confidence, center_lat, center_lng, radius_m, breweries')
+    .order('event_start', { ascending: false })
+    .limit(limit)
+
+  if (error) {
+    console.error('[Admin] getAdminScanEvents error:', error.message)
+    return []
+  }
+
+  const eventIds = (events ?? []).map((e: any) => e.id)
+  let memberCounts: Record<string, number> = {}
+
+  if (eventIds.length > 0) {
+    const { data: members } = await service
+      .from('scan_event_members')
+      .select('event_id')
+      .in('event_id', eventIds)
+
+    for (const m of members ?? []) {
+      memberCounts[m.event_id] = (memberCounts[m.event_id] || 0) + 1
+    }
+  }
+
+  return (events ?? []).map((e: any) => ({
+    id: e.id,
+    createdAt: e.created_at,
+    eventStart: e.event_start,
+    eventEnd: e.event_end,
+    city: e.city,
+    countryCode: e.country_code,
+    totalScans: e.total_scans ?? 0,
+    uniqueSessions: e.unique_sessions ?? 0,
+    uniqueBrews: e.unique_brews ?? null,
+    eventType: e.event_type || 'unknown',
+    confidence: e.confidence ?? 0.5,
+    centerLat: e.center_lat ?? null,
+    centerLng: e.center_lng ?? null,
+    radiusM: e.radius_m,
+    breweries: e.breweries ?? [],
+    memberCount: memberCounts[e.id] ?? 0,
+  }))
+}
+
+// ============================================================================
+// Nonce Stats — Anti-Replay Monitoring
+// ============================================================================
+
+export async function getNonceStats(): Promise<NonceStats> {
+  const service = getServiceRoleClient()
+  const now = new Date()
+  const cutoff24h = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString()
+  const cutoff7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
+
+  // All three nonce tables use `used_at` as their timestamp column
+  async function countTable(table: 'btb_used_nonces' | 'vibe_check_used_nonces' | 'rating_used_nonces') {
+    const [total, last24h, last7d] = await Promise.all([
+      service.from(table).select('*', { count: 'exact', head: true }),
+      service.from(table).select('*', { count: 'exact', head: true }).gte('used_at', cutoff24h),
+      service.from(table).select('*', { count: 'exact', head: true }).gte('used_at', cutoff7d),
+    ])
+    return {
+      total: (total.count as number) ?? 0,
+      last24h: (last24h.count as number) ?? 0,
+      last7d: (last7d.count as number) ?? 0,
+    }
+  }
+
+  const [btb, vibeCheck, rating] = await Promise.all([
+    countTable('btb_used_nonces'),
+    countTable('vibe_check_used_nonces'),
+    countTable('rating_used_nonces'),
+  ])
+
+  return { btb, vibeCheck, rating }
+}
+
+// ============================================================================
+// Database Health (via get_db_health_stats RPC)
+// ============================================================================
+export async function getDbHealthStats(): Promise<DbHealthStats> {
+  const supabase = getServiceRoleClient()
+
+  const { data, error } = await supabase.rpc('get_db_health_stats')
+  if (error) throw error
+
+  // RPC returns a jsonb object; Supabase JS returns it as a plain JS object
+  const raw = data as Record<string, unknown>
+
+  return {
+    dbSizeBytes:       Number(raw.db_size_bytes   ?? 0),
+    dbSizePretty:      String(raw.db_size_pretty  ?? '–'),
+    activeConnections: Number(raw.active_connections ?? 0),
+    idleConnections:   Number(raw.idle_connections   ?? 0),
+    totalConnections:  Number(raw.total_connections  ?? 0),
+    tableCount:        Number(raw.table_count        ?? 0),
+    cacheHitRatio:     raw.cache_hit_ratio != null ? Number(raw.cache_hit_ratio) : null,
+    biggestTables: ((raw.biggest_tables as Array<Record<string, unknown>>) ?? []).map(t => ({
+      name:           String(t.name           ?? ''),
+      totalSize:      String(t.total_size     ?? ''),
+      totalSizeBytes: Number(t.total_size_bytes ?? 0),
+    })),
   }
 }

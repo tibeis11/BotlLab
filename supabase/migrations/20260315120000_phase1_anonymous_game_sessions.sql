@@ -18,11 +18,13 @@ CREATE TABLE IF NOT EXISTS public.anonymous_game_sessions (
   event_type      TEXT         NOT NULL CHECK (event_type IN ('beat_the_brewer', 'vibe_check')),
   brew_id         UUID         NOT NULL REFERENCES public.brews(id) ON DELETE CASCADE,
   payload         JSONB        NOT NULL CHECK (jsonb_typeof(payload) = 'object'),
-  match_score     NUMERIC(5,4),       -- 0.0000–1.0000 (nur für BTB)
-  match_percent   INT,                -- 0–100 (nur für BTB)
+  match_score     NUMERIC(5,4),
+  match_percent   INT,
   claimed_by_user_id UUID      REFERENCES auth.users(id) ON DELETE SET NULL,
   ip_hash         TEXT         NOT NULL,
   flavor_profile_id UUID      REFERENCES public.flavor_profiles(id) ON DELETE SET NULL,
+  bottle_id       UUID         REFERENCES public.bottles(id) ON DELETE SET NULL,
+  session_id      UUID         REFERENCES public.brewing_sessions(id) ON DELETE SET NULL,
   created_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
   expires_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW() + INTERVAL '7 days'
 );
@@ -41,10 +43,12 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_anon_sessions_btb_limit
   ON public.anonymous_game_sessions (brew_id, ip_hash)
   WHERE claimed_by_user_id IS NULL AND event_type = 'beat_the_brewer';
 
--- Spam-Schutz: Max 1 anonymer VibeCheck pro Brew + IP (ungeclaimed)
-CREATE UNIQUE INDEX IF NOT EXISTS idx_anon_sessions_vibe_limit
-  ON public.anonymous_game_sessions (brew_id, ip_hash)
-  WHERE claimed_by_user_id IS NULL AND event_type = 'vibe_check';
+-- Bottle-scope VibeCheck: 1 anonymer VibeCheck pro Flasche + IP (ungeclaimed)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_anon_sessions_vibe_bottle_limit
+  ON public.anonymous_game_sessions (bottle_id, ip_hash)
+  WHERE claimed_by_user_id IS NULL
+    AND event_type = 'vibe_check'
+    AND bottle_id IS NOT NULL;
 
 -- ─── Row Level Security ───
 ALTER TABLE public.anonymous_game_sessions ENABLE ROW LEVEL SECURITY;
