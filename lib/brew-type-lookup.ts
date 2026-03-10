@@ -271,7 +271,7 @@ export function inferMashMethod(
   if (hasSteps && hasExtract) return 'partial_mash';
   if (hasSteps) return 'all_grain';
   if (hasExtract) return 'extract';
-  return 'extract'; // Standardannahme: kein Schritt, kein Extrakt = Extrakt-Brauer
+  return 'all_grain'; // Standardannahme für neue Rezepte: All-Grain
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

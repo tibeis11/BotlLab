@@ -93,7 +93,7 @@ export function FormulaInspector({ isOpen, onClose, type, data }: FormulaInspect
 
             {/* Slide-in Panel */}
             <div
-                className="relative w-full max-w-lg h-full bg-background border-l border-border shadow-2xl animate-in slide-in-from-right duration-300 flex flex-col"
+                className="relative w-[90vw] sm:w-[400px] md:max-w-lg h-full bg-background border-l border-border shadow-2xl animate-in slide-in-from-right duration-300 flex flex-col"
                 onClick={e => e.stopPropagation()}
             >
                 {/* Header */}

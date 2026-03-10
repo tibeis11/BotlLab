@@ -13,7 +13,7 @@ import { useAuth } from '@/app/context/AuthContext';
 import { addToFeed } from '@/lib/feed-service';
 import CrownCap from '@/app/components/CrownCap';
 import { BotlGuideBadge, BotlGuidePersonaPill } from '@/app/components/BotlGuideBadge';
-import { inferFermentationType, inferMashMethod, inferMashProcess } from '@/lib/brew-type-lookup';
+import { inferFermentationType, inferMashMethod } from '@/lib/brew-type-lookup';
 import CustomSelect from '@/app/components/CustomSelect';
 import { IngredientListEditor } from './IngredientListEditor';
 import { MaltListEditor } from './MaltListEditor';
@@ -439,25 +439,16 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [brew.data?.mash_steps, brew.data?.malts]);
 
-    // Auto-apply mash_process via lookup (Schrittnamen + Anzahl); leer wenn extract
+    // Maischverfahren leeren, wenn Braumethode auf Extrakt geändert wird
     useEffect(() => {
         if (brew.data?.mash_method === 'extract') {
             if (brew.data?.mash_process) {
                 autoSetFields.current.add('mash_process');
                 updateData('mash_process', null);
             }
-            return;
         }
-        const isUserSet = brew.data?.mash_process && !autoSetFields.current.has('mash_process');
-        if (isUserSet) return;
-        const steps = brew.data?.mash_steps;
-        if (!Array.isArray(steps) || steps.length === 0) return;
-        const suggested = inferMashProcess(steps);
-        if (!suggested || brew.data?.mash_process === suggested) return;
-        autoSetFields.current.add('mash_process');
-        updateData('mash_process', suggested);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [brew.data?.mash_steps, brew.data?.mash_method]);
+    }, [brew.data?.mash_method]);
 
     // Auto-apply fermentation_type via Lookup-Tabelle (Hefename → Typ, Bierstil als Fallback)
     useEffect(() => {

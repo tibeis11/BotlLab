@@ -165,6 +165,7 @@ Die `MALT_POTENTIAL_TABLE` in `lib/brewing-calculations.ts` (40+ Regex-Einträge
 
 | Typ | Anzahl Seed-Einträge | Begründung |
 |-----|---------------------|------------|
+| Unbekannt | 4 (Malz, Hopfen, Hefe, Sonstiges) | **Kritisch:** Die 4 "Empty Master" Kategorien für den Import-Fallback |
 | Malze | ~120 | Weyermann, Best Malz, Briess, Crisp als Hersteller |
 | Hopfen | ~100 | DE (Hallertau-Sorten), US (C-Hops, modernes Sortiment), NZ |
 | Hefen | ~60 | Fermentis, Lallemand, Wyeast, White Labs, Imperial |
@@ -286,8 +287,10 @@ Stufe 3: Fuzzy Match (Trigram-Suche)
   → Ergebnis als "Vorschlag" markiert (nicht auto-gemacht)
   → Trefferquote erwartet: weitere ~20%
 
-Kein Match → ingredient_import_queue
-  → Verbleibende ~10% landen in der Review-Queue
+Kein Match → "Empty Master" Fallback
+  → Wird dem globalen "Unbekannt / Sonstiges [Typ]" Master zugeordnet
+  → Erhält eine Eintragung in der `ingredient_import_queue` für spätere Admin-Zuordnung
+  → Bleibt im Rezept aber SOFORT voll nutzbar durch Überschreiben (Overrides)
 ```
 
 ```sql
