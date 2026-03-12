@@ -136,13 +136,20 @@ export async function POST(req: NextRequest) {
 
         // --- Spam Protection: IP Rate Limit (5 Minutes) ---
         // Prevent mass-scanning/rating in stores
-        const { data: lastRating } = await supabaseAdmin
+        let rateLimitQuery = supabaseAdmin
             .from('ratings')
             .select('created_at')
             .eq('ip_address', ipHash)
             .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
+            .limit(1);
+
+        if (user_id) {
+            rateLimitQuery = rateLimitQuery.eq('user_id', user_id);
+        } else {
+            rateLimitQuery = rateLimitQuery.is('user_id', null);
+        }
+
+        const { data: lastRating } = await rateLimitQuery.maybeSingle();
 
         if (lastRating) {
             const lastDate = new Date(lastRating.created_at);
