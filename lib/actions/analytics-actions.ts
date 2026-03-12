@@ -2223,7 +2223,7 @@ export async function classifyCisScans(): Promise<{ nonQr: number; session: numb
   const { data: scans, error } = await (supabase as any)
     .from('bottle_scans')
     .select(`
-      id, session_hash, bottle_id, brew_id, scan_source, dwell_seconds, created_at,
+      id, session_hash, bottle_id, brew_id, scan_source, created_at,
       weather_temp_c, country_code
     `)
     .is('scan_intent', null)
