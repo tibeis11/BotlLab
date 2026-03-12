@@ -930,7 +930,7 @@ export default function TeamInventoryPage({ params }: { params: Promise<{ brewer
 			const parts = decodedText.split('/b/');
 			if (parts.length > 1) {
 				// Remove query params if any
-				scannedId = parts[1].split('?')[0]; 
+				scannedId = parts[1].split('?')[0].split('.')[0]; 
 			}
 		}
 

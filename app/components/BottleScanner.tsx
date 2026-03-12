@@ -89,33 +89,25 @@ export default function BottleScanner({
     let scanId = decodedText;
     let isShortCode = false;
 
-    // 1. Check if input is a URL containing /b/
+    // 1. Extract ID from URL if it's a URL
     if (decodedText.includes('/b/')) {
         const parts = decodedText.split('/b/');
         if (parts.length > 1) {
-            scanId = parts[1].split('?')[0]; // Simple cleaning if query params exist
-            isShortCode = true;
+            scanId = parts[1].split('?')[0].split('.')[0]; 
         }
-    } else {
-        // 2. Check if it's a UUID
-        const idMatch = decodedText.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
-        if (idMatch) {
-            scanId = idMatch[0];
-            isShortCode = false;
-        } else {
-            // 3. Assume Short Code if 8 chars alphanumeric
-            if (/^[A-Za-z0-9]{8}$/.test(decodedText)) {
-                scanId = decodedText;
-                isShortCode = true;
-            } else {
-                if (now - lastScanTime.current > 2000) {
-                    lastScanTime.current = now;
-                    playBeep('error');
-                    setScanFeedback({ type: 'error', msg: "Ungültiger QR-Code (Keine Flaschen-ID)", id: now });
-                }
-                return;
-            }
+    }
+
+    // 2. Determine if UUID or ShortCode
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(scanId);
+    isShortCode = /^[a-zA-Z0-9]{6,12}$/.test(scanId);
+
+    if (!isUUID && !isShortCode) {
+        if (now - lastScanTime.current > 2000) {
+            lastScanTime.current = now;
+            playBeep('error');
+            setScanFeedback({ type: 'error', msg: "Ungültiger QR-Code (Keine Flaschen-ID)", id: now });
         }
+        return;
     }
 
     // Prevent duplicate scan spam for same ID
