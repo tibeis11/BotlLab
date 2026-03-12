@@ -193,18 +193,18 @@ Im bestehenden "Phase-0 Scoring-Modell"-Grid die neuen Konstanten sichtbar mache
 ## Abhängigkeiten & Reihenfolge
 
 ```
-Phase 1: DB Migration (`local_time`, `typical_scan_hour`, `typical_temp`)
-  └─▶ Phase 2: Tracker/Frontend anpassen (lokale Zeit erfassen)
-        └─▶ Phase 1.2: Nächtlicher Aggregator-Cronjob (MODE statt AVG)
-              └─▶ Phase 3: `classifyCisScans` erweitern (Modifikatoren)
-                        └─▶ Phase 4: ModelAccuracyView anpassen
+[x] Phase 1: DB Migration (`local_time`, `typical_scan_hour`, `typical_temp`)
+  └─▶ [x] Phase 2: Tracker/Frontend anpassen (lokale Zeit erfassen)
+        └─▶ [x] Phase 1.2: Nächtlicher Aggregator-Cronjob (MODE statt AVG)
+              └─▶ [x] Phase 3: `classifyCisScans` erweitern (Modifikatoren)
+                        └─▶ [x] Phase 4: ModelAccuracyView anpassen
 ```
 
 ## Priorisierung
 
-| Priorität | Phase | Effort | Datei(en) |
-|---|---|---|---|
-| 🔴 Hoch | **1.1 & 1.2** DB-Migration & Cronjob | M | `migrations/*.sql`, neue Supabase Edge Function |
-| 🔴 Hoch | **2.1** `local_time` / Timezone-Tracking | M | Frontend Tracker, `bottle_scans` Tabelle |
-| 🟠 Mittel | **3.1-3.4** Scoring-Engine Modifikatoren | M | `analytics-actions.ts`, `package.json` |
-| 🟡 Niedrig | **4.1** Admin UI Transparenz | S | `ModelAccuracyView.tsx` |
+| Status | Priorität | Phase | Effort | Datei(en) |
+|---|---|---|---|---|
+| ✅ | 🔴 Hoch | **1.1 & 1.2** DB-Migration & Cronjob | M | `migrations/*.sql`, neue Supabase Edge Function |
+| ✅ | 🔴 Hoch | **2.1** `local_time` / Timezone-Tracking | M | Frontend Tracker, `bottle_scans` Tabelle |
+| ✅ | 🟠 Mittel | **3.1-3.4** Scoring-Engine Modifikatoren | M | `analytics-actions.ts`, `package.json` |
+| ✅ | 🟡 Niedrig | **4.1** Admin UI Transparenz | S | `ModelAccuracyView.tsx` |
