@@ -325,7 +325,8 @@ export async function submitBeatTheBrewer(
     // Look up the most recent scan to link the event
     let btbScanId: string | null = null;
     if (submission.bottleId) {
-      const { data: recentScan } = await supabase
+      const adminClient = createAdminClient();
+      const { data: recentScan } = await adminClient
         .from('bottle_scans')
         .select('id')
         .eq('viewer_user_id', user.id)
@@ -687,7 +688,8 @@ export async function submitVibeCheck(
     // Look up the most recent scan BEFORE inserting the event — we need the scan ID
     let vibeScanId: string | null = null;
     {
-      const { data: recentVibeScan } = await supabase
+      const adminClient = createAdminClient();
+      const { data: recentVibeScan } = await adminClient
         .from('bottle_scans')
         .select('id, drinking_probability')
         .eq('viewer_user_id', user.id)

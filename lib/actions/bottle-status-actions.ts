@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase-server';
+import { createClient, createAdminClient } from '@/lib/supabase-server';
 
 export async function updateBottleDrinkingStatus(
   bottleId: string,
@@ -11,7 +11,8 @@ export async function updateBottleDrinkingStatus(
 
     // Find the latest scan for this bottle
     const sixtyMinAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-    const { data: scan } = await (supabase as any)
+    const adminClientSelect = createAdminClient();
+    const { data: scan } = await (adminClientSelect as any)
       .from('bottle_scans')
       .select('id, scan_intent')
       .eq('bottle_id', bottleId)
@@ -35,7 +36,8 @@ export async function updateBottleDrinkingStatus(
       updateData.scan_intent = 'confirmed';
     }
 
-    const { error: updateErr } = await (supabase as any)
+    const adminClient = createAdminClient();
+    const { error: updateErr } = await (adminClient as any)
       .from('bottle_scans')
       .update(updateData)
       .eq('id', scan.id);
