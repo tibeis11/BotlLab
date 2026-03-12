@@ -2160,7 +2160,7 @@ export async function getRecentCisScans(): Promise<CisRecentScan[]> {
     .from('bottle_scans')
     .select(`
       id, created_at, scan_source, scan_intent, drinking_probability,
-      dwell_seconds, weather_temp_c, country_code,
+      weather_temp_c, country_code,
       brew_id
     `)
     .not('scan_intent', 'is', null)
