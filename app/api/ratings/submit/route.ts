@@ -283,15 +283,10 @@ export async function POST(req: NextRequest) {
                 const { data: recentScan } = await scanQuery.maybeSingle();
                 if (recentScan) {
                     convertedScanId = recentScan.id;
-                    const deniedDrinking = recentScan.confirmed_drinking === false;
                     await supabaseAdmin
                         .from('bottle_scans')
                         .update({
-                            converted_to_rating: true,
-                            ...(deniedDrinking ? {} : {
-                                scan_intent: 'confirmed',
-                                drinking_probability: 1.0,
-                            }),
+                            converted_to_rating: true
                         })
                         .eq('id', recentScan.id);
                 }

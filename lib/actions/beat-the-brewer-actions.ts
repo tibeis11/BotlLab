@@ -391,14 +391,6 @@ export async function submitBeatTheBrewer(
       p_delta: pointsAwarded,
     });
 
-    // Phase 0.4 — CIS Hard Proof: BTB completion = confirmed drinker → upgrade most recent scan
-    if (btbScanId) {
-      await (supabase as any)
-        .from('bottle_scans')
-        .update({ scan_intent: 'confirmed', drinking_probability: 1.0 })
-        .eq('id', btbScanId);
-    }
-
     return {
       matchScore,
       matchPercent,
