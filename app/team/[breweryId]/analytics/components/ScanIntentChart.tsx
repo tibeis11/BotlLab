@@ -233,7 +233,9 @@ export default function ScanIntentChart({
 
         {/* Modell-Confidence */}
         {(() => {
-          const estimated = data.weightedDrinkerEstimate;
+          const estimated = data.estimatedConsumers 
+            ? (data.estimatedConsumers.possible + data.estimatedConsumers.likely + data.estimatedConsumers.highlyLikely) 
+            : 0;
           const confirmed = data.confirmedDrinkers;
           if (estimated <= 0) return null;
 
@@ -286,17 +288,26 @@ export default function ScanIntentChart({
           {/* Geschätzte Trinker */}
           <div className="bg-zinc-900 px-4 py-3 flex flex-col gap-1">
             <div className="flex items-center gap-1.5">
-              <Users size={11} className="text-cyan-500" />
+              <Users size={11} className="text-violet-500" />
               <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Geschätzt</span>
             </div>
-            <p className="text-xl font-black font-mono tabular-nums text-cyan-400">
-              ~{Math.round(data.weightedDrinkerEstimate).toLocaleString('de-DE')}
-            </p>
-            <p className="text-[10px] text-zinc-600">
-              {data.totalScans > 0
-                ? `${Math.round((data.weightedDrinkerEstimate / data.totalScans) * 100)}% der Scans`
-                : '—'}
-            </p>
+            {(() => {
+              const estimated = data.estimatedConsumers
+                ? (data.estimatedConsumers.possible + data.estimatedConsumers.likely + data.estimatedConsumers.highlyLikely)
+                : 0;
+              return (
+                <>
+                  <p className="text-xl font-black font-mono tabular-nums text-violet-400">
+                    ~{estimated.toLocaleString('de-DE')}
+                  </p>
+                  <p className="text-[10px] text-zinc-600">
+                    {data.totalScans > 0
+                      ? `${Math.round((estimated / data.totalScans) * 100)}% der Scans`
+                      : '—'}
+                  </p>
+                </>
+              );
+            })()}
           </div>
 
           {/* Bestätigt */}

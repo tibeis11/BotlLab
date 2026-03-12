@@ -56,6 +56,8 @@ function getServiceRoleClient() {
   })
 }
 
+import { getAlgorithmSettings } from '@/lib/algorithm-settings'
+
 // ============================================================================
 // Audit Logging Helper
 // Only logs DESTRUCTIVE / SENSITIVE operations (not read-only views)
@@ -1365,13 +1367,34 @@ export async function getCisOverview(dateRange: DateRange = '30d'): Promise<CisO
       isHardZero: source !== 'qr_code',
     }))
 
-  // ── Weighted drinker estimate (QR scans only) ─────────────────────────────
+  // ── Categorized Estimated Consumers (QR scans only) ─────────────────────────
   const qrRows = rows.filter((r: any) => r.scan_source === 'qr_code')
   const qrScanCount = qrRows.length
-  const weightedDrinkerEstimate =
-    Math.round(
-      qrRows.reduce((sum: number, r: any) => sum + ((r.drinking_probability as number) ?? 0), 0) * 10
-    ) / 10
+  
+  let possible = 0
+  let likely = 0
+  let highlyLikely = 0
+  let noConsumption = 0
+
+  qrRows.forEach((r: any) => {
+    const p = (r.drinking_probability as number) ?? 0
+    if (p >= 0.80) {
+      highlyLikely++
+    } else if (p >= 0.65) {
+      likely++
+    } else if (p >= 0.50) {
+      possible++
+    } else {
+      noConsumption++
+    }
+  })
+
+  const estimatedConsumers = {
+    possible,
+    likely,
+    highlyLikely,
+    noConsumption
+  }
 
   // ── Pending classification backlog ────────────────────────────────────────
   const { count: pendingClassification } = await service
@@ -1408,7 +1431,7 @@ export async function getCisOverview(dateRange: DateRange = '30d'): Promise<CisO
 
   return {
     sourceBreakdown,
-    weightedDrinkerEstimate,
+    estimatedConsumers,
     qrScanCount,
     pendingClassification: pendingClassification ?? 0,
     intentDistribution,
@@ -2169,6 +2192,8 @@ export async function getRecentCisScans(): Promise<CisRecentScan[]> {
 
   if (error || !scans) return []
 
+  const cfg = await getAlgorithmSettings().catch(() => null);
+
   // Best-effort: load Phase 1 columns if migration is applied
   const phase1Map = new Map<string, { local_time: string | null; brew_name: string | null; typical_scan_hour: number | null; typical_temperature: number | null }>();
   try {
@@ -2177,13 +2202,13 @@ export async function getRecentCisScans(): Promise<CisRecentScan[]> {
     // First, reliably get the brew names (which definitely exist)
     const { data: p0 } = await (supabase as any)
       .from('bottle_scans')
-      .select('id, scanned_at_hour, brews(name)')
+      .select('id, local_time, brews(name)')
       .in('id', scanIds);
       
     if (p0) {
       for (const row of p0) {
         phase1Map.set(row.id, {
-          local_time: row.scanned_at_hour?.toString() ?? null,
+          local_time: row.local_time ?? null,
           brew_name: row.brews?.name ?? null,
           typical_scan_hour: null,
           typical_temperature: null,
@@ -2211,6 +2236,26 @@ export async function getRecentCisScans(): Promise<CisRecentScan[]> {
     }
   } catch { /* Suppress */ }
 
+  // Batch lookup tasting_score_events linked to these scans
+  const scanEventMap = new Map<string, string>() // scan_id → best event_type
+  try {
+    const scanIds = scans.map((s: any) => s.id)
+    const { data: tse } = await (supabase as any)
+      .from('tasting_score_events')
+      .select('bottle_scan_id, event_type')
+      .in('bottle_scan_id', scanIds)
+      .in('event_type', ['vibe_check', 'rating_given', 'beat_the_brewer'])
+    if (tse) {
+      for (const row of tse) {
+        if (!row.bottle_scan_id) continue
+        const existing = scanEventMap.get(row.bottle_scan_id)
+        if (!existing || (existing === 'vibe_check' && row.event_type !== 'vibe_check')) {
+          scanEventMap.set(row.bottle_scan_id, row.event_type)
+        }
+      }
+    }
+  } catch { /* tasting_score_events lookup failed */ }
+
   const results: CisRecentScan[] = []
 
   for (const scan of scans) {
@@ -2222,21 +2267,23 @@ export async function getRecentCisScans(): Promise<CisRecentScan[]> {
         isHardZero: true,
         base: 0, fridgeSurf: 0, lastInSession: 0, dwellTime: 0,
         dynamicTime: 0, dynamicTemp: 0, weekendHoliday: 0,
+        userRatingBonus: 0, btbBonus: 0, vibecheckBonus: 0,
         total: 0,
         scanLocalHour: null, typicalScanHour: null, hourDiff: null,
         scanTempC: null, typicalTempC: null, tempDiff: null,
         isWeekend: false, isHoliday: false, isFridayEvening: false,
       }
     } else {
-      const base = 0.30
+      const base = cfg?.cis_base_score ?? 0.30
       const p1 = phase1Map.get(scan.id)
 
       // Sessions modifier — derived from scan_intent (the stored result of session scoring)
-      const fridgeSurf      = scan.scan_intent === 'fridge_surf' ? -0.40 : 0
-      const lastInSession   = scan.scan_intent !== 'fridge_surf' ? 0.20 : 0
+      const fridgeSurf      = scan.scan_intent === 'fridge_surf' ? (cfg?.cis_fridge_surfing_penalty ?? -0.40) : 0
+      const lastInSession   = scan.scan_intent !== 'fridge_surf' ? (cfg?.cis_last_in_session_bonus ?? 0.20) : 0
 
       // Dwell time bonus
-      const dwellTime = (scan.dwell_seconds != null && scan.dwell_seconds >= 180) ? 0.40 : 0
+      const dwellThresh = cfg?.cis_dwell_time_threshold_s ?? 180
+      const dwellTime = (scan.dwell_seconds != null && scan.dwell_seconds >= dwellThresh) ? (cfg?.cis_dwell_time_bonus ?? 0.40) : 0
 
       // Dynamic time modifier
       const typicalScanHour: number | null = p1?.typical_scan_hour ?? null
@@ -2244,13 +2291,16 @@ export async function getRecentCisScans(): Promise<CisRecentScan[]> {
       let scanLocalHour: number | null = null
       let hourDiff: number | null = null
       let dynamicTime = 0
-      if (typicalScanHour !== null && localTime != null) {
-        scanLocalHour = new Date(localTime).getHours()
+      
+      const localTimeForMath = localTime ? new Date(localTime) : new Date(scan.created_at);
+      
+      if (typicalScanHour !== null) {
+        scanLocalHour = localTimeForMath.getHours()
         let diff = Math.abs(scanLocalHour - typicalScanHour)
         if (diff > 12) diff = 24 - diff
         hourDiff = diff
-        if (diff <= 2) dynamicTime = 0.15
-        else if (diff > 5) dynamicTime = -0.15
+        if (diff <= 2) dynamicTime = (cfg?.cis_dynamic_time_bonus ?? 0.15)
+        else if (diff > 5) dynamicTime = (cfg?.cis_dynamic_time_penalty ?? -0.15)
       }
 
       // Dynamic temperature modifier
@@ -2260,8 +2310,8 @@ export async function getRecentCisScans(): Promise<CisRecentScan[]> {
       let dynamicTemp = 0
       if (typicalTempC !== null && scanTempC !== null) {
         tempDiff = Math.abs(scanTempC - typicalTempC)
-        if (tempDiff <= 5) dynamicTemp = 0.05
-        else if (tempDiff > 12) dynamicTemp = -0.05
+        if (tempDiff <= 5) dynamicTemp = (cfg?.cis_dynamic_temp_bonus ?? 0.05)
+        else if (tempDiff > 12) dynamicTemp = (cfg?.cis_dynamic_temp_penalty ?? -0.05)
       }
 
       // Weekend / holiday modifier
@@ -2269,28 +2319,43 @@ export async function getRecentCisScans(): Promise<CisRecentScan[]> {
       let isHoliday = false
       let isFridayEvening = false
       let weekendHoliday = 0
-      if (localTime != null) {
-        try {
-          const { default: Holidays } = await import('date-holidays')
-          const countryCode = (scan.country_code as string | null) || 'DE'
-          const hd = new Holidays(countryCode)
-          const localDate = new Date(localTime)
-          const dow  = localDate.getDay()
-          const hour = localDate.getHours()
-          isFridayEvening = dow === 5 && hour >= 17
-          isWeekend = dow === 0 || dow === 6
-          isHoliday = hd.isHoliday(localDate) !== false
-          if (isFridayEvening || isWeekend || isHoliday) weekendHoliday = 0.05
-        } catch { /* ignore */ }
-      }
 
-      const rawTotal = base + fridgeSurf + lastInSession + dwellTime + dynamicTime + dynamicTemp + weekendHoliday
+      const userRatingBonus = (() => {
+        const ev = scanEventMap.get(scan.id)
+        if (ev === 'rating_given') return (cfg?.cis_rating_bonus ?? 0.80)
+        return 0
+      })()
+      const btbBonus = (() => {
+        const ev = scanEventMap.get(scan.id)
+        if (ev === 'beat_the_brewer') return (cfg?.cis_btb_bonus ?? 0.80)
+        return 0
+      })()
+      const vibecheckBonus = (() => {
+        const ev = scanEventMap.get(scan.id)
+        if (ev === 'vibe_check' && userRatingBonus === 0 && btbBonus === 0) return (cfg?.cis_vibecheck_bonus ?? 0.30)
+        return 0
+      })()
+
+      try {
+        const { default: Holidays } = await import('date-holidays')
+        const countryCode = (scan.country_code as string | null) || 'DE'
+        const hd = new Holidays(countryCode)
+        const dow  = localTimeForMath.getDay()
+        const hour = localTimeForMath.getHours()
+        isFridayEvening = dow === 5 && hour >= 17
+        isWeekend = dow === 0 || dow === 6
+        isHoliday = hd.isHoliday(localTimeForMath) !== false
+        if (isFridayEvening || isWeekend || isHoliday) weekendHoliday = (cfg?.cis_weekend_holiday_bonus ?? 0.05)
+      } catch { /* ignore */ }
+
+      const rawTotal = base + fridgeSurf + lastInSession + dwellTime + dynamicTime + dynamicTemp + weekendHoliday + userRatingBonus + btbBonus + vibecheckBonus
       const total = Math.max(0.0, Math.min(1.0, rawTotal))
 
       breakdown = {
         isHardZero: false,
         base, fridgeSurf, lastInSession, dwellTime,
         dynamicTime, dynamicTemp, weekendHoliday,
+        userRatingBonus, btbBonus, vibecheckBonus,
         total,
         scanLocalHour, typicalScanHour, hourDiff,
         scanTempC, typicalTempC, tempDiff,

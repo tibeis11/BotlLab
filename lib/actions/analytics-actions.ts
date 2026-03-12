@@ -762,7 +762,7 @@ export async function getBreweryAnalyticsSummary(breweryId: string, options?: {
   // for totalScans but bottle_scans for estimates caused 200% bugs when the two
   // tables were out of sync. We also rebuild scansByDate and uniqueVisitors from
   // the same query so the chart always matches the metric cards.
-  let weightedDrinkerEstimate = 0;
+  let estimatedConsumers = { possible: 0, likely: 0, highlyLikely: 0, noConsumption: 0 };
   let funnelTotalScans = summary.totalScans;    // fallback to aggregation table
   let funnelLoggedInScans = summary.loggedInScans;
   let funnelScansByDate = summary.scansByDate;
@@ -785,11 +785,18 @@ export async function getBreweryAnalyticsSummary(breweryId: string, options?: {
       funnelLoggedInScans = funnelRows.filter((r: any) => r.viewer_user_id != null).length;
       // Unclassified scans (null) use BASE_SCORE as default — CIS cron runs once daily,
       // so scans inserted after 08:00 aren't scored yet. 0.3 gives a reasonable intraday estimate.
-      weightedDrinkerEstimate = funnelRows.reduce(
-        (sum: number, r: { drinking_probability: number | null }) =>
-          sum + (r.drinking_probability ?? CIS_SCORING.BASE_SCORE),
-        0
-      );
+      funnelRows.forEach((r: any) => {
+        const p = r.drinking_probability ?? CIS_SCORING.BASE_SCORE;
+        if (p >= 0.80) {
+          estimatedConsumers.highlyLikely++;
+        } else if (p >= 0.65) {
+          estimatedConsumers.likely++;
+        } else if (p >= 0.50) {
+          estimatedConsumers.possible++;
+        } else {
+          estimatedConsumers.noConsumption++;
+        }
+      });
 
       // Rebuild scansByDate from raw rows so chart == metric cards
       const dateMap: Record<string, { scans: number; sessions: Set<string> }> = {};
@@ -822,7 +829,7 @@ export async function getBreweryAnalyticsSummary(breweryId: string, options?: {
       geoPoints,
       capsClaimed,
       capCollectors,
-      weightedDrinkerEstimate,
+      estimatedConsumers,
     } as any 
   };
 }
@@ -986,9 +993,9 @@ export async function getConversionRate(breweryId: string, options?: {
     }
 
     const totalScans = scans.length;
-    // Verified Drinker: rated OR confirmed drinking via prompt
+    // Verified Drinker: only confirmed drinking via push prompt
     const conversions = scans.filter(
-      (s: any) => s.converted_to_rating || s.confirmed_drinking === true
+      (s: any) => s.confirmed_drinking === true
     ).length;
     const rate = totalScans > 0 ? (conversions / totalScans) * 100 : 0;
 
@@ -2145,6 +2152,9 @@ const CIS_SCORING = {
   DYNAMIC_TEMP_BONUS:       0.05,  // weather_temp_c is within ±5°C of brew's typical_temperature
   DYNAMIC_TEMP_PENALTY:    -0.05,  // weather_temp_c is >12°C away from brew's typical_temperature
   WEEKEND_HOLIDAY_BONUS:    0.05,  // scan on Friday evening, weekend or public holiday
+  RATING_BONUS:             0.80,  // User converted scan to rating
+  BTB_BONUS:                0.80,  // User participated in BTB
+  VIBECHECK_BONUS:          0.30,  // User interacted with vibecheck
 } as const;
 
 /**
@@ -2195,6 +2205,9 @@ export async function classifyCisScans(): Promise<{ nonQr: number; session: numb
     DYNAMIC_TEMP_BONUS: number;
     DYNAMIC_TEMP_PENALTY: number;
     WEEKEND_HOLIDAY_BONUS: number;
+    RATING_BONUS: number;
+    BTB_BONUS: number;
+    VIBECHECK_BONUS: number;
   } = { ...CIS_SCORING };
   try {
     const s = await getAlgorithmSettings();
@@ -2210,6 +2223,9 @@ export async function classifyCisScans(): Promise<{ nonQr: number; session: numb
       DYNAMIC_TEMP_BONUS:       s.cis_dynamic_temp_bonus,
       DYNAMIC_TEMP_PENALTY:     s.cis_dynamic_temp_penalty,
       WEEKEND_HOLIDAY_BONUS:    s.cis_weekend_holiday_bonus,
+      RATING_BONUS:             s.cis_rating_bonus,
+      BTB_BONUS:                s.cis_btb_bonus,
+      VIBECHECK_BONUS:          s.cis_vibecheck_bonus,
     };
   } catch {
     // keep hardcoded defaults on error
@@ -2225,11 +2241,10 @@ export async function classifyCisScans(): Promise<{ nonQr: number; session: numb
     .from('bottle_scans')
     .select(`
       id, session_hash, bottle_id, brew_id, scan_source, created_at,
-      weather_temp_c, country_code
+      weather_temp_c, country_code, scan_intent, drinking_probability
     `)
-    .is('scan_intent', null)
     .lte('created_at', sessionCutoff)
-    .order('created_at', { ascending: true })
+    .order('created_at', { ascending: false })
     .limit(5000);
 
   if (error || !scans || scans.length === 0) return { nonQr: 0, session: 0 };
@@ -2253,6 +2268,30 @@ export async function classifyCisScans(): Promise<{ nonQr: number; session: numb
     }
   } catch {
     // Phase 1 columns not available yet — skip environment context modifiers
+  }
+
+  // ── 1c. Batch lookup tasting_score_events linked to these scans ───────────
+  // Used to apply CIS bonus for VibeCheck (+0.30), Rating/BTB (+0.80)
+  const scanEventMap = new Map<string, string>(); // scan_id → best event_type
+  try {
+    const scanIds = scans.map((s: any) => s.id);
+    const { data: tse } = await (supabase as any)
+      .from('tasting_score_events')
+      .select('bottle_scan_id, event_type')
+      .in('bottle_scan_id', scanIds)
+      .in('event_type', ['vibe_check', 'rating_given', 'beat_the_brewer']);
+    if (tse) {
+      for (const row of tse) {
+        if (!row.bottle_scan_id) continue;
+        const existing = scanEventMap.get(row.bottle_scan_id);
+        // rating_given and beat_the_brewer trump vibe_check
+        if (!existing || (existing === 'vibe_check' && row.event_type !== 'vibe_check')) {
+          scanEventMap.set(row.bottle_scan_id, row.event_type);
+        }
+      }
+    }
+  } catch {
+    // tasting_score_events lookup failed — bonuses will be 0
   }
 
   // ── 2. Load full session context for neighbour-scan detection ─────────────
@@ -2323,6 +2362,16 @@ export async function classifyCisScans(): Promise<{ nonQr: number; session: numb
       score += cfg.DWELL_TIME_BONUS; // +0.40
     }
 
+    // Tasting action bonus — from tasting_score_events linked to this scan
+    const scanEvent = scanEventMap.get(scan.id);
+    if (scanEvent === 'rating_given') {
+      score += cfg.RATING_BONUS;     // z.B. +0.80
+    } else if (scanEvent === 'beat_the_brewer') {
+      score += cfg.BTB_BONUS;        // z.B. +0.80
+    } else if (scanEvent === 'vibe_check') {
+      score += cfg.VIBECHECK_BONUS;  // +0.30
+    }
+
     // ── CIS Environment Context modifiers (Phase 1, 2026-03-17) ─────────────────
     // Uses best-effort phase1Data loaded separately to avoid breaking when
     // Phase 1 migrations have not been applied yet.
@@ -2385,7 +2434,14 @@ export async function classifyCisScans(): Promise<{ nonQr: number; session: numb
     else if (score < 0.45)  intent = 'browse';
     else                    intent = 'single';
 
-    updates.push({ id: scan.id, scan_intent: intent, drinking_probability: score });
+    // Only update if something changed (self-healing)
+    const oldProb = scan.drinking_probability ?? 0;
+    const oldIntent = scan.scan_intent;
+    const isDifferent = oldIntent !== intent || Math.abs(oldProb - score) > 0.001;
+
+    if (isDifferent) {
+      updates.push({ id: scan.id, scan_intent: intent, drinking_probability: score });
+    }
   }
 
   if (updates.length === 0) return { nonQr: nonQrCount, session: 0 };
@@ -2413,8 +2469,7 @@ export async function classifyCisScans(): Promise<{ nonQr: number; session: numb
         scan_intent: payload.scan_intent,
         drinking_probability: payload.drinking_probability,
       })
-      .in('id', ids)
-      .is('scan_intent', null);
+      .in('id', ids);
     if (!err) classifiedSession += ids.length;
   }
 
@@ -2642,7 +2697,12 @@ export interface IntentBreakdownItem {
 export interface IntentBreakdownResult {
   intents: IntentBreakdownItem[];
   totalScans: number;
-  weightedDrinkerEstimate: number;
+  estimatedConsumers: {
+    possible: number;     // 0.50 <= p < 0.65
+    likely: number;       // 0.65 <= p < 0.80
+    highlyLikely: number; // p >= 0.80
+    noConsumption: number;
+  };
   confirmedDrinkers: number;
   modelAccuracy: number | null;
 }
@@ -2698,7 +2758,7 @@ export async function getScanIntentBreakdown(
       data: {
         intents: [],
         totalScans: 0,
-        weightedDrinkerEstimate: 0,
+        estimatedConsumers: { possible: 0, likely: 0, highlyLikely: 0, noConsumption: 0 },
         confirmedDrinkers: 0,
         modelAccuracy: null,
       },
@@ -2709,7 +2769,7 @@ export async function getScanIntentBreakdown(
 
   // Count per intent
   const intentCounts = new Map<string, { count: number; probSum: number }>();
-  let weightedSum = 0;
+  let estimatedConsumers = { possible: 0, likely: 0, highlyLikely: 0, noConsumption: 0 };
   let confirmedCount = 0;
 
   for (const row of data) {
@@ -2719,7 +2779,12 @@ export async function getScanIntentBreakdown(
     const entry = intentCounts.get(intent)!;
     entry.count++;
     entry.probSum += prob;
-    weightedSum += prob;
+    
+    if (prob >= 0.80) estimatedConsumers.highlyLikely++;
+    else if (prob >= 0.65) estimatedConsumers.likely++;
+    else if (prob >= 0.50) estimatedConsumers.possible++;
+    else estimatedConsumers.noConsumption++;
+
     if (row.confirmed_drinking === true) confirmedCount++;
   }
 
@@ -2756,7 +2821,7 @@ export async function getScanIntentBreakdown(
     data: {
       intents,
       totalScans: total,
-      weightedDrinkerEstimate: Math.round(weightedSum * 10) / 10,
+      estimatedConsumers,
       confirmedDrinkers: confirmedCount,
       modelAccuracy,
     },
@@ -2807,14 +2872,6 @@ export async function resolveScanForPrompt(
     // confirmed_drinking already answered by the prompt (or another mechanism)
     if (scan.confirmed_drinking !== null) {
       return { shouldAsk: false, scanId: scan.id, reason: 'already_confirmed', samplingRate: 0 };
-    }
-    // scan_intent = 'confirmed' means BTB, Rating, or previous prompt already set this
-    if (scan.scan_intent === 'confirmed') {
-      return { shouldAsk: false, scanId: scan.id, reason: 'hard_proof_exists', samplingRate: 0 };
-    }
-    // Rating was submitted → scan already upgraded to confirmed (Phase 0.4)
-    if (scan.converted_to_rating) {
-      return { shouldAsk: false, scanId: scan.id, reason: 'already_rated', samplingRate: 0 };
     }
     // Non-QR / fridge-surfing scans — drinking is implausible, skip the popup
     if (scan.scan_intent === 'fridge_surf' || scan.scan_intent === 'non_qr' ||

@@ -13,7 +13,7 @@ import RatingCTABlock from './components/RatingCTABlock';
 import { trackBottleScan, incrementProfileViews } from '@/lib/actions/analytics-actions';
 import { useAuth } from '@/app/context/AuthContext';
 import RateBrewModal from './components/RateBrewModal';
-import DrinkingConfirmationPrompt from './components/DrinkingConfirmationPrompt';
+import BottleStatusSlider from './components/BottleStatusSlider';
 import BeatTheBrewerGame from './components/BeatTheBrewerGame';
 import { checkBrewHasFlavorProfile } from '@/lib/actions/beat-the-brewer-actions';
 import VibeCheck from './components/VibeCheck';
@@ -1115,6 +1115,16 @@ export default function PublicScanPage() {
         >
           <BookOpen className="w-4 h-4" /> Vollständiges Rezept
         </Link>
+        
+        {/* Trink-Status Slider via Component */}
+        <BottleStatusSlider bottleId={data.id} isQrVerified={isQrVerified} />
+
+        {/* ── Trenner: Bewertungen ── */}
+        <div className="relative flex items-center gap-3 pt-4 pb-2">
+          <div className="flex-1 h-px bg-border" />
+          <span className="text-[10px] uppercase tracking-[0.18em] font-bold text-text-disabled select-none">Bewertungen</span>
+          <div className="flex-1 h-px bg-border" />
+        </div>
 
         {/* Phase 2.3: Bewertungen - Horizontal scrollbar, Button oben rechts */}
         {ratingsLoading ? (
@@ -1131,17 +1141,16 @@ export default function PublicScanPage() {
           </div>
         ) : ratings.length > 0 ? (
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-[10px] uppercase font-black tracking-[0.25em] text-text-muted">Bewertungen</p>
-              {!hasAlreadyRated && isQrVerified && (
+            {!hasAlreadyRated && isQrVerified && (
+              <div className="flex justify-end mb-2">
                 <button 
                   onClick={handleStartRating}
                   className="text-xs font-bold text-brand hover:text-brand-hover transition flex items-center gap-1 bg-brand/10 px-3 py-1.5 rounded-full"
                 >
                   <Star className="w-3.5 h-3.5" /> Bewerten
                 </button>
-              )}
-            </div>
+              </div>
+            )}
             
             <div className="flex gap-3 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide w-full">
               {ratings.map(rating => (
@@ -1381,11 +1390,7 @@ export default function PublicScanPage() {
         <Footer variant="minimal" />
       </div>
 
-      {/* Phase 9.4: Drinker-Bestätigungs-Prompt (Smart Sampling) */}
-      <DrinkingConfirmationPrompt
-        bottleId={data.id}
-        isOwner={user?.id === data?.brews?.user_id}
-      />
+      {/* Phase 9.4: Drinker-Bestätigungs-Prompt removed (replaced by slider below) */}
 
       {/* Phase 12.1: Geo-Consent Prompt (after star rating, 2s delay) */}
       {showGeoConsent && (

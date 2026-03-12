@@ -261,6 +261,7 @@ export async function POST(req: NextRequest) {
         // 5b. Track conversion: mark the most recent scan as converted_to_rating = true
         // Works for BOTH logged-in (match by viewer_user_id) and anonymous (match by bottle_id)
         // Uses admin client to bypass RLS
+        let convertedScanId: string | null = null;
         try {
             const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
             let scanQuery = supabaseAdmin
@@ -281,10 +282,7 @@ export async function POST(req: NextRequest) {
             if (user_id || bottle_id) {
                 const { data: recentScan } = await scanQuery.maybeSingle();
                 if (recentScan) {
-                    // Phase 0.4 — CIS Hard Proof: Rating = confirmed drinker
-                    // Exception: if user explicitly said "Nein" to the drinking prompt,
-                    // honour that — converted_to_rating still tracks the conversion but
-                    // we do NOT override confirmed_drinking=false with intent='confirmed'.
+                    convertedScanId = recentScan.id;
                     const deniedDrinking = recentScan.confirmed_drinking === false;
                     await supabaseAdmin
                         .from('bottle_scans')
@@ -300,6 +298,26 @@ export async function POST(req: NextRequest) {
             }
         } catch (convErr) {
             console.error('[Ratings] Conversion tracking failed:', convErr);
+        }
+
+        // 5c. Insert tasting_score_events with rating_given + bottle_scan_id
+        try {
+            await supabaseAdmin
+                .from('tasting_score_events')
+                .insert({
+                    user_id: user_id ?? null,
+                    event_type: 'rating_given',
+                    brew_id: brew_id,
+                    bottle_scan_id: convertedScanId,
+                    points_delta: 5,
+                    metadata: {
+                        rating: rating,
+                        rating_id: ratingData?.id ?? null,
+                        bottle_id: bottle_id ?? null,
+                    },
+                });
+        } catch (tseErr) {
+            console.error('[Ratings] tasting_score_events insert failed:', tseErr);
         }
 
         // 6. Trigger Achievements for the brew owner (e.g. popular_50, top_rated)

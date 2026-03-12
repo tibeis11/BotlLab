@@ -65,6 +65,9 @@ export const ALGORITHM_DEFAULTS = {
   cis_dynamic_temp_bonus:       0.05,   // Passende Außentemperatur (±5°C)
   cis_dynamic_temp_penalty:    -0.05,   // Unpassende Temp (>12°C Abw.)
   cis_weekend_holiday_bonus:    0.05,   // Freitagabend / Wochenende / Feiertag
+  cis_rating_bonus:             0.80,   // Bonus für abgegebenes Rating
+  cis_btb_bonus:                0.80,   // Bonus für Beat The Brewer Teilnahme
+  cis_vibecheck_bonus:          0.30,   // Bonus für VibeCheck (Trinken bestätigt)
 };
 
 export interface AlgorithmSettings {
@@ -106,6 +109,9 @@ export interface AlgorithmSettings {
   cis_dynamic_temp_bonus: number;
   cis_dynamic_temp_penalty: number;
   cis_weekend_holiday_bonus: number;
+  cis_rating_bonus: number;
+  cis_btb_bonus: number;
+  cis_vibecheck_bonus: number;
 }
 
 function getServiceRoleClient() {
@@ -174,6 +180,9 @@ export async function getAlgorithmSettings(): Promise<AlgorithmSettings> {
       cis_dynamic_temp_bonus:       p('cis_dynamic_temp_bonus'),
       cis_dynamic_temp_penalty:     p('cis_dynamic_temp_penalty'),
       cis_weekend_holiday_bonus:    p('cis_weekend_holiday_bonus'),
+      cis_rating_bonus:             p('cis_rating_bonus'),
+      cis_btb_bonus:                p('cis_btb_bonus'),
+      cis_vibecheck_bonus:          p('cis_vibecheck_bonus'),
     };
   } catch {
     // Fallback auf Defaults wenn DB nicht erreichbar

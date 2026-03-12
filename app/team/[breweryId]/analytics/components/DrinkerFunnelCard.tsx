@@ -20,8 +20,13 @@ interface FunnelStage {
 export interface DrinkerFunnelCardProps {
   totalScans: number;
   loggedInScans: number;
-  /** Phase A: Σ drinking_probability — geschätzte Trinker (CIS) */
-  weightedDrinkerEstimate?: number;
+  /** Phase A: Estimated categories from CIS */
+  estimatedConsumers?: {
+    possible: number;
+    likely: number;
+    highlyLikely: number;
+    noConsumption: number;
+  };
   verifiedDrinkers: number;  // scans that led to a rating or confirmed drinking
   isLoading?: boolean;
   userTier?: UserTier;
@@ -43,7 +48,7 @@ function pct(numerator: number, denominator: number): string {
 export default function DrinkerFunnelCard({
   totalScans,
   loggedInScans,
-  weightedDrinkerEstimate = 0,
+  estimatedConsumers,
   verifiedDrinkers,
   isLoading = false,
   userTier = 'free',
@@ -54,7 +59,9 @@ export default function DrinkerFunnelCard({
   const safeVerified  = verifiedDrinkers;
   const safeLoggedIn  = loggedInScans;
   const safeTotal     = Math.max(totalScans, safeLoggedIn);
-  const safeEstimated = Math.round(weightedDrinkerEstimate);
+  const safeEstimated = estimatedConsumers 
+    ? (estimatedConsumers.possible + estimatedConsumers.likely + estimatedConsumers.highlyLikely)
+    : 0;
 
   const stages: FunnelStage[] = [
     {
@@ -77,12 +84,12 @@ export default function DrinkerFunnelCard({
     },
     {
       id: 'estimated',
-      label: 'Geschätzte Trinker',
+      label: 'Estimated Consumers',
       sublabel: `${pct(safeEstimated, safeTotal)} aller Aufrufe`,
       value: safeEstimated,
-      color: 'text-cyan-400',
-      barColor: 'bg-cyan-500/50',
-      tooltip: 'KI-Schätzung (CIS): Wahrscheinliche Trinker basierend auf Verweildauer, Session-Muster und Interaktion.',
+      color: 'text-violet-400',
+      barColor: 'bg-violet-500/50',
+      tooltip: 'Die Summe aller Scans mit einer "Drinking Probability" ≥ 50% (Potenzielle, Wahrscheinliche und Sehr wahrscheinliche Trinker).',
     },
     {
       id: 'verified',
@@ -91,7 +98,7 @@ export default function DrinkerFunnelCard({
       value: safeVerified,
       color: 'text-success',
       barColor: 'bg-success/70',
-      tooltip: 'Personen, die nachweislich getrunken haben — per Bewertung oder Trink-Bestätigung.',
+      tooltip: 'Personen, die nachweislich getrunken haben — via direkter Push-Bestätigung (Prompt).',
     },
   ];
 
@@ -152,11 +159,31 @@ export default function DrinkerFunnelCard({
                   {stage.value.toLocaleString('de-DE')}
                 </div>
                 {/* Bar */}
-                <div className="h-1.5 w-full bg-surface rounded-full overflow-hidden">
-                  <div
-                    className={`h-full ${stage.barColor} transition-all duration-700${stage.id === 'estimated' ? ' border border-dashed border-cyan-400/60' : ''}`}
-                    style={{ width: `${barWidth}%` }}
-                  />
+                <div className="h-1.5 w-full bg-surface rounded-full overflow-hidden flex">
+                  {stage.id === 'estimated' && estimatedConsumers ? (
+                    <>
+                      <div
+                        className="h-full bg-violet-400 transition-all duration-700"
+                        style={{ width: `${maxValue > 0 ? (estimatedConsumers.highlyLikely / maxValue) * 100 : 0}%` }}
+                        title={`Sehr wahrscheinlich: ${estimatedConsumers.highlyLikely}`}
+                      />
+                      <div
+                        className="h-full bg-violet-500/80 transition-all duration-700"
+                        style={{ width: `${maxValue > 0 ? (estimatedConsumers.likely / maxValue) * 100 : 0}%` }}
+                        title={`Wahrscheinlich: ${estimatedConsumers.likely}`}
+                      />
+                      <div
+                        className="h-full bg-violet-600/50 transition-all duration-700"
+                        style={{ width: `${maxValue > 0 ? (estimatedConsumers.possible / maxValue) * 100 : 0}%` }}
+                        title={`Potenziell: ${estimatedConsumers.possible}`}
+                      />
+                    </>
+                  ) : (
+                    <div
+                      className={`h-full ${stage.barColor} transition-all duration-700`}
+                      style={{ width: `${barWidth}%` }}
+                    />
+                  )}
                 </div>
                 {/* Labels */}
                 <div>
@@ -177,12 +204,12 @@ export default function DrinkerFunnelCard({
             <span className="text-text-secondary font-bold">{safeTotal.toLocaleString('de-DE')}</span>{' '}
             Aufrufen haben{' '}
             <span className="text-emerald-400 font-medium">{safeVerified.toLocaleString('de-DE')}</span>{' '}
-            Menschen dieses Bier nachweislich getrunken —{' '}
+            Menschen den Trink-Prompt per Push bestätigt —{' '}
             <span className="text-text-secondary font-bold">{pct(safeVerified, safeTotal)}</span>{' '}
             Conversion.
           </p>
           <p className="text-[10px] text-text-disabled/60 leading-relaxed">
-            Geschätzte Trinker werden einmal täglich durch den CIS-Algorithmus berechnet. Tagesaktuelle Werte basieren auf einem Schätzwert und können vom Endergebnis abweichen.
+            "Estimated Consumers" spiegeln die Summe aller wahrscheinlich echten Trinker (CIS-Score ≥ 50%) wider. Die "Verified Drinkers" sind lediglich ein Bruchteil davon, der explizit auf den Push-Prompt reagiert hat.
           </p>
         </div>
       )}

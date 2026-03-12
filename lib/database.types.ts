@@ -7,6 +7,11 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.1"
+  }
   graphql_public: {
     Tables: {
       [_ in never]: never
@@ -2801,7 +2806,6 @@ export type Database = {
           banner_url: string | null
           bio: string | null
           birthdate: string | null
-          botlguide_insights_enabled: boolean
           custom_brewery_slogan: string | null
           display_name: string | null
           founded_year: number | null
@@ -2832,7 +2836,6 @@ export type Database = {
           banner_url?: string | null
           bio?: string | null
           birthdate?: string | null
-          botlguide_insights_enabled?: boolean
           custom_brewery_slogan?: string | null
           display_name?: string | null
           founded_year?: number | null
@@ -2863,7 +2866,6 @@ export type Database = {
           banner_url?: string | null
           bio?: string | null
           birthdate?: string | null
-          botlguide_insights_enabled?: boolean
           custom_brewery_slogan?: string | null
           display_name?: string | null
           founded_year?: number | null
@@ -3262,6 +3264,7 @@ export type Database = {
       tasting_score_events: {
         Row: {
           bottle_id: string | null
+          bottle_scan_id: string | null
           brew_id: string | null
           created_at: string
           event_type: string
@@ -3276,6 +3279,7 @@ export type Database = {
         }
         Insert: {
           bottle_id?: string | null
+          bottle_scan_id?: string | null
           brew_id?: string | null
           created_at?: string
           event_type: string
@@ -3290,6 +3294,7 @@ export type Database = {
         }
         Update: {
           bottle_id?: string | null
+          bottle_scan_id?: string | null
           brew_id?: string | null
           created_at?: string
           event_type?: string
@@ -3308,6 +3313,13 @@ export type Database = {
             columns: ["bottle_id"]
             isOneToOne: false
             referencedRelation: "bottles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasting_score_events_bottle_scan_id_fkey"
+            columns: ["bottle_scan_id"]
+            isOneToOne: false
+            referencedRelation: "bottle_scans"
             referencedColumns: ["id"]
           },
           {
@@ -4074,4 +4086,3 @@ export const Constants = {
     },
   },
 } as const
-

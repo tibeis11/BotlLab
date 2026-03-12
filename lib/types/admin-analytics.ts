@@ -276,8 +276,13 @@ export type CisIntentRow = {
 export type CisOverview = {
   /** Per scan_source breakdown — tells us how many scans are zeroed by Hard Rule 0.1 */
   sourceBreakdown: CisSourceRow[]
-  /** Σ drinking_probability of QR scans in the period — the platform-wide CIS */
-  weightedDrinkerEstimate: number
+  /** Categorized consumer counts based on drinking_probability (QR only) */
+  estimatedConsumers: {
+    possible: number;     // 0.50 <= p < 0.65 (Mögliche Konsumenten)
+    likely: number;       // 0.65 <= p < 0.80 (Wahrscheinliche Konsumenten)
+    highlyLikely: number; // p >= 0.80        (Sehr wahrscheinliche Konsumenten)
+    noConsumption: number;// p < 0.50         (Kein Konsum)
+  }
   /** Number of QR scans in the period (denominator for the estimate) */
   qrScanCount: number
   /** Scans still waiting in the 15-min classification window (scan_intent IS NULL) */
@@ -300,6 +305,9 @@ export type CisScoringBreakdown = {
   dynamicTime: number       // negative, 0, or positive
   dynamicTemp: number       // negative, 0, or positive
   weekendHoliday: number    // 0 or positive bonus
+  userRatingBonus: number   // 0 or positive bonus (+0.80)
+  btbBonus: number          // 0 or positive bonus (+0.80)
+  vibecheckBonus: number    // 0 or positive bonus (+0.30)
   total: number
   // contextual values for display
   scanLocalHour: number | null

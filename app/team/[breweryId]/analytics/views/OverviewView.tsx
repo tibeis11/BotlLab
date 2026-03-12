@@ -24,8 +24,13 @@ export interface AnalyticsPageData {
   capsClaimed?: number;
   /** Phase 2: unique users who claimed a Kronkorken */
   capCollectors?: number;
-  /** Phase A: Σ drinking_probability aller Scans — geschätzte Trinker */
-  weightedDrinkerEstimate?: number;
+  /** Phase A: Categorized geschätzte Trinker */
+  estimatedConsumers?: {
+    possible: number;
+    likely: number;
+    highlyLikely: number;
+    noConsumption: number;
+  };
   scansByDate: Record<string, { scans: number; unique: number }>;
   scansByCountry: Record<string, number>;
   scansByDevice: Record<string, number>;
@@ -88,19 +93,33 @@ export default function OverviewView({
           title="Scans / Besucher"
           value={data.uniqueVisitors > 0 ? (data.totalScans / data.uniqueVisitors).toFixed(1) : '0'}
         />
-        {data.weightedDrinkerEstimate != null && (
-          <AnalyticsMetricCard
-            title="Geschätzte Trinker"
-            value={data.weightedDrinkerEstimate.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
-            subValue={conversionData ? `${conversionData.conversions} bestätigt` : undefined}
-          />
+        {data.estimatedConsumers != null && (
+          <div className="bg-(--surface) border border-(--border) rounded-2xl p-5 flex flex-col shadow-sm">
+            <h3 className="text-sm font-medium text-(--text-secondary) mb-3">
+              Estimated Consumers
+            </h3>
+            <div className="space-y-1.5 mt-auto">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-(--text-muted)">≥ 80% (Sehr wahrsch.)</span>
+                <span className="text-sm font-semibold text-(--text-primary)">{data.estimatedConsumers.highlyLikely}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-(--text-muted)">65-79% (Wahrsch.)</span>
+                <span className="text-sm font-semibold text-(--text-primary)">{data.estimatedConsumers.likely}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-(--text-muted)">50-64% (Potenziell)</span>
+                <span className="text-sm font-semibold text-(--text-primary)">{data.estimatedConsumers.possible}</span>
+              </div>
+            </div>
+          </div>
         )}
         {conversionData && (() => {
           const verifiedDrinkers = conversionData.conversions;
           const verifiedRate = data.totalScans > 0 ? (verifiedDrinkers / data.totalScans) * 100 : 0;
           return (
             <AnalyticsMetricCard
-              title="Drinker Rate"
+              title="Push-Bestätigungen"
               value={`${verifiedRate.toFixed(1)}%`}
               change={verifiedRate > 5 ? 2.5 : undefined}
               subValue={`${verifiedDrinkers} Verified Drinkers`}
@@ -113,7 +132,7 @@ export default function OverviewView({
       <DrinkerFunnelCard
         totalScans={data.totalScans}
         loggedInScans={data.loggedInScans ?? 0}
-        weightedDrinkerEstimate={data.weightedDrinkerEstimate ?? 0}
+        estimatedConsumers={data.estimatedConsumers}
         verifiedDrinkers={conversionData?.conversions ?? 0}
         userTier={userTier}
       />

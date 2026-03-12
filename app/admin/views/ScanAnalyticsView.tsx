@@ -84,6 +84,9 @@ const CIS_ENV_SETTINGS: CisSettingField[] = [
   { key: 'cis_dynamic_temp_bonus', label: 'Temp-Bonus', min: 0, max: 0.2, step: 0.01, description: 'Wetter passend zur Bier-Temperatur (≤5°C)' },
   { key: 'cis_dynamic_temp_penalty', label: 'Temp-Penalty', min: -0.2, max: 0, step: 0.01, description: 'Wetter unpassend (>12°C Abweichung)' },
   { key: 'cis_weekend_holiday_bonus', label: 'Wochenend/Feiertag', min: 0, max: 0.2, step: 0.01, description: 'Fr. Abend, Wochenende oder Feiertag' },
+  { key: 'cis_rating_bonus', label: 'Rating-Bonus', min: 0, max: 1.0, step: 0.01, description: 'Bonus wenn Nutzer ein Rating abgibt' },
+  { key: 'cis_btb_bonus', label: 'BTB-Bonus', min: 0, max: 1.0, step: 0.01, description: 'Bonus wenn Nutzer ein Beat The Brewer spielt' },
+  { key: 'cis_vibecheck_bonus', label: 'VibeCheck-Bonus', min: 0, max: 1.0, step: 0.01, description: 'Bonus wenn Nutzer den VibeCheck nutzt' },
 ]
 
 function CisSettingRow({
@@ -179,6 +182,20 @@ function ScanTraceCard({ scan }: { scan: CisRecentScan }) {
         },
       ]
 
+  if (!b.isHardZero) {
+    const interactionBonus = (b.userRatingBonus || 0) + (b.btbBonus || 0) + (b.vibecheckBonus || 0)
+    let interactionContext = 'keine Interaktion'
+    if (b.userRatingBonus > 0) interactionContext = 'Bewertung abgegeben'
+    else if (b.btbBonus > 0) interactionContext = 'Beat the Brewer gespielt'
+    else if (b.vibecheckBonus > 0) interactionContext = 'VibeCheck gewählt'
+
+    factors.push({
+      label: 'Interaktions-Modifier',
+      value: interactionBonus,
+      context: interactionContext
+    })
+  }
+
   return (
     <div className="bg-(--surface) border border-(--border) rounded-xl p-4 space-y-3">
       {/* Header */}
@@ -230,12 +247,20 @@ function ScanTraceCard({ scan }: { scan: CisRecentScan }) {
         ))}
         {!b.isHardZero && (
           <div className="flex items-center justify-between pt-1.5 mt-1 border-t border-(--border)/50 text-[11px] font-semibold">
-            <span className="text-(--text-secondary)">= Endergebnis (geclamppt)</span>
+            <span className="text-(--text-secondary)">= Geclampptes Resultat (Simuliert nach aktuellen Regeln)</span>
             <span className={`font-mono tabular-nums pl-4 ${
-              (scan.drinkingProbability ?? 0) >= 0.45 ? 'text-success'
-              : (scan.drinkingProbability ?? 0) >= 0.15 ? 'text-warning'
+              b.total >= 0.45 ? 'text-success'
+              : b.total >= 0.15 ? 'text-warning'
               : 'text-error'
             }`}>
+              {b.total.toFixed(2)}
+            </span>
+          </div>
+        )}
+        {!b.isHardZero && Math.abs(b.total - (scan.drinkingProbability ?? 0)) > 0.001 && (
+          <div className="flex items-center justify-between text-[10px] opacity-60">
+            <span className="text-(--text-primary)">Damals historisch in Datenbank gespeichert:</span>
+            <span className="font-mono tabular-nums pl-4">
               {(scan.drinkingProbability ?? 0).toFixed(2)}
             </span>
           </div>
@@ -537,12 +562,25 @@ export default function ScanAnalyticsView() {
 
           {/* CIS KPI strip */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <div className="bg-(--surface) border border-(--border) rounded-xl p-4">
-              <p className="text-xs text-(--text-muted) uppercase tracking-wider mb-1">Gesch. Trinker</p>
-              <p className="text-2xl font-mono font-semibold text-cyan-400">
-                {cis.weightedDrinkerEstimate.toLocaleString('de-DE', { maximumFractionDigits: 1 })}
-              </p>
-              <p className="text-[10px] text-(--text-disabled) mt-1">Σ drinking_probability (nur QR)</p>
+            <div className="bg-(--surface) border border-(--border) rounded-xl p-4 flex flex-col justify-between">
+              <div>
+                <p className="text-xs text-(--text-muted) uppercase tracking-wider mb-2">Estimated Consumers</p>
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-(--text-secondary)">≥ 80% (Sehr wahrsch.)</span>
+                    <span className="text-sm font-mono font-semibold text-cyan-400">{cis.estimatedConsumers.highlyLikely}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-(--text-secondary)">65-79% (Wahrsch.)</span>
+                    <span className="text-sm font-mono font-semibold text-cyan-500">{cis.estimatedConsumers.likely}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-(--text-secondary)">50-64% (Potenziell)</span>
+                    <span className="text-sm font-mono font-semibold text-cyan-600">{cis.estimatedConsumers.possible}</span>
+                  </div>
+                </div>
+              </div>
+              <p className="text-[10px] text-(--text-disabled) mt-2">Einzigartige Scans (nur QR)</p>
             </div>
             <div className="bg-(--surface) border border-(--border) rounded-xl p-4">
               <p className="text-xs text-(--text-muted) uppercase tracking-wider mb-1">QR-Scans</p>
