@@ -33,7 +33,9 @@ Erweitertes Scoring (Datengetrieben):
 
 ## Phase 1 — Datenbank-Infrastruktur für dynamische Kontexte
 
-Um den API-Endpoint während der Echtzeit-Klassifizierung zu entlasten und teure SQL-Aggregationen zu vermeiden, verlagern wir die Berechnung der "typischen" Werte in nächtliche Cronjobs (oder Materialized Views).
+Um den API-Endpoint während der Echtzeit-Klassifizierung zu entlasten und teure SQL-Aggregationen zu vermeiden, verlagern wir die Berechnung der "typischen" Werte in nächtliche Cronjobs via `pg_cron` (Supabase).
+
+**Hinweis zu Cronjobs:** Da Vercel in aktuellen Plänen nur einen (1) täglichen Cronjob zulässt, **müssen** alle Jobs für die CIS-Klassifizierung (*/15 min), den Wetter-Fetch (stündlich) und die nächtliche Aggregation über `pg_cron` direkt in der Supabase-Datenbank registriert werden.
 
 ### 1.1 — Erweiterung der `brews` Tabelle
 
@@ -49,7 +51,7 @@ ADD COLUMN typical_temperature integer NULL; -- Durchschnittliche Wetter-Tempera
 
 ### 1.2 — Nächtlicher Aggregations-Cronjob
 
-Wir erstellen eine Edge Function (oder ein SQL-Script via `pg_cron`), die jede Nacht die `typical_scan_hour` und `typical_temperature` pro Brew aktualisiert.
+Wir erstellen eine Edge Function, die von einem SQL-Script via `pg_cron` jede Nacht aufgerufen wird, um die `typical_scan_hour` und `typical_temperature` pro Brew zu aktualisieren. Dieser Job gesellt sich zu den bereits bestehenden `pg_cron` Jobs (`fetch-scan-weather` und `classify-scan-intent`), die via API-Route angesprochen werden. Wichtig: Alle API-Aufrufe über `pg_cron` benötigen Secrets aus `private_system.secrets`!
 
 **Die Logik muss zyklische Stunden (Mitternachts-Problem) korrekt verarbeiten.** Statt einem fehlerhaften arithmetischen Mittel (`AVG`) nutzen wir den Modus (`MODE()`), also den *häufigsten* Wert.
 
