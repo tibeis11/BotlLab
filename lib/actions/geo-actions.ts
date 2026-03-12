@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/lib/supabase-server';
+import { createAdminClient } from '@/lib/supabase-server';
 
 /**
  * Phase 12.2 / 12.3 — Geo-Consent Server Actions
@@ -18,7 +18,7 @@ export async function updateScanWithGeoData(
   },
 ) {
   try {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     // Find the most recent scan for this bottle (within the last hour)
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
