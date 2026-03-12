@@ -2217,12 +2217,14 @@ export async function classifyCisScans(): Promise<{ nonQr: number; session: numb
   const sessionCutoff = new Date(Date.now() - cfg.SESSION_WINDOW_MS).toISOString();
 
   // ── 1. Load unclassified scans older than 15 min ──────────────────────────
+  // Core Phase 0 columns only. Phase 1 context columns (local_time, brews.typical_*)
+  // are loaded in a separate best-effort query to avoid breaking classification
+  // when the Phase 1 migration has not been applied yet.
   const { data: scans, error } = await (supabase as any)
     .from('bottle_scans')
     .select(`
       id, session_hash, bottle_id, brew_id, scan_source, dwell_seconds, created_at,
-      local_time, weather_temp_c, country_code,
-      brews ( typical_scan_hour, typical_temperature )
+      weather_temp_c, country_code
     `)
     .is('scan_intent', null)
     .lte('created_at', sessionCutoff)
@@ -2230,6 +2232,27 @@ export async function classifyCisScans(): Promise<{ nonQr: number; session: numb
     .limit(5000);
 
   if (error || !scans || scans.length === 0) return { nonQr: 0, session: 0 };
+
+  // ── 1b. Best-effort: load Phase 1 context columns if migration is applied ─
+  let phase1Data = new Map<string, { local_time: string | null; typical_scan_hour: number | null; typical_temperature: number | null }>();
+  try {
+    const scanIds = scans.map((s: any) => s.id);
+    const { data: p1, error: p1Err } = await (supabase as any)
+      .from('bottle_scans')
+      .select('id, local_time, brews ( typical_scan_hour, typical_temperature )')
+      .in('id', scanIds);
+    if (!p1Err && p1) {
+      for (const row of p1) {
+        phase1Data.set(row.id, {
+          local_time: row.local_time ?? null,
+          typical_scan_hour: row.brews?.typical_scan_hour ?? null,
+          typical_temperature: row.brews?.typical_temperature ?? null,
+        });
+      }
+    }
+  } catch {
+    // Phase 1 columns not available yet — skip environment context modifiers
+  }
 
   // ── 2. Load full session context for neighbour-scan detection ─────────────
   const sessionHashes = [
@@ -2300,13 +2323,15 @@ export async function classifyCisScans(): Promise<{ nonQr: number; session: numb
     }
 
     // ── CIS Environment Context modifiers (Phase 1, 2026-03-17) ─────────────────
+    // Uses best-effort phase1Data loaded separately to avoid breaking when
+    // Phase 1 migrations have not been applied yet.
+    const p1 = phase1Data.get(scan.id);
 
     // Dynamic Time Modifier — compare local scan hour with brew's learned peak hour.
-    // local_time is stored as wall-clock (no TZ) so getHours() on a UTC server
-    // correctly returns the user's local hour.
-    const brewTypicalHour: number | null = scan.brews?.typical_scan_hour ?? null;
-    if (brewTypicalHour !== null && scan.local_time != null) {
-      const scanLocalHour = new Date(scan.local_time).getHours();
+    const brewTypicalHour: number | null = p1?.typical_scan_hour ?? null;
+    const localTime: string | null = p1?.local_time ?? null;
+    if (brewTypicalHour !== null && localTime != null) {
+      const scanLocalHour = new Date(localTime).getHours();
       let hourDiff = Math.abs(scanLocalHour - brewTypicalHour);
       if (hourDiff > 12) hourDiff = 24 - hourDiff; // cyclic wrap (e.g. 23h vs 1h → diff = 2)
       if (hourDiff <= 2) {
@@ -2318,8 +2343,7 @@ export async function classifyCisScans(): Promise<{ nonQr: number; session: numb
     }
 
     // Dynamic Temperature Modifier — compare scan weather vs brew's learned temperature.
-    // Only fires when both the scan has weather data and the brew has a baseline.
-    const brewTypicalTemp: number | null = scan.brews?.typical_temperature ?? null;
+    const brewTypicalTemp: number | null = p1?.typical_temperature ?? null;
     if (brewTypicalTemp !== null && scan.weather_temp_c != null) {
       const tempDiff = Math.abs(scan.weather_temp_c - brewTypicalTemp);
       if (tempDiff <= 5) {
@@ -2331,13 +2355,13 @@ export async function classifyCisScans(): Promise<{ nonQr: number; session: numb
 
     // Weekend / Holiday Modifier — Friday evening, weekend, or public holiday in
     // the scan's country (falls back to DE when country_code is unknown).
-    if (scan.local_time != null) {
+    if (localTime != null) {
       try {
         // Dynamic import so date-holidays is only loaded when needed
         const { default: Holidays } = await import('date-holidays');
         const countryCode = (scan.country_code as string | null) || 'DE';
         const hd = new Holidays(countryCode);
-        const localDate = new Date(scan.local_time);
+        const localDate = new Date(localTime);
         const dow  = localDate.getDay();   // 0 = Sun, 5 = Fri, 6 = Sat
         const hour = localDate.getHours();
         const isFridayEvening = dow === 5 && hour >= 17;

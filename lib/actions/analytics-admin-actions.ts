@@ -2153,21 +2153,41 @@ export async function getDbHealthStats(): Promise<DbHealthStats> {
 
 // ── CIS Recent Scans with Scoring Breakdown ───────────────────────────────
 export async function getRecentCisScans(): Promise<CisRecentScan[]> {
-  const supabase = await createClient()
+  const supabase = getServiceRoleClient()
 
+  // Phase 0 columns only — always available
   const { data: scans, error } = await (supabase as any)
     .from('bottle_scans')
     .select(`
       id, created_at, scan_source, scan_intent, drinking_probability,
-      dwell_seconds, local_time, weather_temp_c, country_code,
-      brew_id,
-      brews ( name, typical_scan_hour, typical_temperature )
+      dwell_seconds, weather_temp_c, country_code,
+      brew_id
     `)
     .not('scan_intent', 'is', null)
     .order('created_at', { ascending: false })
     .limit(5)
 
   if (error || !scans) return []
+
+  // Best-effort: load Phase 1 columns if migration is applied
+  const phase1Map = new Map<string, { local_time: string | null; brew_name: string | null; typical_scan_hour: number | null; typical_temperature: number | null }>();
+  try {
+    const scanIds = scans.map((s: any) => s.id);
+    const { data: p1, error: p1Err } = await (supabase as any)
+      .from('bottle_scans')
+      .select('id, local_time, brews ( name, typical_scan_hour, typical_temperature )')
+      .in('id', scanIds);
+    if (!p1Err && p1) {
+      for (const row of p1) {
+        phase1Map.set(row.id, {
+          local_time: row.local_time ?? null,
+          brew_name: row.brews?.name ?? null,
+          typical_scan_hour: row.brews?.typical_scan_hour ?? null,
+          typical_temperature: row.brews?.typical_temperature ?? null,
+        });
+      }
+    }
+  } catch { /* Phase 1 columns not available yet */ }
 
   const results: CisRecentScan[] = []
 
@@ -2187,6 +2207,7 @@ export async function getRecentCisScans(): Promise<CisRecentScan[]> {
       }
     } else {
       const base = 0.30
+      const p1 = phase1Map.get(scan.id)
 
       // Sessions modifier — derived from scan_intent (the stored result of session scoring)
       const fridgeSurf      = scan.scan_intent === 'fridge_surf' ? -0.40 : 0
@@ -2196,12 +2217,13 @@ export async function getRecentCisScans(): Promise<CisRecentScan[]> {
       const dwellTime = (scan.dwell_seconds != null && scan.dwell_seconds >= 180) ? 0.40 : 0
 
       // Dynamic time modifier
-      const typicalScanHour: number | null = scan.brews?.typical_scan_hour ?? null
+      const typicalScanHour: number | null = p1?.typical_scan_hour ?? null
+      const localTime: string | null = p1?.local_time ?? null
       let scanLocalHour: number | null = null
       let hourDiff: number | null = null
       let dynamicTime = 0
-      if (typicalScanHour !== null && scan.local_time != null) {
-        scanLocalHour = new Date(scan.local_time).getHours()
+      if (typicalScanHour !== null && localTime != null) {
+        scanLocalHour = new Date(localTime).getHours()
         let diff = Math.abs(scanLocalHour - typicalScanHour)
         if (diff > 12) diff = 24 - diff
         hourDiff = diff
@@ -2210,7 +2232,7 @@ export async function getRecentCisScans(): Promise<CisRecentScan[]> {
       }
 
       // Dynamic temperature modifier
-      const typicalTempC: number | null = scan.brews?.typical_temperature ?? null
+      const typicalTempC: number | null = p1?.typical_temperature ?? null
       const scanTempC: number | null = scan.weather_temp_c ?? null
       let tempDiff: number | null = null
       let dynamicTemp = 0
@@ -2225,12 +2247,12 @@ export async function getRecentCisScans(): Promise<CisRecentScan[]> {
       let isHoliday = false
       let isFridayEvening = false
       let weekendHoliday = 0
-      if (scan.local_time != null) {
+      if (localTime != null) {
         try {
           const { default: Holidays } = await import('date-holidays')
           const countryCode = (scan.country_code as string | null) || 'DE'
           const hd = new Holidays(countryCode)
-          const localDate = new Date(scan.local_time)
+          const localDate = new Date(localTime)
           const dow  = localDate.getDay()
           const hour = localDate.getHours()
           isFridayEvening = dow === 5 && hour >= 17
@@ -2257,7 +2279,7 @@ export async function getRecentCisScans(): Promise<CisRecentScan[]> {
     results.push({
       id: scan.id,
       createdAt: scan.created_at,
-      brewName: scan.brews?.name ?? null,
+      brewName: phase1Map.get(scan.id)?.brew_name ?? null,
       brewId: scan.brew_id ?? null,
       scanSource: scan.scan_source,
       scanIntent: scan.scan_intent,
