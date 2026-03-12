@@ -4137,3 +4137,17 @@ export async function adminFetchWeatherForUnprocessed() {
   }
   return { ok: true, processed }
 }
+
+export async function adminAggregateCisBrewContext() {
+  const supabase = await createAdminClient()
+  
+  // Rufen die soeben erstellte SQL-Funktion aus der Phase 1.2 Migration auf,
+  // die alle typical_scan_hour und typical_temperature aggregiert.
+  const { error } = await supabase.rpc('aggregate_cis_brew_context')
+  
+  if (error) {
+    return { ok: false, error: error.message }
+  }
+  
+  return { ok: true }
+}

@@ -19,7 +19,7 @@ import {
   getAlgorithmSettings,
   saveAlgorithmSettings,
 } from '@/lib/actions/brew-admin-actions'
-import { classifyCisScans, adminFetchWeatherForUnprocessed } from '@/lib/actions/analytics-actions'
+import { classifyCisScans, adminFetchWeatherForUnprocessed, adminAggregateCisBrewContext } from '@/lib/actions/analytics-actions'
 import { ALGORITHM_DEFAULTS, AlgorithmSettings } from '@/lib/algorithm-settings'
 import type {
   DateRange,
@@ -298,11 +298,16 @@ export default function ScanAnalyticsView() {
     setClassifyMsg('Wetterdaten werden geladen...')
     try {
       const weatherResult = await adminFetchWeatherForUnprocessed()
+      
+      setClassifyMsg('Bier-Kontext (Uhrzeit/Temp) wird berechnet...')
+      await adminAggregateCisBrewContext()
+
       if (weatherResult && weatherResult.ok && weatherResult.processed && weatherResult.processed > 0) {
         setClassifyMsg(`${weatherResult.processed} Wetter-Datenpunkte geladen. Klassifiziere...`)
       } else {
         setClassifyMsg('Klassifiziere Scans...')
       }
+      
       const result = await classifyCisScans()
       setClassifyMsg(`✓ ${result.session} Scans klassifiziert (${result.nonQr} Non-QR)`)
       await loadData()

@@ -7,11 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.1"
-  }
   graphql_public: {
     Tables: {
       [_ in never]: never
@@ -2806,6 +2801,7 @@ export type Database = {
           banner_url: string | null
           bio: string | null
           birthdate: string | null
+          botlguide_insights_enabled: boolean
           custom_brewery_slogan: string | null
           display_name: string | null
           founded_year: number | null
@@ -2836,6 +2832,7 @@ export type Database = {
           banner_url?: string | null
           bio?: string | null
           birthdate?: string | null
+          botlguide_insights_enabled?: boolean
           custom_brewery_slogan?: string | null
           display_name?: string | null
           founded_year?: number | null
@@ -2866,6 +2863,7 @@ export type Database = {
           banner_url?: string | null
           bio?: string | null
           birthdate?: string | null
+          botlguide_insights_enabled?: boolean
           custom_brewery_slogan?: string | null
           display_name?: string | null
           founded_year?: number | null
@@ -3678,6 +3676,7 @@ export type Database = {
         Args: { brew_id: string; new_score: number }
         Returns: undefined
       }
+      aggregate_cis_brew_context: { Args: never; Returns: undefined }
       append_timeline_entry: {
         Args: { p_new_entry: Json; p_session_id: string }
         Returns: Json
@@ -3740,6 +3739,7 @@ export type Database = {
               collab_score: number
             }[]
           }
+      get_db_health_stats: { Args: never; Returns: Json }
       get_featured_brews_public: {
         Args: never
         Returns: {
@@ -4074,3 +4074,4 @@ export const Constants = {
     },
   },
 } as const
+
