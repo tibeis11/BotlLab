@@ -2173,21 +2173,43 @@ export async function getRecentCisScans(): Promise<CisRecentScan[]> {
   const phase1Map = new Map<string, { local_time: string | null; brew_name: string | null; typical_scan_hour: number | null; typical_temperature: number | null }>();
   try {
     const scanIds = scans.map((s: any) => s.id);
-    const { data: p1, error: p1Err } = await (supabase as any)
+    
+    // First, reliably get the brew names (which definitely exist)
+    const { data: p0 } = await (supabase as any)
       .from('bottle_scans')
-      .select('id, local_time, brews ( name, typical_scan_hour, typical_temperature )')
+      .select('id, scanned_at_hour, brews(name)')
       .in('id', scanIds);
-    if (!p1Err && p1) {
-      for (const row of p1) {
+      
+    if (p0) {
+      for (const row of p0) {
         phase1Map.set(row.id, {
-          local_time: row.local_time ?? null,
+          local_time: row.scanned_at_hour?.toString() ?? null,
           brew_name: row.brews?.name ?? null,
-          typical_scan_hour: row.brews?.typical_scan_hour ?? null,
-          typical_temperature: row.brews?.typical_temperature ?? null,
+          typical_scan_hour: null,
+          typical_temperature: null,
         });
       }
     }
-  } catch { /* Phase 1 columns not available yet */ }
+
+    // Then attempt to get Phase 1 columns if migrated
+    const { data: p1, error: p1Err } = await (supabase as any)
+      .from('bottle_scans')
+      .select('id, brews ( typical_scan_hour, typical_temperature )')
+      .in('id', scanIds);
+      
+    if (!p1Err && p1) {
+      for (const row of p1) {
+        const existing = phase1Map.get(row.id);
+        if (existing) {
+          existing.typical_scan_hour = row.brews?.typical_scan_hour ?? null;
+          existing.typical_temperature = row.brews?.typical_temperature ?? null;
+        }
+      }
+    } else if (p1Err) {
+      // It is expected to fail if the migration haven't added these to 'brews' yet
+      console.warn('DEBUG: Phase 1 brews columns not yet migrated.');
+    }
+  } catch { /* Suppress */ }
 
   const results: CisRecentScan[] = []
 
