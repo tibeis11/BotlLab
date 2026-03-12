@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase-server'
+import { createClient, createAdminClient } from '@/lib/supabase-server'
 import { headers } from 'next/headers'
 import crypto from 'crypto'
 import { ANALYTICS_TIER_FEATURES, UserTier } from '@/lib/analytics-tier-features'
@@ -2179,7 +2179,7 @@ export async function classifyBrowseScans(): Promise<number> {
 // (session window is considered closed at that point).
 // ============================================================================
 export async function classifyCisScans(): Promise<{ nonQr: number; session: number }> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   // ── Load live scoring config (falls back to CIS_SCORING hardcoded defaults) ──
   let cfg: {
@@ -2873,7 +2873,7 @@ export async function detectEventClusters(): Promise<{
   newEvents: number;
   notifiedBreweries: string[];
 }> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const notifiedBreweries: string[] = [];
 
   try {
