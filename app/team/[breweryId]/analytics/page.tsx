@@ -276,7 +276,7 @@ export default function BreweryAnalyticsPage() {
             <header className="flex flex-col gap-4 border-b border-border pb-6">
                 <div>
                    <h1 className="text-2xl font-bold text-text-primary tracking-tight">Analytics</h1>
-                   <p className="text-sm text-text-muted">Premium Feature - Upgrade benÃ¶tigt</p>
+                   <p className="text-sm text-text-muted">Premium Feature - Upgrade benötigt</p>
                 </div>
             </header>
 
@@ -294,27 +294,27 @@ export default function BreweryAnalyticsPage() {
 
           <div className="relative z-10 max-w-3xl">
             <div className="flex items-center gap-3 mb-4">
-              <div className="text-4xl">ðŸ”’</div>
+              <div className="text-4xl">🔒</div>
               <h2 className="text-2xl font-black text-text-primary">Analytics freischalten</h2>
             </div>
             
             <p className="text-text-secondary text-lg mb-6">
-              Erhalte wertvolle Einblicke in die PopularitÃ¤t deiner Biere. Sieh wo und wann deine QR-Codes gescannt werden.
+              Erhalte wertvolle Einblicke in die Popularität deiner Biere. Sieh wo und wann deine QR-Codes gescannt werden.
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
               <div className="bg-surface/50 rounded-2xl p-4 border border-border">
-                <div className="text-2xl mb-2">ðŸ“Š</div>
+                <div className="text-2xl mb-2">📊</div>
                 <div className="text-text-primary font-bold mb-1">Scan-Statistiken</div>
                 <div className="text-sm text-text-muted">Verfolge jeden QR-Scan deiner Flaschen</div>
               </div>
               <div className="bg-surface/50 rounded-2xl p-4 border border-border">
-                <div className="text-2xl mb-2">ðŸŒ</div>
+                <div className="text-2xl mb-2">🌍</div>
                 <div className="text-text-primary font-bold mb-1">Geografische Daten</div>
                 <div className="text-sm text-text-muted">Wo werden deine Biere getrunken?</div>
               </div>
               <div className="bg-surface/50 rounded-2xl p-4 border border-border">
-                <div className="text-2xl mb-2">ðŸ“ˆ</div>
+                <div className="text-2xl mb-2">📈</div>
                 <div className="text-text-primary font-bold mb-1">Trend-Analyse</div>
                 <div className="text-sm text-text-muted">Welche Rezepte sind beliebt?</div>
               </div>
@@ -331,12 +331,12 @@ export default function BreweryAnalyticsPage() {
                 href={`/team/${breweryId}`}
                 className="px-6 py-3 bg-surface-hover text-text-primary font-bold rounded-lg hover:bg-surface-hover transition-all"
               >
-                ZurÃ¼ck zum Team
+                Zurück zum Team
               </Link>
             </div>
 
             <div className="mt-6 text-xs text-text-disabled">
-              Ab Brewer+ Tier verfÃ¼gbar â€¢ Datenschutz-konform â€¢ Keine Cookies benÃ¶tigt
+              Ab Brewer+ Tier verfügbar • Datenschutz-konform • Keine Cookies benötigt
             </div>
           </div>
         </div>
@@ -358,24 +358,24 @@ export default function BreweryAnalyticsPage() {
               <tbody className="text-text-secondary">
                 <tr className="border-b border-border">
                   <td className="py-3">Analytics Dashboard</td>
-                  <td className="text-center">âŒ</td>
-                  <td className="text-center">âœ…</td>
-                  <td className="text-center">âœ…</td>
-                  <td className="text-center">âœ…</td>
+                  <td className="text-center">❌</td>
+                  <td className="text-center">✅</td>
+                  <td className="text-center">✅</td>
+                  <td className="text-center">✅</td>
                 </tr>
                 <tr className="border-b border-border">
                   <td className="py-3">Geschmacks-Details (1-10)</td>
-                  <td className="text-center">âŒ</td>
-                  <td className="text-center">âœ…</td>
-                  <td className="text-center">âœ…</td>
-                  <td className="text-center">âœ…</td>
+                  <td className="text-center">❌</td>
+                  <td className="text-center">✅</td>
+                  <td className="text-center">✅</td>
+                  <td className="text-center">✅</td>
                 </tr>
                 <tr className="border-b border-border">
                   <td className="py-3">Trend-Analyse & Timeline</td>
-                  <td className="text-center">âŒ</td>
-                  <td className="text-center">âœ…</td>
-                  <td className="text-center">âœ…</td>
-                  <td className="text-center">âœ…</td>
+                  <td className="text-center">❌</td>
+                  <td className="text-center">✅</td>
+                  <td className="text-center">✅</td>
+                  <td className="text-center">✅</td>
                 </tr>
                 <tr className="border-b border-border">
                   <td className="py-3">Daten-Historie</td>
@@ -393,17 +393,17 @@ export default function BreweryAnalyticsPage() {
                 </tr>
                 <tr className="border-b border-border">
                   <td className="py-3">CSV Export</td>
-                  <td className="text-center">âŒ</td>
-                  <td className="text-center">âŒ</td>
-                  <td className="text-center">âœ…</td>
-                  <td className="text-center">âœ…</td>
+                  <td className="text-center">❌</td>
+                  <td className="text-center">❌</td>
+                  <td className="text-center">✅</td>
+                  <td className="text-center">✅</td>
                 </tr>
                 <tr>
                   <td className="py-3">Advanced Filters</td>
-                  <td className="text-center">âŒ</td>
-                  <td className="text-center">âŒ</td>
-                  <td className="text-center">âœ…</td>
-                  <td className="text-center">âœ…</td>
+                  <td className="text-center">❌</td>
+                  <td className="text-center">❌</td>
+                  <td className="text-center">✅</td>
+                  <td className="text-center">✅</td>
                 </tr>
               </tbody>
             </table>
@@ -424,7 +424,7 @@ export default function BreweryAnalyticsPage() {
   if (!data) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-text-muted">Keine Daten verfÃ¼gbar</div>
+        <div className="text-text-muted">Keine Daten verfügbar</div>
       </div>
     );
   }
@@ -483,7 +483,7 @@ export default function BreweryAnalyticsPage() {
         {/* Main layout: sidebar (desktop left) + content */}
         <div className="flex gap-6 pb-16 lg:pb-0">
 
-          {/* Sidebar â€” desktop only */}
+          {/* Sidebar ❌” desktop only */}
           <aside className="w-52 hidden lg:block shrink-0">
             <div className="sticky top-6">
               <AnalyticsSidebarNav activeSection={section} onNavigate={setSection} />
@@ -496,7 +496,7 @@ export default function BreweryAnalyticsPage() {
             {/* Mobile Nav */}
             <AnalyticsMobileNav activeSection={section} onNavigate={setSection} />
 
-            {/* Filter Toolbar â€” only visible for the overview section */}
+            {/* Filter Toolbar ❌” only visible for the overview section */}
             {section === 'overview' && (
               <div className="space-y-4">
                 <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
@@ -576,7 +576,7 @@ export default function BreweryAnalyticsPage() {
               </div>
             )}
 
-            {/* Active View â€” key triggers fade-in animation on section change */}
+            {/* Active View ❌” key triggers fade-in animation on section change */}
             <div key={section}>
               {section === 'overview' && (
                 <OverviewView
