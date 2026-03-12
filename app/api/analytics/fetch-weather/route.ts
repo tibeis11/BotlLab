@@ -31,7 +31,7 @@ export async function POST(req: Request) {
   // 1. Fetch unprocessed scans with known coordinates
   const { data: pending, error: fetchErr } = await sb
     .from('bottle_scans')
-    .select('id, latitude, longitude, scanned_at, created_at')
+    .select('id, latitude, longitude, created_at')
     .is('weather_fetched_at', null)
     .not('latitude', 'is', null)
     .not('longitude', 'is', null)
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
       id:        r.id,
       latitude:  r.latitude  as number,
       longitude: r.longitude as number,
-      scannedAt: (r.scanned_at ?? r.created_at) as string,
+      scannedAt: r.created_at as string,
     })),
   );
 
