@@ -19,7 +19,7 @@ import {
   getAlgorithmSettings,
   saveAlgorithmSettings,
 } from '@/lib/actions/brew-admin-actions'
-import { classifyCisScans } from '@/lib/actions/analytics-actions'
+import { classifyCisScans, adminFetchWeatherForUnprocessed } from '@/lib/actions/analytics-actions'
 import { ALGORITHM_DEFAULTS, AlgorithmSettings } from '@/lib/algorithm-settings'
 import type {
   DateRange,
@@ -295,8 +295,14 @@ export default function ScanAnalyticsView() {
 
   async function runClassification() {
     setClassifying(true)
-    setClassifyMsg(null)
+    setClassifyMsg('Wetterdaten werden geladen...')
     try {
+      const weatherResult = await adminFetchWeatherForUnprocessed()
+      if (weatherResult && weatherResult.ok && weatherResult.processed && weatherResult.processed > 0) {
+        setClassifyMsg(`${weatherResult.processed} Wetter-Datenpunkte geladen. Klassifiziere...`)
+      } else {
+        setClassifyMsg('Klassifiziere Scans...')
+      }
       const result = await classifyCisScans()
       setClassifyMsg(`✓ ${result.session} Scans klassifiziert (${result.nonQr} Non-QR)`)
       await loadData()
@@ -518,7 +524,7 @@ export default function ScanAnalyticsView() {
                   disabled={classifying}
                   className="text-xs px-3 py-1.5 rounded-lg border border-(--border) text-(--text-secondary) hover:text-(--text-primary) hover:border-(--brand) disabled:opacity-50 transition-colors"
                 >
-                  {classifying ? 'Klassifiziert…' : 'Jetzt klassifizieren'}
+                  {classifying ? 'Wird verarbeitet…' : 'Jetzt klassifizieren'}
                 </button>
               </div>
             </div>

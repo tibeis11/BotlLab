@@ -5,6 +5,7 @@ import { headers } from 'next/headers'
 import crypto from 'crypto'
 import { ANALYTICS_TIER_FEATURES, UserTier } from '@/lib/analytics-tier-features'
 import { getAlgorithmSettings } from '@/lib/algorithm-settings'
+import { fetchWeatherBatch } from '@/lib/weather-service'
 
 type AnalyticsCategory = 'monetization' | 'ux' | 'system' | 'engagement' | 'ai' | 'content';
 
@@ -4090,4 +4091,49 @@ export async function getVibeTimeHeatmap(
     vibes: [...vibeSet].sort(),
     totalChecks,
   };
+}
+
+export async function adminFetchWeatherForUnprocessed() {
+  const supabase = await createAdminClient()
+  const BATCH_SIZE = 50
+
+  const { data: pending, error: fetchErr } = await (supabase as any)
+    .from('bottle_scans')
+    .select('id, latitude, longitude, created_at')
+    .is('weather_fetched_at', null)
+    .not('latitude', 'is', null)
+    .not('longitude', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(BATCH_SIZE)
+
+  if (fetchErr) return { ok: false, error: fetchErr.message }
+  if (!pending || pending.length === 0) return { ok: true, processed: 0 }
+
+  const results = await fetchWeatherBatch(
+    pending.map((r: any) => ({
+      id:        r.id,
+      latitude:  r.latitude  as number,
+      longitude: r.longitude as number,
+      scannedAt: r.created_at as string,
+    }))
+  );
+
+  let processed = 0;
+  const now = new Date().toISOString();
+
+  for (const result of results) {
+    const w = result.weather;
+    await (supabase as any)
+      .from('bottle_scans')
+      .update({
+        weather_temp_c:     w?.tempC     ?? null,
+        weather_condition:  w?.condition ?? 'unavailable',
+        weather_category:   w?.category  ?? null,
+        weather_is_outdoor: w?.isOutdoor ?? null,
+        weather_fetched_at: now,
+      } as never)
+      .eq('id', result.id);
+    processed++;
+  }
+  return { ok: true, processed }
 }
