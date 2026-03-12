@@ -36,7 +36,7 @@ const DEVICE_COLORS: Record<string, string> = {
   mobile: 'bg-blue-500',
   desktop: 'bg-cyan-500',
   tablet: 'bg-purple-500',
-  unknown: 'bg-zinc-600',
+  unknown: 'bg-border',
 }
 
 const DEVICE_LABELS: Record<string, string> = {
@@ -109,7 +109,7 @@ function CisSettingRow({
           )}
         </div>
         <span className={`text-xs font-mono tabular-nums pl-4 shrink-0 ${
-          value > 0 ? 'text-emerald-400' : value < 0 ? 'text-red-400' : 'text-(--text-muted)'
+          value > 0 ? 'text-success' : value < 0 ? 'text-error' : 'text-(--text-muted)'
         }`}>
           {formatted}
         </span>
@@ -135,11 +135,11 @@ function CisSettingRow({
 }
 
 const INTENT_BADGE: Record<string, string> = {
-  single: 'bg-emerald-950 text-emerald-400 border-emerald-900',
-  browse: 'bg-amber-950 text-amber-400 border-amber-900',
-  fridge_surf: 'bg-red-950 text-red-400 border-red-900',
-  social_discovery: 'bg-blue-950 text-blue-400 border-blue-900',
-  non_qr: 'bg-zinc-800 text-zinc-400 border-zinc-700',
+  single: 'bg-success-bg text-success border-success/30',
+  browse: 'bg-warning-bg text-warning border-warning/30',
+  fridge_surf: 'bg-error-bg text-error border-error/30',
+  social_discovery: 'bg-brand-bg text-brand border-brand/30',
+  non_qr: 'bg-surface-hover text-text-secondary border-border',
 }
 
 function ScanTraceCard({ scan }: { scan: CisRecentScan }) {
@@ -193,14 +193,14 @@ function ScanTraceCard({ scan }: { scan: CisRecentScan }) {
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {scan.scanIntent && (
-            <span className={`text-[10px] px-2 py-0.5 rounded-full border font-medium ${INTENT_BADGE[scan.scanIntent] ?? 'bg-zinc-800 text-zinc-400 border-zinc-700'}`}>
+            <span className={`text-[10px] px-1.5 py-0.5 rounded border font-mono tracking-wide ${INTENT_BADGE[scan.scanIntent] ?? 'bg-surface-hover text-text-secondary border-border'}`}>
               {scan.scanIntent}
             </span>
           )}
           <span className={`text-sm font-mono font-bold ${
-            (scan.drinkingProbability ?? 0) >= 0.45 ? 'text-emerald-400'
-            : (scan.drinkingProbability ?? 0) >= 0.15 ? 'text-amber-400'
-            : 'text-red-400'
+            (scan.drinkingProbability ?? 0) >= 0.45 ? 'text-success'
+            : (scan.drinkingProbability ?? 0) >= 0.15 ? 'text-warning'
+            : 'text-error'
           }`}>
             {scan.breakdown.isHardZero ? '0.00' : (scan.drinkingProbability ?? 0).toFixed(2)}
           </span>
@@ -220,8 +220,8 @@ function ScanTraceCard({ scan }: { scan: CisRecentScan }) {
               )}
             </div>
             <span className={`font-mono tabular-nums pl-4 shrink-0 ${
-              f.value > 0 ? 'text-emerald-400'
-              : f.value < 0 ? 'text-red-400'
+              f.value > 0 ? 'text-success'
+              : f.value < 0 ? 'text-error'
               : 'text-(--text-disabled)'
             }`}>
               {f.value > 0 ? '+' : ''}{f.value.toFixed(2)}
@@ -232,9 +232,9 @@ function ScanTraceCard({ scan }: { scan: CisRecentScan }) {
           <div className="flex items-center justify-between pt-1.5 mt-1 border-t border-(--border)/50 text-[11px] font-semibold">
             <span className="text-(--text-secondary)">= Endergebnis (geclamppt)</span>
             <span className={`font-mono tabular-nums pl-4 ${
-              (scan.drinkingProbability ?? 0) >= 0.45 ? 'text-emerald-400'
-              : (scan.drinkingProbability ?? 0) >= 0.15 ? 'text-amber-400'
-              : 'text-red-400'
+              (scan.drinkingProbability ?? 0) >= 0.45 ? 'text-success'
+              : (scan.drinkingProbability ?? 0) >= 0.15 ? 'text-warning'
+              : 'text-error'
             }`}>
               {(scan.drinkingProbability ?? 0).toFixed(2)}
             </span>
@@ -374,8 +374,8 @@ export default function ScanAnalyticsView() {
 
   if (!overview) {
     return (
-      <div className="bg-zinc-900/50 border border-red-800 rounded-xl p-8 text-center">
-        <p className="text-red-400">Fehler beim Laden der Daten</p>
+      <div className="bg-error-bg border border-error/30 rounded-xl p-8 text-center">
+        <p className="text-error">Fehler beim Laden der Daten</p>
       </div>
     )
   }
@@ -454,7 +454,7 @@ export default function ScanAnalyticsView() {
               <div className="mt-3 space-y-1.5">
                 {devices.map(d => (
                   <div key={d.deviceType} className="flex items-center gap-2 text-xs text-(--text-secondary)">
-                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${DEVICE_COLORS[d.deviceType] ?? 'bg-zinc-600'}`} />
+                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${DEVICE_COLORS[d.deviceType] ?? 'bg-border'}`} />
                     <span>{DEVICE_LABELS[d.deviceType] ?? d.deviceType}</span>
                     <span className="ml-auto">{d.count.toLocaleString()} ({d.pct}%)</span>
                   </div>
@@ -520,7 +520,7 @@ export default function ScanAnalyticsView() {
               </div>
               <div className="flex items-center gap-3 shrink-0">
                 {classifyMsg && (
-                  <span className={`text-xs ${classifyMsg.startsWith('✓') ? 'text-emerald-400' : 'text-red-400'}`}>
+                  <span className={`text-xs ${classifyMsg.startsWith('✓') ? 'text-success' : 'text-error'}`}>
                     {classifyMsg}
                   </span>
                 )}
@@ -553,7 +553,7 @@ export default function ScanAnalyticsView() {
             </div>
             <div className="bg-(--surface) border border-(--border) rounded-xl p-4">
               <p className="text-xs text-(--text-muted) uppercase tracking-wider mb-1">Hard Proofs</p>
-              <p className="text-2xl font-mono font-semibold text-emerald-400">
+              <p className="text-2xl font-mono font-semibold text-success">
                 {cis.confirmedScans.toLocaleString()}
               </p>
               <p className="text-[10px] text-(--text-disabled) mt-1">
@@ -563,7 +563,7 @@ export default function ScanAnalyticsView() {
             <div className="bg-(--surface) border border-(--border) rounded-xl p-4">
               <p className="text-xs text-(--text-muted) uppercase tracking-wider mb-1">Klassifizierungs-Backlog</p>
               <p className={`text-2xl font-mono font-semibold ${
-                cis.pendingClassification > 500 ? 'text-amber-400' : 'text-(--text-primary)'
+                cis.pendingClassification > 500 ? 'text-warning' : 'text-(--text-primary)'
               }`}>
                 {cis.pendingClassification.toLocaleString()}
               </p>
@@ -587,7 +587,7 @@ export default function ScanAnalyticsView() {
                     <div className="flex justify-between text-xs text-(--text-secondary) mb-1">
                       <span className="flex items-center gap-1.5">
                         {row.isHardZero && (
-                          <span className="text-[9px] px-1 py-0.5 rounded bg-red-950 text-red-400 border border-red-800 uppercase tracking-wider">
+                          <span className="text-[9px] px-1 py-0.5 rounded bg-error-bg text-error border border-error/30 uppercase tracking-wider">
                             0.0
                           </span>
                         )}
@@ -598,7 +598,7 @@ export default function ScanAnalyticsView() {
                     <div className="h-1.5 bg-(--surface-hover) rounded-full overflow-hidden">
                       <div
                         className={`h-1.5 rounded-full ${
-                          row.isHardZero ? 'bg-red-700/60' : 'bg-(--brand)'
+                          row.isHardZero ? 'bg-error' : 'bg-(--brand)'
                         }`}
                         style={{ width: `${row.pct}%` }}
                       />
@@ -631,9 +631,9 @@ export default function ScanAnalyticsView() {
                         <td className="text-right py-1.5 font-mono text-(--text-secondary)">{row.count.toLocaleString()}</td>
                         <td className="text-right py-1.5 font-mono text-(--text-secondary)">{row.pct}%</td>
                         <td className={`text-right py-1.5 font-mono ${
-                          row.avgProbability >= 0.7 ? 'text-emerald-400'
-                          : row.avgProbability >= 0.3 ? 'text-amber-400'
-                          : 'text-red-400'
+                          row.avgProbability >= 0.7 ? 'text-success'
+                          : row.avgProbability >= 0.3 ? 'text-warning'
+                          : 'text-error'
                         }`}>
                           {row.avgProbability.toFixed(3)}
                         </td>
@@ -704,7 +704,7 @@ export default function ScanAnalyticsView() {
             {cisSaving ? 'Speichern…' : 'Speichern'}
           </button>
           {cisMsg && (
-            <span className={`text-xs ${cisMsg.startsWith('✓') ? 'text-emerald-400' : 'text-red-400'}`}>
+            <span className={`text-xs ${cisMsg.startsWith('✓') ? 'text-success' : 'text-error'}`}>
               {cisMsg}
             </span>
           )}
@@ -787,9 +787,9 @@ export default function ScanAnalyticsView() {
                     <td className="py-2 pr-4 text-right font-mono text-(--text-secondary)">{(ev.breweries ?? []).length}</td>
                     <td className="py-2 text-right">
                       <span className={`font-mono text-xs ${
-                        ev.confidence >= 0.8 ? 'text-emerald-400'
-                        : ev.confidence >= 0.5 ? 'text-amber-400'
-                        : 'text-red-400'
+                        ev.confidence >= 0.8 ? 'text-success'
+                        : ev.confidence >= 0.5 ? 'text-warning'
+                        : 'text-error'
                       }`}>
                         {(ev.confidence * 100).toFixed(0)}%
                       </span>
