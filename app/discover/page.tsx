@@ -50,13 +50,14 @@ function mapBrew(b: any) {
   };
 }
 
-async function getInitialBrews() {
+async function getInitialBrews(minQuality = 0) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('brews')
     .select(BREW_SELECT)
     .eq('is_public', true)
     .neq('moderation_status', 'pending')
+    .gte('quality_score', minQuality)
     .order('quality_score', { ascending: false })
     .range(0, BREW_PAGE_SIZE - 1);
   if (error) { console.error('[SSR] Error loading brews:', error.message); return []; }
@@ -65,13 +66,14 @@ async function getInitialBrews() {
 
 // Top-10 nach trending_score — DB-seitig sortiert, vollständig unabhängig vom
 // Infinite-Scroll-Batch (der nach quality_score paginiert)
-async function getTrendingBrews() {
+async function getTrendingBrews(minQuality = 0) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('brews')
     .select(BREW_SELECT)
     .eq('is_public', true)
     .neq('moderation_status', 'pending')
+    .gte('quality_score', minQuality)
     .order('trending_score', { ascending: false })
     .limit(10);
   if (error) { console.error('[SSR] Error loading trending:', error.message); return []; }
@@ -117,12 +119,18 @@ const FACTS = [
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default async function DiscoverPage() {
-  // Parallel — unabhängige Queries, kein Waterfall
-  const [initialBrews, initialTrending, initialFeatured, settings, algoSettings] = await Promise.all([
-    getInitialBrews(),
-    getTrendingBrews(),
+  // Settings zuerst laden — minQualityScore wird für alle drei Queries benötigt
+  const settings = await getDiscoverSettings().catch(() => ({
+    discover_min_quality_score: 0,
+    discover_featured_section_label: 'Empfohlen',
+    collab_diversity_cap: 3,
+  }));
+  const minQuality = settings.discover_min_quality_score ?? 0;
+
+  const [initialBrews, initialTrending, initialFeatured, algoSettings] = await Promise.all([
+    getInitialBrews(minQuality),
+    getTrendingBrews(minQuality),
     getFeaturedBrews(),
-    getDiscoverSettings().catch(() => ({ collab_diversity_cap: 3 })),
     getAlgorithmSettings().catch(() => undefined),
   ]);
 
@@ -137,6 +145,7 @@ export default async function DiscoverPage() {
           initialFeatured={initialFeatured} 
           initialRandomFact={randomFact}
           collabDiversityCap={settings.collab_diversity_cap ?? 3}
+          featuredSectionLabel={settings.discover_featured_section_label ?? 'Empfohlen'}
           algoSettings={algoSettings}
         />
       </Suspense>

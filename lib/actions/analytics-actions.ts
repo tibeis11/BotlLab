@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase-server'
 import { headers } from 'next/headers'
 import crypto from 'crypto'
 import { ANALYTICS_TIER_FEATURES, UserTier } from '@/lib/analytics-tier-features'
+import { getAlgorithmSettings } from '@/lib/algorithm-settings'
 
 type AnalyticsCategory = 'monetization' | 'ux' | 'system' | 'engagement' | 'ai' | 'content';
 
@@ -309,6 +310,9 @@ export async function trackBottleScan(
     /** Phase 10: Optional GPS coordinates from navigator.geolocation (double opt-in) */
     gpsLat?: number;
     gpsLng?: number;
+    /** CIS Environment Context: client-reported local time (ISO 8601 + TZ offset).
+     * The server runs UTC; this is the only way to know the user's actual hour. */
+    localTime?: string;
   }
 ) {
   try {
@@ -473,6 +477,8 @@ export async function trackBottleScan(
       utm_campaign:      payload?.utmCampaign    || null,
       referrer_domain:   payload?.referrerDomain || null,
       bottle_age_days:   bottleAgeDays,
+      // CIS Environment Context: store acknowledged local time for timezone-correct scoring
+      local_time:        payload?.localTime || null,
     });
     
     if (error) {
@@ -2131,6 +2137,13 @@ const CIS_SCORING = {
   LAST_IN_SESSION_BONUS:    0.20,  // No follow-up scan on a different bottle within SESSION_WINDOW_MS
   SESSION_WINDOW_MS:        15 * 60 * 1000,  // 15 minutes
   DWELL_TIME_THRESHOLD_S:   180,             // 3 minutes
+  // ── CIS Environment Context modifiers (2026-03-17) ──────────────────────
+  // Max cumulative effect: +0.25 / -0.25 (keeps these as light fine-tuning)
+  DYNAMIC_TIME_BONUS:       0.15,  // local_time is within ±2h of brew's typical_scan_hour
+  DYNAMIC_TIME_PENALTY:    -0.15,  // local_time is >5h away from brew's typical_scan_hour
+  DYNAMIC_TEMP_BONUS:       0.05,  // weather_temp_c is within ±5°C of brew's typical_temperature
+  DYNAMIC_TEMP_PENALTY:    -0.05,  // weather_temp_c is >12°C away from brew's typical_temperature
+  WEEKEND_HOLIDAY_BONUS:    0.05,  // scan on Friday evening, weekend or public holiday
 } as const;
 
 /**
@@ -2167,12 +2180,50 @@ export async function classifyBrowseScans(): Promise<number> {
 // ============================================================================
 export async function classifyCisScans(): Promise<{ nonQr: number; session: number }> {
   const supabase = await createClient();
-  const sessionCutoff = new Date(Date.now() - CIS_SCORING.SESSION_WINDOW_MS).toISOString();
+
+  // ── Load live scoring config (falls back to CIS_SCORING hardcoded defaults) ──
+  let cfg: {
+    BASE_SCORE: number;
+    FRIDGE_SURFING_PENALTY: number;
+    DWELL_TIME_BONUS: number;
+    LAST_IN_SESSION_BONUS: number;
+    SESSION_WINDOW_MS: number;
+    DWELL_TIME_THRESHOLD_S: number;
+    DYNAMIC_TIME_BONUS: number;
+    DYNAMIC_TIME_PENALTY: number;
+    DYNAMIC_TEMP_BONUS: number;
+    DYNAMIC_TEMP_PENALTY: number;
+    WEEKEND_HOLIDAY_BONUS: number;
+  } = { ...CIS_SCORING };
+  try {
+    const s = await getAlgorithmSettings();
+    cfg = {
+      BASE_SCORE:               s.cis_base_score,
+      FRIDGE_SURFING_PENALTY:   s.cis_fridge_surfing_penalty,
+      DWELL_TIME_BONUS:         s.cis_dwell_time_bonus,
+      LAST_IN_SESSION_BONUS:    s.cis_last_in_session_bonus,
+      SESSION_WINDOW_MS:        s.cis_session_window_minutes * 60 * 1000,
+      DWELL_TIME_THRESHOLD_S:   s.cis_dwell_time_threshold_s,
+      DYNAMIC_TIME_BONUS:       s.cis_dynamic_time_bonus,
+      DYNAMIC_TIME_PENALTY:     s.cis_dynamic_time_penalty,
+      DYNAMIC_TEMP_BONUS:       s.cis_dynamic_temp_bonus,
+      DYNAMIC_TEMP_PENALTY:     s.cis_dynamic_temp_penalty,
+      WEEKEND_HOLIDAY_BONUS:    s.cis_weekend_holiday_bonus,
+    };
+  } catch {
+    // keep hardcoded defaults on error
+  }
+
+  const sessionCutoff = new Date(Date.now() - cfg.SESSION_WINDOW_MS).toISOString();
 
   // ── 1. Load unclassified scans older than 15 min ──────────────────────────
   const { data: scans, error } = await (supabase as any)
     .from('bottle_scans')
-    .select('id, session_hash, bottle_id, brew_id, scan_source, dwell_seconds, created_at')
+    .select(`
+      id, session_hash, bottle_id, brew_id, scan_source, dwell_seconds, created_at,
+      local_time, weather_temp_c, country_code,
+      brews ( typical_scan_hour, typical_temperature )
+    `)
     .is('scan_intent', null)
     .lte('created_at', sessionCutoff)
     .order('created_at', { ascending: true })
@@ -2224,7 +2275,7 @@ export async function classifyCisScans(): Promise<{ nonQr: number; session: numb
     }
 
     // Additive scoring for QR scans ─────────────────────────────────────────
-    let score: number = CIS_SCORING.BASE_SCORE;
+    let score: number = cfg.BASE_SCORE;
     const thisScanTime = new Date(scan.created_at).getTime();
     const sessionScans = sessionContext.get(scan.session_hash ?? '') ?? [];
 
@@ -2233,19 +2284,71 @@ export async function classifyCisScans(): Promise<{ nonQr: number; session: numb
       if (s.id === scan.id) return false;
       if (s.bottle_id === scan.bottle_id) return false; // Re-scan of same bottle: not surfing
       const delta = new Date(s.created_at).getTime() - thisScanTime;
-      return delta > 0 && delta < CIS_SCORING.SESSION_WINDOW_MS;
+      return delta > 0 && delta < cfg.SESSION_WINDOW_MS;
     });
 
     if (hasFollowUpOnDifferentBottle) {
-      score += CIS_SCORING.FRIDGE_SURFING_PENALTY; // –0.40
+      score += cfg.FRIDGE_SURFING_PENALTY; // –0.40
     } else {
       // "Decision scan" — this is where the user committed
-      score += CIS_SCORING.LAST_IN_SESSION_BONUS; // +0.20
+      score += cfg.LAST_IN_SESSION_BONUS; // +0.20
     }
 
     // Dwell time bonus — only fires once dwell_seconds is populated (Phase 0.3)
-    if (scan.dwell_seconds != null && scan.dwell_seconds >= CIS_SCORING.DWELL_TIME_THRESHOLD_S) {
-      score += CIS_SCORING.DWELL_TIME_BONUS; // +0.40
+    if (scan.dwell_seconds != null && scan.dwell_seconds >= cfg.DWELL_TIME_THRESHOLD_S) {
+      score += cfg.DWELL_TIME_BONUS; // +0.40
+    }
+
+    // ── CIS Environment Context modifiers (Phase 1, 2026-03-17) ─────────────────
+
+    // Dynamic Time Modifier — compare local scan hour with brew's learned peak hour.
+    // local_time is stored as wall-clock (no TZ) so getHours() on a UTC server
+    // correctly returns the user's local hour.
+    const brewTypicalHour: number | null = scan.brews?.typical_scan_hour ?? null;
+    if (brewTypicalHour !== null && scan.local_time != null) {
+      const scanLocalHour = new Date(scan.local_time).getHours();
+      let hourDiff = Math.abs(scanLocalHour - brewTypicalHour);
+      if (hourDiff > 12) hourDiff = 24 - hourDiff; // cyclic wrap (e.g. 23h vs 1h → diff = 2)
+      if (hourDiff <= 2) {
+        score += cfg.DYNAMIC_TIME_BONUS;   // +0.15 — perfect time window
+      } else if (hourDiff > 5) {
+        score += cfg.DYNAMIC_TIME_PENALTY; // −0.15 — atypical time
+      }
+      // Soft zone (2 < diff ≤ 5): no modifier applied
+    }
+
+    // Dynamic Temperature Modifier — compare scan weather vs brew's learned temperature.
+    // Only fires when both the scan has weather data and the brew has a baseline.
+    const brewTypicalTemp: number | null = scan.brews?.typical_temperature ?? null;
+    if (brewTypicalTemp !== null && scan.weather_temp_c != null) {
+      const tempDiff = Math.abs(scan.weather_temp_c - brewTypicalTemp);
+      if (tempDiff <= 5) {
+        score += cfg.DYNAMIC_TEMP_BONUS;   // +0.05 — weather matches brew profile
+      } else if (tempDiff > 12) {
+        score += cfg.DYNAMIC_TEMP_PENALTY; // −0.05 — clearly wrong weather for this brew
+      }
+    }
+
+    // Weekend / Holiday Modifier — Friday evening, weekend, or public holiday in
+    // the scan's country (falls back to DE when country_code is unknown).
+    if (scan.local_time != null) {
+      try {
+        // Dynamic import so date-holidays is only loaded when needed
+        const { default: Holidays } = await import('date-holidays');
+        const countryCode = (scan.country_code as string | null) || 'DE';
+        const hd = new Holidays(countryCode);
+        const localDate = new Date(scan.local_time);
+        const dow  = localDate.getDay();   // 0 = Sun, 5 = Fri, 6 = Sat
+        const hour = localDate.getHours();
+        const isFridayEvening = dow === 5 && hour >= 17;
+        const isWeekend       = dow === 0 || dow === 6;
+        const isHoliday       = hd.isHoliday(localDate) !== false;
+        if (isFridayEvening || isWeekend || isHoliday) {
+          score += cfg.WEEKEND_HOLIDAY_BONUS; // +0.05
+        }
+      } catch {
+        // date-holidays failure must never break classifyCisScans
+      }
     }
 
     // Clamp to [0.0, 1.0]

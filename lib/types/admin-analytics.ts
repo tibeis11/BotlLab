@@ -290,6 +290,40 @@ export type CisOverview = {
   confirmedRate: number
 }
 
+// ── CIS Scan Trace (recent scans with scoring breakdown) ───────────────────
+export type CisScoringBreakdown = {
+  isHardZero: boolean
+  base: number
+  fridgeSurf: number        // 0 or negative penalty
+  lastInSession: number     // 0 or positive bonus
+  dwellTime: number         // 0 or positive bonus
+  dynamicTime: number       // negative, 0, or positive
+  dynamicTemp: number       // negative, 0, or positive
+  weekendHoliday: number    // 0 or positive bonus
+  total: number
+  // contextual values for display
+  scanLocalHour: number | null
+  typicalScanHour: number | null
+  hourDiff: number | null
+  scanTempC: number | null
+  typicalTempC: number | null
+  tempDiff: number | null
+  isWeekend: boolean
+  isHoliday: boolean
+  isFridayEvening: boolean
+}
+
+export type CisRecentScan = {
+  id: string
+  createdAt: string
+  brewName: string | null
+  brewId: string | null
+  scanSource: string
+  scanIntent: string | null
+  drinkingProbability: number | null
+  breakdown: CisScoringBreakdown
+}
+
 export type CisFalseNegative = {
   scanId: string
   userId: string

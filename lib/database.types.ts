@@ -1159,6 +1159,7 @@ export type Database = {
           id: string
           is_owner_scan: boolean | null
           latitude: number | null
+          local_time: string | null
           longitude: number | null
           referrer_domain: string | null
           scan_intent: string | null
@@ -1197,6 +1198,7 @@ export type Database = {
           id?: string
           is_owner_scan?: boolean | null
           latitude?: number | null
+          local_time?: string | null
           longitude?: number | null
           referrer_domain?: string | null
           scan_intent?: string | null
@@ -1235,6 +1237,7 @@ export type Database = {
           id?: string
           is_owner_scan?: boolean | null
           latitude?: number | null
+          local_time?: string | null
           longitude?: number | null
           referrer_domain?: string | null
           scan_intent?: string | null
@@ -1883,6 +1886,8 @@ export type Database = {
           times_brewed: number
           trending_score: number | null
           trending_score_override: number | null
+          typical_scan_hour: number | null
+          typical_temperature: number | null
           user_id: string | null
           view_count: number
         }
@@ -1920,6 +1925,8 @@ export type Database = {
           times_brewed?: number
           trending_score?: number | null
           trending_score_override?: number | null
+          typical_scan_hour?: number | null
+          typical_temperature?: number | null
           user_id?: string | null
           view_count?: number
         }
@@ -1957,6 +1964,8 @@ export type Database = {
           times_brewed?: number
           trending_score?: number | null
           trending_score_override?: number | null
+          typical_scan_hour?: number | null
+          typical_temperature?: number | null
           user_id?: string | null
           view_count?: number
         }

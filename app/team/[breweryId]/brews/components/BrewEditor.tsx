@@ -255,6 +255,40 @@ function pickRandomCapColor() {
     return CAP_COLOR_PALETTE[Math.floor(Math.random() * CAP_COLOR_PALETTE.length)];
 }
 
+const COLOR_PALETTES: { id: string; label: string; dot: string; prompt: string }[] = [
+    { id: 'warm_earth',  label: 'Warme Erde',      dot: '#A0522D', prompt: 'warm earthy tones: terracotta, burnt sienna, warm beige, deep brown' },
+    { id: 'noir',        label: 'Noir / Dunkel',   dot: '#1a1a2e', prompt: 'dark noir palette: deep black, charcoal, midnight blue, muted gold accents' },
+    { id: 'pastel',      label: 'Pastell',         dot: '#f9c6d0', prompt: 'soft pastel palette: blush pink, lavender, mint green, pale yellow, cream' },
+    { id: 'vivid',       label: 'Knallig / Bunt',  dot: '#FF3E00', prompt: 'vibrant vivid palette: electric red, royal blue, neon yellow, bold orange' },
+    { id: 'forest',      label: 'Wald / Natur',    dot: '#2d6a4f', prompt: 'deep nature palette: forest green, moss, pine, rich soil brown, stone grey' },
+    { id: 'ocean',       label: 'Ozean',           dot: '#0077b6', prompt: 'ocean palette: deep navy, turquoise, seafoam, sandy beige, coral accents' },
+    { id: 'gold_black',  label: 'Gold & Schwarz',  dot: '#FFD700', prompt: 'luxurious black and gold palette: matte black, polished gold, dark bronze' },
+    { id: 'monochrome',  label: 'Monochrom',       dot: '#888888', prompt: 'strict monochrome palette: black, white and shades of grey only' },
+    { id: 'autumn',      label: 'Herbst',          dot: '#D2691E', prompt: 'autumn harvest palette: pumpkin orange, maple red, golden yellow, dark bark brown' },
+    { id: 'nordic_cold', label: 'Nordisch Kalt',   dot: '#b8d8e8', prompt: 'cold nordic palette: icy blue, snow white, steel grey, pale birch' },
+];
+
+const LABEL_STYLES: { id: string; label: string; prompt: string }[] = [
+    { id: 'vintage',      label: 'Vintage / Retro',    prompt: 'vintage retro illustration style' },
+    { id: 'art_deco',     label: 'Art Deco',            prompt: 'art deco style with geometric elegance and ornamental details' },
+    { id: 'minimalist',   label: 'Minimalistisch',      prompt: 'clean minimalist modern design with a limited color palette' },
+    { id: 'illustrative', label: 'Illustrativ',         prompt: 'detailed hand-drawn illustration style' },
+    { id: 'watercolor',   label: 'Aquarell',            prompt: 'soft expressive watercolor painting style' },
+    { id: 'geometric',    label: 'Geometrisch',         prompt: 'bold geometric shapes and abstract patterns' },
+    { id: 'psychedelic',  label: 'Psychedelisch',       prompt: 'psychedelic swirling colorful surreal style' },
+    { id: 'botanical',    label: 'Botanisch',           prompt: 'intricate botanical nature illustration style' },
+    { id: 'comic',        label: 'Comic',               prompt: 'bold comic book style with strong outlines and vibrant flat colors' },
+    { id: 'pixel',        label: 'Pixel Art',           prompt: 'retro pixel art style with crisp pixels and limited color palette' },
+    { id: 'woodcut',      label: 'Holzschnitt',         prompt: 'traditional woodcut printmaking style with bold lines and hatching' },
+    { id: 'japanese',     label: 'Japanisch',           prompt: 'japanese ukiyo-e woodblock print style with flat areas of color and fine outlines' },
+    { id: 'oil_painting', label: 'Ölgemälde',           prompt: 'rich classical oil painting style with visible brushstrokes and dramatic lighting' },
+    { id: 'grunge',       label: 'Grunge',              prompt: 'grungy distressed texture style with rough edges and dark industrial feel' },
+    { id: 'stained_glass',label: 'Glasmalerei',         prompt: 'stained glass window style with bold black outlines and vibrant translucent color fields' },
+    { id: 'nordic',       label: 'Nordisch',            prompt: 'nordic folk art style with ornamental knotwork and muted natural tones' },
+    { id: 'surreal',      label: 'Surreal',             prompt: 'surrealist dreamlike imagery with unexpected juxtapositions and painterly detail' },
+    { id: 'flat_design',  label: 'Flat Design',         prompt: 'modern flat design with simple shapes and a clean two-tone color scheme' },
+];
+
 export default function BrewEditor({ breweryId, brewId }: { breweryId: string, brewId?: string }) {
     const supabase = useSupabase();
     const router = useRouter();
@@ -309,6 +343,8 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
     const [activeTab, setActiveTab] = useState<'input' | 'label' | 'caps' | 'optimization' | 'ratings' | 'flavor' | 'settings'>('input');
     const [premiumStatus, setPremiumStatus] = useState<PremiumStatus | null>(null);
     const [extraPrompt, setExtraPrompt] = useState('');
+    const [labelStyle, setLabelStyle] = useState<string | null>(null);
+    const [labelColorPalette, setLabelColorPalette] = useState<string | null>(null);
     const [legalModalOpen, setLegalModalOpen] = useState(false);
     const [legalModalType, setLegalModalType] = useState<'label' | 'cap' | null>(null);
 
@@ -980,15 +1016,19 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
             if (d.coloring) typePrompt.push(`Coloring used`);
         }
 
+        const selectedStyle = LABEL_STYLES.find(s => s.id === labelStyle);
+        const selectedPalette = COLOR_PALETTES.find(p => p.id === labelColorPalette);
         const promptParts = [
             `Create a pure illustration label design for ${brew.name || 'dein Brew'}.`,
             brew.style ? `Style: ${brew.style}.` : '',
             brew.description ? `Visual theme: ${brew.description}.` : '',
             typePrompt.length ? `Context: ${typePrompt.join(', ')}.` : '',
-            extraPrompt ? `Additional style: ${extraPrompt}` : '',
+            selectedStyle ? `Art style: ${selectedStyle.prompt}.` : '',
+            selectedPalette ? `Color palette: ${selectedPalette.prompt}.` : '',
+            extraPrompt ? `Additional details: ${extraPrompt}` : '',
             'IMPORTANT: Pure illustration artwork only, absolutely NO TEXT, NO LETTERS, NO WORDS, NO TYPOGRAPHY on the label.',
             'Text-free design, visual artwork only.',
-            'High detail, vibrant colors, artistic illustration, 1:1 aspect ratio.'
+            'High detail, artistic illustration, 1:1 aspect ratio.'
         ].filter(Boolean);
 
         try {
@@ -1416,13 +1456,15 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
         setMessage(null);
 
         try {
+            const selectedStyle = LABEL_STYLES.find(s => s.id === labelStyle);
+            const selectedPalette = COLOR_PALETTES.find(p => p.id === labelColorPalette);
             const response = await fetch('/api/botlguide', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     capability: 'copywriter.label_prompt',
                     context: { brewStyle: brew.style, brewType: brew.brew_type, recipeName: brew.name },
-                    data: {}
+                    data: { labelStyle: selectedStyle?.prompt ?? null, labelColorPalette: selectedPalette?.prompt ?? null }
                 })
             });
 
@@ -2877,6 +2919,49 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
 
                                     {/* Controls */}
                                     <div className="space-y-4">
+                                        {/* Art Style Selector */}
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] uppercase font-bold tracking-widest text-text-disabled">Stil-Vorgabe</label>
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {LABEL_STYLES.map(s => (
+                                                    <button
+                                                        key={s.id}
+                                                        type="button"
+                                                        onClick={() => { setLabelStyle(prev => { const next = prev === s.id ? null : s.id; if (next !== prev) setExtraPrompt(''); return next; }); }}
+                                                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide border transition ${
+                                                            labelStyle === s.id
+                                                                ? 'bg-accent-purple text-white border-accent-purple'
+                                                                : 'bg-surface border-border text-text-secondary hover:border-accent-purple/50'
+                                                        }`}
+                                                    >
+                                                        {s.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Color Palette Selector */}
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] uppercase font-bold tracking-widest text-text-disabled">Farbpalette</label>
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {COLOR_PALETTES.map(p => (
+                                                    <button
+                                                        key={p.id}
+                                                        type="button"
+                                                        onClick={() => setLabelColorPalette(prev => prev === p.id ? null : p.id)}
+                                                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide border transition ${
+                                                            labelColorPalette === p.id
+                                                                ? 'bg-accent-purple text-white border-accent-purple'
+                                                                : 'bg-surface border-border text-text-secondary hover:border-accent-purple/50'
+                                                        }`}
+                                                    >
+                                                        <span className="w-2.5 h-2.5 rounded-full flex-shrink-0 border border-white/20" style={{ backgroundColor: p.dot }} />
+                                                        {p.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
                                         <div className="space-y-1.5">
                                             <div className="flex items-center justify-between">
                                                 <label className="text-[10px] uppercase font-bold tracking-widest text-text-disabled">Zusatz-Prompt (optional)</label>

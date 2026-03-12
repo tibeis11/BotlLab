@@ -63,6 +63,7 @@ export default function DiscoverClient({
   initialFeatured,
   initialRandomFact,
   collabDiversityCap = 3,
+  featuredSectionLabel = 'Empfohlen',
   algoSettings,
 }: { 
   initialBrews: Brew[]; 
@@ -71,6 +72,8 @@ export default function DiscoverClient({
   initialRandomFact: string;
   /** Diversity-Cap aus platform_settings.collab_diversity_cap (SSR) */
   collabDiversityCap?: number;
+  /** Überschrift des Featured-Bereichs aus platform_settings (SSR) */
+  featuredSectionLabel?: string;
   /** Admin-konfigurierbare Algorithmus-Parameter (SSR) */
   algoSettings?: AlgorithmSettings;
 }) {
@@ -1417,10 +1420,10 @@ export default function DiscoverClient({
                  {featured.length > 0 && (
                    <Section
                      icon={<BadgeCheck className="w-5 h-5 text-purple-500" />}
-                     title="Empfohlen"
+                     title={featuredSectionLabel}
                      items={featured}
                      layout="hero-scroll"
-                     onMore={() => setMoreSection({ title: 'Empfohlen', items: featured })}
+                     onMore={() => setMoreSection({ title: featuredSectionLabel, items: featured })}
                      currentUserId={currentUserId}
                      isAdmin={isAdmin}
                      likedBrewIds={likedBrewIds}

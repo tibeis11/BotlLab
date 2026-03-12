@@ -247,6 +247,16 @@ export default function PublicScanPage() {
               utmMedium,
               utmCampaign,
               referrerDomain,
+              // CIS Environment Context: send local wall-clock time WITHOUT Z so the
+              // server can do timezone-correct hour extraction.
+              // Shift by timezone offset so e.g. UTC+1 21:00 becomes "T21:00" string,
+              // not "T20:00" (what toISOString() would give on a UTC client).
+              localTime: (() => {
+                const n = new Date();
+                return new Date(n.getTime() - n.getTimezoneOffset() * 60000)
+                  .toISOString()
+                  .replace('Z', '');
+              })(),
             });
 
             if (typeof sessionStorage !== 'undefined') {

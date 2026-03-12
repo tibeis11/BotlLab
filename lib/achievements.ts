@@ -130,8 +130,15 @@ export async function checkAndGrantAchievements(userId: string, client?: Supabas
 
   const existingIds = new Set(existing?.map(e => e.achievement_id) || []);
 
+  // Nur IDs verwenden, die tatsächlich in der achievements-Tabelle existieren
+  const { data: validAchievements } = await supabase
+    .from('achievements')
+    .select('id')
+    .in('id', toGrant);
+  const validIds = new Set(validAchievements?.map(a => a.id) || []);
+
   // Nur neue Achievements vergeben
-  const newAchievements = toGrant.filter(id => !existingIds.has(id));
+  const newAchievements = toGrant.filter(id => !existingIds.has(id) && validIds.has(id));
 
   if (newAchievements.length > 0) {
     // Session-Check nur für den Default-Client (client-seitig).

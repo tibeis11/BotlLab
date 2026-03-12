@@ -453,6 +453,30 @@ export default function ModelAccuracyView() {
             </div>
           ))}
         </div>
+
+        {/* Environment Context modifiers (added 2026-03-17) */}
+        <div className="mt-4 pt-4 border-t border-(--border)">
+          <div className="flex items-center gap-1.5 mb-3">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-(--text-disabled)">Environment Context</span>
+            <span className="text-[9px] text-(--text-disabled) opacity-60">— datengetrieben, max. ±0.25</span>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+            {[
+              { label: 'Dynamic Time Bonus', value: '+0.15', color: 'text-emerald-400', desc: 'Scan (lokale Zeit) ≤ 2h von typischer Trinkzeit des Brews' },
+              { label: 'Dynamic Time Penalty', value: '−0.15', color: 'text-red-400', desc: 'Scan > 5h von typischer Trinkzeit entfernt' },
+              { label: 'Dynamic Temp Bonus', value: '+0.05', color: 'text-emerald-400', desc: 'Scan-Wetter ±5°C vom historischen Brew-Profil' },
+              { label: 'Dynamic Temp Penalty', value: '−0.05', color: 'text-red-400', desc: 'Scan-Wetter > 12°C Abweichung vom Brew-Profil' },
+              { label: 'Weekend / Holiday Bonus', value: '+0.05', color: 'text-emerald-400', desc: 'Freitagabend ≥ 17h, Wochenende oder Feiertag (lokal)' },
+            ].map(item => (
+              <div key={item.label} className="bg-(--surface-hover)/60 rounded-lg p-3">
+                <div className={`text-lg font-mono font-semibold ${item.color} mb-1`}>{item.value}</div>
+                <div className="text-[11px] text-(--text-secondary) font-medium">{item.label}</div>
+                <div className="text-[10px] text-(--text-disabled) mt-0.5">{item.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="mt-4 text-[10px] text-(--text-disabled) border-t border-(--border) pt-3">
           Intent-Label-Mapping: Score &lt; 0.15 → <code className="text-(--text-secondary)">fridge_surf</code> ·
           0.15–0.44 → <code className="text-(--text-secondary)">browse</code> ·

@@ -27,7 +27,7 @@ interface OverviewData {
 }
 
 const ACTION_COLOR = {
-  ok: 'border-zinc-700 bg-zinc-900',
+  ok: 'border-(--border) bg-(--surface)',
   warn: 'border-amber-700/50 bg-amber-950/30',
   danger: 'border-red-700/50 bg-red-950/30',
 }
@@ -70,8 +70,8 @@ export default function OverviewView() {
     return (
       <div className="flex items-center justify-center py-24">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-zinc-400">Lade Operations-Center…</p>
+          <div className="w-12 h-12 border-4 border-(--brand) border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-(--text-muted)">Lade Operations-Center…</p>
         </div>
       </div>
     )
@@ -79,7 +79,7 @@ export default function OverviewView() {
 
   if (!data) {
     return (
-      <div className="bg-zinc-900/50 border border-red-800 rounded-xl p-8 text-center">
+      <div className="bg-(--surface) border border-red-800 rounded-xl p-8 text-center">
         <p className="text-red-400">Fehler beim Laden der Daten</p>
       </div>
     )
@@ -95,11 +95,11 @@ export default function OverviewView() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-white">Operations Center</h1>
-          <p className="text-zinc-500 text-sm mt-0.5">
+          <h1 className="text-xl font-bold text-(--text-primary)">Operations Center</h1>
+          <p className="text-(--text-muted) text-sm mt-0.5">
             Live-Überblick über Plattformgesundheit und offene Aufgaben
             {lastUpdated && (
-              <span className="ml-2 text-zinc-600">
+              <span className="ml-2 text-(--text-disabled)">
                 · Aktualisiert {lastUpdated.toLocaleTimeString('de-DE', { timeStyle: 'short' })}
               </span>
             )}
@@ -108,7 +108,7 @@ export default function OverviewView() {
         <button
           onClick={() => loadData(true)}
           disabled={refreshing}
-          className="flex items-center gap-2 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs rounded-lg border border-zinc-700 transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-3 py-1.5 bg-(--surface) hover:bg-(--surface-hover) text-(--text-secondary) text-xs rounded-lg border border-(--border) transition-colors disabled:opacity-50"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
           Aktualisieren
@@ -126,9 +126,9 @@ export default function OverviewView() {
       </div>
 
       {/* Action Items */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+      <div className="bg-(--surface) border border-(--border) rounded-xl p-5">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider">
+          <h2 className="text-sm font-semibold text-(--text-secondary) uppercase tracking-wider">
             Handlungsbedarf
           </h2>
           {totalActionItems > 0 ? (
@@ -145,51 +145,51 @@ export default function OverviewView() {
           {/* Moderation */}
           <div className={`rounded-lg border p-4 flex items-start justify-between gap-3 ${moderationCount > 0 ? ACTION_COLOR.warn : ACTION_COLOR.ok}`}>
             <div className="flex items-center gap-3">
-              <Shield className={`w-5 h-5 flex-shrink-0 ${moderationCount > 0 ? 'text-amber-400' : 'text-zinc-500'}`} />
+              <Shield className={`w-5 h-5 flex-shrink-0 ${moderationCount > 0 ? 'text-amber-400' : 'text-(--text-disabled)'}`} />
               <div>
-                <p className="text-xs text-zinc-400 font-medium">Moderation-Queue</p>
-                <p className={`text-xl font-bold mt-0.5 ${moderationCount > 0 ? 'text-amber-300' : 'text-zinc-300'}`}>
+                <p className="text-xs text-(--text-secondary) font-medium">Moderation-Queue</p>
+                <p className={`text-xl font-bold mt-0.5 ${moderationCount > 0 ? 'text-amber-300' : 'text-(--text-primary)'}`}>
                   {moderationCount}
                 </p>
               </div>
             </div>
-            <span className="text-zinc-600 text-xs">ausstehend</span>
+            <span className="text-(--text-disabled) text-xs">ausstehend</span>
           </div>
 
           {/* Alerts */}
           <div className={`rounded-lg border p-4 flex items-start justify-between gap-3 ${alertCount > 0 ? ACTION_COLOR.danger : ACTION_COLOR.ok}`}>
             <div className="flex items-center gap-3">
-              <AlertTriangle className={`w-5 h-5 flex-shrink-0 ${alertCount > 0 ? 'text-red-400' : 'text-zinc-500'}`} />
+              <AlertTriangle className={`w-5 h-5 flex-shrink-0 ${alertCount > 0 ? 'text-red-400' : 'text-(--text-disabled)'}`} />
               <div>
-                <p className="text-xs text-zinc-400 font-medium">Unbestätigte Alerts</p>
-                <p className={`text-xl font-bold mt-0.5 ${alertCount > 0 ? 'text-red-300' : 'text-zinc-300'}`}>
+                <p className="text-xs text-(--text-secondary) font-medium">Unbestätigte Alerts</p>
+                <p className={`text-xl font-bold mt-0.5 ${alertCount > 0 ? 'text-red-300' : 'text-(--text-primary)'}`}>
                   {alertCount}
                 </p>
               </div>
             </div>
-            <span className="text-zinc-600 text-xs">neu</span>
+            <span className="text-(--text-disabled) text-xs">neu</span>
           </div>
 
           {/* Failed email reports */}
           <div className={`rounded-lg border p-4 flex items-start justify-between gap-3 ${failedEmails > 0 ? ACTION_COLOR.warn : ACTION_COLOR.ok}`}>
             <div className="flex items-center gap-3">
-              <Mail className={`w-5 h-5 flex-shrink-0 ${failedEmails > 0 ? 'text-amber-400' : 'text-zinc-500'}`} />
+              <Mail className={`w-5 h-5 flex-shrink-0 ${failedEmails > 0 ? 'text-amber-400' : 'text-(--text-disabled)'}`} />
               <div>
-                <p className="text-xs text-zinc-400 font-medium">E-Mail-Fehler (30d)</p>
-                <p className={`text-xl font-bold mt-0.5 ${failedEmails > 0 ? 'text-amber-300' : 'text-zinc-300'}`}>
+                <p className="text-xs text-(--text-secondary) font-medium">E-Mail-Fehler (30d)</p>
+                <p className={`text-xl font-bold mt-0.5 ${failedEmails > 0 ? 'text-amber-300' : 'text-(--text-primary)'}`}>
                   {failedEmails}
                 </p>
               </div>
             </div>
-            <span className="text-zinc-600 text-xs">fehlgeschl.</span>
+            <span className="text-(--text-disabled) text-xs">fehlgeschl.</span>
           </div>
         </div>
       </div>
 
       {/* 7-Day Sparklines */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-zinc-300 mb-4 uppercase tracking-wider">
+        <div className="bg-(--surface) border border-(--border) rounded-xl p-5">
+          <h2 className="text-sm font-semibold text-(--text-secondary) mb-4 uppercase tracking-wider">
             Aktive Nutzer (letzte 7 Tage)
           </h2>
           <BarChart
@@ -199,8 +199,8 @@ export default function OverviewView() {
             height={180}
           />
         </div>
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-zinc-300 mb-4 uppercase tracking-wider">
+        <div className="bg-(--surface) border border-(--border) rounded-xl p-5">
+          <h2 className="text-sm font-semibold text-(--text-secondary) mb-4 uppercase tracking-wider">
             QR-Scans (letzte 30 Tage)
           </h2>
           <BarChart
@@ -213,30 +213,30 @@ export default function OverviewView() {
       </div>
 
       {/* Recent Audit Log */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-zinc-800 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider">
+      <div className="bg-(--surface) border border-(--border) rounded-xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-(--border) flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-(--text-secondary) uppercase tracking-wider">
             Letzte Admin-Aktionen
           </h2>
-          <span className="text-xs text-zinc-500">Letzte 5 Einträge</span>
+          <span className="text-xs text-(--text-muted)">Letzte 5 Einträge</span>
         </div>
-        <div className="divide-y divide-zinc-800/50">
+        <div className="divide-y divide-(--border)">
           {auditLogs.length === 0 ? (
-            <p className="px-5 py-6 text-center text-zinc-500 text-sm">
+            <p className="px-5 py-6 text-center text-(--text-muted) text-sm">
               Noch keine Audit-Log-Einträge
             </p>
           ) : (
             auditLogs.map(log => (
-              <div key={log.id} className="px-5 py-3 flex items-start justify-between gap-4 hover:bg-zinc-800/40 transition-colors">
+              <div key={log.id} className="px-5 py-3 flex items-start justify-between gap-4 hover:bg-(--surface-hover) transition-colors">
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs text-zinc-300 font-medium">{log.action}</p>
+                  <p className="text-xs text-(--text-primary) font-medium">{log.action}</p>
                   {log.resource_id && (
-                    <p className="text-xs text-zinc-500 mt-0.5 font-mono">
+                    <p className="text-xs text-(--text-muted) mt-0.5 font-mono">
                       {log.resource_id.length > 20 ? `${log.resource_id.slice(0, 20)}…` : log.resource_id}
                     </p>
                   )}
                 </div>
-                <span className="text-zinc-600 text-xs flex-shrink-0">
+                <span className="text-(--text-disabled) text-xs flex-shrink-0">
                   {new Date(log.created_at).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })}
                 </span>
               </div>

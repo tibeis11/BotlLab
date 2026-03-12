@@ -28,6 +28,8 @@ import {
   TopScanBrew,
   CisOverview,
   CisFalseNegativeSummary,
+  CisRecentScan,
+  CisScoringBreakdown,
   EnterpriseCode,
   AdminScanEvent,
   NonceStats,
@@ -2147,4 +2149,122 @@ export async function getDbHealthStats(): Promise<DbHealthStats> {
       totalSizeBytes: Number(t.total_size_bytes ?? 0),
     })),
   }
+}
+
+// ── CIS Recent Scans with Scoring Breakdown ───────────────────────────────
+export async function getRecentCisScans(): Promise<CisRecentScan[]> {
+  const supabase = await createClient()
+
+  const { data: scans, error } = await (supabase as any)
+    .from('bottle_scans')
+    .select(`
+      id, created_at, scan_source, scan_intent, drinking_probability,
+      dwell_seconds, local_time, weather_temp_c, country_code,
+      brew_id,
+      brews ( name, typical_scan_hour, typical_temperature )
+    `)
+    .not('scan_intent', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(5)
+
+  if (error || !scans) return []
+
+  const results: CisRecentScan[] = []
+
+  for (const scan of scans) {
+    const isHardZero = scan.scan_source !== 'qr_code'
+
+    let breakdown: CisScoringBreakdown
+    if (isHardZero) {
+      breakdown = {
+        isHardZero: true,
+        base: 0, fridgeSurf: 0, lastInSession: 0, dwellTime: 0,
+        dynamicTime: 0, dynamicTemp: 0, weekendHoliday: 0,
+        total: 0,
+        scanLocalHour: null, typicalScanHour: null, hourDiff: null,
+        scanTempC: null, typicalTempC: null, tempDiff: null,
+        isWeekend: false, isHoliday: false, isFridayEvening: false,
+      }
+    } else {
+      const base = 0.30
+
+      // Sessions modifier — derived from scan_intent (the stored result of session scoring)
+      const fridgeSurf      = scan.scan_intent === 'fridge_surf' ? -0.40 : 0
+      const lastInSession   = scan.scan_intent !== 'fridge_surf' ? 0.20 : 0
+
+      // Dwell time bonus
+      const dwellTime = (scan.dwell_seconds != null && scan.dwell_seconds >= 180) ? 0.40 : 0
+
+      // Dynamic time modifier
+      const typicalScanHour: number | null = scan.brews?.typical_scan_hour ?? null
+      let scanLocalHour: number | null = null
+      let hourDiff: number | null = null
+      let dynamicTime = 0
+      if (typicalScanHour !== null && scan.local_time != null) {
+        scanLocalHour = new Date(scan.local_time).getHours()
+        let diff = Math.abs(scanLocalHour - typicalScanHour)
+        if (diff > 12) diff = 24 - diff
+        hourDiff = diff
+        if (diff <= 2) dynamicTime = 0.15
+        else if (diff > 5) dynamicTime = -0.15
+      }
+
+      // Dynamic temperature modifier
+      const typicalTempC: number | null = scan.brews?.typical_temperature ?? null
+      const scanTempC: number | null = scan.weather_temp_c ?? null
+      let tempDiff: number | null = null
+      let dynamicTemp = 0
+      if (typicalTempC !== null && scanTempC !== null) {
+        tempDiff = Math.abs(scanTempC - typicalTempC)
+        if (tempDiff <= 5) dynamicTemp = 0.05
+        else if (tempDiff > 12) dynamicTemp = -0.05
+      }
+
+      // Weekend / holiday modifier
+      let isWeekend = false
+      let isHoliday = false
+      let isFridayEvening = false
+      let weekendHoliday = 0
+      if (scan.local_time != null) {
+        try {
+          const { default: Holidays } = await import('date-holidays')
+          const countryCode = (scan.country_code as string | null) || 'DE'
+          const hd = new Holidays(countryCode)
+          const localDate = new Date(scan.local_time)
+          const dow  = localDate.getDay()
+          const hour = localDate.getHours()
+          isFridayEvening = dow === 5 && hour >= 17
+          isWeekend = dow === 0 || dow === 6
+          isHoliday = hd.isHoliday(localDate) !== false
+          if (isFridayEvening || isWeekend || isHoliday) weekendHoliday = 0.05
+        } catch { /* ignore */ }
+      }
+
+      const rawTotal = base + fridgeSurf + lastInSession + dwellTime + dynamicTime + dynamicTemp + weekendHoliday
+      const total = Math.max(0.0, Math.min(1.0, rawTotal))
+
+      breakdown = {
+        isHardZero: false,
+        base, fridgeSurf, lastInSession, dwellTime,
+        dynamicTime, dynamicTemp, weekendHoliday,
+        total,
+        scanLocalHour, typicalScanHour, hourDiff,
+        scanTempC, typicalTempC, tempDiff,
+        isWeekend, isHoliday, isFridayEvening,
+      }
+    }
+
+    results.push({
+      id: scan.id,
+      createdAt: scan.created_at,
+      brewName: scan.brews?.name ?? null,
+      brewId: scan.brew_id ?? null,
+      scanSource: scan.scan_source,
+      scanIntent: scan.scan_intent,
+      drinkingProbability: scan.drinking_probability,
+      breakdown,
+    })
+  }
+
+  return results
 }

@@ -15,7 +15,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { createClient } from '@/lib/supabase-server';
+import { createClient, createAdminClient } from '@/lib/supabase-server';
 import { canUseAI, getUserPremiumStatus, trackAIUsage } from '@/lib/premium-checks';
 import { trackEvent } from '@/lib/actions/analytics-actions';
 import {
@@ -148,12 +148,13 @@ interface AuditLogEntry {
 }
 
 async function logBotlGuideAudit(
-  supabaseClient: SupabaseClient,
+  _supabaseClient: SupabaseClient,
   entry: AuditLogEntry,
 ) {
   try {
+    const admin = createAdminClient();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabaseClient as any).from('botlguide_audit_log').insert({
+    await (admin as any).from('botlguide_audit_log').insert({
       user_id: entry.userId,
       brewery_id: entry.breweryId,
       capability: entry.capability,
@@ -837,16 +838,24 @@ Now write a description:`;
 // ── Copywriter.LabelPrompt ────────────────────────────────────────────────────
 
 function buildCopywriterLabelPromptPrompt(ctx: BotlGuideSessionContext, data: Record<string, unknown>, brandVoiceContext?: string): string {
-  const brewType = (data.brewType ?? ctx.brewType ?? 'craft beverage') as string;
-  const name     = (data.name ?? ctx.recipeName ?? data.context ?? 'Beer') as string;
-  const style    = (data.style ?? ctx.brewStyle ?? 'Craft') as string;
+  const brewType        = (data.brewType ?? ctx.brewType ?? 'craft beverage') as string;
+  const name            = (data.name ?? ctx.recipeName ?? data.context ?? 'Beer') as string;
+  const style           = (data.style ?? ctx.brewStyle ?? 'Craft') as string;
+  const labelStyle      = data.labelStyle as string | undefined;
+  const labelColorPalette = data.labelColorPalette as string | undefined;
   const voiceSection = brandVoiceContext
     ? `\nBrewery Brand Voice (let this inform the visual mood and aesthetic):\n"${brandVoiceContext}"\n`
     : '';
-  return `Create a creative, detailed image generation prompt for a label of a ${brewType} named "${name}" with style "${style}".${voiceSection}
+  const styleConstraint = labelStyle
+    ? `\nMANDATORY ART STYLE: "${labelStyle}". The entire prompt MUST be written in this style. Do NOT suggest any other art style.\n`
+    : '';
+  const paletteConstraint = labelColorPalette
+    ? `\nMANDATORY COLOR PALETTE: "${labelColorPalette}". Stay strictly within these colors. Do NOT introduce other dominant colors.\n`
+    : '';
+  return `Create a creative, detailed image generation prompt for a label of a ${brewType} named "${name}" with style "${style}".${voiceSection}${styleConstraint}${paletteConstraint}
 
 Requirements:
-- Describe visual style, specific imagery, colors, and mood.
+- Describe specific imagery, colors, and mood.${labelStyle ? `\n- Art style is fixed: "${labelStyle}" — stay strictly within it.` : '\n- Include a fitting art style description.'}${labelColorPalette ? `\n- Color palette is fixed: "${labelColorPalette}" — do not deviate from it.` : ''}
 - Artistic and evocative. Under 50 words.
 - Return ONLY the prompt text in English (optimized for Google Imagen).
 

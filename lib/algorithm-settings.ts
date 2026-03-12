@@ -50,6 +50,21 @@ export const ALGORITHM_DEFAULTS = {
   // ── Personalisierung – Schwellen ──────────────────────────────
   rec_needs_data_threshold: 3,      // Min. eigene Brews für Personalisierung
   rec_collab_min_overlap: 2,        // Min. gemeinsame Likes für "ähnlicher User"
+
+  // ── CIS Engine – Kern-Modell ──────────────────────────────────
+  cis_base_score:               0.30,   // Startscore jeder QR-Session
+  cis_fridge_surfing_penalty:  -0.40,   // Andere Flasche in < session_window gescannt
+  cis_dwell_time_bonus:         0.40,   // Verweildauer >= threshold Sekunden
+  cis_last_in_session_bonus:    0.20,   // Kein Folgescan in session_window
+  cis_session_window_minutes:   15,     // Wie gross das Session-Fenster ist (min)
+  cis_dwell_time_threshold_s:   180,    // Verweildauer-Schwelle (Sekunden)
+
+  // ── CIS Engine – Environment-Kontext ─────────────────────────
+  cis_dynamic_time_bonus:       0.15,   // Scan in typischer Trinkzeit (±2h)
+  cis_dynamic_time_penalty:    -0.15,   // Scan weit weg von typischer Zeit (>5h)
+  cis_dynamic_temp_bonus:       0.05,   // Passende Außentemperatur (±5°C)
+  cis_dynamic_temp_penalty:    -0.05,   // Unpassende Temp (>12°C Abw.)
+  cis_weekend_holiday_bonus:    0.05,   // Freitagabend / Wochenende / Feiertag
 };
 
 export interface AlgorithmSettings {
@@ -79,6 +94,18 @@ export interface AlgorithmSettings {
   rec_diversity_exploration: number;
   rec_needs_data_threshold: number;
   rec_collab_min_overlap: number;
+  // CIS Engine
+  cis_base_score: number;
+  cis_fridge_surfing_penalty: number;
+  cis_dwell_time_bonus: number;
+  cis_last_in_session_bonus: number;
+  cis_session_window_minutes: number;
+  cis_dwell_time_threshold_s: number;
+  cis_dynamic_time_bonus: number;
+  cis_dynamic_time_penalty: number;
+  cis_dynamic_temp_bonus: number;
+  cis_dynamic_temp_penalty: number;
+  cis_weekend_holiday_bonus: number;
 }
 
 function getServiceRoleClient() {
@@ -135,6 +162,18 @@ export async function getAlgorithmSettings(): Promise<AlgorithmSettings> {
       rec_diversity_exploration:  p('rec_diversity_exploration'),
       rec_needs_data_threshold:   i('rec_needs_data_threshold'),
       rec_collab_min_overlap:     i('rec_collab_min_overlap'),
+      // CIS Engine
+      cis_base_score:               p('cis_base_score'),
+      cis_fridge_surfing_penalty:   p('cis_fridge_surfing_penalty'),
+      cis_dwell_time_bonus:         p('cis_dwell_time_bonus'),
+      cis_last_in_session_bonus:    p('cis_last_in_session_bonus'),
+      cis_session_window_minutes:   i('cis_session_window_minutes'),
+      cis_dwell_time_threshold_s:   i('cis_dwell_time_threshold_s'),
+      cis_dynamic_time_bonus:       p('cis_dynamic_time_bonus'),
+      cis_dynamic_time_penalty:     p('cis_dynamic_time_penalty'),
+      cis_dynamic_temp_bonus:       p('cis_dynamic_temp_bonus'),
+      cis_dynamic_temp_penalty:     p('cis_dynamic_temp_penalty'),
+      cis_weekend_holiday_bonus:    p('cis_weekend_holiday_bonus'),
     };
   } catch {
     // Fallback auf Defaults wenn DB nicht erreichbar

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Camera, Eye, TrendingUp, Zap, MapPin } from 'lucide-react'
+import { Camera, Eye, TrendingUp, Zap, MapPin, Settings, RotateCcw } from 'lucide-react'
 import MetricCard from '../components/MetricCard'
 import DateRangePicker from '../components/DateRangePicker'
 import BarChart from '../components/charts/BarChart'
@@ -13,7 +13,14 @@ import {
   getTopScanBrews,
   getCisOverview,
   getAdminScanEvents,
+  getRecentCisScans,
 } from '@/lib/actions/analytics-admin-actions'
+import {
+  getAlgorithmSettings,
+  saveAlgorithmSettings,
+} from '@/lib/actions/brew-admin-actions'
+import { classifyCisScans } from '@/lib/actions/analytics-actions'
+import { ALGORITHM_DEFAULTS, AlgorithmSettings } from '@/lib/algorithm-settings'
 import type {
   DateRange,
   ScanOverview,
@@ -22,6 +29,7 @@ import type {
   TopScanBrew,
   CisOverview,
   AdminScanEvent,
+  CisRecentScan,
 } from '@/lib/types/admin-analytics'
 
 const DEVICE_COLORS: Record<string, string> = {
@@ -50,6 +58,193 @@ function formatEventDate(iso: string) {
   return new Date(iso).toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
+// ── CIS settings config ───────────────────────────────────────────────────────
+type CisSettingField = {
+  key: keyof AlgorithmSettings
+  label: string
+  min: number
+  max: number
+  step: number
+  unit?: string
+  description?: string
+}
+
+const CIS_CORE_SETTINGS: CisSettingField[] = [
+  { key: 'cis_base_score', label: 'Basis-Score', min: 0, max: 1, step: 0.01, description: 'Startpunkt für jeden QR-Scan' },
+  { key: 'cis_fridge_surfing_penalty', label: 'Fridge-Surfing Penalty', min: -1, max: 0, step: 0.01, description: 'Abzug wenn weitere Flasche in selber Session folgt' },
+  { key: 'cis_dwell_time_bonus', label: 'Dwell-Time Bonus', min: 0, max: 1, step: 0.01, description: 'Bonus bei langem Verweilen auf der Seite' },
+  { key: 'cis_last_in_session_bonus', label: 'Last-in-Session Bonus', min: 0, max: 0.5, step: 0.01, description: 'Letzte Flasche der Entscheidungs-Session' },
+  { key: 'cis_session_window_minutes', label: 'Session-Fenster', min: 5, max: 120, step: 1, unit: 'min', description: 'Zeitfenster für Session-Kontext' },
+  { key: 'cis_dwell_time_threshold_s', label: 'Dwell-Schwelle', min: 30, max: 600, step: 10, unit: 's', description: 'Ab wann greift der Dwell-Bonus' },
+]
+
+const CIS_ENV_SETTINGS: CisSettingField[] = [
+  { key: 'cis_dynamic_time_bonus', label: 'Zeit-Bonus', min: 0, max: 0.5, step: 0.01, description: 'Scan zur typischen Uhrzeit (±2h)' },
+  { key: 'cis_dynamic_time_penalty', label: 'Zeit-Penalty', min: -0.5, max: 0, step: 0.01, description: 'Scan zu atypischer Zeit (>5h Abstand)' },
+  { key: 'cis_dynamic_temp_bonus', label: 'Temp-Bonus', min: 0, max: 0.2, step: 0.01, description: 'Wetter passend zur Bier-Temperatur (≤5°C)' },
+  { key: 'cis_dynamic_temp_penalty', label: 'Temp-Penalty', min: -0.2, max: 0, step: 0.01, description: 'Wetter unpassend (>12°C Abweichung)' },
+  { key: 'cis_weekend_holiday_bonus', label: 'Wochenend/Feiertag', min: 0, max: 0.2, step: 0.01, description: 'Fr. Abend, Wochenende oder Feiertag' },
+]
+
+function CisSettingRow({
+  field,
+  value,
+  onChange,
+}: {
+  field: CisSettingField
+  value: number
+  onChange: (v: number) => void
+}) {
+  const isDecimal = field.step < 1
+  const formatted = isDecimal
+    ? (value > 0 ? '+' : '') + value.toFixed(2) + (field.unit ? ` ${field.unit}` : '')
+    : (value > 0 ? '+' : '') + value.toFixed(0) + (field.unit ? ` ${field.unit}` : '')
+  return (
+    <div className="space-y-1">
+      <div className="flex justify-between items-center">
+        <div className="flex flex-col">
+          <span className="text-xs text-(--text-secondary) font-medium">{field.label}</span>
+          {field.description && (
+            <span className="text-[10px] text-(--text-disabled)">{field.description}</span>
+          )}
+        </div>
+        <span className={`text-xs font-mono tabular-nums pl-4 shrink-0 ${
+          value > 0 ? 'text-emerald-400' : value < 0 ? 'text-red-400' : 'text-(--text-muted)'
+        }`}>
+          {formatted}
+        </span>
+      </div>
+      <input
+        type="range"
+        min={field.min}
+        max={field.max}
+        step={field.step}
+        value={value}
+        onChange={(e) => onChange(parseFloat(e.target.value))}
+        className="w-full h-1.5 rounded-full appearance-none cursor-pointer accent-(--brand)"
+        style={{
+          background: field.min >= 0
+            ? 'linear-gradient(to right, var(--surface-hover) 40%, rgba(52,211,153,0.35) 100%)'
+            : field.max <= 0
+            ? 'linear-gradient(to right, rgba(248,113,113,0.35) 0%, var(--surface-hover) 60%)'
+            : 'linear-gradient(to right, rgba(248,113,113,0.25) 0%, var(--surface-hover) 30%, var(--surface-hover) 70%, rgba(52,211,153,0.25) 100%)',
+        }}
+      />
+    </div>
+  )
+}
+
+const INTENT_BADGE: Record<string, string> = {
+  single: 'bg-emerald-950 text-emerald-400 border-emerald-900',
+  browse: 'bg-amber-950 text-amber-400 border-amber-900',
+  fridge_surf: 'bg-red-950 text-red-400 border-red-900',
+  social_discovery: 'bg-blue-950 text-blue-400 border-blue-900',
+  non_qr: 'bg-zinc-800 text-zinc-400 border-zinc-700',
+}
+
+function ScanTraceCard({ scan }: { scan: CisRecentScan }) {
+  const b = scan.breakdown
+  const factors: { label: string; value: number; context?: string }[] = b.isHardZero
+    ? [{ label: 'Hard Zero (kein QR-Scan)', value: 0, context: `source = ${scan.scanSource}` }]
+    : [
+        { label: 'Basis-Score', value: b.base },
+        {
+          label: b.fridgeSurf !== 0 ? 'Fridge-Surfing Penalty' : 'Last-in-Session Bonus',
+          value: b.fridgeSurf !== 0 ? b.fridgeSurf : b.lastInSession,
+          context: b.fridgeSurf !== 0 ? 'weitere Flasche in Session gescannt' : 'letzter Scan in Session',
+        },
+        {
+          label: 'Dwell-Time',
+          value: b.dwellTime,
+          context: b.dwellTime !== 0 ? `≥ 180s verweilt` : 'kein Dwell-Bonus',
+        },
+        {
+          label: 'Zeit-Modifier',
+          value: b.dynamicTime,
+          context: b.hourDiff != null
+            ? `Scan ${b.scanLocalHour}h · typisch ${b.typicalScanHour}h · Δ ${b.hourDiff}h`
+            : 'keine Daten',
+        },
+        {
+          label: 'Temp-Modifier',
+          value: b.dynamicTemp,
+          context: b.tempDiff != null
+            ? `Scan ${b.scanTempC?.toFixed(1)}°C · typisch ${b.typicalTempC?.toFixed(1)}°C · Δ ${b.tempDiff?.toFixed(1)}°C`
+            : 'keine Wetterdaten',
+        },
+        {
+          label: 'Wochenend/Feiertag',
+          value: b.weekendHoliday,
+          context: b.isHoliday ? 'Feiertag' : b.isWeekend ? 'Wochenende' : b.isFridayEvening ? 'Freitag Abend' : 'kein Effekt',
+        },
+      ]
+
+  return (
+    <div className="bg-(--surface) border border-(--border) rounded-xl p-4 space-y-3">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-(--text-primary) truncate">
+            {scan.brewName ?? '(unbekanntes Bier)'}
+          </p>
+          <p className="text-[11px] text-(--text-disabled) mt-0.5">
+            {new Date(scan.createdAt).toLocaleString('de-DE', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {scan.scanIntent && (
+            <span className={`text-[10px] px-2 py-0.5 rounded-full border font-medium ${INTENT_BADGE[scan.scanIntent] ?? 'bg-zinc-800 text-zinc-400 border-zinc-700'}`}>
+              {scan.scanIntent}
+            </span>
+          )}
+          <span className={`text-sm font-mono font-bold ${
+            (scan.drinkingProbability ?? 0) >= 0.45 ? 'text-emerald-400'
+            : (scan.drinkingProbability ?? 0) >= 0.15 ? 'text-amber-400'
+            : 'text-red-400'
+          }`}>
+            {scan.breakdown.isHardZero ? '0.00' : (scan.drinkingProbability ?? 0).toFixed(2)}
+          </span>
+        </div>
+      </div>
+
+      {/* Breakdown */}
+      <div className="border-t border-(--border)/50 pt-3 space-y-1.5">
+        {factors.map((f, i) => (
+          <div key={i} className="flex items-center justify-between text-[11px]">
+            <div className="flex flex-col">
+              <span className={f.value === 0 && !b.isHardZero ? 'text-(--text-disabled)' : 'text-(--text-secondary)'}>
+                {f.label}
+              </span>
+              {f.context && (
+                <span className="text-[10px] text-(--text-disabled)">{f.context}</span>
+              )}
+            </div>
+            <span className={`font-mono tabular-nums pl-4 shrink-0 ${
+              f.value > 0 ? 'text-emerald-400'
+              : f.value < 0 ? 'text-red-400'
+              : 'text-(--text-disabled)'
+            }`}>
+              {f.value > 0 ? '+' : ''}{f.value.toFixed(2)}
+            </span>
+          </div>
+        ))}
+        {!b.isHardZero && (
+          <div className="flex items-center justify-between pt-1.5 mt-1 border-t border-(--border)/50 text-[11px] font-semibold">
+            <span className="text-(--text-secondary)">= Endergebnis (geclamppt)</span>
+            <span className={`font-mono tabular-nums pl-4 ${
+              (scan.drinkingProbability ?? 0) >= 0.45 ? 'text-emerald-400'
+              : (scan.drinkingProbability ?? 0) >= 0.15 ? 'text-amber-400'
+              : 'text-red-400'
+            }`}>
+              {(scan.drinkingProbability ?? 0).toFixed(2)}
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function ScanAnalyticsView() {
   const [dateRange, setDateRange] = useState<DateRange>('30d')
   const [loading, setLoading] = useState(true)
@@ -59,6 +254,12 @@ export default function ScanAnalyticsView() {
   const [topBrews, setTopBrews] = useState<TopScanBrew[]>([])
   const [cis, setCis] = useState<CisOverview | null>(null)
   const [scanEvents, setScanEvents] = useState<AdminScanEvent[]>([])
+  const [cisLocalSettings, setCisLocalSettings] = useState<AlgorithmSettings>({ ...ALGORITHM_DEFAULTS })
+  const [cisSaving, setCisSaving] = useState(false)
+  const [cisMsg, setCisMsg] = useState<string | null>(null)
+  const [recentScans, setRecentScans] = useState<CisRecentScan[]>([])
+  const [classifying, setClassifying] = useState(false)
+  const [classifyMsg, setClassifyMsg] = useState<string | null>(null)
 
   useEffect(() => {
     loadData()
@@ -67,13 +268,15 @@ export default function ScanAnalyticsView() {
   async function loadData() {
     setLoading(true)
     try {
-      const [ov, g, d, t, cisData, events] = await Promise.all([
+      const [ov, g, d, t, cisData, events, algSettings, scans] = await Promise.all([
         getScanOverview(dateRange),
         getScanGeography(dateRange, 10),
         getScanDeviceSplit(dateRange),
         getTopScanBrews(dateRange, 10),
         getCisOverview(dateRange),
         getAdminScanEvents(30),
+        getAlgorithmSettings(),
+        getRecentCisScans(),
       ])
       setOverview(ov)
       setGeo(g)
@@ -81,11 +284,70 @@ export default function ScanAnalyticsView() {
       setTopBrews(t)
       setCis(cisData)
       setScanEvents(events)
+      setCisLocalSettings(algSettings)
+      setRecentScans(scans)
     } catch (err) {
       console.error(err)
     } finally {
       setLoading(false)
     }
+  }
+
+  async function runClassification() {
+    setClassifying(true)
+    setClassifyMsg(null)
+    try {
+      const result = await classifyCisScans()
+      setClassifyMsg(`✓ ${result.session} Scans klassifiziert (${result.nonQr} Non-QR)`)
+      await loadData()
+    } catch {
+      setClassifyMsg('Fehler beim Klassifizieren')
+    } finally {
+      setClassifying(false)
+    }
+  }
+
+  async function saveCisSettings() {
+    setCisSaving(true)
+    setCisMsg(null)
+    try {
+      await saveAlgorithmSettings({
+        cis_base_score: cisLocalSettings.cis_base_score,
+        cis_fridge_surfing_penalty: cisLocalSettings.cis_fridge_surfing_penalty,
+        cis_dwell_time_bonus: cisLocalSettings.cis_dwell_time_bonus,
+        cis_last_in_session_bonus: cisLocalSettings.cis_last_in_session_bonus,
+        cis_session_window_minutes: cisLocalSettings.cis_session_window_minutes,
+        cis_dwell_time_threshold_s: cisLocalSettings.cis_dwell_time_threshold_s,
+        cis_dynamic_time_bonus: cisLocalSettings.cis_dynamic_time_bonus,
+        cis_dynamic_time_penalty: cisLocalSettings.cis_dynamic_time_penalty,
+        cis_dynamic_temp_bonus: cisLocalSettings.cis_dynamic_temp_bonus,
+        cis_dynamic_temp_penalty: cisLocalSettings.cis_dynamic_temp_penalty,
+        cis_weekend_holiday_bonus: cisLocalSettings.cis_weekend_holiday_bonus,
+      })
+      setCisMsg('✓ Gespeichert')
+    } catch {
+      setCisMsg('Fehler beim Speichern')
+    } finally {
+      setCisSaving(false)
+    }
+  }
+
+  function resetCisToDefaults() {
+    setCisLocalSettings((prev) => ({
+      ...prev,
+      cis_base_score: ALGORITHM_DEFAULTS.cis_base_score,
+      cis_fridge_surfing_penalty: ALGORITHM_DEFAULTS.cis_fridge_surfing_penalty,
+      cis_dwell_time_bonus: ALGORITHM_DEFAULTS.cis_dwell_time_bonus,
+      cis_last_in_session_bonus: ALGORITHM_DEFAULTS.cis_last_in_session_bonus,
+      cis_session_window_minutes: ALGORITHM_DEFAULTS.cis_session_window_minutes,
+      cis_dwell_time_threshold_s: ALGORITHM_DEFAULTS.cis_dwell_time_threshold_s,
+      cis_dynamic_time_bonus: ALGORITHM_DEFAULTS.cis_dynamic_time_bonus,
+      cis_dynamic_time_penalty: ALGORITHM_DEFAULTS.cis_dynamic_time_penalty,
+      cis_dynamic_temp_bonus: ALGORITHM_DEFAULTS.cis_dynamic_temp_bonus,
+      cis_dynamic_temp_penalty: ALGORITHM_DEFAULTS.cis_dynamic_temp_penalty,
+      cis_weekend_holiday_bonus: ALGORITHM_DEFAULTS.cis_weekend_holiday_bonus,
+    }))
+    setCisMsg(null)
   }
 
   if (loading) {
@@ -240,10 +502,26 @@ export default function ScanAnalyticsView() {
       {cis && (
         <div className="space-y-4">
           <div>
-            <h2 className="text-base font-semibold text-(--text-primary)">Consumer Intent Score (CIS)</h2>
-            <p className="text-(--text-muted) text-xs mt-0.5">
-              Phase-0-Engine · Additive Scoring · QR-Hard-Rule
-            </p>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-base font-semibold text-(--text-primary)">Consumer Intent Score (CIS)</h2>
+                <p className="text-(--text-muted) text-xs mt-0.5">Phase-0-Engine · Additive Scoring · QR-Hard-Rule</p>
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                {classifyMsg && (
+                  <span className={`text-xs ${classifyMsg.startsWith('✓') ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {classifyMsg}
+                  </span>
+                )}
+                <button
+                  onClick={runClassification}
+                  disabled={classifying}
+                  className="text-xs px-3 py-1.5 rounded-lg border border-(--border) text-(--text-secondary) hover:text-(--text-primary) hover:border-(--brand) disabled:opacity-50 transition-colors"
+                >
+                  {classifying ? 'Klassifiziert…' : 'Jetzt klassifizieren'}
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* CIS KPI strip */}
@@ -358,8 +636,89 @@ export default function ScanAnalyticsView() {
         </div>
       )}
 
+      {/* ── CIS Engine Config ─────────────────────────────────────────────── */}
+      <div className="bg-(--surface) border border-(--border) rounded-2xl p-6 space-y-5">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base font-bold text-(--text-primary) flex items-center gap-1.5">
+              <Settings className="w-4 h-4" />CIS Engine Konfiguration
+            </h2>
+            <p className="text-[11px] text-(--text-muted) mt-0.5">
+              Gespeichert in <code className="text-(--brand)">platform_settings</code> · wird live bei der nächsten Klassifizierung verwendet
+            </p>
+          </div>
+          <button
+            onClick={resetCisToDefaults}
+            className="flex items-center gap-1.5 text-xs text-(--text-muted) hover:text-(--text-secondary) transition-colors"
+          >
+            <RotateCcw className="w-3 h-3" />Defaults
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="space-y-4">
+            <h3 className="text-[10px] font-semibold text-(--text-muted) uppercase tracking-wider pb-1 border-b border-(--border)">
+              Kern-Modell
+            </h3>
+            {CIS_CORE_SETTINGS.map((field) => (
+              <CisSettingRow
+                key={field.key}
+                field={field}
+                value={cisLocalSettings[field.key] as number}
+                onChange={(v) => setCisLocalSettings((s) => ({ ...s, [field.key]: v }))}
+              />
+            ))}
+          </div>
+          <div className="space-y-4">
+            <h3 className="text-[10px] font-semibold text-(--text-muted) uppercase tracking-wider pb-1 border-b border-(--border)">
+              Environment Context
+            </h3>
+            {CIS_ENV_SETTINGS.map((field) => (
+              <CisSettingRow
+                key={field.key}
+                field={field}
+                value={cisLocalSettings[field.key] as number}
+                onChange={(v) => setCisLocalSettings((s) => ({ ...s, [field.key]: v }))}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 pt-3 border-t border-(--border)">
+          <button
+            onClick={saveCisSettings}
+            disabled={cisSaving}
+            className="text-sm px-4 py-2 rounded-lg bg-(--brand) text-white font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
+          >
+            {cisSaving ? 'Speichern…' : 'Speichern'}
+          </button>
+          {cisMsg && (
+            <span className={`text-xs ${cisMsg.startsWith('✓') ? 'text-emerald-400' : 'text-red-400'}`}>
+              {cisMsg}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* ── Recent Scans with Breakdown ───────────────────────────────────── */}
+      {recentScans.length > 0 && (
+        <div className="bg-(--surface) border border-(--border) rounded-2xl p-6 space-y-4">
+          <div>
+            <h2 className="text-base font-bold text-(--text-primary)">Letzte Scans · Score-Aufschlüsselung</h2>
+            <p className="text-[11px] text-(--text-muted) mt-0.5">
+              5 zuletzt klassifizierte QR-Scans mit rekonstruiertem Scoring
+            </p>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+            {recentScans.map((scan) => (
+              <ScanTraceCard key={scan.id} scan={scan} />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ── Geo-Events (scan_events + scan_event_members) ─────────────────── */}
-      <div className="bg-(--surface-sunken) border border-(--border) rounded-2xl p-6">
+      <div className="bg-(--surface) border border-(--border) rounded-2xl p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-base font-bold text-(--text-primary) flex items-center gap-1.5"><MapPin className="w-4 h-4" />Event-Erkennungen</h2>

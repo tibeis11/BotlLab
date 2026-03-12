@@ -1,7 +1,34 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase-server";
+import { createClient, createAdminClient } from "@/lib/supabase-server";
 import { canUseAI, trackAIUsage } from "@/lib/premium-checks";
 import { trackEvent } from "@/lib/actions/analytics-actions";
+
+async function logImageGenAudit(
+  userId: string,
+  brewId: string | null,
+  type: string,
+  responseTimeMs: number,
+  status: 'success' | 'error',
+  errorMessage?: string,
+) {
+  try {
+    const admin = createAdminClient();
+    await (admin as any).from('botlguide_audit_log').insert({
+      user_id: userId,
+      brewery_id: null,
+      capability: type === 'cap' ? 'artist.generate_cap' : 'artist.generate_label',
+      credits_used: 1,
+      response_time_ms: responseTimeMs,
+      rag_sources_used: null,
+      status,
+      input_summary: `brew_id: ${brewId ?? 'none'}`,
+      output_summary: status === 'success' ? 'image generated' : null,
+      error_message: errorMessage?.slice(0, 500) ?? null,
+    });
+  } catch {
+    // Audit logging is non-critical
+  }
+}
 
 export async function POST(req: Request) {
   const routeStartTime = Date.now()
@@ -227,6 +254,9 @@ export async function POST(req: Request) {
     // Decrement credits
     await trackAIUsage(user.id, "image");
 
+    // Audit log
+    logImageGenAudit(user.id, brewId ?? null, type, Date.now() - routeStartTime, 'success');
+
     return NextResponse.json({ imageUrl: finalUrl });
   } catch (error: any) {
     console.error("[Generate Image Route Error]:", error.message);
@@ -244,6 +274,7 @@ export async function POST(req: Request) {
             user_id: user.id
           }
         });
+        logImageGenAudit(user.id, null, 'label', Date.now() - routeStartTime, 'error', error.message);
       }
     } catch (e) { /* ignore tracking error */ }
 
