@@ -68,44 +68,44 @@ Die öffentliche `Header.tsx` hat bereits 5 Props (`breweryId`, `discoverSearchS
 
 ### Phase 1: Fundament & Data-Layer (Vorbereitung)
 *Bevor wir UI neu bauen, müssen wir die Datenbeschaffung zentralisieren.*
-- [ ] **`useHeaderData()` Hook erstellen** → `app/lib/hooks/useHeaderData.ts`
+- [x] **`useHeaderData()` Hook erstellen** → `app/lib/hooks/useHeaderData.ts`
   - Holt `user`, `profile`, `activeBrewery`, `userBreweries`
   - Enthält die **Profil-Auto-Creation Logik** (PGRST116 Fallback aus `Header.tsx`)
   - Nutzt ausschließlich `useSupabase()` (kein direkter Singleton-Import)
   - Zentralisiert `handleLogout()` mit konsistenter State-Cleanup-Logik
   - Enthält `scrollbarCompensation` für Mobile-Menu (`isMobileMenuOpen`-Abhängigkeit)
-- [ ] **`<GlobalMobileMenu />` auslagern** → `app/components/ui/GlobalMobileMenu.tsx`
+- [x] **`<GlobalMobileMenu />` auslagern** → `app/components/ui/GlobalMobileMenu.tsx` / `GlobalHeader/GlobalMobileMenu.tsx`
   - Nimmt `colorZone`, `userLinks`, `teamLinks`, `publicLinks` als Props
   - Die 3 Farb-Zonen-Tabs (Personal/Team/Discover) sind direkt eingebaut
   - Kein Header importiert mehr eigenes Mobile-Menu-HTML
 
 ### Phase 2: Der `<GlobalHeader />` Core (Bau der Master-Komponente)
-- [ ] **Basis-Gerüst bauen:** `app/components/ui/GlobalHeader/GlobalHeader.tsx` anlegen.
-- [ ] **Props definieren:** 
+- [x] **Basis-Gerüst bauen:** `app/components/ui/GlobalHeader/GlobalHeader.tsx` anlegen.
+- [x] **Props definieren:** 
   - `colorZone: 'personal' | 'team' | 'public'` (Übernimmt Hover-States, Mobile-Tab-Farben, etc.)
   - `leftContent?: ReactNode` (z.B. Logo + Desktop Links)
   - `centerContent?: ReactNode` (z.B. Searchbar)
   - `rightActions?: ReactNode` (z.B. Notifications, Avatar, Theme-Toggle)
   - `mobileContent?: ReactNode`
-- [ ] **CSS & Styling:** Integration der 3-Welten-Logik direkt im Header (Orange für Team, Purple für Public, Cyan für Labor).
+- [x] **CSS & Styling:** Integration der 3-Welten-Logik direkt im Header (Orange für Team, Purple für Public, Cyan für Labor).
 
 ### Phase 3: Wrapper-Migration (Schrittweiser Austausch)
 *Die alten Header werden nach und nach ihrer Logik beraubt und rufen nur noch den GlobalHeader auf.*
-- [ ] **Schritt 3.1: ConsumerHeader Refactoring (`/my-cellar`)**
+- [x] **Schritt 3.1: ConsumerHeader Refactoring (`/my-cellar`)**
   - Umbauen auf `<GlobalHeader colorZone="personal">`.
   - Bereinigen der `app/my-cellar/components/ConsumerHeader.tsx` (von ~320 Zeilen auf ca. 50 Zeilen).
-- [ ] **Schritt 3.2: AdminHeader Refactoring (`/dashboard`)**
+- [x] **Schritt 3.2: AdminHeader Refactoring (`/dashboard`)**
   - Umbauen auf `<GlobalHeader colorZone="personal">`.
   - Bereinigen der `app/dashboard/components/AdminHeader.tsx` (von ~700 Zeilen auf ca. 70 Zeilen).
-- [ ] **Schritt 3.3: SquadHeader Refactoring (`/team/[id]`)**
+- [x] **Schritt 3.3: SquadHeader Refactoring (`/team/[id]`)**
   - Umbauen auf `<GlobalHeader colorZone="team">`.
   - Anpassen an die orangene Farbwelt.
-- [ ] **Schritt 3.4: Public Header Refactoring (`/discover`, `/forum` etc.)**
+- [x] **Schritt 3.4: Public Header Refactoring (`/discover`, `/forum` etc.)**
   - Umbauen auf `<GlobalHeader colorZone="public">`.
   - Anpassen an die lila Farbwelt für Community/Entdecken.
 
 ### Phase 4: Aufräumarbeiten & Optimierung
-- [ ] **Code löschen:** Alte States und doppelte Mobile-Menu-HTML-Blöcke komplett entfernen.
+- [x] **Code löschen:** Alte States und doppelte Mobile-Menu-HTML-Blöcke komplett entfernen.
 - [ ] **Performance Check:** Sicherstellen, dass das Re-Rendern (z.B. beim Öffnen des Mobile Menüs) optimal ist und nicht die gesamte App neu rendert.
 - [ ] **Mobile & Responsive Test:** Durchklicken aller 3 Farbzonen auf dem Smartphone.
 
