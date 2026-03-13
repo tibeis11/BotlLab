@@ -123,86 +123,103 @@ export default function PublicScanPage({ initialData, initialError }: { initialD
 
   useEffect(() => {
     async function fetchBottleInfo() {
-      if (initialData || initialError) {
+      if (initialError) {
          setLoading(false);
-         if (initialError) setErrorMsg(initialError);
+         setErrorMsg(initialError);
          return;
       }
       if (!id) return;
       if (authLoading) return; // Phase 1: warten bis Auth resolved
 
-      // Check if ID is UUID or ShortCode
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id as string);
-      
-      let bottleQuery = supabase
-        .from('bottles')
-        .select('id, bottle_number, brew_id, session_id, filled_at');
+      let bottle: any;
+      let brew: any;
+      let sessionData: any;
 
-      if (isUUID) {
-        bottleQuery = bottleQuery.eq('id', id);
+      if (initialData) {
+        bottle = { 
+          id: initialData.id, 
+          bottle_number: initialData.bottle_number, 
+          brew_id: initialData.brew_id, 
+          session_id: initialData.session_id, 
+          filled_at: initialData.filled_at 
+        };
+        brew = initialData.brews;
+        sessionData = initialData.session;
       } else {
-        bottleQuery = bottleQuery.eq('short_code', id);
+        // Check if ID is UUID or ShortCode
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id as string);
+        
+        let bottleQuery = supabase
+          .from('bottles')
+          .select('id, bottle_number, brew_id, session_id, filled_at');
+
+        if (isUUID) {
+          bottleQuery = bottleQuery.eq('id', id);
+        } else {
+          bottleQuery = bottleQuery.eq('short_code', id);
+        }
+
+        // Zunächst die Flasche laden mit der brew_id und session_id
+        const { data: bData, error: bottleError } = await bottleQuery.maybeSingle();
+
+        if (bottleError) {
+          console.error('[b/[id]] Supabase Error (bottle):', bottleError);
+          setErrorMsg(bottleError.message);
+          setLoading(false);
+          return;
+        }
+
+        if (!bData) {
+          setErrorMsg("Flasche nicht gefunden");
+          setLoading(false);
+          return;
+        }
+
+        if (!bData.brew_id) {
+          console.warn("⚠️ Flasche hat keine brew_id!");
+          setData({ ...bData, brews: null, session: null } as BottleWithBrew);
+          setLoading(false);
+          return;
+        }
+
+        // Session und Brew parallel laden
+        const [sessionResult, brewResult] = await Promise.all([
+          bData.session_id
+            ? supabase.from('brewing_sessions').select('*').eq('id', bData.session_id).single()
+            : Promise.resolve({ data: null, error: null }),
+          supabase
+            .from('brews')
+            .select(`
+              id,
+              name,
+              style,
+              image_url,
+              created_at,
+              user_id,
+              brewery_id,
+              description,
+              brew_type,
+              data,
+              remix_parent_id,
+              cap_url,
+              moderation_status,
+              moderation_rejection_reason
+            `)
+            .eq('id', bData.brew_id)
+            .maybeSingle(),
+        ]);
+
+        sessionData = sessionResult.data;
+        brew = brewResult.data;
+        bottle = bData;
+        const brewError = brewResult.error;
+
+        if (brewError) {
+          console.error('[b/[id]] Supabase Error (brew):', brewError);
+        }
+
+        setData({ ...bottle, brews: brew, session: sessionData } as BottleWithBrew);
       }
-
-      // Zunächst die Flasche laden mit der brew_id und session_id
-      const { data: bottle, error: bottleError } = await bottleQuery.maybeSingle();
-
-      if (bottleError) {
-        console.error('[b/[id]] Supabase Error (bottle):', bottleError);
-        setErrorMsg(bottleError.message);
-        setLoading(false);
-        return;
-      }
-
-      if (!bottle) {
-        setErrorMsg("Flasche nicht gefunden");
-        setLoading(false);
-        return;
-      }
-
-      if (!bottle.brew_id) {
-        console.warn("⚠️ Flasche hat keine brew_id!");
-        setData({ ...bottle, brews: null, session: null } as BottleWithBrew);
-        setLoading(false);
-        return;
-      }
-
-      // Session und Brew parallel laden (beide brauchen nur bottle.brew_id / session_id)
-      const [sessionResult, brewResult] = await Promise.all([
-        bottle.session_id
-          ? supabase.from('brewing_sessions').select('*').eq('id', bottle.session_id).single()
-          : Promise.resolve({ data: null, error: null }),
-        supabase
-          .from('brews')
-          .select(`
-            id,
-            name,
-            style,
-            image_url,
-            created_at,
-            user_id,
-            brewery_id,
-            description,
-            brew_type,
-            data,
-            remix_parent_id,
-            cap_url,
-            moderation_status,
-            moderation_rejection_reason
-          `)
-          .eq('id', bottle.brew_id)
-          .maybeSingle(),
-      ]);
-
-      const sessionData = sessionResult.data;
-      const brew = brewResult.data;
-      const brewError = brewResult.error;
-
-      if (brewError) {
-        console.error('[b/[id]] Supabase Error (brew):', brewError);
-      }
-
-      setData(bottle ? { ...bottle, brews: brew, session: sessionData } as BottleWithBrew : null);
 
       // ===== TRACKING: Track bottle scan (only once!) =====
       if (bottle && brew && !hasTrackedScan.current) {
