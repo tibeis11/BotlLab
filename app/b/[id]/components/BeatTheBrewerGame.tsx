@@ -103,6 +103,7 @@ export default function BeatTheBrewerGame({
   const [acceptedChallenge, setAcceptedChallenge] = useState<FriendChallenge | null>(null);
   const [challengeLoading, setChallengeLoading] = useState(!!challengeToken);
   const [communityProfile, setCommunityProfile] = useState<Record<string, number> | null>(null);
+  const [formStartTime, setFormStartTime] = useState<number | null>(null);
 
   // Cleanup reveal timer on unmount to prevent memory leak
   const showBrewerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -140,6 +141,7 @@ export default function BeatTheBrewerGame({
 
   const handleStart = useCallback(() => {
     setPhase('playing');
+    setFormStartTime(Date.now());
     setError(null);
   }, []);
 
@@ -155,6 +157,7 @@ export default function BeatTheBrewerGame({
         qrToken: qrToken ?? null,
         bottleId: bottleId ?? null,
         sessionId: sessionId ?? null,
+        formStartTime: formStartTime,
       });
       setResult(res);
       // Sync sliders to the actual result player profile so radar and bars always match.

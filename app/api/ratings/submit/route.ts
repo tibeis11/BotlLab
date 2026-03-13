@@ -136,7 +136,12 @@ export async function POST(req: NextRequest) {
         const ipHash = crypto.createHash('sha256').update(ip_address).digest('hex');
 
         // --- Plausibility / Shadowban Check (Supermarkt-Troll Protection) ---
-        const plausibility = await evaluatePlausibility(ipHash, user_id, bottle_id);
+        const timeToSubmitMs = form_start_time ? Date.now() - Number(form_start_time) : null;
+        const plausibility = await evaluatePlausibility(ipHash, user_id, {
+            currentBottleId: bottle_id,
+            timeToSubmitMs: timeToSubmitMs,
+            isComplexForm: true // Rating features multiple sliders and flavor tags
+        });
 
         // --- Spam Protection: IP Rate Limit (5 Minutes) ---
         // Prevent mass-scanning/rating in stores

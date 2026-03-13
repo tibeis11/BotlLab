@@ -66,6 +66,8 @@ export interface BeatTheBrewerSubmission {
   bottleId?: string | null;
   /** Brewing session UUID — scopes BTB per batch (different batches can taste differently). */
   sessionId?: string | null;
+  /** Timestamp when the form was opened, used for plausibility checking */
+  formStartTime?: number | null;
   playerProfile: {
     sweetness: number;
     bitterness: number;
@@ -190,7 +192,12 @@ export async function submitBeatTheBrewer(
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const ipHash = await computeIpHash();
-  const plausibility = await evaluatePlausibility(ipHash, user?.id ?? null, submission.bottleId ?? null);
+  const timeToSubmitMs = submission.formStartTime ? Date.now() - submission.formStartTime : null;
+  const plausibility = await evaluatePlausibility(ipHash, user?.id ?? null, {
+    currentBottleId: submission.bottleId ?? null,
+    timeToSubmitMs,
+    isComplexForm: true
+  });
 
 
   // 1. Fetch brew + flavor profile (public read, works for all users)
@@ -639,6 +646,8 @@ export interface VibeCheckSubmission {
   qrToken: string;
   /** Brewing session UUID — scopes nonce per batch (refill-safe) */
   sessionId?: string | null;
+  /** Timestamp when the form was opened, used for plausibility checking */
+  formStartTime?: number | null;
 }
 
 export interface VibeCheckResult {
@@ -657,7 +666,12 @@ export async function submitVibeCheck(
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const ipHash = await computeIpHash();
-  const plausibility = await evaluatePlausibility(ipHash, user?.id ?? null, submission.bottleId ?? null);
+  const timeToSubmitMs = submission.formStartTime ? Date.now() - submission.formStartTime : null;
+  const plausibility = await evaluatePlausibility(ipHash, user?.id ?? null, {
+    currentBottleId: submission.bottleId ?? null,
+    timeToSubmitMs,
+    isComplexForm: false // VibeCheck is much faster
+  });
 
   const pointsAwarded = 3;
 

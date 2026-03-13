@@ -56,6 +56,7 @@ export default function VibeCheck({
   const [phase, setPhase] = useState<'pick' | 'submitting' | 'result'>(
     alreadySubmitted ? 'result' : 'pick',
   );
+  const [formStartTime] = useState<number>(() => Date.now());
   const [selectedVibes, setSelectedVibes] = useState<Set<string>>(new Set());
   const [result, setResult] = useState<VibeCheckResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -92,6 +93,7 @@ export default function VibeCheck({
         vibes: Array.from(selectedVibes),
         qrToken,
         sessionId: sessionId ?? null,
+        formStartTime: formStartTime,
       });
       setResult(res);
       setPhase('result');
