@@ -54,10 +54,10 @@ export const ALGORITHM_DEFAULTS = {
   // ── Plausibility Engine (v2) ──────────────────────────────────
   plausibility_max_bottles_window: 3,          // ab wann gilt man als Supermarkt-Troll (Signal 1)
   plausibility_window_hours: 2,                // Window in Stunden (Signal 1)
-  plausibility_fast_submit_penalty: 0.30,      // Abzug (Signal 3)
+  plausibility_fast_submit_penalty: -0.30,      // Abzug (Signal 3)
   plausibility_fast_submit_min_ms_complex: 3000,
   plausibility_fast_submit_min_ms_simple: 1500,
-  plausibility_unplausible_time_penalty: 0.10, // Abzug (Signal 4)
+  plausibility_unplausible_time_penalty: -0.10, // Abzug (Signal 4)
   plausibility_shadowban_threshold: 0.20,      // Schwelle für is_shadowbanned
 
   // ── CIS Engine – Kern-Modell ──────────────────────────────────

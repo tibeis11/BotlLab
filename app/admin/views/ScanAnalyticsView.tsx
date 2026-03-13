@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Camera, Eye, TrendingUp, Zap, MapPin, Settings, RotateCcw } from 'lucide-react'
+import { Camera, Eye, TrendingUp, Zap, MapPin, Settings, RotateCcw, ShieldAlert } from 'lucide-react'
 import MetricCard from '../components/MetricCard'
 import DateRangePicker from '../components/DateRangePicker'
 import BarChart from '../components/charts/BarChart'
@@ -72,10 +72,10 @@ type CisSettingField = {
 const PLAUSIBILITY_SETTINGS: CisSettingField[] = [
   { key: 'plausibility_max_bottles_window', label: 'Max Bottles (Supermarkt-Troll)', min: 1, max: 20, step: 1, description: 'Wann schlägt der harte Ban (1.0) zu?' },
   { key: 'plausibility_window_hours', label: 'Zeitfenster Troll-Filter', min: 1, max: 24, step: 1, unit: 'h', description: 'Stunden für den Troll-Counter' },
-  { key: 'plausibility_fast_submit_penalty', label: 'Fast Submit Penalty', min: 0.0, max: 1.0, step: 0.05, description: 'Abzug bei zu schnellem Absenden' },
+  { key: 'plausibility_fast_submit_penalty', label: 'Fast Submit Penalty', min: -1.0, max: 0.0, step: 0.05, description: 'Abzug bei zu schnellem Absenden' },
   { key: 'plausibility_fast_submit_min_ms_complex', label: 'Min Time Complex', min: 500, max: 10000, step: 500, unit: 'ms', description: 'Zeitlimit für Rating / BTB' },
   { key: 'plausibility_fast_submit_min_ms_simple', label: 'Min Time Simple', min: 250, max: 5000, step: 250, unit: 'ms', description: 'Zeitlimit für VibeCheck' },
-  { key: 'plausibility_unplausible_time_penalty', label: 'Unplausible Time Penalty', min: 0.0, max: 1.0, step: 0.05, description: 'Abzug bei Scan zw. 5-11 Uhr (Mo-Do)' },
+  { key: 'plausibility_unplausible_time_penalty', label: 'Unplausible Time Penalty', min: -1.0, max: 0.0, step: 0.05, description: 'Abzug bei Scan zw. 5-11 Uhr (Mo-Do)' },
   { key: 'plausibility_shadowban_threshold', label: 'Shadowban Threshold', min: 0.0, max: 1.0, step: 0.05, description: 'Unter diesem Score greift der Ban final' },
 ]
 
@@ -767,21 +767,45 @@ export default function ScanAnalyticsView() {
               />
             ))}
           </div>
-          <div className="space-y-4 lg:col-span-2 mt-4">
-            <h3 className="text-[10px] font-semibold text-(--text-muted) uppercase tracking-wider pb-1 border-b border-(--border)">
-              Plausibility Engine (v2)
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-              {PLAUSIBILITY_SETTINGS.map((field) => (
-                <CisSettingRow
-                  key={field.key}
-                  field={field}
-                  value={cisLocalSettings[field.key] as number}
-                  onChange={(v) => setCisLocalSettings((s) => ({ ...s, [field.key]: v }))}
-                />
-              ))}
-            </div>
+        </div>
+        <div className="flex items-center gap-3 pt-3 border-t border-(--border)">
+          <button
+            onClick={saveCisSettings}
+            disabled={cisSaving}
+            className="text-sm px-4 py-2 rounded-lg bg-(--brand) text-white font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
+          >
+            {cisSaving ? 'Speichern…' : 'Speichern'}
+          </button>
+          {cisMsg && (
+            <span className={`text-xs ${cisMsg.startsWith('✓') ? 'text-success' : 'text-error'}`}>
+              {cisMsg}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* ── Plausibility Engine Config ────────────────────────────────────── */}
+      <div className="bg-(--surface) border border-(--border) rounded-2xl p-6 space-y-5 mt-6">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base font-bold text-(--text-primary) flex items-center gap-1.5">
+              <ShieldAlert className="w-4 h-4" />Plausibility Engine (v2)
+            </h2>
+            <p className="text-[11px] text-(--text-muted) mt-0.5">
+              Bot- und Troll-Defense · Soft-Penalties und Shadowbans
+            </p>
           </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+          {PLAUSIBILITY_SETTINGS.map((field) => (
+            <CisSettingRow
+              key={field.key}
+              field={field}
+              value={cisLocalSettings[field.key] as number}
+              onChange={(v) => setCisLocalSettings((s) => ({ ...s, [field.key]: v }))}
+            />
+          ))}
         </div>
 
         <div className="flex items-center gap-3 pt-3 border-t border-(--border)">
@@ -790,7 +814,7 @@ export default function ScanAnalyticsView() {
             disabled={cisSaving}
             className="text-sm px-4 py-2 rounded-lg bg-(--brand) text-white font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
           >
-            {cisSaving ? 'Speichern…' : 'Speichern'}
+            {cisSaving ? 'Speichern…' : 'Speichern (Beide)'}
           </button>
           {cisMsg && (
             <span className={`text-xs ${cisMsg.startsWith('✓') ? 'text-success' : 'text-error'}`}>
