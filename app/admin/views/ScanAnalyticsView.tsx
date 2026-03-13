@@ -365,6 +365,9 @@ export default function ScanAnalyticsView() {
         cis_dynamic_temp_bonus: cisLocalSettings.cis_dynamic_temp_bonus,
         cis_dynamic_temp_penalty: cisLocalSettings.cis_dynamic_temp_penalty,
         cis_weekend_holiday_bonus: cisLocalSettings.cis_weekend_holiday_bonus,
+        cis_rating_bonus: cisLocalSettings.cis_rating_bonus,
+        cis_btb_bonus: cisLocalSettings.cis_btb_bonus,
+        cis_vibecheck_bonus: cisLocalSettings.cis_vibecheck_bonus,
       })
       setCisMsg('✓ Gespeichert')
     } catch {
@@ -388,6 +391,9 @@ export default function ScanAnalyticsView() {
       cis_dynamic_temp_bonus: ALGORITHM_DEFAULTS.cis_dynamic_temp_bonus,
       cis_dynamic_temp_penalty: ALGORITHM_DEFAULTS.cis_dynamic_temp_penalty,
       cis_weekend_holiday_bonus: ALGORITHM_DEFAULTS.cis_weekend_holiday_bonus,
+      cis_rating_bonus: ALGORITHM_DEFAULTS.cis_rating_bonus,
+      cis_btb_bonus: ALGORITHM_DEFAULTS.cis_btb_bonus,
+      cis_vibecheck_bonus: ALGORITHM_DEFAULTS.cis_vibecheck_bonus,
     }))
     setCisMsg(null)
   }
