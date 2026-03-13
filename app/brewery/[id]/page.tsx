@@ -96,15 +96,26 @@ export default function PublicBreweryPage({ params }: { params: Promise<{ id: st
             await Promise.all(brewsData.map(async (brew) => {
                 const { data: ratings } = await supabase
                     .from('ratings')
-                    .select('rating')
+                    .select('rating, plausibility_score, is_shadowbanned')
                     .eq('brew_id', brew.id)
                     .eq('moderation_status', 'auto_approved'); // Nur bestätigte Bewertungen
 
                 if (ratings && ratings.length > 0) {
-                    const avg = ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length;
+                    let totalScore = 0;
+                    let totalWeight = 0;
+                    let validCount = 0;
+                    ratings.forEach(r => {
+                        if (r.is_shadowbanned) return;
+                        const weight = r.plausibility_score ?? 1.0;
+                        totalScore += r.rating * weight;
+                        totalWeight += weight;
+                        validCount++;
+                    });
+                    if (validCount === 0) return; // Skip if all are shadowbanned
+                    const avg = totalWeight > 0 ? totalScore / totalWeight : 0;
                     ratingsMap[brew.id] = {
                         avg: Math.round(avg * 10) / 10,
-                        count: ratings.length
+                        count: validCount
                     };
                 }
             }));

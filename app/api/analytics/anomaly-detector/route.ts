@@ -416,15 +416,23 @@ async function getBrewAverageRating(
 ): Promise<{ avg: number; count: number } | null> {
   const { data } = await supabase
     .from('ratings')
-    .select('rating')
+    .select('rating, plausibility_score, is_shadowbanned')
     .eq('brew_id', brewId);
 
   if (!data || data.length === 0) return null;
 
-  const validRatings = data.filter((r) => r.rating != null);
+  const validRatings = data.filter((r) => r.rating != null && !r.is_shadowbanned);
   if (validRatings.length === 0) return null;
 
-  const avg = validRatings.reduce((sum, r) => sum + (r.rating ?? 0), 0) / validRatings.length;
+  let totalScore = 0;
+  let totalWeight = 0;
+  validRatings.forEach(r => {
+    const weight = r.plausibility_score ?? 1.0;
+    totalScore += (r.rating ?? 0) * weight;
+    totalWeight += weight;
+  });
+
+  const avg = totalWeight > 0 ? totalScore / totalWeight : 0;
   return { avg, count: validRatings.length };
 }
 

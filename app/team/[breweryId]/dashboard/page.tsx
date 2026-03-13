@@ -100,19 +100,30 @@ export default function TeamDashboardPage({ params }: { params: Promise<{ brewer
         const brewIds = brews.map(b => b.id);
         const { data: allRatings } = await supabase
             .from('ratings')
-            .select('rating')
+            .select('rating, plausibility_score, is_shadowbanned')
             .in('brew_id', brewIds)
             .eq('moderation_status', 'auto_approved');
 
         if (allRatings && allRatings.length > 0) {
-            const count = allRatings.length;
-            const sum = allRatings.reduce((acc, r) => acc + r.rating, 0);
-            const avg = Math.round((sum / count) * 10) / 10;
+            let totalScore = 0;
+            let totalWeight = 0;
+            let validCount = 0;
             const dist = [0,0,0,0,0];
+            
             allRatings.forEach(r => {
+                if (r.is_shadowbanned) return;
+                const weight = r.plausibility_score ?? 1.0;
+                totalScore += r.rating * weight;
+                totalWeight += weight;
+                validCount++;
+                
                 if (r.rating >= 1 && r.rating <= 5) dist[r.rating - 1]++;
             });
-            setGlobalRatingStats({ avg, total: count, distribution: dist });
+
+            if (validCount > 0) {
+                const avg = Math.round((totalWeight > 0 ? (totalScore / totalWeight) : 0) * 10) / 10;
+                setGlobalRatingStats({ avg, total: validCount, distribution: dist });
+            }
         }
     }
     setLoading(false);

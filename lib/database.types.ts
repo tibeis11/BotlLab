@@ -7,11 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.1"
-  }
   graphql_public: {
     Tables: {
       [_ in never]: never
@@ -2254,6 +2249,8 @@ export type Database = {
           fruitiness: number | null
           id: string
           ip_hash: string | null
+          is_shadowbanned: boolean | null
+          plausibility_score: number | null
           rating_id: string | null
           roast: number | null
           session_id: string | null
@@ -2268,6 +2265,8 @@ export type Database = {
           fruitiness?: number | null
           id?: string
           ip_hash?: string | null
+          is_shadowbanned?: boolean | null
+          plausibility_score?: number | null
           rating_id?: string | null
           roast?: number | null
           session_id?: string | null
@@ -2282,6 +2281,8 @@ export type Database = {
           fruitiness?: number | null
           id?: string
           ip_hash?: string | null
+          is_shadowbanned?: boolean | null
+          plausibility_score?: number | null
           rating_id?: string | null
           roast?: number | null
           session_id?: string | null
@@ -2971,7 +2972,9 @@ export type Database = {
           flavor_tags: string[] | null
           id: string
           ip_address: string | null
+          is_shadowbanned: boolean | null
           moderation_status: string | null
+          plausibility_score: number | null
           qr_verified: boolean
           rating: number
           taste_acidity: number | null
@@ -2993,7 +2996,9 @@ export type Database = {
           flavor_tags?: string[] | null
           id?: string
           ip_address?: string | null
+          is_shadowbanned?: boolean | null
           moderation_status?: string | null
+          plausibility_score?: number | null
           qr_verified?: boolean
           rating: number
           taste_acidity?: number | null
@@ -3015,7 +3020,9 @@ export type Database = {
           flavor_tags?: string[] | null
           id?: string
           ip_address?: string | null
+          is_shadowbanned?: boolean | null
           moderation_status?: string | null
+          plausibility_score?: number | null
           qr_verified?: boolean
           rating?: number
           taste_acidity?: number | null
@@ -3270,8 +3277,10 @@ export type Database = {
           event_type: string
           id: string
           ip_hash: string | null
+          is_shadowbanned: boolean | null
           match_score: number | null
           metadata: Json | null
+          plausibility_score: number | null
           points_delta: number
           session_id: string | null
           session_token: string | null
@@ -3285,8 +3294,10 @@ export type Database = {
           event_type: string
           id?: string
           ip_hash?: string | null
+          is_shadowbanned?: boolean | null
           match_score?: number | null
           metadata?: Json | null
+          plausibility_score?: number | null
           points_delta: number
           session_id?: string | null
           session_token?: string | null
@@ -3300,8 +3311,10 @@ export type Database = {
           event_type?: string
           id?: string
           ip_hash?: string | null
+          is_shadowbanned?: boolean | null
           match_score?: number | null
           metadata?: Json | null
+          plausibility_score?: number | null
           points_delta?: number
           session_id?: string | null
           session_token?: string | null
@@ -4086,3 +4099,4 @@ export const Constants = {
     },
   },
 } as const
+
