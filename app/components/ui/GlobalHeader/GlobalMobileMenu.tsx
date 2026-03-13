@@ -144,12 +144,12 @@ export function GlobalMobileMenu({
           {/* LOGGED IN VIEWS */}
           {user && mobileTab === 'personal' && (
              <div className="space-y-6 animate-in fade-in zoom-in-95 duration-200">
-          {/* CUSTOM CONTENT (from wrapper) */}
-          {customLinks && (
+          {customLinks && initialTab === 'personal' ? (
              <div className="mb-4">
                {customLinks}
              </div>
-          )}
+          ) : (
+             <>
                  {/* Dashboard Hero */}
                  <Link 
                     href={homeUrl}
@@ -184,6 +184,8 @@ export function GlobalMobileMenu({
                        )}
                     </div>
                  </div>
+             </>
+          )}
              </div>
           )}
 
@@ -211,11 +213,16 @@ export function GlobalMobileMenu({
                             </Link>
                          </div>
 
-                         {/* Team Quick Actions */}
-                         <div>
-                            <p className="text-xs text-text-muted font-bold uppercase tracking-widest px-1 mb-1">Aktionen</p>
-                            <div className="divide-y divide-border/50">
-                               <Link href={`/team/${activeBreweryId}/feed`} onClick={onClose} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition">
+                         {/* Team Quick Actions or Custom Links */}
+                         {customLinks && initialTab === 'team' ? (
+                            <div className="mb-4">
+                               {customLinks}
+                            </div>
+                         ) : (
+                            <div>
+                               <p className="text-xs text-text-muted font-bold uppercase tracking-widest px-1 mb-1">Aktionen</p>
+                               <div className="divide-y divide-border/50">
+                                  <Link href={`/team/${activeBreweryId}/feed`} onClick={onClose} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition">
                                   <MessageSquare className="w-5 h-5 text-text-secondary" /> <span className="font-bold text-sm text-text-primary">Feed</span> <span className="ml-auto text-text-disabled">→</span>
                                </Link>
                                <Link href={`/team/${activeBreweryId}/brews`} onClick={onClose} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition">
@@ -241,6 +248,7 @@ export function GlobalMobileMenu({
                                </Link>
                             </div>
                          </div>
+                         )}
 
                          {/* Switchable Teams */}
                          {userBreweries.length > 1 && (
