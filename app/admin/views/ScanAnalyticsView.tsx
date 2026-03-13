@@ -184,15 +184,15 @@ function ScanTraceCard({ scan }: { scan: CisRecentScan }) {
 
   if (!b.isHardZero) {
     const interactionBonus = (b.userRatingBonus || 0) + (b.btbBonus || 0) + (b.vibecheckBonus || 0)
-    let interactionContext = 'keine Interaktion'
-    if (b.userRatingBonus > 0) interactionContext = 'Bewertung abgegeben'
-    else if (b.btbBonus > 0) interactionContext = 'Beat the Brewer gespielt'
-    else if (b.vibecheckBonus > 0) interactionContext = 'VibeCheck gewählt'
+    const contexts: string[] = []
+    if (b.userRatingBonus > 0) contexts.push('Rating')
+    if (b.btbBonus > 0) contexts.push('Beat the Brewer')
+    if (b.vibecheckBonus > 0) contexts.push('VibeCheck')
 
     factors.push({
       label: 'Interaktions-Modifier',
       value: interactionBonus,
-      context: interactionContext
+      context: contexts.length > 0 ? contexts.join(' + ') : 'keine Interaktion'
     })
   }
 

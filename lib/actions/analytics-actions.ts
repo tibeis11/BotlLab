@@ -2271,8 +2271,8 @@ export async function classifyCisScans(): Promise<{ nonQr: number; session: numb
   }
 
   // ── 1c. Batch lookup tasting_score_events linked to these scans ───────────
-  // Used to apply CIS bonus for VibeCheck (+0.30), Rating/BTB (+0.80)
-  const scanEventMap = new Map<string, string>(); // scan_id → best event_type
+  // Used to apply CIS bonus for VibeCheck (+0.30), Rating/BTB (+0.80) stacked
+  const scanEventMap = new Map<string, Set<string>>(); // scan_id → set of event_types
   try {
     const scanIds = scans.map((s: any) => s.id);
     const { data: tse } = await (supabase as any)
@@ -2283,11 +2283,12 @@ export async function classifyCisScans(): Promise<{ nonQr: number; session: numb
     if (tse) {
       for (const row of tse) {
         if (!row.bottle_scan_id) continue;
-        const existing = scanEventMap.get(row.bottle_scan_id);
-        // rating_given and beat_the_brewer trump vibe_check
-        if (!existing || (existing === 'vibe_check' && row.event_type !== 'vibe_check')) {
-          scanEventMap.set(row.bottle_scan_id, row.event_type);
+        let existing = scanEventMap.get(row.bottle_scan_id);
+        if (!existing) {
+          existing = new Set<string>();
+          scanEventMap.set(row.bottle_scan_id, existing);
         }
+        existing.add(row.event_type);
       }
     }
   } catch {
@@ -2363,13 +2364,17 @@ export async function classifyCisScans(): Promise<{ nonQr: number; session: numb
     }
 
     // Tasting action bonus — from tasting_score_events linked to this scan
-    const scanEvent = scanEventMap.get(scan.id);
-    if (scanEvent === 'rating_given') {
-      score += cfg.RATING_BONUS;     // z.B. +0.80
-    } else if (scanEvent === 'beat_the_brewer') {
-      score += cfg.BTB_BONUS;        // z.B. +0.80
-    } else if (scanEvent === 'vibe_check') {
-      score += cfg.VIBECHECK_BONUS;  // +0.30
+    const scanEvents = scanEventMap.get(scan.id);
+    if (scanEvents) {
+      if (scanEvents.has('rating_given')) {
+        score += cfg.RATING_BONUS;     // z.B. +0.80
+      }
+      if (scanEvents.has('beat_the_brewer')) {
+        score += cfg.BTB_BONUS;        // z.B. +0.80
+      }
+      if (scanEvents.has('vibe_check')) {
+        score += cfg.VIBECHECK_BONUS;  // +0.30
+      }
     }
 
     // ── CIS Environment Context modifiers (Phase 1, 2026-03-17) ─────────────────

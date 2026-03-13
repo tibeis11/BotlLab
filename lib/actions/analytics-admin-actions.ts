@@ -2237,7 +2237,7 @@ export async function getRecentCisScans(): Promise<CisRecentScan[]> {
   } catch { /* Suppress */ }
 
   // Batch lookup tasting_score_events linked to these scans
-  const scanEventMap = new Map<string, string>() // scan_id → best event_type
+  const scanEventMap = new Map<string, Set<string>>() // scan_id → set of event_types
   try {
     const scanIds = scans.map((s: any) => s.id)
     const { data: tse } = await (supabase as any)
@@ -2248,10 +2248,12 @@ export async function getRecentCisScans(): Promise<CisRecentScan[]> {
     if (tse) {
       for (const row of tse) {
         if (!row.bottle_scan_id) continue
-        const existing = scanEventMap.get(row.bottle_scan_id)
-        if (!existing || (existing === 'vibe_check' && row.event_type !== 'vibe_check')) {
-          scanEventMap.set(row.bottle_scan_id, row.event_type)
+        let existing = scanEventMap.get(row.bottle_scan_id)
+        if (!existing) {
+          existing = new Set<string>()
+          scanEventMap.set(row.bottle_scan_id, existing)
         }
+        existing.add(row.event_type)
       }
     }
   } catch { /* tasting_score_events lookup failed */ }
@@ -2320,21 +2322,10 @@ export async function getRecentCisScans(): Promise<CisRecentScan[]> {
       let isFridayEvening = false
       let weekendHoliday = 0
 
-      const userRatingBonus = (() => {
-        const ev = scanEventMap.get(scan.id)
-        if (ev === 'rating_given') return (cfg?.cis_rating_bonus ?? 0.80)
-        return 0
-      })()
-      const btbBonus = (() => {
-        const ev = scanEventMap.get(scan.id)
-        if (ev === 'beat_the_brewer') return (cfg?.cis_btb_bonus ?? 0.80)
-        return 0
-      })()
-      const vibecheckBonus = (() => {
-        const ev = scanEventMap.get(scan.id)
-        if (ev === 'vibe_check' && userRatingBonus === 0 && btbBonus === 0) return (cfg?.cis_vibecheck_bonus ?? 0.30)
-        return 0
-      })()
+      const evs = scanEventMap.get(scan.id)
+      const userRatingBonus = evs?.has('rating_given') ? (cfg?.cis_rating_bonus ?? 0.80) : 0
+      const btbBonus = evs?.has('beat_the_brewer') ? (cfg?.cis_btb_bonus ?? 0.80) : 0
+      const vibecheckBonus = evs?.has('vibe_check') ? (cfg?.cis_vibecheck_bonus ?? 0.30) : 0
 
       try {
         const { default: Holidays } = await import('date-holidays')
