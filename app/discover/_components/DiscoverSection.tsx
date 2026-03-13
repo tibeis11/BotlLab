@@ -1,4 +1,7 @@
 'use client';
+import { calcWeightedAvg } from '@/lib/rating-utils';
+
+
 
 /**
  * DiscoverSection — extracted from DiscoverClient to prevent React
@@ -140,7 +143,7 @@ function RankedRow({ brew, rank, trend, currentUserId, likedBrewIds, onLikeToggl
   const isLiked = likedBrewIds ? likedBrewIds.has(brew.id) : localIsLiked;
 
   const avgR = brew.ratings?.length
-    ? (brew.ratings.reduce((s, r) => s + r.rating, 0) / brew.ratings.length).toFixed(1)
+    ? (calcWeightedAvg(brew.ratings)).toFixed(1)
     : null;
 
   const handleLike = async (e: React.MouseEvent) => {

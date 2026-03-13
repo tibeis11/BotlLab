@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase-server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { calcWeightedAvg } from '@/lib/rating-utils';
 import { 
+
     getBrewFlavorDistribution, 
     getAttributeDistribution, 
     getRatingsWithProfiles,
@@ -113,7 +115,7 @@ export default async function BrewAnalyticsPage({ params }: { params: { breweryI
   // Calculate detailed profile stats
   const detailedRatingsCount = ratings.filter(r => r.taste_bitterness !== null).length;
   const completionRate = ratings.length > 0 ? Math.round((detailedRatingsCount / ratings.length) * 100) : 0;
-  const averageScore = ratings.length > 0 ? (ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length) : 0;
+  const averageScore = ratings.length > 0 ? (calcWeightedAvg(ratings)) : 0;
 
   return (
     <div className="text-text-primary font-sans antialiased max-w-[1600px] mx-auto w-full">

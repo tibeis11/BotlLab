@@ -10,6 +10,8 @@ import { sendAnalyticsReportEmail } from "@/lib/email";
 // Header: Authorization: Bearer <CRON_SECRET>
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { calcWeightedAvg } from '@/lib/rating-utils';
+
 export async function POST(req: Request) {
   // ── Auth ──────────────────────────────────────────────────────────────────
   const authHeader = req.headers.get("authorization") ?? "";
@@ -279,7 +281,7 @@ export async function POST(req: Request) {
         const brewAvgs: Array<{ brewId: string; avg: number }> = [];
         for (const [brewId, ratings] of brewRatings) {
           if (ratings.length < 2) continue; // need at least 2 ratings
-          brewAvgs.push({ brewId, avg: ratings.reduce((a, b) => a + b, 0) / ratings.length });
+          brewAvgs.push({ brewId, avg: calcWeightedAvg(ratings) });
         }
         if (brewAvgs.length > 0) {
           brewAvgs.sort((a, b) => b.avg - a.avg);

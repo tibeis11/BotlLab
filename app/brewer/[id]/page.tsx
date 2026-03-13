@@ -1,4 +1,7 @@
 'use client';
+import { calcWeightedAvg } from '@/lib/rating-utils';
+
+
 
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -112,7 +115,7 @@ export default function PublicBrewerPage() {
               .eq('brew_id', brew.id)
               .eq('moderation_status', 'auto_approved');
             if (ratings && ratings.length > 0) {
-              const avg = ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length;
+              const avg = calcWeightedAvg(ratings);
               ratingsMap[brew.id] = { avg: Math.round(avg * 10) / 10, count: ratings.length };
             }
           }
@@ -192,7 +195,7 @@ export default function PublicBrewerPage() {
   const totalConsumerRatings = consumerRatings.length;
   const avgConsumerRating =
     totalConsumerRatings > 0
-      ? (consumerRatings.reduce((s: number, r: any) => s + r.rating, 0) / totalConsumerRatings).toFixed(1)
+      ? (calcWeightedAvg(consumerRatings)).toFixed(1)
       : null;
   const uniqueBreweries = new Set(
     consumerCaps.map((c: any) => (c.brews as any)?.brewery_id).filter(Boolean),

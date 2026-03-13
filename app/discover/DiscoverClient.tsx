@@ -1,4 +1,7 @@
 'use client';
+import { calcWeightedAvg } from '@/lib/rating-utils';
+
+
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -368,7 +371,7 @@ export default function DiscoverClient({
   const avg = (b: Brew) => {
     const rs = b.ratings || [];
     if (rs.length === 0) return 0;
-    return Math.round((rs.reduce((s, r) => s + r.rating, 0) / rs.length) * 10) / 10;
+    return Math.round((calcWeightedAvg(rs)) * 10) / 10;
   };
 
   // Trending: DB-seitig sortiert via SSR (trending_score DESC, stündlich via pg_cron aktualisiert)
@@ -413,7 +416,7 @@ export default function DiscoverClient({
       .filter(b => (b.ratings?.length || 0) >= minR)
       .map(b => {
         const n = b.ratings!.length;
-        const r = b.ratings!.reduce((s, x) => s + x.rating, 0) / n;
+        const r = calcWeightedAvg(b.ratings!);
         const bayesianAvg = (M * C + n * r) / (M + n);
         const ageDays = (now - new Date(b.created_at).getTime()) / 86_400_000;
         const recencyFactor = floor + (1 - floor) * Math.exp(-ageDays / hl);
@@ -1480,7 +1483,7 @@ export default function DiscoverClient({
                    const t = trending[0];
                    const ratingCount = t.ratings?.length ?? 0;
                    const avgR = ratingCount > 0
-                     ? Math.round((t.ratings!.reduce((s, r) => s + r.rating, 0) / ratingCount) * 10) / 10
+                     ? Math.round((calcWeightedAvg(t.ratings!)) * 10) / 10
                      : null;
                    const copyCount = t.copy_count ?? 0;
                    const likesCount = t.likes_count ?? 0;

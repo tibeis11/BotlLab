@@ -2,6 +2,8 @@ import { Metadata } from 'next';
 import { createClient } from '@supabase/supabase-js';
 
 // Initialize Supabase Client for Server Side Usage (Admin/Public read)
+import { calcWeightedAvg } from '@/lib/rating-utils';
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -102,7 +104,7 @@ export default async function Layout({ params, children }: Props) {
     const ratingCount = ratings.length;
     const ratingValue =
       ratingCount > 0
-        ? Math.round((ratings.reduce((s: number, r: { rating: number }) => s + r.rating, 0) / ratingCount) * 10) / 10
+        ? Math.round((calcWeightedAvg(ratings)) * 10) / 10
         : null;
 
     jsonLd = {

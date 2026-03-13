@@ -1,4 +1,7 @@
 'use client';
+import { calcWeightedAvg } from '@/lib/rating-utils';
+
+
 
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
@@ -64,7 +67,7 @@ export default function DiscoverBrewCard({ brew, currentUserId, isAdmin = false,
   const cardRef = useBrewViewTracker({ brewId: brew.id, userId: currentUserId, source: 'discover' });
 
   const avgRating = brew.ratings?.length
-    ? Math.round((brew.ratings.reduce((s, r) => s + r.rating, 0) / brew.ratings.length) * 10) / 10
+    ? Math.round((calcWeightedAvg(brew.ratings)) * 10) / 10
     : null;
 
   const ebcColor = brew.ebc != null ? ebcToHex(Number(brew.ebc)) : undefined;

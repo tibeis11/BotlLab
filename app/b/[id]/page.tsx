@@ -1,4 +1,7 @@
 'use client';
+import { calcWeightedAvg } from '@/lib/rating-utils';
+
+
 
 import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -339,7 +342,7 @@ export default function PublicScanPage() {
     if (ratingsData) {
       setRatings(ratingsData);
       if (ratingsData.length > 0) {
-        const avg = ratingsData.reduce((sum, r) => sum + r.rating, 0) / ratingsData.length;
+        const avg = calcWeightedAvg(ratingsData);
         setAvgRating(Math.round(avg * 10) / 10);
       }
     }

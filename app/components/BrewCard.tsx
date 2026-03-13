@@ -1,4 +1,7 @@
 "use client";
+import { calcWeightedAvg } from '@/lib/rating-utils';
+
+
 
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -51,7 +54,7 @@ export default function BrewCard({ brew, currentUserId, forceVertical = false, i
     // Data Preparation
     const ratings = brew.ratings || [];
     const avgRating = ratings.length > 0 
-        ? Math.round((ratings.reduce((s, r) => s + r.rating, 0) / ratings.length) * 10) / 10
+        ? Math.round((calcWeightedAvg(ratings)) * 10) / 10
         : null;
 
     const likeCount = brew.likes_count ?? (brew.likes?.[0]?.count ?? 0);

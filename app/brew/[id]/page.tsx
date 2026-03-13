@@ -1,4 +1,7 @@
 'use client';
+import { calcWeightedAvg } from '@/lib/rating-utils';
+
+
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
@@ -532,7 +535,7 @@ export default function BrewDetailPage() {
   }
 
   const avgRating = ratings.length > 0 
-    ? (ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length).toFixed(1)
+    ? (calcWeightedAvg(ratings)).toFixed(1)
     : null;
 
   // Scaling Factors

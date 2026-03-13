@@ -18,6 +18,8 @@ import type { Database, Json } from '@/lib/database.types';
 //   - Market gaps          (Phase 14)
 // ============================================================================
 
+import { calcWeightedAvg } from '@/lib/rating-utils';
+
 const Z_THRESHOLD = 2.0;
 
 function getAdminClient() {
@@ -327,8 +329,8 @@ async function checkTasteTrendDecline(
   if (!currentRatings || !prevRatings) return 0;
   if (currentRatings.length < 5 || prevRatings.length < 5) return 0;
 
-  const currentAvg = currentRatings.reduce((sum, r) => sum + (r.rating ?? 0), 0) / currentRatings.length;
-  const prevAvg = prevRatings.reduce((sum, r) => sum + (r.rating ?? 0), 0) / prevRatings.length;
+  const currentAvg = calcWeightedAvg(currentRatings);
+  const prevAvg = calcWeightedAvg(prevRatings);
   const diff = currentAvg - prevAvg;
 
   if (diff <= -0.3) {
