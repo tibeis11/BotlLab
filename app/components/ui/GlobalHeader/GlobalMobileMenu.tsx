@@ -122,14 +122,14 @@ export function GlobalMobileMenu({
       <div className="flex flex-col h-full w-full" style={{ paddingRight: `${scrollbarCompensation}px` }}>
         
         {/* 1. Header with Close */}
-        <div className="border-b border-border-subtle bg-background p-3">
-          <div className="max-w-[1920px] w-full mx-auto flex justify-between items-center px-6">
+        <div className="border-b border-border-subtle bg-background py-3 px-4 sm:px-6">
+          <div className="max-w-[1920px] w-full mx-auto flex justify-between items-center">
             <div className="flex items-center gap-6" onClick={onClose}>
               <Logo /> 
             </div>
             <div className="flex items-center gap-4">
               {user && <NotificationBell />}
-              <button onClick={onClose} className="p-2 text-text-secondary hover:text-text-primary">
+              <button onClick={onClose} className="-mr-2 p-2 text-text-secondary hover:text-text-primary">
                 <X className="w-6 h-6" />
               </button>
             </div>

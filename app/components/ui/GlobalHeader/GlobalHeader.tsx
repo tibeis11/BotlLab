@@ -50,8 +50,8 @@ export function GlobalHeader({
 
   return (
     <>
-      <nav className="border-b border-border-subtle bg-background/80 p-3 sticky top-0 z-50 backdrop-blur-md">
-        <div className="max-w-[1920px] w-full mx-auto px-6 flex justify-between items-center">
+      <nav className="border-b border-border-subtle bg-background/80 py-3 px-4 sm:px-6 sticky top-0 z-50 backdrop-blur-md">
+        <div className="max-w-[1920px] w-full mx-auto flex justify-between items-center">
           
           {/* LEFT: Logo & Additional Breadcrumbs */}
           <div className="flex items-center gap-4 flex-shrink-0">
@@ -153,7 +153,7 @@ export function GlobalHeader({
             {mobileActions}
             {user && <NotificationBell />}
             <button 
-              className="p-2 text-text-secondary hover:text-text-primary"
+              className="-mr-2 p-2 text-text-secondary hover:text-text-primary"
               onClick={toggleMobileMenu}
             >
               {isMobileMenuOpen ? (
