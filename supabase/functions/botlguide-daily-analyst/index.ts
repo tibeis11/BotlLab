@@ -14,7 +14,7 @@ const corsHeaders = {
 }
 
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta'
-const GEMINI_TEXT_MODEL = 'gemini-2.0-flash'
+const GEMINI_TEXT_MODEL = 'gemini-2.5-flash'
 const GEMINI_EMBEDDING_MODEL = 'gemini-embedding-001'
 
 // ── System Prompt ─────────────────────────────────────────────────────────────
@@ -427,7 +427,7 @@ async function generateInsight(
       ],
       generationConfig: {
         temperature: 0.8,
-        maxOutputTokens: 400,
+        maxOutputTokens: 1000,
         responseMimeType: 'application/json',
       },
     }),
@@ -448,7 +448,8 @@ async function generateInsight(
   }
 
   try {
-    const parsed = JSON.parse(text)
+    const cleanText = text.replace(/^\s*```json\n?/, '').replace(/```\s*$/, '');
+    const parsed = JSON.parse(cleanText)
     return {
       title: (parsed.title ?? 'Täglicher Insight').slice(0, 120),
       body: parsed.body ?? '',
