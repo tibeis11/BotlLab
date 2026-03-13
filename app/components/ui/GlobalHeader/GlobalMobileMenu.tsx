@@ -9,6 +9,8 @@ import {
   Gem,
   Globe, 
   Heart,
+  Home,
+  Archive,
   LayoutDashboard, 
   LogOut, 
   MessageSquare, 
@@ -63,6 +65,37 @@ export function GlobalMobileMenu({
   const isDrinker = profile?.app_mode === 'drinker';
   const homeUrl = isDrinker ? '/my-cellar' : '/dashboard';
 
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > 50;
+    const isRightSwipe = distance < -50;
+
+    const availableTabs: Array<'personal' | 'team' | 'discover'> = ['personal'];
+    if (!isDrinker) availableTabs.push('team');
+    availableTabs.push('discover');
+
+    const currentIndex = availableTabs.indexOf(mobileTab);
+
+    if (isLeftSwipe && currentIndex < availableTabs.length - 1) {
+      setMobileTab(availableTabs[currentIndex + 1]);
+    } else if (isRightSwipe && currentIndex > 0) {
+      setMobileTab(availableTabs[currentIndex - 1]);
+    }
+  };
+
   return (
     <div 
       className="lg:hidden fixed inset-0 z-[100] bg-background/95 backdrop-blur-3xl flex flex-col animate-in slide-in-from-right duration-200 supports-[backdrop-filter]:bg-background/80"
@@ -93,7 +126,7 @@ export function GlobalMobileMenu({
                 className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${mobileTab === 'personal' ? 'bg-brand/10 text-brand shadow-lg' : 'text-text-muted hover:text-text-secondary'}`}
               >
                 <FlaskConical className={`w-4 h-4 ${mobileTab === 'personal' ? 'grayscale-0' : 'grayscale'}`} />
-                {isDrinker ? 'Mein Keller' : 'Labor'}
+                {isDrinker ? 'Mein Keller' : 'Dashboard'}
               </button>
               {!isDrinker && (
                 <button 
@@ -116,7 +149,12 @@ export function GlobalMobileMenu({
         )}
 
         {/* 2. Scrollable Content Area */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div 
+          className="flex-1 overflow-y-auto p-4 space-y-4"
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+        >
           
           {/* NOT LOGGED IN VIEW */}
           {!user && (
@@ -152,17 +190,32 @@ export function GlobalMobileMenu({
                     </div>
                  ) : (
                    <div>
-                    <p className="text-xs text-text-muted font-bold uppercase tracking-widest px-1 mb-1">Aktionen</p>
+                    <p className="text-xs text-text-muted font-bold uppercase tracking-widest px-1 mb-1">{isDrinker ? 'Mein Keller' : 'Dashboard'}</p>
                     <div className="divide-y divide-border/50">
+                       <Link href={homeUrl} onClick={onClose} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition">
+                          {isDrinker ? <Home className="w-5 h-5 text-text-secondary" /> : <LayoutDashboard className="w-5 h-5 text-text-secondary" />} <span className="font-bold text-sm text-text-primary">{isDrinker ? 'Übersicht' : 'Dashboard'}</span> <span className="ml-auto text-text-disabled">→</span>
+                       </Link>
                        <Link href={isDrinker ? '/my-cellar/collection' : '/dashboard/collection'} onClick={onClose} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition">
-                          <FlaskConical className="w-5 h-5" /> <span className="font-bold text-sm text-text-primary">Sammlung</span> <span className="ml-auto text-text-disabled">→</span>
+                          <FlaskConical className="w-5 h-5 text-text-secondary" /> <span className="font-bold text-sm text-text-primary">Sammlung</span> <span className="ml-auto text-text-disabled">→</span>
                        </Link>
                        <Link href={isDrinker ? '/my-cellar/favorites' : '/dashboard/favorites'} onClick={onClose} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition">
-                          <Heart className="w-5 h-5" /> <span className="font-bold text-sm text-text-primary">Favoriten</span> <span className="ml-auto text-text-disabled">→</span>
+                          <Heart className="w-5 h-5 text-text-secondary" /> <span className="font-bold text-sm text-text-primary">Favoriten</span> <span className="ml-auto text-text-disabled">→</span>
                        </Link>
-                       {!isDrinker && (
+                       {isDrinker ? (
+                         <>
+                           <Link href="/my-cellar/stash" onClick={onClose} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition">
+                              <Archive className="w-5 h-5 text-text-secondary" /> <span className="font-bold text-sm text-text-primary">Stash</span> <span className="ml-auto text-text-disabled">→</span>
+                           </Link>
+                           <Link href="/my-cellar/taste-dna" onClick={onClose} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition">
+                              <Beaker className="w-5 h-5 text-text-secondary" /> <span className="font-bold text-sm text-text-primary">Taste DNA</span> <span className="ml-auto text-text-disabled">→</span>
+                           </Link>
+                           <Link href="/my-cellar/leaderboard" onClick={onClose} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition">
+                              <Trophy className="w-5 h-5 text-text-secondary" /> <span className="font-bold text-sm text-text-primary">Rangliste</span> <span className="ml-auto text-text-disabled">→</span>
+                           </Link>
+                         </>
+                       ) : (
                          <Link href="/dashboard/achievements" onClick={onClose} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition">
-                            <Trophy className="w-5 h-5" /> <span className="font-bold text-sm text-text-primary">Achievements</span> <span className="ml-auto text-text-disabled">→</span>
+                            <Trophy className="w-5 h-5 text-text-secondary" /> <span className="font-bold text-sm text-text-primary">Achievements</span> <span className="ml-auto text-text-disabled">→</span>
                          </Link>
                        )}
                     </div>
@@ -183,8 +236,11 @@ export function GlobalMobileMenu({
                             </div>
                          ) : (
                             <div>
-                               <p className="text-xs text-text-muted font-bold uppercase tracking-widest px-1 mb-1">Aktionen</p>
+                               <p className="text-xs text-text-muted font-bold uppercase tracking-widest px-1 mb-1">Team Ansicht</p>
                                <div className="divide-y divide-border/50">
+                                  <Link href={`/team/${activeBreweryId}`} onClick={onClose} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition">
+                                     <LayoutDashboard className="w-5 h-5 text-text-secondary" /> <span className="font-bold text-sm text-text-primary">Team-Dashboard</span> <span className="ml-auto text-text-disabled">→</span>
+                                  </Link>
                                   <Link href={`/team/${activeBreweryId}/feed`} onClick={onClose} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition">
                                   <MessageSquare className="w-5 h-5 text-text-secondary" /> <span className="font-bold text-sm text-text-primary">Feed</span> <span className="ml-auto text-text-disabled">→</span>
                                </Link>

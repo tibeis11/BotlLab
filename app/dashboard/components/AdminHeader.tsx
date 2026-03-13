@@ -49,7 +49,7 @@ export default function AdminHeader() {
       <Link 
         href="/dashboard" 
         title="Dashboard"
-        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${pathname === '/dashboard' ? 'bg-brand-bg text-brand' : 'text-text-muted hover:text-text-primary hover:bg-surface-hover'}`}
+        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${pathname === '/dashboard' ? 'bg-surface text-text-primary shadow-sm ring-1 ring-border/50' : 'text-text-muted hover:text-text-primary hover:bg-surface-hover'}`}
       >
         <LayoutDashboard className="w-4 h-4" />
         <span className="hidden xl:inline">Dashboard</span>
@@ -65,7 +65,7 @@ export default function AdminHeader() {
             key={tab.path} 
             href={tab.path}
             title={tab.name}
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${isActive ? 'bg-brand-bg text-brand' : 'text-text-muted hover:text-text-primary hover:bg-surface-hover'}`}
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${isActive ? 'bg-surface text-text-primary shadow-sm ring-1 ring-border/50' : 'text-text-muted hover:text-text-primary hover:bg-surface-hover'}`}
           >
             <tab.icon className="w-4 h-4" />
             <span className="hidden xl:inline">{tab.name}</span>
@@ -129,7 +129,10 @@ export default function AdminHeader() {
         onMouseEnter={() => setShowDiscoverMenu(true)}
         onMouseLeave={() => setShowDiscoverMenu(false)}
       >
-        <Link href="/discover" className="text-text-muted hover:text-text-primary transition-colors">
+        <Link 
+          href="/discover" 
+          className="p-2 text-text-muted hover:text-text-primary hover:bg-surface-hover rounded-lg transition-all"
+        >
             <Globe className="w-5 h-5" />
         </Link>
         {showDiscoverMenu && (

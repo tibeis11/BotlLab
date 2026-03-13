@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { GlobalHeader } from "./ui/GlobalHeader/GlobalHeader";
 import { useHeaderData } from "@/lib/hooks/useHeaderData";
+import { usePathname } from "next/navigation";
 
 interface HeaderProps {
     breweryId?: string;
@@ -29,6 +30,7 @@ export default function Header({
   forumMobileActions 
 }: HeaderProps) {
   
+  const pathname = usePathname();
   const searchSlot = discoverSearchSlot || forumSearchSlot;
   const mobileActions = (
     <>
@@ -41,7 +43,7 @@ export default function Header({
     <>
       <Link 
         href="/pricing"
-        className="px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 text-text-muted hover:text-text-primary hover:bg-surface-hover/50"
+        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${pathname === '/pricing' ? 'bg-surface text-text-primary shadow-sm ring-1 ring-border/50' : 'text-text-muted hover:text-text-primary hover:bg-surface-hover/50'}`}
       >
         <Gem className="w-4 h-4" />
         <span className="hidden xl:inline">Preise</span>
@@ -50,7 +52,7 @@ export default function Header({
       {!forumSearchSlot && (
         <Link 
           href="/forum"
-          className="px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 text-text-muted hover:text-text-primary hover:bg-surface-hover/50"
+          className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${pathname?.startsWith('/forum') ? 'bg-surface text-text-primary shadow-sm ring-1 ring-border/50' : 'text-text-muted hover:text-text-primary hover:bg-surface-hover/50'}`}
         >
           <MessageSquare className="w-4 h-4" />
           <span className="hidden xl:inline">Forum</span>
@@ -60,7 +62,7 @@ export default function Header({
       {!discoverSearchSlot && (
         <Link 
           href="/discover" 
-          className="px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 text-text-muted hover:text-text-primary hover:bg-surface-hover/50"
+          className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${pathname?.startsWith('/discover') ? 'bg-surface text-text-primary shadow-sm ring-1 ring-border/50' : 'text-text-muted hover:text-text-primary hover:bg-surface-hover/50'}`}
         >
           <Globe className="w-4 h-4" />
           <span className="hidden xl:inline">Entdecken</span>
@@ -69,7 +71,7 @@ export default function Header({
 
       <Link 
         href="/tools" 
-        className="px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 text-text-muted hover:text-text-primary hover:bg-surface-hover/50"
+        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${pathname?.startsWith('/tools') ? 'bg-surface text-text-primary shadow-sm ring-1 ring-border/50' : 'text-text-muted hover:text-text-primary hover:bg-surface-hover/50'}`}
       >
         <Calculator className="w-4 h-4" />
         <span className="hidden xl:inline">Tools</span>

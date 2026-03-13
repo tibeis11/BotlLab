@@ -49,7 +49,7 @@ export default function ConsumerHeader() {
           <Link
             key={tab.path}
             href={tab.path}
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${active ? 'bg-brand-bg text-brand' : 'text-text-muted hover:text-text-primary hover:bg-surface-hover/50'}`}
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${active ? 'bg-surface text-text-primary shadow-sm ring-1 ring-border/50' : 'text-text-muted hover:text-text-primary hover:bg-surface-hover/50'}`}
           >
             <tab.icon className="w-4 h-4" />
             <span>{tab.name}</span>
@@ -95,11 +95,14 @@ export default function ConsumerHeader() {
 
       {/* Discover Icon */}
       <div
-        className="relative flex h-9 w-9 items-center justify-center"
+        className="relative flex h-9 w-9 items-center justify-center ml-1"
         onMouseEnter={() => setShowDiscoverMenu(true)}
         onMouseLeave={() => setShowDiscoverMenu(false)}
       >
-        <Link href="/discover" className="text-text-muted hover:text-text-primary transition-colors">
+        <Link 
+          href="/discover" 
+          className="p-2 text-text-muted hover:text-text-primary hover:bg-surface-hover rounded-lg transition-all"
+        >
           <Globe className="w-5 h-5" />
         </Link>
         {showDiscoverMenu && (

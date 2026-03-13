@@ -10,7 +10,7 @@ import {
     Thermometer, 
     Package, 
     Tag, 
-    TrendingUp, 
+    TrendingUp, Globe, 
     Users, 
     Settings, 
     Medal, 
@@ -36,6 +36,7 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
     
     // UI State
     const [showAdminMenu, setShowAdminMenu] = useState(false);
+    const [showDiscoverMenu, setShowDiscoverMenu] = useState(false);
     
     // Data State
     const [branding, setBranding] = useState<{ logoUrl: string | null; breweryName: string | null; isPremiumBranding: boolean }>({
@@ -97,7 +98,7 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                       key={tab.path} 
                       href={tab.path}
                       title={tab.name}
-                      className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${isActive ? 'bg-orange-500/10 text-orange-500' : 'text-text-muted hover:text-text-primary hover:bg-surface-hover/50'}`}
+                      className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${isActive ? 'bg-surface text-text-primary shadow-sm ring-1 ring-border/50' : 'text-text-muted hover:text-text-primary hover:bg-surface-hover/50'}`}
                   >
                       <tab.icon className="w-4 h-4" />
                       <span className="hidden xl:inline">{tab.name}</span>
@@ -130,7 +131,7 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                                   <Link 
                                       key={tab.path} 
                                       href={tab.path}
-                                      className={`px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 rounded-lg ${isActive ? 'bg-orange-500/10 text-orange-500' : 'text-text-secondary hover:text-text-primary hover:bg-surface'}`}
+                                      className={`px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 rounded-lg ${isActive ? 'bg-surface text-text-primary shadow-sm ring-1 ring-border/50' : 'text-text-secondary hover:text-text-primary hover:bg-surface'}`}
                                   >
                                       <tab.icon className="w-4 h-4" />
                                       <span>{tab.name}</span>
@@ -148,7 +149,7 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                                           <Link 
                                               key={tab.path} 
                                               href={tab.path}
-                                              className={`px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 rounded-lg ${isActive ? 'bg-orange-500/10 text-orange-500' : 'text-text-secondary hover:text-text-primary hover:bg-surface'}`}
+                                              className={`px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 rounded-lg ${isActive ? 'bg-surface text-text-primary shadow-sm ring-1 ring-border/50' : 'text-text-secondary hover:text-text-primary hover:bg-surface'}`}
                                           >
                                               <tab.icon className="w-4 h-4" />
                                               <span>{tab.name}</span>
@@ -161,12 +162,42 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                   </div>
               )}
           </div>
+
+          <div className="h-4 w-px bg-border mx-2"></div>
+
+          {/* Discover Icon */}
+          <div 
+            className="relative flex h-9 w-9 items-center justify-center ml-1"
+            onMouseEnter={() => setShowDiscoverMenu(true)}
+            onMouseLeave={() => setShowDiscoverMenu(false)}
+          >
+            <Link 
+              href="/discover" 
+              className="p-2 text-text-muted hover:text-text-primary hover:bg-surface-hover rounded-lg transition-all"
+            >
+                <Globe className="w-5 h-5" />
+            </Link>
+            {showDiscoverMenu && (
+                <div className="absolute right-0 top-full pt-2 w-48 z-50">
+                    <div className="bg-surface border border-border rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-1 px-1 py-1">
+                        <Link href="/discover" className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-text-muted hover:text-text-primary hover:bg-surface-hover rounded-lg">
+                            <Beer className="w-4 h-4" />
+                            <span>Rezepte</span>
+                        </Link>
+                        <Link href="/forum" className="px-3 py-2 text-sm font-bold transition-all flex items-center gap-3 text-text-muted hover:text-text-primary hover:bg-surface-hover rounded-lg">
+                            <MessageSquare className="w-4 h-4" />
+                            <span>Forum</span>
+                        </Link>
+                    </div>
+                </div>
+            )}
+          </div>
       </div>
     );
 
     const customMobileLinks = (
       <div>
-        <p className="text-xs text-orange-500 font-bold uppercase tracking-widest px-1 mb-1">Team Ansicht</p>
+        <p className="text-xs text-brand font-bold uppercase tracking-widest px-1 mb-1">Team Ansicht</p>
         <div className="divide-y divide-border/50">
           {tabs.map(tab => {
             const isActive = pathname === tab.path || pathname?.startsWith(tab.path + '/');
@@ -177,8 +208,8 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={`w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition ${isActive ? 'bg-surface/30' : ''}`}
               >
-                <tab.icon className={`w-5 h-5 ${isActive ? 'text-orange-500' : 'text-text-secondary'}`} />
-                <span className={`font-bold text-sm ${isActive ? 'text-orange-500' : 'text-text-primary'}`}>{tab.name}</span>
+                <tab.icon className={`w-5 h-5 ${isActive ? 'text-brand' : 'text-text-secondary'}`} />
+                <span className={`font-bold text-sm ${isActive ? 'text-brand' : 'text-text-primary'}`}>{tab.name}</span>
                 <span className="ml-auto text-text-disabled">→</span>
               </Link>
             );
@@ -192,8 +223,8 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                     onClick={() => setIsMobileMenuOpen(false)}
                     className={`w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition ${isActive ? 'bg-surface/30' : ''}`}
                   >
-                    <tab.icon className={`w-5 h-5 ${isActive ? 'text-orange-500' : 'text-text-secondary'}`} />
-                    <span className={`font-bold text-sm ${isActive ? 'text-orange-500' : 'text-text-primary'}`}>{tab.name}</span>
+                    <tab.icon className={`w-5 h-5 ${isActive ? 'text-brand' : 'text-text-secondary'}`} />
+                    <span className={`font-bold text-sm ${isActive ? 'text-brand' : 'text-text-primary'}`}>{tab.name}</span>
                     <span className="ml-auto text-text-disabled">→</span>
                   </Link>
               )
