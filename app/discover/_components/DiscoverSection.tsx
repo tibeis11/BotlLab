@@ -293,7 +293,7 @@ export function Section({
             {chunked.map((colItems, colIndex) => (
               <div 
                 key={colIndex} 
-                className="w-[90vw] md:w-[calc(50%-0.5rem)] flex-shrink-0 snap-center md:snap-start flex flex-col gap-0.5"
+                className="w-[85vw] md:w-[calc(50%-0.5rem)] flex-shrink-0 snap-start flex flex-col gap-0.5"
               >
                 {colItems.map((brew, i) => {
                   const globalIndex = colIndex * 5 + i;
