@@ -6,6 +6,7 @@ import { trackEvent } from '@/lib/actions/analytics-actions';
 import { notifyNewRating } from '@/lib/actions/notification-actions';
 import { checkAndGrantAchievements } from '@/lib/achievements';
 import { verifyQrToken } from '@/lib/actions/qr-token-actions';
+import { evaluatePlausibility } from '@/lib/plausibility-service';
 
 export async function POST(req: NextRequest) {
     const routeStartTime = Date.now()
@@ -134,6 +135,9 @@ export async function POST(req: NextRequest) {
         // Store only the hash to prevent PII storage while maintaining duplicate check
         const ipHash = crypto.createHash('sha256').update(ip_address).digest('hex');
 
+        // --- Plausibility / Shadowban Check (Supermarkt-Troll Protection) ---
+        const plausibility = await evaluatePlausibility(ipHash, user_id, bottle_id);
+
         // --- Spam Protection: IP Rate Limit (5 Minutes) ---
         // Prevent mass-scanning/rating in stores
         let rateLimitQuery = supabaseAdmin
@@ -209,7 +213,9 @@ export async function POST(req: NextRequest) {
                 aroma_intensity,
                 qr_verified: qr_verified === true, // Only true when submitted from /b/[id] (QR scan)
                 moderation_status: 'auto_approved',
-                user_id: user_id || null // Link User!
+                user_id: user_id || null, // Link User!
+                plausibility_score: plausibility.score,
+                is_shadowbanned: plausibility.is_shadowbanned,
             }])
             .select()
             .single();
@@ -312,6 +318,8 @@ export async function POST(req: NextRequest) {
                     brew_id: brew_id,
                     bottle_scan_id: convertedScanId,
                     points_delta: 5,
+                    plausibility_score: plausibility.score,
+                    is_shadowbanned: plausibility.is_shadowbanned,
                     metadata: {
                         rating: rating,
                         rating_id: ratingData?.id ?? null,

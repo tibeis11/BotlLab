@@ -15,6 +15,7 @@ import { createClient, createAdminClient } from '@/lib/supabase-server';
 import { verifyQrToken } from '@/lib/actions/qr-token-actions';
 import { headers } from 'next/headers';
 import { createHash } from 'crypto';
+import { evaluatePlausibility } from '@/lib/plausibility-service';
 import {
   calculateMatchScore,
   calculateTastingIQPoints,
@@ -188,6 +189,9 @@ export async function submitBeatTheBrewer(
 ): Promise<BeatTheBrewerResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  const ipHash = await computeIpHash();
+  const plausibility = await evaluatePlausibility(ipHash, user?.id ?? null, submission.bottleId ?? null);
+
 
   // 1. Fetch brew + flavor profile (public read, works for all users)
   const { data: brew, error: brewError } = await supabase
@@ -348,6 +352,8 @@ export async function submitBeatTheBrewer(
         bottle_scan_id: btbScanId,
         points_delta: pointsAwarded,
         match_score: matchScore,
+        plausibility_score: plausibility.score,
+        is_shadowbanned: plausibility.is_shadowbanned,
         metadata: {
           slider_values: submission.playerProfile,
           brewer_values: brewerProfileResult,
@@ -368,6 +374,8 @@ export async function submitBeatTheBrewer(
       brew_id: submission.brewId,
       user_id: user.id,
       rating_id: submission.ratingId ?? null,
+      plausibility_score: plausibility.score,
+      is_shadowbanned: plausibility.is_shadowbanned,
       sweetness:  submission.playerProfile.sweetness,
       bitterness: submission.playerProfile.bitterness,
       body:       submission.playerProfile.body,
@@ -403,7 +411,6 @@ export async function submitBeatTheBrewer(
   }
 
   // ──── Anonymous Path ────
-  const ipHash = await computeIpHash();
   const sessionToken = crypto.randomUUID();
   const adminClient = createAdminClient();
 
@@ -412,6 +419,8 @@ export async function submitBeatTheBrewer(
     brew_id: submission.brewId,
     user_id: null,
     ip_hash: ipHash,
+    plausibility_score: plausibility.score,
+    is_shadowbanned: plausibility.is_shadowbanned,
     sweetness:  submission.playerProfile.sweetness,
     bitterness: submission.playerProfile.bitterness,
     body:       submission.playerProfile.body,
@@ -510,6 +519,8 @@ export async function submitBeatTheBrewer(
     match_score: matchScore,
     session_token: sessionToken,
     ip_hash: ipHash,
+    plausibility_score: plausibility.score,
+    is_shadowbanned: plausibility.is_shadowbanned,
     metadata: {
       slider_values: submission.playerProfile,
       brewer_values: brewerProfileResult,
@@ -645,6 +656,8 @@ export async function submitVibeCheck(
 ): Promise<VibeCheckResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  const ipHash = await computeIpHash();
+  const plausibility = await evaluatePlausibility(ipHash, user?.id ?? null, submission.bottleId ?? null);
 
   const pointsAwarded = 3;
 
@@ -660,7 +673,6 @@ export async function submitVibeCheck(
 
   // ── Step 2: Nonce verbrauchen — INSERT ON CONFLICT (TOCTOU-safe) ──
   const adminClient = createAdminClient();
-  const ipHash = await computeIpHash();
 
   const { error: nonceError } = await adminClient
     .from('vibe_check_used_nonces')
@@ -719,6 +731,8 @@ export async function submitVibeCheck(
         session_id: submission.sessionId ?? null,
         points_delta: pointsAwarded,
         match_score: null,
+        plausibility_score: plausibility.score,
+        is_shadowbanned: plausibility.is_shadowbanned,
         metadata: { vibes: submission.vibes },
       });
 
@@ -750,6 +764,8 @@ export async function submitVibeCheck(
       session_token: sessionToken,
       ip_hash: ipHash,
       points_delta: pointsAwarded,
+      plausibility_score: plausibility.score,
+      is_shadowbanned: plausibility.is_shadowbanned,
       metadata: {
         vibes: submission.vibes,
         bottle_id: submission.bottleId,
