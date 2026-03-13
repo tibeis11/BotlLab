@@ -65,9 +65,9 @@ export const ALGORITHM_DEFAULTS = {
   cis_dynamic_temp_bonus:       0.05,   // Passende Außentemperatur (±5°C)
   cis_dynamic_temp_penalty:    -0.05,   // Unpassende Temp (>12°C Abw.)
   cis_weekend_holiday_bonus:    0.05,   // Freitagabend / Wochenende / Feiertag
-  cis_rating_bonus:             0.80,   // Bonus für abgegebenes Rating
-  cis_btb_bonus:                0.80,   // Bonus für Beat The Brewer Teilnahme
-  cis_vibecheck_bonus:          0.30,   // Bonus für VibeCheck (Trinken bestätigt)
+  cis_rating_bonus:             0.80,   // Bonus für abgegebenes Rating (skaliert mit Plausibilitäts-Score)
+  cis_btb_bonus:                0.80,   // Bonus für Beat The Brewer Teilnahme (skaliert mit Plausibilitäts-Score)
+  cis_vibecheck_bonus:          0.30,   // Bonus für VibeCheck (skaliert mit Plausibilitäts-Score)
 };
 
 export interface AlgorithmSettings {

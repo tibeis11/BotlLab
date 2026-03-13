@@ -2237,12 +2237,12 @@ export async function getRecentCisScans(): Promise<CisRecentScan[]> {
   } catch { /* Suppress */ }
 
   // Batch lookup tasting_score_events linked to these scans
-  const scanEventMap = new Map<string, Set<string>>() // scan_id → set of event_types
+  const scanEventMap = new Map<string, { event_type: string; plausibility_score: number }[]>()
   try {
     const scanIds = scans.map((s: any) => s.id)
     const { data: tse } = await (supabase as any)
       .from('tasting_score_events')
-      .select('bottle_scan_id, event_type')
+      .select('bottle_scan_id, event_type, plausibility_score')
       .in('bottle_scan_id', scanIds)
       .in('event_type', ['vibe_check', 'rating_given', 'beat_the_brewer'])
     if (tse) {
@@ -2250,10 +2250,13 @@ export async function getRecentCisScans(): Promise<CisRecentScan[]> {
         if (!row.bottle_scan_id) continue
         let existing = scanEventMap.get(row.bottle_scan_id)
         if (!existing) {
-          existing = new Set<string>()
+          existing = []
           scanEventMap.set(row.bottle_scan_id, existing)
         }
-        existing.add(row.event_type)
+        existing.push({
+          event_type: row.event_type,
+          plausibility_score: row.plausibility_score ?? 1.0
+        })
       }
     }
   } catch { /* tasting_score_events lookup failed */ }
@@ -2270,6 +2273,7 @@ export async function getRecentCisScans(): Promise<CisRecentScan[]> {
         base: 0, fridgeSurf: 0, lastInSession: 0, dwellTime: 0,
         dynamicTime: 0, dynamicTemp: 0, weekendHoliday: 0,
         userRatingBonus: 0, btbBonus: 0, vibecheckBonus: 0,
+        plausibilityScore: null,
         total: 0,
         scanLocalHour: null, typicalScanHour: null, hourDiff: null,
         scanTempC: null, typicalTempC: null, tempDiff: null,
@@ -2323,9 +2327,27 @@ export async function getRecentCisScans(): Promise<CisRecentScan[]> {
       let weekendHoliday = 0
 
       const evs = scanEventMap.get(scan.id)
-      const userRatingBonus = evs?.has('rating_given') ? (cfg?.cis_rating_bonus ?? 0.80) : 0
-      const btbBonus = evs?.has('beat_the_brewer') ? (cfg?.cis_btb_bonus ?? 0.80) : 0
-      const vibecheckBonus = evs?.has('vibe_check') ? (cfg?.cis_vibecheck_bonus ?? 0.30) : 0
+      const getPlausibility = (type: string) => {
+        if (!evs) return null;
+        const matching = evs.filter(e => e.event_type === type);
+        if (matching.length === 0) return null;
+        return Math.max(...matching.map(e => e.plausibility_score));
+      };
+
+      const ratingPlausibility = getPlausibility('rating_given');
+      const btbPlausibility = getPlausibility('beat_the_brewer');
+      const vibePlausibility = getPlausibility('vibe_check');
+
+      const maxPlausibility = Math.max(
+        ratingPlausibility ?? -1,
+        btbPlausibility ?? -1,
+        vibePlausibility ?? -1
+      );
+      const activePlausibility = maxPlausibility >= 0 ? maxPlausibility : null;
+
+      const userRatingBonus = ratingPlausibility !== null ? ((cfg?.cis_rating_bonus ?? 0.80) * ratingPlausibility) : 0
+      const btbBonus = btbPlausibility !== null ? ((cfg?.cis_btb_bonus ?? 0.80) * btbPlausibility) : 0
+      const vibecheckBonus = vibePlausibility !== null ? ((cfg?.cis_vibecheck_bonus ?? 0.30) * vibePlausibility) : 0
 
       try {
         const { default: Holidays } = await import('date-holidays')
@@ -2347,6 +2369,7 @@ export async function getRecentCisScans(): Promise<CisRecentScan[]> {
         base, fridgeSurf, lastInSession, dwellTime,
         dynamicTime, dynamicTemp, weekendHoliday,
         userRatingBonus, btbBonus, vibecheckBonus,
+        plausibilityScore: activePlausibility,
         total,
         scanLocalHour, typicalScanHour, hourDiff,
         scanTempC, typicalTempC, tempDiff,

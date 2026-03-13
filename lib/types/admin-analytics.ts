@@ -305,9 +305,10 @@ export type CisScoringBreakdown = {
   dynamicTime: number       // negative, 0, or positive
   dynamicTemp: number       // negative, 0, or positive
   weekendHoliday: number    // 0 or positive bonus
-  userRatingBonus: number   // 0 or positive bonus (+0.80)
-  btbBonus: number          // 0 or positive bonus (+0.80)
-  vibecheckBonus: number    // 0 or positive bonus (+0.30)
+  userRatingBonus: number   // 0 or positive bonus (+0.80 * plausibility)
+  btbBonus: number          // 0 or positive bonus (+0.80 * plausibility)
+  vibecheckBonus: number    // 0 or positive bonus (+0.30 * plausibility)
+  plausibilityScore: number | null // the max plausibility score applied to interactions, if any
   total: number
   // contextual values for display
   scanLocalHour: number | null

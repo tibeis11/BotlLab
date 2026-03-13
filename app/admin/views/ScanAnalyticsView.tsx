@@ -84,9 +84,9 @@ const CIS_ENV_SETTINGS: CisSettingField[] = [
   { key: 'cis_dynamic_temp_bonus', label: 'Temp-Bonus', min: 0, max: 0.2, step: 0.01, description: 'Wetter passend zur Bier-Temperatur (≤5°C)' },
   { key: 'cis_dynamic_temp_penalty', label: 'Temp-Penalty', min: -0.2, max: 0, step: 0.01, description: 'Wetter unpassend (>12°C Abweichung)' },
   { key: 'cis_weekend_holiday_bonus', label: 'Wochenend/Feiertag', min: 0, max: 0.2, step: 0.01, description: 'Fr. Abend, Wochenende oder Feiertag' },
-  { key: 'cis_rating_bonus', label: 'Rating-Bonus', min: 0, max: 1.0, step: 0.01, description: 'Bonus wenn Nutzer ein Rating abgibt' },
-  { key: 'cis_btb_bonus', label: 'BTB-Bonus', min: 0, max: 1.0, step: 0.01, description: 'Bonus wenn Nutzer ein Beat The Brewer spielt' },
-  { key: 'cis_vibecheck_bonus', label: 'VibeCheck-Bonus', min: 0, max: 1.0, step: 0.01, description: 'Bonus wenn Nutzer den VibeCheck nutzt' },
+  { key: 'cis_rating_bonus', label: 'Rating-Bonus', min: 0, max: 1.0, step: 0.01, description: 'Bonus mal Plausibilitäts-Score, wenn Nutzer ein Rating abgibt' },
+  { key: 'cis_btb_bonus', label: 'BTB-Bonus', min: 0, max: 1.0, step: 0.01, description: 'Bonus mal Plausibilitäts-Score, wenn Nutzer ein Beat The Brewer spielt' },
+  { key: 'cis_vibecheck_bonus', label: 'VibeCheck-Bonus', min: 0, max: 1.0, step: 0.01, description: 'Bonus mal Plausibilitäts-Score, wenn Nutzer den VibeCheck nutzt' },
 ]
 
 function CisSettingRow({
@@ -189,10 +189,16 @@ function ScanTraceCard({ scan }: { scan: CisRecentScan }) {
     if (b.btbBonus > 0) contexts.push('Beat the Brewer')
     if (b.vibecheckBonus > 0) contexts.push('VibeCheck')
 
+    let ctxStr = contexts.length > 0 ? contexts.join(' + ') : 'keine Interaktion'
+    if (b.plausibilityScore !== null) {
+      const activePlaus = (b.plausibilityScore * 100).toFixed(0);
+      ctxStr += ` (x${activePlaus}% Plausibilität)`
+    }
+
     factors.push({
       label: 'Interaktions-Modifier',
       value: interactionBonus,
-      context: contexts.length > 0 ? contexts.join(' + ') : 'keine Interaktion'
+      context: ctxStr
     })
   }
 
