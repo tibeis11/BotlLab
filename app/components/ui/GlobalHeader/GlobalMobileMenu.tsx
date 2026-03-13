@@ -24,7 +24,7 @@ import {
   X,
   Calculator
 } from 'lucide-react';
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Logo from "../../Logo";
 import NotificationBell from "../../NotificationBell";
 import UserAvatar from "../../UserAvatar";
@@ -56,68 +56,71 @@ export function GlobalMobileMenu({
   customLinks
 }: GlobalMobileMenuProps) {
   const [mobileTab, setMobileTab] = useState<'personal' | 'team' | 'discover'>(initialTab);
-  
-  // Whenever initialTab updates from parent, reset mobileTab (optional, but good for UX)
-  useEffect(() => {
-    setMobileTab(initialTab);
-  }, [initialTab]);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const isScrollingRef = useRef(false);
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isDrinker = profile?.app_mode === 'drinker';
   const homeUrl = isDrinker ? '/my-cellar' : '/dashboard';
 
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
-  const [slideDir, setSlideDir] = useState<'left' | 'right' | 'none'>('none');
+  const getAvailableTabs = () => {
+    const tabs: Array<'personal' | 'team' | 'discover'> = ['personal'];
+    if (!isDrinker) tabs.push('team');
+    tabs.push('discover');
+    return tabs;
+  };
+  
+  const availableTabs = getAvailableTabs();
+
+  const scrollToTab = (tab: 'personal' | 'team' | 'discover') => {
+    const index = availableTabs.indexOf(tab);
+    if (index !== -1 && scrollContainerRef.current) {
+      isScrollingRef.current = true;
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+      
+      const container = scrollContainerRef.current;
+      container.scrollTo({
+        left: index * container.clientWidth,
+        behavior: 'smooth'
+      });
+
+      scrollTimeoutRef.current = setTimeout(() => {
+        isScrollingRef.current = false;
+      }, 500);
+    }
+  };
+
+  useEffect(() => {
+    setMobileTab(initialTab);
+    setTimeout(() => {
+       scrollToTab(initialTab);
+    }, 50);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialTab]);
 
   const handleTabClick = (newTab: 'personal' | 'team' | 'discover') => {
-    const availableTabs: Array<'personal' | 'team' | 'discover'> = ['personal'];
-    if (!isDrinker) availableTabs.push('team');
-    availableTabs.push('discover');
-    
-    const currentIndex = availableTabs.indexOf(mobileTab);
-    const newIndex = availableTabs.indexOf(newTab);
-    
-    if (newIndex > currentIndex) {
-      setSlideDir('right');
-    } else if (newIndex < currentIndex) {
-      setSlideDir('left');
-    } else {
-      setSlideDir('none');
-    }
     setMobileTab(newTab);
+    scrollToTab(newTab);
   };
 
-  const onTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
-  };
-
-  const onTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
-
-  const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > 50;
-    const isRightSwipe = distance < -50;
-
-    const availableTabs: Array<'personal' | 'team' | 'discover'> = ['personal'];
-    if (!isDrinker) availableTabs.push('team');
-    availableTabs.push('discover');
-
-    const currentIndex = availableTabs.indexOf(mobileTab);
-
-    if (isLeftSwipe && currentIndex < availableTabs.length - 1) {
-      handleTabClick(availableTabs[currentIndex + 1]);
-    } else if (isRightSwipe && currentIndex > 0) {
-      handleTabClick(availableTabs[currentIndex - 1]);
-    }
+  const handleScroll = () => {
+     if (isScrollingRef.current || !scrollContainerRef.current) return;
+     const container = scrollContainerRef.current;
+     const scrollLeft = container.scrollLeft;
+     const clientWidth = container.clientWidth;
+     
+     if (clientWidth === 0) return;
+     const index = Math.round(scrollLeft / clientWidth);
+     const currentTab = availableTabs[index];
+     
+     if (currentTab && currentTab !== mobileTab) {
+        setMobileTab(currentTab);
+     }
   };
 
   return (
     <div 
-      className="lg:hidden fixed inset-0 z-[100] bg-background/95 backdrop-blur-3xl flex flex-col animate-slide-in-right supports-[backdrop-filter]:bg-background/80"
+      className="lg:hidden fixed inset-0 z-[100] bg-background/95 backdrop-blur-3xl flex flex-col supports-[backdrop-filter]:bg-background/80 animate-slide-in-right-full"
     >
       <div className="flex flex-col h-full w-full" style={{ paddingRight: `${scrollbarCompensation}px` }}>
         
@@ -141,7 +144,7 @@ export function GlobalMobileMenu({
           <div className="p-4 border-b border-border-subtle bg-background">
             <div className="flex bg-surface p-1 rounded-xl overflow-x-auto no-scrollbar">
               <button 
-                onClick={() => setMobileTab('personal')}
+                onClick={() => handleTabClick('personal')}
                 className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${mobileTab === 'personal' ? 'bg-brand/10 text-brand shadow-lg' : 'text-text-muted hover:text-text-secondary'}`}
               >
                 <FlaskConical className={`w-4 h-4 ${mobileTab === 'personal' ? 'grayscale-0' : 'grayscale'}`} />
@@ -167,17 +170,16 @@ export function GlobalMobileMenu({
           </div>
         )}
 
-        {/* 2. Scrollable Content Area */}
+        {/* 2. Swipeable Content Area */}
         <div 
-          className="flex-1 overflow-y-auto p-4 space-y-4"
-          onTouchStart={onTouchStart}
-          onTouchMove={onTouchMove}
-          onTouchEnd={onTouchEnd}
+          ref={scrollContainerRef}
+          onScroll={handleScroll}
+          className="flex-1 flex overflow-x-auto snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] overscroll-x-contain"
         >
           
           {/* NOT LOGGED IN VIEW */}
           {!user && (
-            <div className="space-y-6 flex flex-col items-center justify-center h-full">
+            <div className="w-full h-full flex-shrink-0 snap-center overflow-y-auto p-4 flex flex-col items-center justify-center space-y-6">
               <Link href="/login?intent=brew" onClick={onClose} className="bg-white text-black font-bold px-8 py-3 rounded-full hover:bg-cyan-400 transition">
                 Anmelden
               </Link>
@@ -199,10 +201,10 @@ export function GlobalMobileMenu({
           )}
 
           {/* LOGGED IN VIEWS */}
-          {user && mobileTab === 'personal' && (
-             <div key={mobileTab} className={`space-y-6 ${slideDir === "left" ? "animate-slide-in-left" : slideDir === "right" ? "animate-slide-in-right" : "animate-fade-in-up"}`}>
-
-                 {/* Custom Links or List for Tools */}
+          {user && (
+            <>
+              {/* PERSONAL VIEW */}
+              <div className="w-full h-full flex-shrink-0 snap-center overflow-y-auto p-4 space-y-6">
                  {customLinks && initialTab === 'personal' ? (
                     <div className="mb-4" onClick={onClose}>
                       {customLinks}
@@ -240,101 +242,102 @@ export function GlobalMobileMenu({
                     </div>
                  </div>
                  )}
-             </div>
-          )}
+              </div>
 
-          {user && mobileTab === 'team' && (
-              <div key={mobileTab} className={`space-y-6 ${slideDir === "left" ? "animate-slide-in-left" : slideDir === "right" ? "animate-slide-in-right" : "animate-fade-in-up"}`}>
-                   {activeBreweryId ? (
-                       <>
+              {/* TEAM VIEW */}
+              {!isDrinker && (
+                <div className="w-full h-full flex-shrink-0 snap-center overflow-y-auto p-4 space-y-6">
+                     {activeBreweryId ? (
+                         <>
 
-                         {/* Team Quick Actions or Custom Links */}
-                         {customLinks && initialTab === 'team' ? (
-                            <div className="mb-4" onClick={onClose}>
-                               {customLinks}
-                            </div>
-                         ) : (
-                            <div>
-                               <p className="text-xs text-text-muted font-bold uppercase tracking-widest px-1 mb-1">Team Ansicht</p>
-                               <div className="divide-y divide-border/50">
-                                  <Link href={`/team/${activeBreweryId}`} onClick={onClose} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition">
-                                     <LayoutDashboard className="w-5 h-5 text-text-secondary" /> <span className="font-bold text-sm text-text-primary">Team-Dashboard</span> <span className="ml-auto text-text-disabled">→</span>
-                                  </Link>
-                                  <Link href={`/team/${activeBreweryId}/feed`} onClick={onClose} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition">
-                                  <MessageSquare className="w-5 h-5 text-text-secondary" /> <span className="font-bold text-sm text-text-primary">Feed</span> <span className="ml-auto text-text-disabled">→</span>
-                               </Link>
-                               <Link href={`/team/${activeBreweryId}/brews`} onClick={onClose} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition">
-                                  <Beer className="w-5 h-5 text-text-secondary" /> <span className="font-bold text-sm text-text-primary">Rezepte</span> <span className="ml-auto text-text-disabled">→</span>
-                               </Link>
-                               <Link href={`/team/${activeBreweryId}/sessions`} onClick={onClose} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition">
-                                  <Thermometer className="w-5 h-5 text-text-secondary" /> <span className="font-bold text-sm text-text-primary">Sessions</span> <span className="ml-auto text-text-disabled">→</span>
-                               </Link>
-                               <Link href={`/team/${activeBreweryId}/inventory`} onClick={onClose} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition">
-                                  <Package className="w-5 h-5 text-text-secondary" /> <span className="font-bold text-sm text-text-primary">Inventar</span> <span className="ml-auto text-text-disabled">→</span>
-                               </Link>
-                               <Link href={`/team/${activeBreweryId}/labels`} onClick={onClose} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition" title="Etiketten">
-                                  <Tag className="w-5 h-5 text-text-secondary" /> <span className="font-bold text-sm text-text-primary">Etiketten</span> <span className="ml-auto text-text-disabled">→</span>
-                               </Link>
-                               <Link href={`/team/${activeBreweryId}/analytics`} onClick={onClose} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition">
-                                  <TrendingUp className="w-5 h-5 text-text-secondary" /> <span className="font-bold text-sm text-text-primary">Analytics</span> <span className="ml-auto text-text-disabled">→</span>
-                               </Link>
-                               <Link href={`/team/${activeBreweryId}/members`} onClick={onClose} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition">
-                                  <Users className="w-5 h-5 text-text-secondary" /> <span className="font-bold text-sm text-text-primary">Mitglieder</span> <span className="ml-auto text-text-disabled">→</span>
-                               </Link>
-                               <Link href={`/team/${activeBreweryId}/settings`} onClick={onClose} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition">
-                                  <Settings className="w-5 h-5 text-text-secondary" /> <span className="font-bold text-sm text-text-primary">Einstellungen</span> <span className="ml-auto text-text-disabled">→</span>
-                               </Link>
-                            </div>
+                           {/* Team Quick Actions or Custom Links */}
+                           {customLinks && initialTab === 'team' ? (
+                              <div className="mb-4" onClick={onClose}>
+                                 {customLinks}
+                              </div>
+                           ) : (
+                              <div>
+                                 <p className="text-xs text-text-muted font-bold uppercase tracking-widest px-1 mb-1">Team Ansicht</p>
+                                 <div className="divide-y divide-border/50">
+                                    <Link href={`/team/${activeBreweryId}`} onClick={onClose} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition">
+                                       <LayoutDashboard className="w-5 h-5 text-text-secondary" /> <span className="font-bold text-sm text-text-primary">Team-Dashboard</span> <span className="ml-auto text-text-disabled">→</span>
+                                    </Link>
+                                    <Link href={`/team/${activeBreweryId}/feed`} onClick={onClose} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition">
+                                    <MessageSquare className="w-5 h-5 text-text-secondary" /> <span className="font-bold text-sm text-text-primary">Feed</span> <span className="ml-auto text-text-disabled">→</span>
+                                 </Link>
+                                 <Link href={`/team/${activeBreweryId}/brews`} onClick={onClose} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition">
+                                    <Beer className="w-5 h-5 text-text-secondary" /> <span className="font-bold text-sm text-text-primary">Rezepte</span> <span className="ml-auto text-text-disabled">→</span>
+                                 </Link>
+                                 <Link href={`/team/${activeBreweryId}/sessions`} onClick={onClose} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition">
+                                    <Thermometer className="w-5 h-5 text-text-secondary" /> <span className="font-bold text-sm text-text-primary">Sessions</span> <span className="ml-auto text-text-disabled">→</span>
+                                 </Link>
+                                 <Link href={`/team/${activeBreweryId}/inventory`} onClick={onClose} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition">
+                                    <Package className="w-5 h-5 text-text-secondary" /> <span className="font-bold text-sm text-text-primary">Inventar</span> <span className="ml-auto text-text-disabled">→</span>
+                                 </Link>
+                                 <Link href={`/team/${activeBreweryId}/labels`} onClick={onClose} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition" title="Etiketten">
+                                    <Tag className="w-5 h-5 text-text-secondary" /> <span className="font-bold text-sm text-text-primary">Etiketten</span> <span className="ml-auto text-text-disabled">→</span>
+                                 </Link>
+                                 <Link href={`/team/${activeBreweryId}/analytics`} onClick={onClose} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition">
+                                    <TrendingUp className="w-5 h-5 text-text-secondary" /> <span className="font-bold text-sm text-text-primary">Analytics</span> <span className="ml-auto text-text-disabled">→</span>
+                                 </Link>
+                                 <Link href={`/team/${activeBreweryId}/members`} onClick={onClose} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition">
+                                    <Users className="w-5 h-5 text-text-secondary" /> <span className="font-bold text-sm text-text-primary">Mitglieder</span> <span className="ml-auto text-text-disabled">→</span>
+                                 </Link>
+                                 <Link href={`/team/${activeBreweryId}/settings`} onClick={onClose} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition">
+                                    <Settings className="w-5 h-5 text-text-secondary" /> <span className="font-bold text-sm text-text-primary">Einstellungen</span> <span className="ml-auto text-text-disabled">→</span>
+                                 </Link>
+                              </div>
+                           </div>
+                           )}
+
+                           {/* Switchable Teams */}
+                           {userBreweries.length > 1 && (
+                               <div>
+                                  <p className="text-xs text-text-muted font-bold uppercase tracking-widest px-1 mb-3">Team wechseln</p>
+                                  <div className="space-y-2">
+                                     {userBreweries.filter(b => b.id !== activeBreweryId).map(b => (
+                                         <Link key={b.id} href={`/team/${b.id}`} onClick={onClose} className="w-full text-left bg-surface/30 border border-border/50 p-3 rounded-xl flex items-center justify-between hover:bg-surface transition">
+                                            <span className="text-sm font-bold text-text-secondary">{b.name}</span>
+                                            <span className="text-[10px] bg-surface-hover text-text-muted px-2 py-1 rounded">Zu diesem Team</span>
+                                         </Link>
+                                     ))}
+                                  </div>
+                               </div>
+                           )}
+                         </>
+                     ) : (
+                         <div className="text-center py-12 px-6 bg-surface/30 rounded-2xl border border-border border-dashed flex flex-col items-center">
+                            <Factory className="w-10 h-10 opacity-50 mb-4" />
+                            <h3 className="font-bold text-text-primary mb-2">Kein Team</h3>
+                            <p className="text-sm text-text-muted mb-6">Du bist aktuell keinem Brauerei-Team zugeordnet.</p>
+                            <Link href="/dashboard/team/create" onClick={onClose} className="inline-block bg-white text-black font-bold px-6 py-3 rounded-xl hover:bg-orange-400 hover:text-white transition">
+                               Team Gründen
+                            </Link>
                          </div>
-                         )}
+                     )}
+                </div>
+              )}
 
-                         {/* Switchable Teams */}
-                         {userBreweries.length > 1 && (
-                             <div>
-                                <p className="text-xs text-text-muted font-bold uppercase tracking-widest px-1 mb-3">Team wechseln</p>
-                                <div className="space-y-2">
-                                   {userBreweries.filter(b => b.id !== activeBreweryId).map(b => (
-                                       <Link key={b.id} href={`/team/${b.id}`} onClick={onClose} className="w-full text-left bg-surface/30 border border-border/50 p-3 rounded-xl flex items-center justify-between hover:bg-surface transition">
-                                          <span className="text-sm font-bold text-text-secondary">{b.name}</span>
-                                          <span className="text-[10px] bg-surface-hover text-text-muted px-2 py-1 rounded">Zu diesem Team</span>
-                                       </Link>
-                                   ))}
-                                </div>
-                             </div>
-                         )}
-                       </>
-                   ) : (
-                       <div className="text-center py-12 px-6 bg-surface/30 rounded-2xl border border-border border-dashed flex flex-col items-center">
-                          <Factory className="w-10 h-10 opacity-50 mb-4" />
-                          <h3 className="font-bold text-text-primary mb-2">Kein Team</h3>
-                          <p className="text-sm text-text-muted mb-6">Du bist aktuell keinem Brauerei-Team zugeordnet.</p>
-                          <Link href="/dashboard/team/create" onClick={onClose} className="inline-block bg-white text-black font-bold px-6 py-3 rounded-xl hover:bg-orange-400 hover:text-white transition">
-                             Team Gründen
-                          </Link>
-                       </div>
-                   )}
+{/* DISCOVER VIEW */}
+              <div className="w-full h-full flex-shrink-0 snap-center overflow-y-auto p-4 space-y-6">
+                 <div>
+                    <p className="text-xs text-text-muted font-bold uppercase tracking-widest px-1 mb-1">Community</p>
+                    <div className="divide-y divide-border/50">
+                        <Link href="/discover" onClick={onClose} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition">
+                           <Globe className="w-5 h-5 text-text-secondary" /> <span className="font-bold text-sm text-text-primary">Rezepte</span> <span className="ml-auto text-text-disabled">→</span>
+                        </Link>
+                        <Link href="/forum" onClick={onClose} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition">
+                           <MessageSquare className="w-5 h-5 text-text-secondary" /> <span className="font-bold text-sm text-text-primary">Forum</span> <span className="ml-auto text-text-disabled">→</span>
+                        </Link>
+                        <Link href="/tools" onClick={onClose} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition">
+                           <Calculator className="w-5 h-5 text-text-secondary" /> <span className="font-bold text-sm text-text-primary">Tools</span> <span className="ml-auto text-text-disabled">→</span>
+                        </Link>
+                    </div>
+                 </div>
               </div>
-          )}
 
-          {user && mobileTab === 'discover' && (
-              <div key={mobileTab} className={`space-y-6 ${slideDir === "left" ? "animate-slide-in-left" : slideDir === "right" ? "animate-slide-in-right" : "animate-fade-in-up"}`}>
-
-                   <div>
-                      <p className="text-xs text-text-muted font-bold uppercase tracking-widest px-1 mb-1">Community</p>
-                      <div className="divide-y divide-border/50">
-                          <Link href="/discover" onClick={onClose} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition">
-                              <Globe className="w-5 h-5 text-text-secondary" /> <span className="font-bold text-sm text-text-primary">Rezepte</span> <span className="ml-auto text-text-disabled">→</span>
-                          </Link>
-                          <Link href="/forum" onClick={onClose} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition">
-                              <MessageSquare className="w-5 h-5 text-text-secondary" /> <span className="font-bold text-sm text-text-primary">Forum</span> <span className="ml-auto text-text-disabled">→</span>
-                          </Link>
-                          <Link href="/tools" onClick={onClose} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition">
-                              <Calculator className="w-5 h-5 text-text-secondary" /> <span className="font-bold text-sm text-text-primary">Tools</span> <span className="ml-auto text-text-disabled">→</span>
-                          </Link>
-                      </div>
-                   </div>
-              </div>
-          )}
+           </>
+         )}
 
         </div>
 

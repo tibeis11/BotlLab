@@ -420,3 +420,12 @@ input[type="number"] {
 .animate-slide-in-left {
     animation: slide-in-left 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+@keyframes slide-in-right-full {
+    0% { transform: translateX(100%); }
+    100% { transform: translateX(0); }
+}
+
+.animate-slide-in-right-full {
+    animation: slide-in-right-full 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

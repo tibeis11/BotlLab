@@ -94,30 +94,59 @@ const BottleListItem = ({
 	setOpenActionMenuId
 }: any) => {
 	const [touchStart, setTouchStart] = useState<number | null>(null);
-	const [touchEnd, setTouchEnd] = useState<number | null>(null);
 	const [swipedLeft, setSwipedLeft] = useState(false);
+	const [offsetX, setOffsetX] = useState(0);
+	const [isDragging, setIsDragging] = useState(false);
+	const swipeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 	const minSwipeDistance = 50;
 
 	const onTouchStart = (e: any) => {
-		setTouchEnd(null);
+		if (swipeTimeoutRef.current) clearTimeout(swipeTimeoutRef.current);
 		setTouchStart(e.targetTouches[0].clientX);
+		setIsDragging(true);
 	}
 
-	const onTouchMove = (e: any) => setTouchEnd(e.targetTouches[0].clientX);
+	const onTouchMove = (e: any) => {
+		if (touchStart === null) return;
+		const currentX = e.targetTouches[0].clientX;
+		let diff = currentX - touchStart;
+
+		if (diff > 80) diff = 80 + (diff - 80) * 0.2; 
+		if (diff < -150) diff = -150 + (diff + 150) * 0.2;
+
+		if (swipedLeft) {
+			diff = -96 + diff;
+		}
+
+		setOffsetX(diff);
+	}
 
 	const onTouchEndHandler = () => {
-		if (!touchStart || !touchEnd) return;
-		const distance = touchStart - touchEnd;
-		const isLeftSwipe = distance > minSwipeDistance;
-		const isRightSwipe = distance < -minSwipeDistance;
+		if (touchStart === null) return;
+		setIsDragging(false);
+		setTouchStart(null);
+		
+		const hasSwipedLeft = offsetX < -minSwipeDistance;
+		const hasSwipedRight = offsetX > minSwipeDistance;
 
-		if (isLeftSwipe) {
+		if (hasSwipedLeft) {
 			setSwipedLeft(true);
-			setTimeout(() => setSwipedLeft(false), 3000); // Reset after 3s
-		}
-		if (isRightSwipe) {
-			if (swipedLeft) setSwipedLeft(false);
-			else onToggle();
+			setOffsetX(-96);
+			swipeTimeoutRef.current = setTimeout(() => {
+				setSwipedLeft(false);
+				setOffsetX(0);
+			}, 3000);
+		} else if (hasSwipedRight) {
+			if (swipedLeft) {
+				setSwipedLeft(false);
+				setOffsetX(0);
+			} else {
+				onToggle();
+				setOffsetX(0);
+			}
+		} else {
+			setSwipedLeft(false);
+			setOffsetX(0);
 		}
 	}
 
@@ -126,17 +155,21 @@ const BottleListItem = ({
 			onTouchStart={onTouchStart}
 			onTouchMove={onTouchMove}
 			onTouchEnd={onTouchEndHandler}
-			className={`relative group border-b border-border last:border-0 transition-colors ${isSelected ? 'bg-surface-hover' : 'bg-background hover:bg-surface'} ${openActionMenuId === bottle.id ? 'z-50' : 'z-0'}`}
+			className={`relative group border-b border-border last:border-0 transition-colors ${isSelected ? 'bg-surface-hover' : 'bg-background hover:bg-surface'} ${openActionMenuId === bottle.id ? 'z-50' : 'overflow-hidden z-0'}`}
 		>
 			{/* Swipe Backgrounds */}
-			<div className={`absolute inset-0 z-0 bg-red-900/20 items-center justify-end pr-8 flex transition-opacity duration-300 pointer-events-none ${swipedLeft ? 'opacity-100' : 'opacity-0'}`}>
+			<div className={`absolute inset-0 z-0 bg-red-900/20 items-center justify-end pr-8 flex transition-opacity duration-300 pointer-events-none ${offsetX < -10 || swipedLeft ? 'opacity-100' : 'opacity-0'}`}>
 
+			</div>
+			
+			<div className={`absolute inset-0 z-0 bg-emerald-900/20 items-center justify-start pl-8 flex transition-opacity duration-300 pointer-events-none ${offsetX > 10 && !swipedLeft ? 'opacity-100' : 'opacity-0'}`}>
+				<Check className={`w-6 h-6 text-emerald-500 transition-transform ${offsetX > minSwipeDistance ? 'scale-110' : 'scale-50'}`} />
 			</div>
 
 			{/* Content Container */}
 			<div
-				className={`relative z-10 flex items-center transition-transform duration-300 py-3 ${swipedLeft ? '-translate-x-24' : 'translate-x-0'}`}
-				style={{ backgroundColor: swipedLeft ? 'transparent' : '' }}
+				className={`relative z-10 flex items-center py-3 ${isDragging ? '' : 'transition-transform duration-300'}`}
+				style={{ transform: `translateX(${offsetX}px)` }}
 			>
 				<div className="hidden sm:flex w-16 pl-6 pr-2 shrink-0 justify-center">
 					<label className="relative flex items-center justify-center cursor-pointer">
@@ -242,10 +275,10 @@ const BottleListItem = ({
 			</div>
 
 			{/* Delete Action Behind Swipe */}
-			{swipedLeft && (
+			{(swipedLeft || offsetX < -10) && (
 				<button
 					onClick={() => onDelete(bottle.id)}
-					className="absolute right-0 top-0 bottom-0 w-24 bg-red-900/10 text-red-500 font-bold flex items-center justify-center z-20 border-l border-red-500/10"
+					className={`absolute right-0 top-0 bottom-0 w-24 bg-red-900/10 text-red-500 font-bold flex items-center justify-center z-20 border-l border-red-500/10 transition-opacity duration-300 ${offsetX < -minSwipeDistance ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
 				>
 					<Trash2 className="w-5 h-5" />
 				</button>
