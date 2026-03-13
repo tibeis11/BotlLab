@@ -247,6 +247,9 @@ export async function submitBeatTheBrewer(
         nonce: submission.qrToken,
         bottle_id: submission.bottleId,
         brew_id: submission.brewId,
+        user_id: user?.id ?? null,
+        session_id: submission.sessionId ?? null,
+        ip_hash: ipHash ?? null,
       });
 
     if (nonceError) {
