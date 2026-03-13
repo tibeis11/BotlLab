@@ -268,22 +268,50 @@ export function Section({
     };
     const capped = (items as BrewWithRecency[]).slice(0, 10);
 
+    const chunked = [];
+    for (let i = 0; i < capped.length; i += 5) {
+      chunked.push(capped.slice(i, i + 5));
+    }
+
     return (
       <div className="mb-12">
-        <SectionHeader title={title} icon={icon} count={items.length} onMore={onMore} infoBubble={infoText} />
-        {/* Single column on mobile, 2 columns on md+ when there are enough items */}
-        <div className={`grid gap-y-0.5 gap-x-6 ${capped.length > 5 ? 'md:grid-cols-2' : 'grid-cols-1'}`}>
-          {capped.map((brew, i) => (
-            <RankedRow
-              key={brew.id}
-              brew={brew}
-              rank={i + 1}
-              trend={trendOf(brew)}
-              currentUserId={currentUserId}
-              likedBrewIds={likedBrewIds}
-              onLikeToggle={onLikeToggle}
-            />
-          ))}
+        <SectionHeader 
+          title={title} 
+          icon={icon} 
+          count={items.length} 
+          onMore={onMore} 
+          infoBubble={infoText} 
+          onScrollLeft={() => scrollBy('left')} 
+          onScrollRight={() => scrollBy('right')} 
+        />
+        {/* -mx-6 md:mx-0 for mobile swiping */}
+        <div className="relative -mx-6 md:mx-0">
+          <div
+            ref={scrollRef}
+            className="flex overflow-x-auto gap-4 pb-4 snap-x scrollbar-hide px-6 md:px-0"
+          >
+            {chunked.map((colItems, colIndex) => (
+              <div 
+                key={colIndex} 
+                className="w-[90vw] md:w-[calc(50%-0.5rem)] flex-shrink-0 snap-center md:snap-start flex flex-col gap-0.5"
+              >
+                {colItems.map((brew, i) => {
+                  const globalIndex = colIndex * 5 + i;
+                  return (
+                    <RankedRow
+                      key={brew.id}
+                      brew={brew}
+                      rank={globalIndex + 1}
+                      trend={trendOf(brew)}
+                      currentUserId={currentUserId}
+                      likedBrewIds={likedBrewIds}
+                      onLikeToggle={onLikeToggle}
+                    />
+                  );
+                })}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );
