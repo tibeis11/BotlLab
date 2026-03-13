@@ -271,7 +271,7 @@ export function GlobalMobileMenu({
                  <div className="flex items-center gap-3">
                      <UserAvatar src={profile?.logo_url} name={profile?.display_name} userId={profile?.id} tier={profile?.subscription_tier} sizeClass="w-10 h-10" />
                      <div>
-                         <p className="text-sm font-bold text-white leading-tight">{profile.display_name}</p>
+                         <p className="text-sm font-bold text-text-primary leading-tight">{profile.display_name}</p>
                      </div>
                  </div>
                  <Link href="/account" onClick={onClose} className="p-2 bg-surface-hover hover:bg-surface-hover/70 rounded-lg text-text-secondary hover:text-text-primary transition">
