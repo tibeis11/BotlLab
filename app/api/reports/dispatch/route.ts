@@ -281,7 +281,7 @@ export async function POST(req: Request) {
         const brewAvgs: Array<{ brewId: string; avg: number }> = [];
         for (const [brewId, ratings] of brewRatings) {
           if (ratings.length < 2) continue; // need at least 2 ratings
-          brewAvgs.push({ brewId, avg: calcWeightedAvg(ratings) });
+          brewAvgs.push({ brewId, avg: calcWeightedAvg(ratings.map(r => ({ rating: r }))) });
         }
         if (brewAvgs.length > 0) {
           brewAvgs.sort((a, b) => b.avg - a.avg);

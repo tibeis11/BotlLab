@@ -7,7 +7,7 @@ import {
   recalcTrendingWithCustomWeights,
 } from '@/lib/actions/brew-admin-actions';
 import { ALGORITHM_DEFAULTS, AlgorithmSettings } from '@/lib/algorithm-settings';
-import { Cpu, MessageSquare, TrendingUp, BarChart3, RotateCcw, Info, Star, Sparkles } from 'lucide-react';
+import { Cpu, MessageSquare, TrendingUp, RotateCcw, Info, Star, Sparkles, Settings2, BarChart3 } from 'lucide-react';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -36,8 +36,8 @@ function previewTrendingScore(
 }
 
 function previewBestRatedScore(
-  n: number,          // Anzahl Bewertungen
-  avg: number,        // Durchschnittsbewertung
+  n: number,
+  avg: number,
   ageDays: number,
   settings: AlgorithmSettings,
 ): number {
@@ -59,14 +59,14 @@ function previewRecScore(
   let score = 0;
   if (styleExactHit) score += settings.rec_weight_style_exact;
   score += settings.rec_weight_hop_jaccard * hopJaccard;
-  score += settings.rec_weight_quality * 0.8;  // assume good quality
+  score += settings.rec_weight_quality * 0.8;
   if (collabBonus) score += settings.rec_weight_collab;
   return score;
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+// ─── Sub-components ──────────────────────────────────────────────────────────
 
-function SliderRow({
+function SettingRow({
   label,
   description,
   value,
@@ -77,7 +77,7 @@ function SliderRow({
   display,
 }: {
   label: string;
-  description: string;
+  description?: string;
   value: number;
   onChange: (v: number) => void;
   min: number;
@@ -85,60 +85,69 @@ function SliderRow({
   step: number;
   display?: (v: number) => string;
 }) {
+  const isDecimal = step < 1;
+  const formatted = display ? display(value) : (isDecimal ? (value > 0 ? '+' : '') + value.toFixed(2) : (value > 0 ? '+' : '') + value.toString());
+  
+  const pct = Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100));
+
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 py-3 border-b border-(--border) last:border-0">
-      <div className="sm:w-60 shrink-0">
-        <p className="text-sm font-medium text-(--text-primary)">{label}</p>
-        <p className="text-xs text-(--text-muted) mt-0.5">{description}</p>
-      </div>
-      <div className="flex items-center gap-3 flex-1">
-        <input
-          type="range"
-          min={min}
-          max={max}
-          step={step}
-          value={value}
-          onChange={e => onChange(parseFloat(e.target.value))}
-          className="flex-1 accent-cyan-500"
-        />
-        <span className="font-mono text-(--brand) text-sm w-12 text-right shrink-0">
-          {display ? display(value) : value}
+    <div className="space-y-1 py-1">
+      <div className="flex justify-between items-center">
+        <div className="flex flex-col">
+          <span className="text-xs text-(--text-secondary) font-medium">{label}</span>
+          {description && (
+            <span className="text-[10px] text-(--text-disabled)">{description}</span>
+          )}
+        </div>
+        <span className={`text-xs font-mono tabular-nums pl-4 shrink-0 ${value > 0 ? 'text-success' : value < 0 ? 'text-error' : 'text-(--text-muted)'}`}>
+          {formatted}
         </span>
       </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={e => onChange(parseFloat(e.target.value))}
+        className="w-full h-1.5 rounded-full appearance-none cursor-pointer accent-(--brand)"
+        style={{
+          background: `linear-gradient(to right, rgba(56, 189, 248, 0.35) 0%, rgba(56, 189, 248, 0.35) ${pct}%, var(--surface-hover) ${pct}%, var(--surface-hover) 100%)`
+        }}
+      />
     </div>
   );
 }
 
-function ScorePreviewRow({ label, score }: { label: string; score: number }) {
+function ScorePreviewRow({ label, score, highlightColor = 'bg-(--brand)' }: { label: string; score: number; highlightColor?: string }) {
   const pct = Math.min(100, score * 10);
   return (
-    <div className="flex items-center gap-3 text-xs text-(--text-secondary)">
-      <span className="w-28 shrink-0">{label}</span>
-      <div className="flex-1 h-1.5 bg-(--surface-hover) rounded-full overflow-hidden">
+    <div className="flex items-center justify-between text-xs text-(--text-secondary) bg-(--surface-sunken) px-3 py-1.5 rounded-lg border border-(--border)">
+      <span className="w-40 shrink-0 font-medium">{label}</span>
+      <div className="flex-1 mx-3 h-1.5 bg-(--surface-hover) rounded-full overflow-hidden">
         <div
-          className="h-full bg-(--brand) rounded-full transition-all duration-300"
+          className={`h-full ${highlightColor} rounded-full transition-all duration-300`}
           style={{ width: `${pct}%` }}
         />
       </div>
-      <span className="font-mono text-(--text-secondary) w-10 text-right">{score.toFixed(3)}</span>
+      <span className="font-mono text-(--text-primary) w-12 text-right">{score.toFixed(3)}</span>
     </div>
   );
 }
 
-// ─── Quality Score breakdown (static, read-only) ─────────────────────────────
-
 const QUALITY_CATEGORIES = [
-  { label: 'A) Kennzahlen (ABV, IBU, EBC, OG, FG, Volumen)', max: 30, fields: ['ABV', 'IBU', 'EBC', 'OG', 'FG', 'Ausschlag'] },
-  { label: 'B) Dokumentation (Beschreibung, Stil, Notizen, Hops, Hefe)', max: 30, fields: ['Beschr. >50', 'Beschr. >200', 'Braustil', 'Braunotizen', 'Hopfen (2+)', 'Hefe-Name'] },
-  { label: 'C) Zutaten (Malze, Hopfen, Hefe, Wasser)', max: 20, fields: ['Malze (2+)', 'Hopfen (1+)', 'Hefe', 'Wasserprofil'] },
-  { label: 'D) Community (Bild, Bewertungen, Likes, Gebraut)', max: 30, fields: ['Eigenes Bild', 'Bew. ≥1', 'Bew. ≥3', 'Likes ≥1', 'Gebraut ≥1', 'Gebraut ≥3'] },
+  { label: 'A) Kennzahlen', max: 30, fields: ['ABV', 'IBU', 'EBC', 'OG', 'FG', 'Ausschlag'] },
+  { label: 'B) Dokumentation', max: 30, fields: ['Beschr. >50', 'Beschr. >200', 'Braustil', 'Braunotizen', 'Hopfen (2+)', 'Hefe-Name'] },
+  { label: 'C) Zutaten', max: 20, fields: ['Malze (2+)', 'Hopfen (1+)', 'Hefe', 'Wasserprofil'] },
+  { label: 'D) Community', max: 30, fields: ['Eigenes Bild', 'Bew. ≥1', 'Bew. ≥3', 'Likes ≥1', 'Gebraut ≥1', 'Gebraut ≥3'] },
 ];
 
-// ─── Main View ────────────────────────────────────────────────────────────────
+// ─── Main View ───────────────────────────────────────────────────────────────
 
 export default function AlgorithmsView() {
   const [settings, setSettings] = useState<AlgorithmSettings>({ ...ALGORITHM_DEFAULTS });
   const [loading, setLoading] = useState(true);
+  
   const [forumSaving, setForumSaving] = useState(false);
   const [forumMsg, setForumMsg] = useState<string | null>(null);
   const [trendingSaving, setTrendingSaving] = useState(false);
@@ -170,7 +179,8 @@ export default function AlgorithmsView() {
         forum_hot_age_exponent:   settings.forum_hot_age_exponent,
         forum_hot_window_days:    settings.forum_hot_window_days,
       });
-      setForumMsg('Forum-Parameter gespeichert!');
+      setForumMsg('✓ Gespeichert');
+      setTimeout(() => setForumMsg(null), 3000);
     } catch (e: any) {
       setForumMsg(`Fehler: ${e.message}`);
     } finally {
@@ -188,13 +198,13 @@ export default function AlgorithmsView() {
         trending_brewed_weight: settings.trending_brewed_weight,
         trending_age_exponent:  settings.trending_age_exponent,
       });
-      setTrendingMsg('Parameter gespeichert!');
+      setTrendingMsg('✓ Gespeichert');
     } catch (e: any) {
       setTrendingMsg(`Fehler: ${e.message}`);
       setTrendingSaving(false);
       return;
     }
-    // Recalc
+    
     setRecalcRunning(true);
     try {
       const result = await recalcTrendingWithCustomWeights(
@@ -202,12 +212,15 @@ export default function AlgorithmsView() {
         settings.trending_brewed_weight,
         settings.trending_age_exponent,
       );
-      setRecalcMsg(`${result.updated} Brews neu berechnet.`);
+      if (result) {
+         setRecalcMsg(`✓ ${result.updated || 0} Brews rec.`);
+      }
     } catch (e: any) {
-      setRecalcMsg(`Fehler beim Neuberechnen: ${e.message}`);
+      setRecalcMsg(`Fehler: ${e.message}`);
     } finally {
       setTrendingSaving(false);
       setRecalcRunning(false);
+      setTimeout(() => { setTrendingMsg(null); setRecalcMsg(null); }, 4000);
     }
   }
 
@@ -222,7 +235,8 @@ export default function AlgorithmsView() {
         bestrated_recency_halflife: settings.bestrated_recency_halflife,
         bestrated_min_ratings:      settings.bestrated_min_ratings,
       });
-      setBestratedMsg('Best-Rated-Parameter gespeichert!');
+      setBestratedMsg('✓ Gespeichert');
+      setTimeout(() => setBestratedMsg(null), 3000);
     } catch (e: any) {
       setBestratedMsg(`Fehler: ${e.message}`);
     } finally {
@@ -250,7 +264,8 @@ export default function AlgorithmsView() {
         rec_needs_data_threshold:  settings.rec_needs_data_threshold,
         rec_collab_min_overlap:    settings.rec_collab_min_overlap,
       });
-      setRecMsg('Personalisierungs-Parameter gespeichert!');
+      setRecMsg('✓ Parameter gespeichert');
+      setTimeout(() => setRecMsg(null), 3000);
     } catch (e: any) {
       setRecMsg(`Fehler: ${e.message}`);
     } finally {
@@ -258,7 +273,7 @@ export default function AlgorithmsView() {
     }
   }
 
-  // Live preview examples
+  // Previews
   const forumPreviews = [
     { label: 'Neu (0h, 2R, 50V)', score: previewForumScore(2, 50, 0, settings) },
     { label: 'Jung (12h, 5R, 100V)', score: previewForumScore(5, 100, 12, settings) },
@@ -281,9 +296,9 @@ export default function AlgorithmsView() {
   ];
 
   const recPreviews = [
-    { label: 'Exakter Style-Match + Collab', score: previewRecScore(true, 0.5, true, settings) },
+    { label: 'Exakter Match + Collab', score: previewRecScore(true, 0.5, true, settings) },
     { label: 'Style-Match, kein Collab', score: previewRecScore(true, 0.3, false, settings) },
-    { label: 'Nur Hop-Ähnlichkeit (50%)', score: previewRecScore(false, 0.5, false, settings) },
+    { label: 'Nur Hop-Match (50%)', score: previewRecScore(false, 0.5, false, settings) },
     { label: 'Kein Match, kein Collab', score: previewRecScore(false, 0.0, false, settings) },
   ];
 
@@ -297,473 +312,362 @@ export default function AlgorithmsView() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-zinc-500 text-sm py-8">
-        <div className="w-4 h-4 border-2 border-(--brand) border-t-transparent rounded-full animate-spin" />
-        Lade Algorithmus-Parameter…
+      <div className="flex h-64 items-center justify-center text-zinc-500 text-sm">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-5 h-5 border-2 border-(--brand) border-t-transparent rounded-full animate-spin" />
+          <p>Lade Algorithmus-Parameter…</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-16">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-black text-(--text-primary) flex items-center gap-2">
-            <Cpu className="w-6 h-6 text-cyan-400" />
-            Algorithmen & Scores
-          </h2>
+          <h1 className="text-2xl font-black text-(--text-primary) tracking-tight">Algorithmen & Scores</h1>
           <p className="text-(--text-muted) text-sm mt-1">
-            Anpassbare Parameter für Forum- und Discover-Ranking
+            Anpassbare globale Weightings, Decay-Faktoren & Bayesian Priors
           </p>
         </div>
         <button
           onClick={() => setSettings({ ...ALGORITHM_DEFAULTS })}
-          className="flex items-center gap-1.5 text-xs text-(--text-muted) hover:text-(--text-primary) border border-(--border-hover) hover:border-(--border-active) px-3 py-1.5 rounded-lg transition"
+          className="flex items-center gap-2 text-xs font-semibold text-(--text-secondary) bg-(--surface) hover:bg-(--surface-hover) border border-(--border) px-3 py-1.5 rounded-lg transition-colors"
         >
           <RotateCcw className="w-3.5 h-3.5" /> Defaults
         </button>
       </div>
 
-      {/* ── Forum Hot Score ──────────────────────────────────────────────────── */}
-      <div className="bg-(--surface) rounded-xl border border-(--border) overflow-hidden">
-        <div className="p-5 border-b border-(--border)">
-          <div className="flex items-center gap-2 mb-1">
-            <MessageSquare className="w-5 h-5 text-purple-400" />
-            <h3 className="text-lg font-bold text-(--text-primary)">Forum Hot Score</h3>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        {/* ── Forum Hot Score ─────────────────────────────────────────── */}
+        <div className="bg-(--surface) border border-(--border) rounded-2xl p-6 flex flex-col gap-6">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-base font-bold text-(--text-primary) mb-1 uppercase tracking-wider flex items-center gap-1.5">
+                <MessageSquare className="w-4 h-4 text-purple-400" />Forum Hot Score
+              </h2>
+              <p className="text-[11px] text-(--text-muted) leading-relaxed">
+                Bestimmt welche Threads als „trending“ im Forum-Sidebar erscheinen.
+              </p>
+            </div>
+            <code className="text-[10px] whitespace-nowrap font-mono bg-(--surface-sunken) text-(--text-secondary) px-2 py-1 rounded hidden sm:block border border-(--border)">
+              (R·W + V/D) / (h+2)^E
+            </code>
           </div>
-          <p className="text-sm text-(--text-secondary) max-w-xl">
-            Bestimmt welche Threads als „trending“ im Forum-Sidebar erscheinen.
-          </p>
-          <code className="mt-2 inline-block text-xs font-mono bg-(--surface-sunken) border border-(--border) px-3 py-1.5 rounded-lg text-(--text-secondary)">
-            score = (replies × W<sub>r</sub> + views ÷ D<sub>v</sub>) / (ageH + 2)<sup>E</sup>
-          </code>
+
+          <div className="space-y-3 grow">
+            <SettingRow
+              label="Replies-Gewicht (Wᵣ)"
+              description="Höher = aktive Diskussionen bevorzugt."
+              value={settings.forum_hot_replies_weight} onChange={v => update('forum_hot_replies_weight', v)}
+              min={0.5} max={10} step={0.5}
+            />
+            <SettingRow
+              label="Views-Teiler (Dᵥ)"
+              description="Kleiner = Aufrufe zählen mehr."
+              value={settings.forum_hot_views_divisor} onChange={v => update('forum_hot_views_divisor', v)}
+              min={1} max={100} step={1}
+            />
+            <SettingRow
+              label="Zerfalls-Exponent (E)"
+              description="Größer = ältere Threads verfallen schneller."
+              value={settings.forum_hot_age_exponent} onChange={v => update('forum_hot_age_exponent', v)}
+              min={0.5} max={3} step={0.1}
+            />
+            <SettingRow
+              label="Look-Back-Fenster"
+              description="Max. Alter für Trending-Berücksichtigung."
+              value={settings.forum_hot_window_days} onChange={v => update('forum_hot_window_days', v)}
+              min={3} max={60} step={1} display={v => '+' + v + 'd'}
+            />
+          </div>
+
+          <div>
+            <h3 className="text-[10px] text-(--text-disabled) uppercase tracking-wider font-bold mb-3">Live-Vorschau</h3>
+            <div className="space-y-1.5">
+              {forumPreviews.map(p => <ScorePreviewRow key={p.label} {...p} highlightColor="bg-purple-500" />)}
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-(--border) flex items-center justify-between mt-auto">
+            <div className="h-6 flex items-center">
+              {forumMsg && (
+                <span className={`text-xs font-semibold ${forumMsg.startsWith('✓') ? 'text-success' : 'text-error'}`}>
+                  {forumMsg}
+                </span>
+              )}
+            </div>
+            <button
+              onClick={handleSaveForum}
+              disabled={forumSaving}
+              className="px-4 py-1.5 bg-(--surface-hover) hover:bg-purple-500/10 hover:text-purple-400 border border-(--border) rounded-lg font-semibold text-xs transition disabled:opacity-50"
+            >
+              {forumSaving ? 'Lädt...' : 'Speichern'}
+            </button>
+          </div>
         </div>
 
-        <div className="p-5 space-y-0">
-          <SliderRow
-            label="Replies-Gewicht (Wᵣ)"
-            description="Multiplikator für Antworten. Höher = aktive Diskussionen bevorzugt."
-            value={settings.forum_hot_replies_weight}
-            onChange={v => update('forum_hot_replies_weight', v)}
-            min={0.5} max={10} step={0.5}
-          />
-          <SliderRow
-            label="Views-Teiler (Dᵥ)"
-            description="Teiling der View-Anzahl. Kleiner = Aufrufe zählen mehr."
-            value={settings.forum_hot_views_divisor}
-            onChange={v => update('forum_hot_views_divisor', v)}
-            min={1} max={100} step={1}
-          />
-          <SliderRow
-            label="Zerfalls-Exponent (E)"
-            description="Zeitverfall. Größer = ältere Threads werden schneller irrelevant."
-            value={settings.forum_hot_age_exponent}
-            onChange={v => update('forum_hot_age_exponent', v)}
-            min={0.5} max={3} step={0.1}
-            display={v => v.toFixed(1)}
-          />
-          <SliderRow
-            label="Look-Back-Fenster (Tage)"
-            description={'Nur Threads aus diesem Zeitraum werden fuer "Trending" beruecksichtigt.'}
-            value={settings.forum_hot_window_days}
-            onChange={v => update('forum_hot_window_days', v)}
-            min={3} max={60} step={1}
-          />
+        {/* ── Discover Trending Score ─────────────────────────────────────────── */}
+        <div className="bg-(--surface) border border-(--border) rounded-2xl p-6 flex flex-col gap-6">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-base font-bold text-(--text-primary) mb-1 uppercase tracking-wider flex items-center gap-1.5">
+                <TrendingUp className="w-4 h-4 text-cyan-400" />Discover Trending Score
+              </h2>
+              <p className="text-[11px] text-(--text-muted) leading-relaxed">
+                Ranking der „Trending“-Rezepte auf der Discover Page.
+              </p>
+            </div>
+            <code className="text-[10px] whitespace-nowrap font-mono bg-(--surface-sunken) text-(--text-secondary) px-2 py-1 rounded hidden sm:block border border-(--border)">
+              (L·W + B·W) / (d+2)^E
+            </code>
+          </div>
+
+          <div className="space-y-3 grow">
+            <SettingRow
+              label="Likes-Gewicht (W_L)"
+              description="Einfluss von Likes auf den Trending Score."
+              value={settings.trending_likes_weight} onChange={v => update('trending_likes_weight', v)}
+              min={0} max={10} step={0.5}
+            />
+            <SettingRow
+              label="Gebraut-Gewicht (W_B)"
+              description="Höher = Praxis-Beweis belohnen."
+              value={settings.trending_brewed_weight} onChange={v => update('trending_brewed_weight', v)}
+              min={0} max={20} step={0.5}
+            />
+            <SettingRow
+              label="Zerfalls-Exponent (E)"
+              description="Größer = ältere Rezepte verfallen schneller."
+              value={settings.trending_age_exponent} onChange={v => update('trending_age_exponent', v)}
+              min={0.5} max={3} step={0.1}
+            />
+          </div>
+
+          <div>
+            <h3 className="text-[10px] text-(--text-disabled) uppercase tracking-wider font-bold mb-3">Live-Vorschau</h3>
+            <div className="space-y-1.5">
+              {trendingPreviews.map(p => <ScorePreviewRow key={p.label} {...p} highlightColor="bg-cyan-500" />)}
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-(--border) flex items-center justify-between mt-auto gap-2">
+            <div className="flex flex-col h-8 justify-center">
+              {trendingMsg && (
+                <span className={`text-xs font-semibold ${trendingMsg.startsWith('✓') ? 'text-success' : 'text-error'}`}>
+                  {trendingMsg}
+                </span>
+              )}
+              {recalcMsg && (
+                <span className={`text-xs font-semibold ${recalcMsg.startsWith('✓') ? 'text-success' : 'text-error'}`}>
+                  {recalcMsg}
+                </span>
+              )}
+            </div>
+            <button
+              onClick={handleSaveAndRecalcTrending}
+              disabled={trendingSaving || recalcRunning}
+              className="px-4 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-semibold text-xs transition disabled:opacity-50 flex items-center gap-1.5 shrink-0"
+            >
+              {(trendingSaving || recalcRunning) ? (
+                <><div className="w-3 h-3 border-2 border-white/50 border-t-white rounded-full animate-spin" />Lädt...</>
+              ) : 'Speichern & Recalc'}
+            </button>
+          </div>
         </div>
 
-        {/* Preview */}
-        <div className="px-5 pb-4 space-y-2">
-          <p className="text-xs text-(--text-disabled) uppercase tracking-wider font-bold mb-2">Live-Vorschau (L = Likes, R = Replies, V = Views, B = Gebraut)</p>
-          {forumPreviews.map(p => <ScorePreviewRow key={p.label} {...p} />)}
-        </div>
-
-        {/* Save */}
-        <div className="px-5 pb-5 flex items-center gap-4 border-t border-(--border) pt-4">
-          <button
-            onClick={handleSaveForum}
-            disabled={forumSaving}
-            className="px-4 py-2 bg-purple-700 hover:bg-purple-600 disabled:opacity-50 text-white rounded-lg font-bold text-sm transition"
-          >
-            {forumSaving ? 'Speichere…' : 'Forum-Parameter speichern'}
-          </button>
-          {forumMsg && (
-            <span className={`text-sm font-bold ${!forumMsg.startsWith('Fehler') ? 'text-green-400' : 'text-red-400'}`}>
-              {forumMsg}
-            </span>
-          )}
-        </div>
       </div>
 
-      {/* ── Discover Trending Score ──────────────────────────────────────────── */}
-      <div className="bg-(--surface) rounded-xl border border-(--border) overflow-hidden">
-        <div className="p-5 border-b border-(--border)">
-          <div className="flex items-center gap-2 mb-1">
-            <TrendingUp className="w-5 h-5 text-cyan-400" />
-            <h3 className="text-lg font-bold text-(--text-primary)">Discover Trending Score</h3>
-          </div>
-          <p className="text-sm text-(--text-secondary) max-w-xl">
-            Bestimmt die Reihenfolge der „Trending“-Rezepte auf der Discover Page.
-          </p>
-          <code className="mt-2 inline-block text-xs font-mono bg-(--surface-sunken) border border-(--border) px-3 py-1.5 rounded-lg text-(--text-secondary)">
-            score = (likes × W<sub>L</sub> + times_brewed × W<sub>B</sub>) / (ageDays + 2)<sup>E</sup>
-          </code>
-          <div className="flex items-start gap-1.5 mt-2">
-            <Info className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
-            <p className="text-xs text-amber-500/80">
-              „Speichern & Neu berechnen" aktualisiert alle öffentlichen Brews sofort.
-              Manuell gesetzte Trending-Overrides (im Content-Tab) bleiben unberührt.
+      {/* ── Best-Rated Score ─────────────────────────────────────────── */}
+      <div className="bg-(--surface) border border-(--border) rounded-2xl p-6 space-y-6">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-base font-bold text-(--text-primary) mb-1 uppercase tracking-wider flex items-center gap-1.5">
+              <Star className="w-4 h-4 text-amber-400" />Best-Rated Score (Bayesian)
+            </h2>
+            <p className="text-[11px] text-(--text-muted) leading-relaxed">
+              Gewichteter Durchschnitt mit Bayesian Smoothing und Recency-Decay.
             </p>
           </div>
         </div>
 
-        <div className="p-5 space-y-0">
-          <SliderRow
-            label="Likes-Gewicht (W_L)"
-            description="Einfluss von Likes auf den Trending Score."
-            value={settings.trending_likes_weight}
-            onChange={v => update('trending_likes_weight', v)}
-            min={0} max={10} step={0.5}
-          />
-          <SliderRow
-            label="Gebraut-Gewicht (W_B)"
-            description="Einfluss von 'Gebraut von anderen' auf Trending. Höher = Praxis-Beweis belohnen."
-            value={settings.trending_brewed_weight}
-            onChange={v => update('trending_brewed_weight', v)}
-            min={0} max={20} step={0.5}
-          />
-          <SliderRow
-            label="Zerfalls-Exponent (E)"
-            description="Zeitverfall. Größer = ältere Rezepte verlieren schneller an Sichtbarkeit."
-            value={settings.trending_age_exponent}
-            onChange={v => update('trending_age_exponent', v)}
-            min={0.5} max={3} step={0.1}
-            display={v => v.toFixed(1)}
-          />
-        </div>
-
-        {/* Preview */}
-        <div className="px-5 pb-4 space-y-2">
-          <p className="text-xs text-(--text-disabled) uppercase tracking-wider font-bold mb-2">Live-Vorschau (L = Likes, B = Gebraut, d = Tage alt)</p>
-          {trendingPreviews.map(p => <ScorePreviewRow key={p.label} {...p} />)}
-        </div>
-
-        {/* Save & Recalc */}
-        <div className="px-5 pb-5 flex flex-wrap items-center gap-4 border-t border-(--border) pt-4">
-          <button
-            onClick={handleSaveAndRecalcTrending}
-            disabled={trendingSaving || recalcRunning}
-            className="px-4 py-2 bg-cyan-700 hover:bg-cyan-600 disabled:opacity-50 text-white rounded-lg font-bold text-sm transition flex items-center gap-2"
-          >
-            {(trendingSaving || recalcRunning)
-              ? <><div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />Berechne…</>
-              : 'Speichern & Trending neu berechnen'
-            }
-          </button>
-          <div className="flex flex-col gap-1">
-            {trendingMsg && (
-              <span className={`text-sm font-bold ${!trendingMsg.startsWith('Fehler') ? 'text-green-400' : 'text-red-400'}`}>
-                {trendingMsg}
-              </span>
-            )}
-            {recalcMsg && (
-              <span className={`text-sm font-bold ${!recalcMsg.startsWith('Fehler') ? 'text-green-400' : 'text-red-400'}`}>
-                {recalcMsg}
-              </span>
-            )}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
+          <div className="space-y-3">
+            <SettingRow
+                label="Bayesian M (Mindest-Votes)" description="Anzahl Votes ab der ein Brew valid ist."
+                value={settings.bestrated_bayesian_m} onChange={v => update('bestrated_bayesian_m', v)}
+                min={1} max={100} step={1}
+            />
+            <SettingRow
+                label="Bayesian C (Prior)" description="Globaler Prior-Mittelwert."
+                value={settings.bestrated_bayesian_c} onChange={v => update('bestrated_bayesian_c', v)}
+                min={1} max={5} step={0.05}
+            />
+            <SettingRow
+                label="Recency Floor" description="Minimalgewicht für sehr alte Brews."
+                value={settings.bestrated_recency_floor} onChange={v => update('bestrated_recency_floor', v)}
+                min={0} max={1} step={0.01}
+            />
+            <SettingRow
+                label="Recency Halflife" description="Tage bis 50% Decay erreicht ist."
+                value={settings.bestrated_recency_halflife} onChange={v => update('bestrated_recency_halflife', v)}
+                min={30} max={730} step={10} display={v => '+' + v + 'd'}
+            />
+            <SettingRow
+                label="Min. Bewertungen" description="Für die Sichtbarkeit in Listen."
+                value={settings.bestrated_min_ratings} onChange={v => update('bestrated_min_ratings', v)}
+                min={1} max={20} step={1}
+            />
           </div>
-        </div>
-      </div>
 
-      {/* ── Best-Rated Score (Bayesian) ──────────────────────────────────────── */}
-      <div className="bg-(--surface) rounded-xl border border-(--border) overflow-hidden">
-        <div className="p-5 border-b border-(--border)">
-          <div className="flex items-center gap-2 mb-1">
-            <Star className="w-5 h-5 text-amber-400" />
-            <h3 className="text-lg font-bold text-(--text-primary)">Best-Rated Score (Bayesian)</h3>
-          </div>
-          <p className="text-sm text-(--text-secondary) max-w-xl">
-            Gewichteter Durchschnitt mit Bayesian Smoothing und Recency-Decay.
-            Brews mit wenigen Bewertungen werden zum globalen Mittelwert gezogen.
-          </p>
-        </div>
-        <div className="p-5 grid md:grid-cols-2 gap-8">
-          {/* Sliders */}
-          <div className="space-y-5">
-            {/* Bayesian M */}
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-(--text-secondary)">Bayesian M (Mindest-Votes)</span>
-                <span className="text-amber-400 font-mono">{settings.bestrated_bayesian_m}</span>
+          <div className="flex flex-col">
+            <h3 className="text-[10px] text-(--text-disabled) uppercase tracking-wider font-bold mb-3">Live-Vorschau</h3>
+            <div className="space-y-1.5 grow">
+              {bestratedPreviews.map(p => <ScorePreviewRow key={p.label} {...p} highlightColor="bg-amber-500" />)}
+            </div>
+
+            <div className="pt-4 mt-6 border-t border-(--border) flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3">
+              <div className="h-6 flex items-center">
+                {bestratedMsg && (
+                  <span className={`text-xs font-semibold ${bestratedMsg.startsWith('✓') ? 'text-success' : 'text-error'}`}>
+                    {bestratedMsg}
+                  </span>
+                )}
               </div>
-              <input type="range" min={1} max={100} step={1}
-                value={settings.bestrated_bayesian_m}
-                onChange={e => setSettings(s => ({ ...s, bestrated_bayesian_m: +e.target.value }))}
-                className="w-full accent-amber-500" />
-              <p className="text-xs text-(--text-muted) mt-1">Anzahl Votes, ab denen ein Brew &quot;vertrauenswürdig&quot; ist</p>
-            </div>
-            {/* Bayesian C */}
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-(--text-secondary)">Bayesian C (Prior-Mittelwert)</span>
-                <span className="text-amber-400 font-mono">{settings.bestrated_bayesian_c.toFixed(2)}</span>
-              </div>
-              <input type="range" min={1} max={5} step={0.05}
-                value={settings.bestrated_bayesian_c}
-                onChange={e => setSettings(s => ({ ...s, bestrated_bayesian_c: +e.target.value }))}
-                className="w-full accent-amber-500" />
-              <p className="text-xs text-(--text-muted) mt-1">Globaler &quot;Prior&quot; Mittelwert für neue Brews</p>
-            </div>
-            {/* Recency Floor */}
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-(--text-secondary)">Recency Floor (Min-Gewicht)</span>
-                <span className="text-amber-400 font-mono">{settings.bestrated_recency_floor.toFixed(2)}</span>
-              </div>
-              <input type="range" min={0} max={1} step={0.01}
-                value={settings.bestrated_recency_floor}
-                onChange={e => setSettings(s => ({ ...s, bestrated_recency_floor: +e.target.value }))}
-                className="w-full accent-amber-500" />
-              <p className="text-xs text-(--text-muted) mt-1">Minimalgewicht für sehr alte Brews</p>
-            </div>
-            {/* Recency Halflife */}
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-(--text-secondary)">Recency Halflife (Tage)</span>
-                <span className="text-amber-400 font-mono">{settings.bestrated_recency_halflife}d</span>
-              </div>
-              <input type="range" min={30} max={730} step={10}
-                value={settings.bestrated_recency_halflife}
-                onChange={e => setSettings(s => ({ ...s, bestrated_recency_halflife: +e.target.value }))}
-                className="w-full accent-amber-500" />
-              <p className="text-xs text-(--text-muted) mt-1">Nach dieser Zeit hat Recency-Gewicht 50 % verloren</p>
-            </div>
-            {/* Min Ratings */}
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-(--text-secondary)">Min. Bewertungen (Sichtbarkeit)</span>
-                <span className="text-amber-400 font-mono">{settings.bestrated_min_ratings}</span>
-              </div>
-              <input type="range" min={1} max={20} step={1}
-                value={settings.bestrated_min_ratings}
-                onChange={e => setSettings(s => ({ ...s, bestrated_min_ratings: +e.target.value }))}
-                className="w-full accent-amber-500" />
-              <p className="text-xs text-(--text-muted) mt-1">Mindestanzahl Bewertungen für Best-Rated Liste</p>
-            </div>
-          </div>
-          {/* Preview */}
-          <div>
-            <p className="text-xs text-(--text-muted) uppercase tracking-wider mb-3">Live-Vorschau</p>
-            <div className="space-y-2">
-              {bestratedPreviews.map(p => (
-                <div key={p.label} className="flex justify-between items-center bg-(--surface-hover) rounded px-3 py-2">
-                  <span className="text-xs text-(--text-secondary)">{p.label}</span>
-                  <span className="text-sm font-mono text-amber-400">{p.score.toFixed(3)}</span>
-                </div>
-              ))}
-            </div>
-            <div className="mt-6">
               <button
                 onClick={handleSaveBestRated}
                 disabled={bestratedSaving}
-                className="w-full bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+                className="w-full lg:w-auto px-4 py-1.5 bg-(--surface-hover) hover:bg-amber-500/10 hover:text-amber-500 border border-(--border) rounded-lg font-semibold text-xs transition disabled:opacity-50"
               >
-                {bestratedSaving ? 'Speichere…' : 'Best-Rated Parameter speichern'}
+                {bestratedSaving ? 'Lädt...' : 'Speichern'}
               </button>
-              {bestratedMsg && (
-                <span className={`mt-2 block text-sm font-bold ${!bestratedMsg.startsWith('Fehler') ? 'text-green-400' : 'text-red-400'}`}>
-                  {bestratedMsg}
-                </span>
-              )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── Personalisierung / Empfehlungs-Engine ────────────────────────────── */}
-      <div className="bg-(--surface) rounded-xl border border-(--border) overflow-hidden">
-        <div className="p-5 border-b border-(--border)">
-          <div className="flex items-center gap-2 mb-1">
-            <Sparkles className="w-5 h-5 text-cyan-400" />
-            <h3 className="text-lg font-bold text-(--text-primary)">Personalisierung (Empfehlungs-Engine)</h3>
+      {/* ── Personalisierung ─────────────────────────────────────────── */}
+      <div className="bg-(--surface) border border-(--border) rounded-2xl p-6 space-y-6">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-base font-bold text-(--text-primary) mb-1 uppercase tracking-wider flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-(--brand)" />Personalisierungs-Engine
+            </h2>
+            <p className="text-[11px] text-(--text-muted) leading-relaxed">
+              3-stufige Engine: Content-based → Implicit Signals → Collaborative Filtering.
+            </p>
           </div>
-          <p className="text-sm text-(--text-secondary) max-w-xl">
-            3-stufige Engine: Content-based → Implicit Signals → Collaborative Filtering.
-            Gewichte steuern, welche Ähnlichkeitssignale wie stark einflussreich sind.
-          </p>
         </div>
-        <div className="p-5 space-y-8">
-          <div className="grid md:grid-cols-2 gap-8">
-            {/* Weight sliders */}
-            <div className="space-y-4">
-              <p className="text-xs text-(--text-muted) uppercase tracking-wider">Gewichte (Summe: {recWeightTotal.toFixed(2)})</p>
-              {([
-                ['rec_weight_style_exact',    'Exakter Style-Match',    'text-purple-400'],
-                ['rec_weight_style_family',   'Style-Familie',          'text-purple-400'],
-                ['rec_weight_hop_jaccard',    'Hop-Jaccard',            'text-green-400'],
-                ['rec_weight_malt_jaccard',   'Malz-Jaccard',           'text-green-400'],
-                ['rec_weight_abv_proximity',  'ABV-Nähe',               'text-yellow-400'],
-                ['rec_weight_quality',        'Quality Score',          'text-amber-400'],
-                ['rec_weight_liked_style',    'Liked-Style Bonus',      'text-pink-400'],
-                ['rec_weight_complexity',     'Komplexitäts-Match',     'text-blue-400'],
-                ['rec_weight_viewed_style',   'Viewed-Style Bonus',     'text-indigo-400'],
-                ['rec_weight_collab',         'Collaborative Filtering','text-cyan-400'],
-              ] as [keyof typeof settings, string, string][]).map(([key, label, color]) => (
-                <div key={key}>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-(--text-secondary)">{label}</span>
-                    <span className={`font-mono ${color}`}>{(settings[key] as number).toFixed(2)}</span>
-                  </div>
-                  <input type="range" min={0} max={2} step={0.05}
-                    value={settings[key] as number}
-                    onChange={e => setSettings(s => ({ ...s, [key]: +e.target.value }))}
-                    className="w-full accent-purple-500" />
-                </div>
-              ))}
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+          <div>
+            <h3 className="text-[10px] text-(--text-disabled) uppercase tracking-wider font-bold mb-4 flex items-center justify-between">
+              <span>Feature Weights</span>
+              <span className="text-(--brand) font-mono">Sum: {recWeightTotal.toFixed(2)}</span>
+            </h3>
+            <div className="space-y-2">
+              <SettingRow label="Exakter Style-Match" value={settings.rec_weight_style_exact} onChange={v => update('rec_weight_style_exact', v)} min={0} max={2} step={0.05} />
+              <SettingRow label="Style-Familie" value={settings.rec_weight_style_family} onChange={v => update('rec_weight_style_family', v)} min={0} max={2} step={0.05} />
+              <SettingRow label="Hopfen-Jaccard" value={settings.rec_weight_hop_jaccard} onChange={v => update('rec_weight_hop_jaccard', v)} min={0} max={2} step={0.05} />
+              <SettingRow label="Malz-Jaccard" value={settings.rec_weight_malt_jaccard} onChange={v => update('rec_weight_malt_jaccard', v)} min={0} max={2} step={0.05} />
+              <SettingRow label="ABV-Nähe" value={settings.rec_weight_abv_proximity} onChange={v => update('rec_weight_abv_proximity', v)} min={0} max={2} step={0.05} />
+              <SettingRow label="Quality Score Base" value={settings.rec_weight_quality} onChange={v => update('rec_weight_quality', v)} min={0} max={2} step={0.05} />
+              <SettingRow label="Liked-Style Bonus" value={settings.rec_weight_liked_style} onChange={v => update('rec_weight_liked_style', v)} min={0} max={2} step={0.05} />
+              <SettingRow label="Viewed-Style Bonus" value={settings.rec_weight_viewed_style} onChange={v => update('rec_weight_viewed_style', v)} min={0} max={2} step={0.05} />
+              <SettingRow label="Komplexitäts-Match" value={settings.rec_weight_complexity} onChange={v => update('rec_weight_complexity', v)} min={0} max={2} step={0.05} />
+              <SettingRow label="Collaborative Filt." value={settings.rec_weight_collab} onChange={v => update('rec_weight_collab', v)} min={0} max={2} step={0.05} />
             </div>
-            {/* Diversity + threshold sliders + preview */}
-            <div className="space-y-5">
-              <div>
-                <p className="text-xs text-(--text-muted) uppercase tracking-wider mb-3">Ergebnis-Mix</p>
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-(--text-secondary)">Comfort-Anteil (%)</span>
-                      <span className="text-cyan-400 font-mono">{Math.round(settings.rec_diversity_comfort * 100)}%</span>
-                    </div>
-                    <input type="range" min={0} max={1} step={0.05}
-                      value={settings.rec_diversity_comfort}
-                      onChange={e => setSettings(s => ({ ...s, rec_diversity_comfort: +e.target.value }))}
-                      className="w-full accent-cyan-500" />
-                    <p className="text-xs text-(--text-muted) mt-1">Anteil bekannter Styles (Comfort Zone)</p>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-(--text-secondary)">Exploration-Anteil (%)</span>
-                      <span className="text-cyan-400 font-mono">{Math.round(settings.rec_diversity_exploration * 100)}%</span>
-                    </div>
-                    <input type="range" min={0} max={1} step={0.05}
-                      value={settings.rec_diversity_exploration}
-                      onChange={e => setSettings(s => ({ ...s, rec_diversity_exploration: +e.target.value }))}
-                      className="w-full accent-cyan-500" />
-                    <p className="text-xs text-(--text-muted) mt-1">Anteil neuer / unbekannter Styles</p>
-                  </div>
-                </div>
+          </div>
+
+          <div className="flex flex-col h-full bg-(--surface-sunken) p-5 rounded-xl border border-(--border)">
+            <h3 className="text-[10px] text-(--text-disabled) uppercase tracking-wider font-bold mb-4">Ergebnis-Mix & Thresholds</h3>
+            <div className="space-y-4 mb-8">
+              <SettingRow
+                label="Comfort-Anteil (%)" description="Bekannte Styles (Comfort Zone)."
+                value={settings.rec_diversity_comfort} onChange={v => update('rec_diversity_comfort', v)}
+                min={0} max={1} step={0.05} display={v => Math.round(v * 100) + '%'}
+              />
+              <SettingRow
+                label="Exploration-Anteil (%)" description="Anteil neuer/entfernter Styles."
+                value={settings.rec_diversity_exploration} onChange={v => update('rec_diversity_exploration', v)}
+                min={0} max={1} step={0.05} display={v => Math.round(v * 100) + '%'}
+              />
+              <SettingRow
+                label="Needs-Data Thresh." description="Min. Aktionen bevor Empfehlungen starten."
+                value={settings.rec_needs_data_threshold} onChange={v => update('rec_needs_data_threshold', v)}
+                min={1} max={20} step={1} display={v => '+' + v}
+              />
+              <SettingRow
+                label="Collab Min Overlap" description="Min. gemeinsame Biere für Matches."
+                value={settings.rec_collab_min_overlap} onChange={v => update('rec_collab_min_overlap', v)}
+                min={1} max={10} step={1} display={v => '+' + v}
+              />
+            </div>
+            
+            <div className="mb-4">
+              <h3 className="text-[10px] text-(--text-disabled) uppercase tracking-wider font-bold mb-3">Live-Vorschau</h3>
+              <div className="space-y-1.5">
+                {recPreviews.map(p => <ScorePreviewRow key={p.label} {...p} highlightColor="bg-(--brand)" />)}
               </div>
-              <div>
-                <p className="text-xs text-(--text-muted) uppercase tracking-wider mb-3">Schwellenwerte</p>
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-(--text-secondary)">Needs-Data Threshold</span>
-                      <span className="text-(--text-secondary) font-mono">{settings.rec_needs_data_threshold}</span>
-                    </div>
-                    <input type="range" min={1} max={20} step={1}
-                      value={settings.rec_needs_data_threshold}
-                      onChange={e => setSettings(s => ({ ...s, rec_needs_data_threshold: +e.target.value }))}
-                      className="w-full accent-zinc-500" />
-                    <p className="text-xs text-(--text-muted) mt-1">Min. Ratings bevor personalisiert wird</p>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-(--text-secondary)">Collab Min-Overlap</span>
-                      <span className="text-(--text-secondary) font-mono">{settings.rec_collab_min_overlap}</span>
-                    </div>
-                    <input type="range" min={1} max={10} step={1}
-                      value={settings.rec_collab_min_overlap}
-                      onChange={e => setSettings(s => ({ ...s, rec_collab_min_overlap: +e.target.value }))}
-                      className="w-full accent-zinc-500" />
-                    <p className="text-xs text-(--text-muted) mt-1">Gemeinsame Brews für Collab Filtering</p>
-                  </div>
-                </div>
-              </div>
-              {/* Preview */}
-              <div>
-                <p className="text-xs text-(--text-muted) uppercase tracking-wider mb-3">Live-Vorschau</p>
-                <div className="space-y-2">
-                  {recPreviews.map(p => (
-                    <div key={p.label} className="flex justify-between items-center bg-(--surface-hover) rounded px-3 py-2">
-                      <span className="text-xs text-(--text-secondary)">{p.label}</span>
-                      <span className="text-sm font-mono text-cyan-400">{p.score.toFixed(3)}</span>
-                    </div>
-                  ))}
-                </div>
+            </div>
+
+            <div className="pt-4 border-t border-(--border) flex items-center justify-between mt-auto">
+              <div className="h-6 flex items-center">
+                {recMsg && (
+                  <span className={`text-xs font-semibold ${recMsg.startsWith('✓') ? 'text-success' : 'text-error'}`}>
+                    {recMsg}
+                  </span>
+                )}
               </div>
               <button
                 onClick={handleSaveRec}
                 disabled={recSaving}
-                className="w-full bg-cyan-700 hover:bg-cyan-600 disabled:opacity-50 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+                className="px-4 py-1.5 bg-(--brand) hover:opacity-90 text-white rounded-lg font-semibold text-xs transition disabled:opacity-50"
               >
-                {recSaving ? 'Speichere…' : 'Personalisierungs-Parameter speichern'}
+                {recSaving ? 'Lädt...' : 'Speichern'}
               </button>
-              {recMsg && (
-                <span className={`block text-sm font-bold ${!recMsg.startsWith('Fehler') ? 'text-green-400' : 'text-red-400'}`}>
-                  {recMsg}
-                </span>
-              )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── Quality Score Übersicht (read-only) ──────────────────────────────── */}
-      <div className="bg-(--surface) rounded-xl border border-(--border) overflow-hidden">
-        <div className="p-5 border-b border-(--border)">
-          <div className="flex items-center gap-2 mb-1">
-            <BarChart3 className="w-5 h-5 text-amber-400" />
-            <h3 className="text-lg font-bold text-(--text-primary)">Quality Score Aufbau</h3>
-          </div>
-          <p className="text-sm text-(--text-secondary) max-w-xl">
-            Der Quality Score (0–100) berechnet sich aus 4 Kategorien mit je 5 Punkten pro Kriterium.
-            Maximum: 110 Punkte → normalisiert auf 100.
-          </p>
-          <div className="flex items-start gap-1.5 mt-2">
-            <Info className="w-3.5 h-3.5 text-(--text-muted) shrink-0 mt-0.5" />
-            <p className="text-xs text-(--text-muted)">
-              Diese Parameter sind in der Datenbank-Funktion definiert. Für Änderungen
-              wäre eine DB-Migration notwendig. Den <strong className="text-(--text-primary)">Mindest-Score</strong> für
-              die Discover Page kannst du in <em>Einstellungen → Discover Page</em> anpassen.
+      {/* ── Quality Score Allgemein ─────────────────────────────────────────── */}
+      <div className="bg-(--surface) border border-(--border) rounded-2xl p-6 space-y-6">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-base font-bold text-(--text-primary) mb-1 uppercase tracking-wider flex items-center gap-1.5">
+              <BarChart3 className="w-4 h-4 text-amber-400" />Quality Score Aufbau
+            </h2>
+            <p className="text-[11px] text-(--text-muted) leading-relaxed">
+               Maximum: 110 Punkte → normalisiert auf 100 (in DB-Funktion fest definiert).
             </p>
           </div>
         </div>
 
-        <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {QUALITY_CATEGORIES.map(cat => (
-            <div key={cat.label} className="bg-(--surface-sunken) rounded-lg p-4 border border-(--border)">
+            <div key={cat.label} className="bg-(--surface-sunken) rounded-lg p-4 border border-(--border) flex flex-col">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-bold text-(--text-primary)">{cat.label.split(' ')[0]}</p>
-                <span className="text-xs font-mono bg-(--surface-hover) text-(--brand) px-2 py-0.5 rounded">
-                  max. {cat.max} Pkt.
-                </span>
+                <p className="text-xs font-bold text-(--text-primary)">{cat.label}</p>
+                <span className="text-[10px] font-mono bg-(--surface-hover) text-(--brand) px-1.5 py-0.5 rounded">max. {cat.max}</span>
               </div>
-              <p className="text-xs text-(--text-muted) mb-3">{cat.label.replace(/^[A-D]\) /, '')}</p>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-1.5 mb-3 grow">
                 {cat.fields.map(f => (
                   <span key={f} className="text-[10px] font-medium bg-(--surface-hover) text-(--text-secondary) px-2 py-0.5 rounded border border-(--border-hover)">
                     {f} +5
                   </span>
                 ))}
               </div>
-              <div className="mt-3 h-1.5 bg-(--surface-hover) rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-amber-500/60 rounded-full"
-                  style={{ width: `${(cat.max / 110) * 100}%` }}
-                />
+              <div className="h-1 bg-(--surface-hover) rounded-full overflow-hidden mt-auto">
+                <div className="h-full bg-amber-500/60 rounded-full" style={{ width: `${(cat.max / 110) * 100}%` }} />
               </div>
             </div>
           ))}
         </div>
-
-        <div className="px-5 pb-5">
-          <div className="bg-(--surface-sunken) rounded-lg p-4 border border-(--border) flex items-center justify-between">
-            <div>
-              <p className="text-sm font-bold text-(--text-primary)">Normalisierungsformel</p>
-              <code className="text-xs font-mono text-(--text-secondary)">
-                quality_score = LEAST(100, ROUND(raw_score / 110.0 × 100))
-              </code>
-            </div>
-            <span className="text-2xl font-black text-amber-400">= 0–100</span>
-          </div>
+        <div className="bg-(--surface-sunken) rounded-lg p-3 border border-(--border) flex items-center justify-between">
+          <code className="text-[10px] font-mono text-(--text-secondary)">quality_score = LEAST(100, ROUND(raw_score / 110.0 × 100))</code>
         </div>
       </div>
     </div>
