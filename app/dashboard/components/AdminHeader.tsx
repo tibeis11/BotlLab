@@ -151,16 +151,17 @@ export default function AdminHeader() {
   );
 
   const customMobileLinks = (
-    <div className="mb-4">
-      <p className="text-xs text-text-muted font-bold uppercase tracking-widest px-1 mb-2">Dashboard</p>
-      <div className="space-y-1">
+    <div>
+      <p className="text-xs text-text-muted font-bold uppercase tracking-widest px-1 mb-1">Dashboard</p>
+      <div className="divide-y divide-border/50">
         <Link
           href="/dashboard"
           onClick={() => setIsMobileMenuOpen(false)}
-          className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${pathname === '/dashboard' ? 'bg-brand-bg text-brand' : 'text-text-muted hover:bg-surface-hover hover:text-text-primary'}`}
+          className={`w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition ${pathname === '/dashboard' ? 'bg-surface/30' : ''}`}
         >
-          <LayoutDashboard className="w-5 h-5" />
-          Dashboard
+          <LayoutDashboard className={`w-5 h-5 ${pathname === '/dashboard' ? 'text-brand' : 'text-text-secondary'}`} />
+          <span className={`font-bold text-sm ${pathname === '/dashboard' ? 'text-brand' : 'text-text-primary'}`}>Dashboard</span>
+          <span className="ml-auto text-text-disabled">→</span>
         </Link>
         {tabs.map(tab => {
           const isActive = tab.path === '/dashboard' 
@@ -171,10 +172,11 @@ export default function AdminHeader() {
               key={tab.path}
               href={tab.path}
               onClick={() => setIsMobileMenuOpen(false)}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${isActive ? 'bg-brand-bg text-brand' : 'text-text-muted hover:bg-surface-hover hover:text-text-primary'}`}
+              className={`w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition ${isActive ? 'bg-surface/30' : ''}`}
             >
-              <tab.icon className="w-5 h-5" />
-              {tab.name}
+              <tab.icon className={`w-5 h-5 ${isActive ? 'text-brand' : 'text-text-secondary'}`} />
+              <span className={`font-bold text-sm ${isActive ? 'text-brand' : 'text-text-primary'}`}>{tab.name}</span>
+              <span className="ml-auto text-text-disabled">→</span>
             </Link>
           );
         })}

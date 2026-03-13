@@ -144,12 +144,6 @@ export function GlobalMobileMenu({
           {/* LOGGED IN VIEWS */}
           {user && mobileTab === 'personal' && (
              <div className="space-y-6 animate-in fade-in zoom-in-95 duration-200">
-          {customLinks && initialTab === 'personal' ? (
-             <div className="mb-4">
-               {customLinks}
-             </div>
-          ) : (
-             <>
                  {/* Dashboard Hero */}
                  <Link 
                     href={homeUrl}
@@ -167,8 +161,13 @@ export function GlobalMobileMenu({
                     </div>
                  </Link>
 
-                 {/* List for Tools */}
-                 <div>
+                 {/* Custom Links or List for Tools */}
+                 {customLinks && initialTab === 'personal' ? (
+                    <div className="mb-4">
+                      {customLinks}
+                    </div>
+                 ) : (
+                   <div>
                     <p className="text-xs text-text-muted font-bold uppercase tracking-widest px-1 mb-1">Aktionen</p>
                     <div className="divide-y divide-border/50">
                        <Link href={isDrinker ? '/my-cellar/collection' : '/dashboard/collection'} onClick={onClose} className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition">
@@ -184,8 +183,7 @@ export function GlobalMobileMenu({
                        )}
                     </div>
                  </div>
-             </>
-          )}
+                 )}
              </div>
           )}
 

@@ -119,9 +119,9 @@ export default function ConsumerHeader() {
   );
 
   const customMobileLinks = (
-    <div className="mb-4">
-      <p className="text-xs text-text-muted font-bold uppercase tracking-widest px-1 mb-2">Mein Keller</p>
-      <div className="space-y-1">
+    <div>
+      <p className="text-xs text-text-muted font-bold uppercase tracking-widest px-1 mb-1">Mein Keller</p>
+      <div className="divide-y divide-border/50">
         {desktopTabs.map(tab => {
           const active = isActive(tab.path, tab.exact);
           return (
@@ -129,10 +129,11 @@ export default function ConsumerHeader() {
               key={tab.path}
               href={tab.path}
               onClick={() => setIsMobileMenuOpen(false)}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${active ? 'bg-brand-bg text-brand' : 'text-text-muted hover:bg-surface-hover hover:text-text-primary'}`}
+              className={`w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition ${active ? 'bg-surface/30' : ''}`}
             >
-              <tab.icon className="w-5 h-5" />
-              {tab.name}
+              <tab.icon className={`w-5 h-5 ${active ? 'text-brand' : 'text-text-secondary'}`} />
+              <span className={`font-bold text-sm ${active ? 'text-brand' : 'text-text-primary'}`}>{tab.name}</span>
+              <span className="ml-auto text-text-disabled">→</span>
             </Link>
           );
         })}

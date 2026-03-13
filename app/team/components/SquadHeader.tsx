@@ -165,9 +165,9 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
     );
 
     const customMobileLinks = (
-      <div className="mb-4">
-        <p className="text-xs text-orange-500 font-bold uppercase tracking-widest px-1 mb-2">Team Ansicht</p>
-        <div className="space-y-1">
+      <div>
+        <p className="text-xs text-orange-500 font-bold uppercase tracking-widest px-1 mb-1">Team Ansicht</p>
+        <div className="divide-y divide-border/50">
           {tabs.map(tab => {
             const isActive = pathname === tab.path || pathname?.startsWith(tab.path + '/');
             return (
@@ -175,32 +175,29 @@ export default function SquadHeader({ breweryId, isMember }: SquadHeaderProps) {
                 key={tab.path}
                 href={tab.path}
                 onClick={() => setIsMobileMenuOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${isActive ? 'bg-orange-500/10 text-orange-500' : 'text-text-muted hover:bg-surface-hover hover:text-text-primary'}`}
+                className={`w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition ${isActive ? 'bg-surface/30' : ''}`}
               >
-                <tab.icon className="w-5 h-5" />
-                {tab.name}
+                <tab.icon className={`w-5 h-5 ${isActive ? 'text-orange-500' : 'text-text-secondary'}`} />
+                <span className={`font-bold text-sm ${isActive ? 'text-orange-500' : 'text-text-primary'}`}>{tab.name}</span>
+                <span className="ml-auto text-text-disabled">→</span>
               </Link>
             );
           })}
-          {adminTabs.length > 0 && (
-             <>
-                <div className="h-px bg-border mx-2 my-2"></div>
-                {adminTabs.map(tab => {
-                    const isActive = pathname === tab.path || pathname?.startsWith(tab.path + '/');
-                    return (
-                        <Link
-                          key={tab.path}
-                          href={tab.path}
-                          onClick={() => setIsMobileMenuOpen(false)}
-                          className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${isActive ? 'bg-orange-500/10 text-orange-500' : 'text-text-muted hover:bg-surface-hover hover:text-text-primary'}`}
-                        >
-                          <tab.icon className="w-5 h-5" />
-                          {tab.name}
-                        </Link>
-                    )
-                })}
-             </>
-          )}
+          {adminTabs.length > 0 && adminTabs.map(tab => {
+              const isActive = pathname === tab.path || pathname?.startsWith(tab.path + '/');
+              return (
+                  <Link
+                    key={tab.path}
+                    href={tab.path}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition ${isActive ? 'bg-surface/30' : ''}`}
+                  >
+                    <tab.icon className={`w-5 h-5 ${isActive ? 'text-orange-500' : 'text-text-secondary'}`} />
+                    <span className={`font-bold text-sm ${isActive ? 'text-orange-500' : 'text-text-primary'}`}>{tab.name}</span>
+                    <span className="ml-auto text-text-disabled">→</span>
+                  </Link>
+              )
+          })}
         </div>
         <div className="h-px bg-border mx-2 my-4"></div>
       </div>
