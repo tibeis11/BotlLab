@@ -2272,12 +2272,13 @@ export async function classifyCisScans(): Promise<{ nonQr: number; session: numb
 
   // ── 1c. Batch lookup tasting_score_events linked to these scans ───────────
   // Used to apply CIS bonus for VibeCheck (+0.30), Rating/BTB (+0.80) stacked
-  const scanEventMap = new Map<string, Set<string>>(); // scan_id → set of event_types
+  // Points are now multiplied by the plausibility_score to gracefully penalize bots
+  const scanEventMap = new Map<string, { event_type: string; plausibility_score: number }[]>(); 
   try {
     const scanIds = scans.map((s: any) => s.id);
     const { data: tse } = await (supabase as any)
       .from('tasting_score_events')
-      .select('bottle_scan_id, event_type')
+      .select('bottle_scan_id, event_type, plausibility_score')
       .in('bottle_scan_id', scanIds)
       .in('event_type', ['vibe_check', 'rating_given', 'beat_the_brewer']);
     if (tse) {
@@ -2285,10 +2286,13 @@ export async function classifyCisScans(): Promise<{ nonQr: number; session: numb
         if (!row.bottle_scan_id) continue;
         let existing = scanEventMap.get(row.bottle_scan_id);
         if (!existing) {
-          existing = new Set<string>();
+          existing = [];
           scanEventMap.set(row.bottle_scan_id, existing);
         }
-        existing.add(row.event_type);
+        existing.push({
+          event_type: row.event_type,
+          plausibility_score: row.plausibility_score ?? 1.0
+        });
       }
     }
   } catch {
@@ -2366,14 +2370,26 @@ export async function classifyCisScans(): Promise<{ nonQr: number; session: numb
     // Tasting action bonus — from tasting_score_events linked to this scan
     const scanEvents = scanEventMap.get(scan.id);
     if (scanEvents) {
-      if (scanEvents.has('rating_given')) {
-        score += cfg.RATING_BONUS;     // z.B. +0.80
+      // Helper to get max plausibility score (in case of duplicate events for same scan)
+      const getPlausibility = (type: string) => {
+        const events = scanEvents.filter(e => e.event_type === type);
+        if (events.length === 0) return null;
+        return Math.max(...events.map(e => e.plausibility_score));
+      };
+
+      const ratingPlausibility = getPlausibility('rating_given');
+      if (ratingPlausibility !== null) {
+        score += (cfg.RATING_BONUS * ratingPlausibility);     // z.B. +0.80 * 0.75
       }
-      if (scanEvents.has('beat_the_brewer')) {
-        score += cfg.BTB_BONUS;        // z.B. +0.80
+      
+      const btbPlausibility = getPlausibility('beat_the_brewer');
+      if (btbPlausibility !== null) {
+        score += (cfg.BTB_BONUS * btbPlausibility);        // z.B. +0.80 * 0.75
       }
-      if (scanEvents.has('vibe_check')) {
-        score += cfg.VIBECHECK_BONUS;  // +0.30
+      
+      const vibePlausibility = getPlausibility('vibe_check');
+      if (vibePlausibility !== null) {
+        score += (cfg.VIBECHECK_BONUS * vibePlausibility);  // +0.30 * 0.75
       }
     }
 
