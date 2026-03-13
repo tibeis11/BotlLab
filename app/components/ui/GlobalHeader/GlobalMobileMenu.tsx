@@ -144,26 +144,10 @@ export function GlobalMobileMenu({
           {/* LOGGED IN VIEWS */}
           {user && mobileTab === 'personal' && (
              <div className="space-y-6 animate-in fade-in zoom-in-95 duration-200">
-                 {/* Dashboard Hero */}
-                 <Link 
-                    href={homeUrl}
-                    onClick={onClose}
-                    className="block bg-gradient-to-br from-cyan-950/40 to-cyan-900/10 border border-cyan-900/50 p-5 rounded-2xl relative overflow-hidden group"
-                 >
-                    <div className="absolute right-0 top-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                       <LayoutDashboard className="w-16 h-16 text-cyan-500" />
-                    </div>
-                    <p className="text-xs text-cyan-400 font-black uppercase tracking-widest mb-1">Übersicht</p>
-                    <h3 className="text-xl font-bold text-white mb-2">{isDrinker ? 'Mein Keller' : 'Labor Dashboard'}</h3>
-                    <div className="flex items-center gap-2 text-sm text-cyan-300">
-                       <span>Alles im Blick</span>
-                       <span>→</span>
-                    </div>
-                 </Link>
 
                  {/* Custom Links or List for Tools */}
                  {customLinks && initialTab === 'personal' ? (
-                    <div className="mb-4">
+                    <div className="mb-4" onClick={onClose}>
                       {customLinks}
                     </div>
                  ) : (
@@ -191,29 +175,10 @@ export function GlobalMobileMenu({
               <div className="space-y-6 animate-in fade-in zoom-in-95 duration-200">
                    {activeBreweryId ? (
                        <>
-                         <div className="bg-gradient-to-br from-orange-950/40 to-orange-900/10 border border-orange-900/50 p-5 rounded-2xl">
-                            <div className="flex justify-between items-start mb-4">
-                               <div>
-                                  <p className="text-[10px] text-orange-400 font-black uppercase tracking-widest mb-1">Aktives Team</p>
-                                  <h3 className="text-xl font-bold text-white leading-tight">{activeBreweryName}</h3>
-                               </div>
-                               <div className="bg-orange-500/10 text-orange-400 p-2 rounded-lg">
-                                  <Factory className="w-5 h-5" />
-                               </div>
-                            </div>
-                            
-                            <Link 
-                               href={`/team/${activeBreweryId}`}
-                               onClick={onClose}
-                               className="w-full block text-center bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 font-bold py-3 rounded-xl border border-orange-500/20 transition"
-                            >
-                               Zum Team-Dashboard
-                            </Link>
-                         </div>
 
                          {/* Team Quick Actions or Custom Links */}
                          {customLinks && initialTab === 'team' ? (
-                            <div className="mb-4">
+                            <div className="mb-4" onClick={onClose}>
                                {customLinks}
                             </div>
                          ) : (
@@ -278,18 +243,6 @@ export function GlobalMobileMenu({
 
           {user && mobileTab === 'discover' && (
               <div className="space-y-6 animate-in fade-in zoom-in-95 duration-200">
-                  <div className="bg-gradient-to-br from-purple-900/40 to-purple-900/10 border border-purple-900/50 p-5 rounded-2xl">
-                     <div className="flex justify-between items-start mb-4">
-                        <div>
-                           <p className="text-[10px] text-purple-400 font-black uppercase tracking-widest mb-1">BotlLab Community</p>
-                           <h3 className="text-xl font-bold text-white leading-tight">Entdecken</h3>
-                        </div>
-                        <div className="bg-purple-500/10 text-purple-400 p-2 rounded-lg">
-                           <Globe className="w-5 h-5" />
-                        </div>
-                     </div>
-                     <p className="text-sm text-text-secondary mb-4">Finde Inspiration, tausche dich aus und entdecke neue Rezepte.</p>
-                  </div>
 
                    <div>
                       <p className="text-xs text-text-muted font-bold uppercase tracking-widest px-1 mb-1">Community</p>
