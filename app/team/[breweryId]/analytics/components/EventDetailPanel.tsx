@@ -213,7 +213,7 @@ export default function EventDetailPanel({
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="px-3 py-1 bg-white text-black text-xs font-bold rounded-lg hover:bg-zinc-200 transition-colors disabled:opacity-50"
+                  className="px-3 py-1 bg-text-primary text-surface text-xs font-bold rounded-lg hover:opacity-80 transition-colors disabled:opacity-50"
                 >
                   {saving ? 'Speichern…' : 'Speichern'}
                 </button>

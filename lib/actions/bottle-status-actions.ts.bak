@@ -1,0 +1,53 @@
+'use server'
+
+import { createClient, createAdminClient } from '@/lib/supabase-server';
+
+export async function updateBottleDrinkingStatus(
+  bottleId: string,
+  isDrinking: boolean
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createClient();
+
+    // Find the latest scan for this bottle
+    const sixtyMinAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { data: scan } = await (supabase as any)
+      .from('bottle_scans')
+      .select('id, scan_intent')
+      .eq('bottle_id', bottleId)
+      .gte('created_at', sixtyMinAgo)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (!scan) {
+      return { success: false, error: 'No recent scan found to update.' };
+    }
+
+    // Update the scan
+    const updateData: any = {
+      confirmed_drinking: isDrinking,
+      drinking_probability: isDrinking ? 1.0 : 0.0,
+    };
+    
+    // Only upgrade intent to 'confirmed' if drinking
+    if (isDrinking) {
+      updateData.scan_intent = 'confirmed';
+    }
+
+    const adminClient = createAdminClient();
+    const { error: updateErr } = await (adminClient as any)
+      .from('bottle_scans')
+      .update(updateData)
+      .eq('id', scan.id);
+
+    if (updateErr) {
+      return { success: false, error: updateErr.message };
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('[Analytics] Error updating bottle drinking status:', error);
+    return { success: false, error: error.message };
+  }
+}

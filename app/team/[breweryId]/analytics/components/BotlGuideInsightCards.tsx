@@ -152,7 +152,7 @@ export default function BotlGuideInsightCards({
       {/* Header */}
       <div className="flex items-center gap-2">
         <Sparkles size={14} className="text-amber-400" />
-        <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-500">
+        <h3 className="text-[10px] font-black uppercase tracking-widest text-text-secondary">
           BotlGuide Analyst
         </h3>
         {isPending && <Loader2 size={12} className="animate-spin text-text-muted" />}

@@ -69,7 +69,7 @@ export default function OffFlavorAlertBanner({ breweryId, userTier }: OffFlavorA
 
   if (isLocked) {
     return (
-      <div className="bg-surface border border-dashed border-zinc-800 rounded-2xl px-6 py-4 flex items-center gap-3">
+      <div className="bg-surface border border-dashed border-border rounded-2xl px-6 py-4 flex items-center gap-3">
         <Lock size={16} className="text-amber-400 flex-shrink-0" />
         <div>
           <p className="text-xs font-bold text-text-secondary">Off-Flavor Frühwarnsystem</p>

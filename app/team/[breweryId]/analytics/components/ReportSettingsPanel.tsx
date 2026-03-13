@@ -318,7 +318,7 @@ export default function ReportSettingsPanel({ breweryId }: Props) {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="px-6 py-2.5 bg-white text-black font-bold text-sm rounded-lg hover:bg-zinc-200 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              className="px-6 py-2.5 bg-text-primary text-surface font-bold text-sm rounded-lg hover:opacity-80 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {saving ? (
                 <>

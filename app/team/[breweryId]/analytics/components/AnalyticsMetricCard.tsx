@@ -23,7 +23,7 @@ export default function AnalyticsMetricCard({ title, value, change, subValue, ic
 
   return (
     <article 
-      className="bg-surface rounded-2xl p-5 border border-border hover:border-zinc-700 transition-colors flex flex-col justify-between"
+      className="bg-surface rounded-2xl p-5 border border-border hover:border-border-hover transition-colors flex flex-col justify-between"
       role="region"
       aria-label={`${title} metric`}
     >

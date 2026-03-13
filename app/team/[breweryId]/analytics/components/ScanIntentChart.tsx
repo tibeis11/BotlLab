@@ -42,13 +42,13 @@ const DEFAULT_ICON = Brain;
 // ============================================================================
 
 const INTENT_COLORS: Record<string, { bar: string; text: string }> = {
-  single:            { bar: 'bg-cyan-600',    text: 'text-cyan-400' },
+  single:            { bar: 'bg-cyan-600',    text: 'text-brand' },
   browse:            { bar: 'bg-surface-hover',    text: 'text-text-secondary' },
   collection_browse: { bar: 'bg-surface-hover',    text: 'text-text-muted' },
-  repeat:            { bar: 'bg-emerald-600', text: 'text-emerald-400' },
-  social_discovery:  { bar: 'bg-violet-600',  text: 'text-violet-400' },
-  event:             { bar: 'bg-amber-600',   text: 'text-amber-400' },
-  confirmed:         { bar: 'bg-green-500',   text: 'text-green-400' },
+  repeat:            { bar: 'bg-emerald-600', text: 'text-success' },
+  social_discovery:  { bar: 'bg-violet-600',  text: 'text-brand' },
+  event:             { bar: 'bg-amber-600',   text: 'text-warning' },
+  confirmed:         { bar: 'bg-success',   text: 'text-success' },
 };
 
 const DEFAULT_COLOR = { bar: 'bg-surface-hover', text: 'text-text-secondary' };
@@ -121,7 +121,7 @@ export default function ScanIntentChart({
     return (
       <div className="bg-surface rounded-2xl border border-border p-6 relative overflow-hidden">
         <div className="absolute inset-0 backdrop-blur-[2px] bg-surface/60 z-10 flex flex-col items-center justify-center gap-2">
-          <Lock size={20} className="text-violet-400" />
+          <Lock size={20} className="text-brand" />
           <p className="text-sm font-bold text-text-secondary">Verfügbar ab Brewery-Plan</p>
           <p className="text-xs text-text-muted">Erfahre, was hinter deinen Scans steckt</p>
         </div>
@@ -151,7 +151,7 @@ export default function ScanIntentChart({
           <Brain size={16} className="text-text-muted" />
           <h3 className="text-sm font-bold text-text-secondary">Scan-Qualität</h3>
         </div>
-        <p className="text-xs text-red-400">{error}</p>
+        <p className="text-xs text-error">{error}</p>
       </div>
     );
   }
@@ -229,7 +229,7 @@ export default function ScanIntentChart({
       </div>
 
       {/* Footer */}
-      <div className="border-t border-zinc-800/50 mt-6 pt-5 space-y-5">
+      <div className="border-t border-border mt-6 pt-5 space-y-5">
 
         {/* Modell-Confidence */}
         {(() => {
@@ -244,28 +244,28 @@ export default function ScanIntentChart({
 
           const [label, valueColor, trackColor] =
             pct >= 50
-              ? ['Gut kalibriert',       'text-emerald-400', 'bg-emerald-500']
+              ? ['Gut kalibriert',       'text-success', 'bg-emerald-500']
               : pct >= 20
-              ? ['Wenig Beweise',         'text-amber-400',   'bg-amber-500']
-              : ['Mehr Feedback nötig',   'text-red-400',     'bg-red-500'];
+              ? ['Wenig Beweise',         'text-warning',   'bg-warning']
+              : ['Mehr Feedback nötig',   'text-error',     'bg-error'];
 
           return (
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">
+                <span className="text-[10px] font-black uppercase tracking-widest text-text-secondary">
                   Modell-Confidence
                 </span>
                 <span className={`text-[10px] font-bold uppercase tracking-wider ${valueColor}`}>
                   {pct}% — {label}
                 </span>
               </div>
-              <div className="h-1 w-full bg-zinc-800 rounded-full overflow-hidden">
+              <div className="h-1 w-full bg-surface-hover rounded-full overflow-hidden">
                 <div
                   className={`h-full ${trackColor} rounded-full transition-all duration-700`}
                   style={{ width: `${pct}%` }}
                 />
               </div>
-              <p className="text-[10px] text-zinc-600 mt-1.5">
+              <p className="text-[10px] text-text-disabled mt-1.5">
                 {confirmed} bestätigte Trinker · ~{Math.round(estimated)} geschätzt
               </p>
             </div>
@@ -273,23 +273,23 @@ export default function ScanIntentChart({
         })()}
 
         {/* KPI Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-zinc-800/50 rounded-xl overflow-hidden">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-border rounded-xl overflow-hidden">
           {/* Rohe Scans */}
-          <div className="bg-zinc-900 px-4 py-3 flex flex-col gap-1">
+          <div className="bg-surface-sunken px-4 py-3 flex flex-col gap-1">
             <div className="flex items-center gap-1.5">
-              <BarChart3 size={11} className="text-zinc-500" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Scans</span>
+              <BarChart3 size={11} className="text-text-secondary" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-text-secondary">Scans</span>
             </div>
-            <p className="text-xl font-black font-mono tabular-nums text-white">
+            <p className="text-xl font-black font-mono tabular-nums text-text-primary">
               {data.totalScans.toLocaleString('de-DE')}
             </p>
           </div>
 
           {/* Geschätzte Trinker */}
-          <div className="bg-zinc-900 px-4 py-3 flex flex-col gap-1">
+          <div className="bg-surface-sunken px-4 py-3 flex flex-col gap-1">
             <div className="flex items-center gap-1.5">
-              <Users size={11} className="text-violet-500" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Geschätzt</span>
+              <Users size={11} className="text-brand" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-text-secondary">Geschätzt</span>
             </div>
             {(() => {
               const estimated = data.estimatedConsumers
@@ -297,10 +297,10 @@ export default function ScanIntentChart({
                 : 0;
               return (
                 <>
-                  <p className="text-xl font-black font-mono tabular-nums text-violet-400">
+                  <p className="text-xl font-black font-mono tabular-nums text-brand">
                     ~{estimated.toLocaleString('de-DE')}
                   </p>
-                  <p className="text-[10px] text-zinc-600">
+                  <p className="text-[10px] text-text-disabled">
                     {data.totalScans > 0
                       ? `${Math.round((estimated / data.totalScans) * 100)}% der Scans`
                       : '—'}
@@ -311,15 +311,15 @@ export default function ScanIntentChart({
           </div>
 
           {/* Bestätigt */}
-          <div className="bg-zinc-900 px-4 py-3 flex flex-col gap-1">
+          <div className="bg-surface-sunken px-4 py-3 flex flex-col gap-1">
             <div className="flex items-center gap-1.5">
-              <CheckCircle2 size={11} className="text-emerald-500" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Bestätigt</span>
+              <CheckCircle2 size={11} className="text-success" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-text-secondary">Bestätigt</span>
             </div>
-            <p className="text-xl font-black font-mono tabular-nums text-emerald-400">
+            <p className="text-xl font-black font-mono tabular-nums text-success">
               {data.confirmedDrinkers.toLocaleString('de-DE')}
             </p>
-            <p className="text-[10px] text-zinc-600">
+            <p className="text-[10px] text-text-disabled">
               {data.totalScans > 0
                 ? `${((data.confirmedDrinkers / data.totalScans) * 100).toFixed(1)}% Confirmed-Rate`
                 : '—'}
@@ -327,20 +327,20 @@ export default function ScanIntentChart({
           </div>
 
           {/* Modell-Genauigkeit */}
-          <div className="bg-zinc-900 px-4 py-3 flex flex-col gap-1">
+          <div className="bg-surface-sunken px-4 py-3 flex flex-col gap-1">
             <div className="flex items-center gap-1.5">
-              <Brain size={11} className="text-violet-500" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Modell</span>
+              <Brain size={11} className="text-brand" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-text-secondary">Modell</span>
             </div>
             {data.modelAccuracy !== null ? (
               <>
-                <p className="text-xl font-black font-mono tabular-nums text-violet-400">
+                <p className="text-xl font-black font-mono tabular-nums text-brand">
                   {Math.round(data.modelAccuracy * 100)}%
                 </p>
-                <p className="text-[10px] text-zinc-600">aus Feedback</p>
+                <p className="text-[10px] text-text-disabled">aus Feedback</p>
               </>
             ) : (
-              <p className="text-xs text-zinc-600 mt-1 leading-tight">Noch zu wenig Daten</p>
+              <p className="text-xs text-text-disabled mt-1 leading-tight">Noch zu wenig Daten</p>
             )}
           </div>
         </div>
