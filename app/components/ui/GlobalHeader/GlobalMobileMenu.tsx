@@ -67,6 +67,25 @@ export function GlobalMobileMenu({
 
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [slideDir, setSlideDir] = useState<'left' | 'right' | 'none'>('none');
+
+  const handleTabClick = (newTab: 'personal' | 'team' | 'discover') => {
+    const availableTabs: Array<'personal' | 'team' | 'discover'> = ['personal'];
+    if (!isDrinker) availableTabs.push('team');
+    availableTabs.push('discover');
+    
+    const currentIndex = availableTabs.indexOf(mobileTab);
+    const newIndex = availableTabs.indexOf(newTab);
+    
+    if (newIndex > currentIndex) {
+      setSlideDir('right');
+    } else if (newIndex < currentIndex) {
+      setSlideDir('left');
+    } else {
+      setSlideDir('none');
+    }
+    setMobileTab(newTab);
+  };
 
   const onTouchStart = (e: React.TouchEvent) => {
     setTouchEnd(null);
@@ -90,9 +109,9 @@ export function GlobalMobileMenu({
     const currentIndex = availableTabs.indexOf(mobileTab);
 
     if (isLeftSwipe && currentIndex < availableTabs.length - 1) {
-      setMobileTab(availableTabs[currentIndex + 1]);
+      handleTabClick(availableTabs[currentIndex + 1]);
     } else if (isRightSwipe && currentIndex > 0) {
-      setMobileTab(availableTabs[currentIndex - 1]);
+      handleTabClick(availableTabs[currentIndex - 1]);
     }
   };
 
@@ -130,7 +149,7 @@ export function GlobalMobileMenu({
               </button>
               {!isDrinker && (
                 <button 
-                  onClick={() => setMobileTab('team')}
+                  onClick={() => handleTabClick('team')}
                   className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${mobileTab === 'team' ? 'bg-accent-orange/10 text-accent-orange shadow-lg' : 'text-text-muted hover:text-text-secondary'}`}
                 >
                   <Factory className="w-4 h-4" />
@@ -138,7 +157,7 @@ export function GlobalMobileMenu({
                 </button>
               )}
               <button 
-                onClick={() => setMobileTab('discover')}
+                onClick={() => handleTabClick('discover')}
                 className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${mobileTab === 'discover' ? 'bg-accent-purple/10 text-accent-purple shadow-lg' : 'text-text-muted hover:text-text-secondary'}`}
               >
                 <Globe className="w-4 h-4" />
@@ -181,7 +200,7 @@ export function GlobalMobileMenu({
 
           {/* LOGGED IN VIEWS */}
           {user && mobileTab === 'personal' && (
-             <div className="space-y-6 animate-in fade-in zoom-in-95 duration-200">
+             <div key={mobileTab} className={`space-y-6 animate-in fade-in duration-200 fill-mode-forwards ${slideDir === "left" ? "slide-in-from-left-8" : slideDir === "right" ? "slide-in-from-right-8" : "zoom-in-95"}`}>
 
                  {/* Custom Links or List for Tools */}
                  {customLinks && initialTab === 'personal' ? (
@@ -225,7 +244,7 @@ export function GlobalMobileMenu({
           )}
 
           {user && mobileTab === 'team' && (
-              <div className="space-y-6 animate-in fade-in zoom-in-95 duration-200">
+              <div key={mobileTab} className={`space-y-6 animate-in fade-in duration-200 fill-mode-forwards ${slideDir === "left" ? "slide-in-from-left-8" : slideDir === "right" ? "slide-in-from-right-8" : "zoom-in-95"}`}>
                    {activeBreweryId ? (
                        <>
 
@@ -298,7 +317,7 @@ export function GlobalMobileMenu({
           )}
 
           {user && mobileTab === 'discover' && (
-              <div className="space-y-6 animate-in fade-in zoom-in-95 duration-200">
+              <div key={mobileTab} className={`space-y-6 animate-in fade-in duration-200 fill-mode-forwards ${slideDir === "left" ? "slide-in-from-left-8" : slideDir === "right" ? "slide-in-from-right-8" : "zoom-in-95"}`}>
 
                    <div>
                       <p className="text-xs text-text-muted font-bold uppercase tracking-widest px-1 mb-1">Community</p>
