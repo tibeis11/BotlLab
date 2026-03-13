@@ -185,6 +185,25 @@ Diese Token-Basis muss erweitert werden (siehe Section 20).
 
 ---
 
+### 2.3 Die 3 Welten (Farb-Zonen-Konzept)
+
+Das Design System unterteilt die App in drei fundamentale Farbbereiche (Zonen), um dem User klare visuelle Orientierung zu geben, wo er sich befindet:
+
+1. **Die User-Ebene ("Labor" / Mein Keller / Consumer)**
+   * **Hauptfarbe:** Turquoise / Cyan (`--brand`, `cyan-500`)
+   * **Verwendung:** Alles, was direkt dem (einzelnen) User zuzuordnen ist (Persönliches Dashboard, Eigene Privatrezepte, Achievements, Sammlungen).
+   * **Psychologie:** Die vertraute Heimat, BotlLab Identity.
+
+2. **Die Brauerei-Ebene ("Team" / Brewery)**
+   * **Hauptfarbe:** Orange (`--accent-orange`, `orange-400/-500`)
+   * **Verwendung:** Alles, was mit der kollaborativen Brauerei, geteilten Rezepten im Team, Feed und gemeinsamen Sessions zu tun hat.
+   * **Psychologie:** Handwerk, Energie, Gemeinschaft (angelehnt an /login Screen).
+
+3. **Die Öffentliche Ebene ("Entdecken" / Public / Community)**
+   * **Hauptfarbe:** Purple / Lila (`--accent-purple`, `purple-400/-600`)
+   * **Verwendung:** Alles was nach außen geht (Discover/Rezepte von anderen, Forum, Public Tools, Community).
+   * **Psychologie:** Inspiration, das Unbekannte, Kreativität.
+
 ## 3. Typografie
 
 ### 3.1 Schriftarten

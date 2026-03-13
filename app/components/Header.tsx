@@ -23,7 +23,8 @@ import {
   TrendingUp,
   Trophy,
   Users,
-  X 
+  X,
+  Calculator
 } from 'lucide-react';
 import Logo from "./Logo";
 import NotificationBell from "./NotificationBell";
@@ -213,6 +214,14 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
               <span className="hidden xl:inline">Entdecken</span>
             </Link>
           )}
+
+          <Link 
+            href="/tools" 
+            className="px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 text-text-muted hover:text-text-primary hover:bg-surface-hover/50"
+          >
+            <Calculator className="w-4 h-4" />
+            <span className="hidden xl:inline">Tools</span>
+          </Link>
           
           <div className="h-4 w-px bg-border mx-2"></div>
           {loading ? (
@@ -344,7 +353,7 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
                <div className="flex bg-surface p-1 rounded-xl overflow-x-auto no-scrollbar">
                     <button 
                       onClick={() => setMobileTab('personal')}
-                      className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${mobileTab === 'personal' ? 'bg-surface-hover text-text-primary shadow-lg' : 'text-text-muted hover:text-text-secondary'}`}
+                      className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${mobileTab === 'personal' ? 'bg-brand/10 text-brand shadow-lg' : 'text-text-muted hover:text-text-secondary'}`}
                     >
                       <FlaskConical className={`w-4 h-4 ${mobileTab === 'personal' ? 'grayscale-0' : 'grayscale'}`} />
                       {isDrinker ? 'Mein Keller' : 'Labor'}
@@ -352,7 +361,7 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
                     {!isDrinker && (
                       <button 
                         onClick={() => setMobileTab('team')}
-                        className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${mobileTab === 'team' ? 'bg-brand-bg text-brand shadow-lg' : 'text-text-muted hover:text-text-secondary'}`}
+                        className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${mobileTab === 'team' ? 'bg-accent-orange/10 text-accent-orange shadow-lg' : 'text-text-muted hover:text-text-secondary'}`}
                       >
                         <Factory className="w-4 h-4" />
                         Brauerei
@@ -360,7 +369,7 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
                     )}
                     <button 
                       onClick={() => setMobileTab('discover')}
-                      className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${mobileTab === 'discover' ? 'bg-purple-900/50 text-purple-300 shadow-lg' : 'text-text-muted hover:text-text-secondary'}`}
+                      className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${mobileTab === 'discover' ? 'bg-accent-purple/10 text-accent-purple shadow-lg' : 'text-text-muted hover:text-text-secondary'}`}
                     >
                       <Globe className="w-4 h-4" />
                       Entdecken
@@ -393,6 +402,15 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
                                     <span className="ml-auto text-text-disabled">→</span>
                                 </Link>
                                 <Link
+                                    href="/tools"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition border-b border-border-subtle"
+                                >
+                                    <Calculator className="w-5 h-5 text-text-secondary" />
+                                    <span className="font-bold text-sm text-text-primary">Tools</span>
+                                    <span className="ml-auto text-text-disabled">→</span>
+                                </Link>
+                                <Link
                                     href="/pricing"
                                     onClick={() => setIsMobileMenuOpen(false)}
                                     className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition border-b border-border-subtle"
@@ -422,14 +440,14 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
                        <Link 
                           href={homeUrl}
                           onClick={() => setIsMobileMenuOpen(false)}
-                          className="block bg-gradient-to-br from-surface-hover to-surface border border-border-hover p-5 rounded-2xl relative overflow-hidden group"
+                          className="block bg-gradient-to-br from-cyan-950/40 to-cyan-900/10 border border-cyan-900/50 p-5 rounded-2xl relative overflow-hidden group"
                        >
                           <div className="absolute right-0 top-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                             <LayoutDashboard className="w-16 h-16" />
+                             <LayoutDashboard className="w-16 h-16 text-cyan-500" />
                           </div>
-                          <p className="text-xs text-text-secondary uppercase font-black tracking-widest mb-1">Übersicht</p>
-                          <h3 className="text-2xl font-black text-text-primary mb-2">{isDrinker ? 'Mein Keller' : 'Dashboard'}</h3>
-                          <div className="flex items-center gap-2 text-sm text-text-secondary">
+                          <p className="text-xs text-cyan-400 font-black uppercase tracking-widest mb-1">Übersicht</p>
+                          <h3 className="text-xl font-bold text-white mb-2">{isDrinker ? 'Mein Keller' : 'Labor Dashboard'}</h3>
+                          <div className="flex items-center gap-2 text-sm text-cyan-300">
                              <span>Alles im Blick</span>
                              <span>→</span>
                           </div>
@@ -465,13 +483,13 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
                          {activeBreweryId ? (
                              <>
                                {/* Active Brewery Hero */}
-                               <div className="bg-gradient-to-br from-cyan-950/40 to-cyan-900/10 border border-cyan-900/50 p-5 rounded-2xl">
+                               <div className="bg-gradient-to-br from-orange-950/40 to-orange-900/10 border border-orange-900/50 p-5 rounded-2xl">
                                   <div className="flex justify-between items-start mb-4">
                                      <div>
-                                        <p className="text-[10px] text-cyan-400 font-black uppercase tracking-widest mb-1">Aktives Team</p>
+                                        <p className="text-[10px] text-orange-400 font-black uppercase tracking-widest mb-1">Aktives Team</p>
                                         <h3 className="text-xl font-bold text-white leading-tight">{activeBreweryName}</h3>
                                      </div>
-                                     <div className="bg-cyan-500/10 text-cyan-400 p-2 rounded-lg">
+                                     <div className="bg-orange-500/10 text-orange-400 p-2 rounded-lg">
                                         <Factory className="w-5 h-5" />
                                      </div>
                                   </div>
@@ -479,7 +497,7 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
                                   <Link 
                                      href={`/team/${activeBreweryId}`}
                                      onClick={() => setIsMobileMenuOpen(false)}
-                                     className="w-full block text-center bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 font-bold py-3 rounded-xl border border-cyan-500/20 transition"
+                                     className="w-full block text-center bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 font-bold py-3 rounded-xl border border-orange-500/20 transition"
                                   >
                                      Zum Team-Dashboard
                                   </Link>
@@ -593,7 +611,7 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
                                  <Link
                                     href="/dashboard/team/create"
                                     onClick={() => setIsMobileMenuOpen(false)}
-                                    className="inline-block bg-white text-black font-bold px-6 py-3 rounded-xl hover:bg-cyan-400 transition"
+                                    className="inline-block bg-white text-black font-bold px-6 py-3 rounded-xl hover:bg-orange-400 hover:text-white transition"
                                  >
                                     Team Gründen
                                  </Link>
@@ -637,6 +655,15 @@ export default function Header({ breweryId, discoverSearchSlot, discoverMobileAc
                                 >
                                     <MessageSquare className="w-5 h-5 text-text-secondary" />
                                     <span className="font-bold text-sm text-text-primary">Forum</span>
+                                    <span className="ml-auto text-text-disabled">→</span>
+                                </Link>
+                                <Link
+                                    href="/tools"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className="w-full flex items-center gap-4 py-4 px-2 hover:bg-surface/30 transition"
+                                >
+                                    <Calculator className="w-5 h-5 text-text-secondary" />
+                                    <span className="font-bold text-sm text-text-primary">Tools</span>
                                     <span className="ml-auto text-text-disabled">→</span>
                                 </Link>
                             </div>
