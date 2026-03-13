@@ -230,6 +230,7 @@ async function aggregateDailyMetrics(supabase: any, specificDate?: string) {
     .select('brew_id')
     .gte('created_at', `${dateStr}T00:00:00.000`)
     .lt('created_at', `${dateStr}T23:59:59.999`)
+    .eq('is_shadowbanned', false)
   
   const ratingsMap: Record<string, number> = {} // brewery_id -> count
   if (dailyRatings && dailyRatings.length > 0) {
@@ -325,6 +326,7 @@ async function aggregateDailyMetrics(supabase: any, specificDate?: string) {
             .in('brew_id', brewIdsForBrewery)
             .gte('created_at', `${dateStr}T00:00:00.000`)
             .lt('created_at', `${dateStr}T23:59:59.999`)
+            .eq('is_shadowbanned', false)
 
           // Anonymous BTB plays: user_id IS NULL
           const { count: btbAnonCount } = await supabase
@@ -335,6 +337,7 @@ async function aggregateDailyMetrics(supabase: any, specificDate?: string) {
             .in('brew_id', brewIdsForBrewery)
             .gte('created_at', `${dateStr}T00:00:00.000`)
             .lt('created_at', `${dateStr}T23:59:59.999`)
+            .eq('is_shadowbanned', false)
 
           btbAnon = btbAnonCount || 0
           btbAuth = (btbTotalCount || 0) - btbAnon
@@ -400,6 +403,7 @@ async function aggregateDailyMetrics(supabase: any, specificDate?: string) {
     .from('ratings')
     .select('id', { count: 'exact', head: true })
     .lte('created_at', `${dateStr}T23:59:59.999`)
+    .eq('is_shadowbanned', false)
 
   // Note: Calculating true average of ALL ratings requires fetching all rows or an RPC.
   // For now, we fetch a sample of the last 1000 ratings to estimate the current average trend,
@@ -408,6 +412,7 @@ async function aggregateDailyMetrics(supabase: any, specificDate?: string) {
     .from('ratings')
     .select('rating')
     .lte('created_at', `${dateStr}T23:59:59.999`)
+    .eq('is_shadowbanned', false)
     .limit(1000)
 
   const avgRating =

@@ -155,14 +155,15 @@ export async function getAttributeDistribution(brewId: string): Promise<Distribu
     .from('ratings')
     .select('taste_bitterness, taste_sweetness, taste_body, taste_carbonation, taste_acidity')
     .eq('brew_id', brewId)
-    .eq('moderation_status', 'auto_approved');
+      .eq('is_shadowbanned', false)
+      .eq('moderation_status', 'auto_approved');
 
-  // Helper to init 1-10 counts
-  const createBuckets = () => {
-    const buckets: Record<number, number> = {};
-    for (let i = 1; i <= 10; i++) buckets[i] = 0;
-    return buckets;
-  };
+    // Helper to init 1-10 counts
+    const createBuckets = () => {
+      const buckets: Record<number, number> = {};
+      for (let i = 1; i <= 10; i++) buckets[i] = 0;
+      return buckets;
+    };
 
   const result: DistributionData = {
     bitterness: createBuckets(),
@@ -201,6 +202,7 @@ export async function getRatingsWithProfiles(brewId: string) {
     .from('ratings')
     .select('*')
     .eq('brew_id', brewId)
+    .eq('is_shadowbanned', false)
     .eq('moderation_status', 'auto_approved')
     .order('created_at', { ascending: false });
     
@@ -222,11 +224,7 @@ export async function getTasteTimeline(brewId: string): Promise<TimelineDataPoin
     .from('ratings')
     .select('created_at, taste_bitterness, taste_sweetness, taste_body, taste_carbonation, taste_acidity')
     .eq('brew_id', brewId)
-    .eq('moderation_status', 'auto_approved')
-    .order('created_at', { ascending: true });
-
-  if (error || !data || data.length === 0) return [];
-
+      .eq('is_shadowbanned', false)
   const grouped: Record<string, { count: number; sums: Record<string, number>; counts: Record<string, number> }> = {};
 
   (data as unknown as RatingWithTaste[]).forEach((r) => {
