@@ -117,7 +117,7 @@ export function GlobalMobileMenu({
 
   return (
     <div 
-      className="lg:hidden fixed inset-0 z-[100] bg-background/95 backdrop-blur-3xl flex flex-col animate-in slide-in-from-right duration-200 supports-[backdrop-filter]:bg-background/80"
+      className="lg:hidden fixed inset-0 z-[100] bg-background/95 backdrop-blur-3xl flex flex-col animate-slide-in-right supports-[backdrop-filter]:bg-background/80"
     >
       <div className="flex flex-col h-full w-full" style={{ paddingRight: `${scrollbarCompensation}px` }}>
         
@@ -200,7 +200,7 @@ export function GlobalMobileMenu({
 
           {/* LOGGED IN VIEWS */}
           {user && mobileTab === 'personal' && (
-             <div key={mobileTab} className={`space-y-6 animate-in fade-in duration-200 fill-mode-forwards ${slideDir === "left" ? "slide-in-from-left-8" : slideDir === "right" ? "slide-in-from-right-8" : "zoom-in-95"}`}>
+             <div key={mobileTab} className={`space-y-6 ${slideDir === "left" ? "animate-slide-in-left" : slideDir === "right" ? "animate-slide-in-right" : "animate-fade-in-up"}`}>
 
                  {/* Custom Links or List for Tools */}
                  {customLinks && initialTab === 'personal' ? (
@@ -244,7 +244,7 @@ export function GlobalMobileMenu({
           )}
 
           {user && mobileTab === 'team' && (
-              <div key={mobileTab} className={`space-y-6 animate-in fade-in duration-200 fill-mode-forwards ${slideDir === "left" ? "slide-in-from-left-8" : slideDir === "right" ? "slide-in-from-right-8" : "zoom-in-95"}`}>
+              <div key={mobileTab} className={`space-y-6 ${slideDir === "left" ? "animate-slide-in-left" : slideDir === "right" ? "animate-slide-in-right" : "animate-fade-in-up"}`}>
                    {activeBreweryId ? (
                        <>
 
@@ -317,7 +317,7 @@ export function GlobalMobileMenu({
           )}
 
           {user && mobileTab === 'discover' && (
-              <div key={mobileTab} className={`space-y-6 animate-in fade-in duration-200 fill-mode-forwards ${slideDir === "left" ? "slide-in-from-left-8" : slideDir === "right" ? "slide-in-from-right-8" : "zoom-in-95"}`}>
+              <div key={mobileTab} className={`space-y-6 ${slideDir === "left" ? "animate-slide-in-left" : slideDir === "right" ? "animate-slide-in-right" : "animate-fade-in-up"}`}>
 
                    <div>
                       <p className="text-xs text-text-muted font-bold uppercase tracking-widest px-1 mb-1">Community</p>
