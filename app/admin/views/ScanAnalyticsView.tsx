@@ -69,6 +69,16 @@ type CisSettingField = {
   description?: string
 }
 
+const PLAUSIBILITY_SETTINGS: CisSettingField[] = [
+  { key: 'plausibility_max_bottles_window', label: 'Max Bottles (Supermarkt-Troll)', min: 1, max: 20, step: 1, description: 'Wann schlägt der harte Ban (1.0) zu?' },
+  { key: 'plausibility_window_hours', label: 'Zeitfenster Troll-Filter', min: 1, max: 24, step: 1, unit: 'h', description: 'Stunden für den Troll-Counter' },
+  { key: 'plausibility_fast_submit_penalty', label: 'Fast Submit Penalty', min: 0.0, max: 1.0, step: 0.05, description: 'Abzug bei zu schnellem Absenden' },
+  { key: 'plausibility_fast_submit_min_ms_complex', label: 'Min Time Complex', min: 500, max: 10000, step: 500, unit: 'ms', description: 'Zeitlimit für Rating / BTB' },
+  { key: 'plausibility_fast_submit_min_ms_simple', label: 'Min Time Simple', min: 250, max: 5000, step: 250, unit: 'ms', description: 'Zeitlimit für VibeCheck' },
+  { key: 'plausibility_unplausible_time_penalty', label: 'Unplausible Time Penalty', min: 0.0, max: 1.0, step: 0.05, description: 'Abzug bei Scan zw. 5-11 Uhr (Mo-Do)' },
+  { key: 'plausibility_shadowban_threshold', label: 'Shadowban Threshold', min: 0.0, max: 1.0, step: 0.05, description: 'Unter diesem Score greift der Ban final' },
+]
+
 const CIS_CORE_SETTINGS: CisSettingField[] = [
   { key: 'cis_base_score', label: 'Basis-Score', min: 0, max: 1, step: 0.01, description: 'Startpunkt für jeden QR-Scan' },
   { key: 'cis_fridge_surfing_penalty', label: 'Fridge-Surfing Penalty', min: -1, max: 0, step: 0.01, description: 'Abzug wenn weitere Flasche in selber Session folgt' },
@@ -368,6 +378,13 @@ export default function ScanAnalyticsView() {
         cis_rating_bonus: cisLocalSettings.cis_rating_bonus,
         cis_btb_bonus: cisLocalSettings.cis_btb_bonus,
         cis_vibecheck_bonus: cisLocalSettings.cis_vibecheck_bonus,
+        plausibility_max_bottles_window: cisLocalSettings.plausibility_max_bottles_window,
+        plausibility_window_hours: cisLocalSettings.plausibility_window_hours,
+        plausibility_fast_submit_penalty: cisLocalSettings.plausibility_fast_submit_penalty,
+        plausibility_fast_submit_min_ms_complex: cisLocalSettings.plausibility_fast_submit_min_ms_complex,
+        plausibility_fast_submit_min_ms_simple: cisLocalSettings.plausibility_fast_submit_min_ms_simple,
+        plausibility_unplausible_time_penalty: cisLocalSettings.plausibility_unplausible_time_penalty,
+        plausibility_shadowban_threshold: cisLocalSettings.plausibility_shadowban_threshold,
       })
       setCisMsg('✓ Gespeichert')
     } catch {
@@ -394,6 +411,13 @@ export default function ScanAnalyticsView() {
       cis_rating_bonus: ALGORITHM_DEFAULTS.cis_rating_bonus,
       cis_btb_bonus: ALGORITHM_DEFAULTS.cis_btb_bonus,
       cis_vibecheck_bonus: ALGORITHM_DEFAULTS.cis_vibecheck_bonus,
+      plausibility_max_bottles_window: ALGORITHM_DEFAULTS.plausibility_max_bottles_window,
+      plausibility_window_hours: ALGORITHM_DEFAULTS.plausibility_window_hours,
+      plausibility_fast_submit_penalty: ALGORITHM_DEFAULTS.plausibility_fast_submit_penalty,
+      plausibility_fast_submit_min_ms_complex: ALGORITHM_DEFAULTS.plausibility_fast_submit_min_ms_complex,
+      plausibility_fast_submit_min_ms_simple: ALGORITHM_DEFAULTS.plausibility_fast_submit_min_ms_simple,
+      plausibility_unplausible_time_penalty: ALGORITHM_DEFAULTS.plausibility_unplausible_time_penalty,
+      plausibility_shadowban_threshold: ALGORITHM_DEFAULTS.plausibility_shadowban_threshold,
     }))
     setCisMsg(null)
   }
@@ -742,6 +766,21 @@ export default function ScanAnalyticsView() {
                 onChange={(v) => setCisLocalSettings((s) => ({ ...s, [field.key]: v }))}
               />
             ))}
+          </div>
+          <div className="space-y-4 lg:col-span-2 mt-4">
+            <h3 className="text-[10px] font-semibold text-(--text-muted) uppercase tracking-wider pb-1 border-b border-(--border)">
+              Plausibility Engine (v2)
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+              {PLAUSIBILITY_SETTINGS.map((field) => (
+                <CisSettingRow
+                  key={field.key}
+                  field={field}
+                  value={cisLocalSettings[field.key] as number}
+                  onChange={(v) => setCisLocalSettings((s) => ({ ...s, [field.key]: v }))}
+                />
+              ))}
+            </div>
           </div>
         </div>
 

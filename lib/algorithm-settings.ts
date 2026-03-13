@@ -51,6 +51,15 @@ export const ALGORITHM_DEFAULTS = {
   rec_needs_data_threshold: 3,      // Min. eigene Brews für Personalisierung
   rec_collab_min_overlap: 2,        // Min. gemeinsame Likes für "ähnlicher User"
 
+  // ── Plausibility Engine (v2) ──────────────────────────────────
+  plausibility_max_bottles_window: 3,          // ab wann gilt man als Supermarkt-Troll (Signal 1)
+  plausibility_window_hours: 2,                // Window in Stunden (Signal 1)
+  plausibility_fast_submit_penalty: 0.30,      // Abzug (Signal 3)
+  plausibility_fast_submit_min_ms_complex: 3000,
+  plausibility_fast_submit_min_ms_simple: 1500,
+  plausibility_unplausible_time_penalty: 0.10, // Abzug (Signal 4)
+  plausibility_shadowban_threshold: 0.20,      // Schwelle für is_shadowbanned
+
   // ── CIS Engine – Kern-Modell ──────────────────────────────────
   cis_base_score:               0.30,   // Startscore jeder QR-Session
   cis_fridge_surfing_penalty:  -0.40,   // Andere Flasche in < session_window gescannt
@@ -97,6 +106,14 @@ export interface AlgorithmSettings {
   rec_diversity_exploration: number;
   rec_needs_data_threshold: number;
   rec_collab_min_overlap: number;
+  // Plausibility Engine
+  plausibility_max_bottles_window: number;
+  plausibility_window_hours: number;
+  plausibility_fast_submit_penalty: number;
+  plausibility_fast_submit_min_ms_complex: number;
+  plausibility_fast_submit_min_ms_simple: number;
+  plausibility_unplausible_time_penalty: number;
+  plausibility_shadowban_threshold: number;
   // CIS Engine
   cis_base_score: number;
   cis_fridge_surfing_penalty: number;
@@ -168,6 +185,14 @@ export async function getAlgorithmSettings(): Promise<AlgorithmSettings> {
       rec_diversity_exploration:  p('rec_diversity_exploration'),
       rec_needs_data_threshold:   i('rec_needs_data_threshold'),
       rec_collab_min_overlap:     i('rec_collab_min_overlap'),
+      // Plausibility Engine
+      plausibility_max_bottles_window: i('plausibility_max_bottles_window'),
+      plausibility_window_hours: i('plausibility_window_hours'),
+      plausibility_fast_submit_penalty: p('plausibility_fast_submit_penalty'),
+      plausibility_fast_submit_min_ms_complex: i('plausibility_fast_submit_min_ms_complex'),
+      plausibility_fast_submit_min_ms_simple: i('plausibility_fast_submit_min_ms_simple'),
+      plausibility_unplausible_time_penalty: p('plausibility_unplausible_time_penalty'),
+      plausibility_shadowban_threshold: p('plausibility_shadowban_threshold'),
       // CIS Engine
       cis_base_score:               p('cis_base_score'),
       cis_fridge_surfing_penalty:   p('cis_fridge_surfing_penalty'),
