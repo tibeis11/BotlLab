@@ -50,7 +50,7 @@ export default function DashboardInsights({ breweryId, hasPremiumAccess, isAdmin
         .eq('brewery_id', breweryId)
         .eq('is_dismissed', false)
         .order('created_at', { ascending: false })
-        .limit(5);
+        .limit(20);
 
       if (data) {
         setInsights(data as Insight[]);
@@ -140,7 +140,7 @@ export default function DashboardInsights({ breweryId, hasPremiumAccess, isAdmin
 
   // Separate daily_analysis from alert-type insights
   const dailyInsight = insights.find(i => i.insight_type === 'daily_analysis') ?? null;
-  const alertInsights = insights.filter(i => i.insight_type !== 'daily_analysis');
+  const alertInsights = insights.filter(i => i.insight_type !== 'daily_analysis').slice(0, 4);
 
   if (!dailyInsight && alertInsights.length === 0) {
     return (
