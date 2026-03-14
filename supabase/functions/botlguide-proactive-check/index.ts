@@ -2,7 +2,7 @@
 // botlguide-proactive-check/index.ts
 // Runs every 6 hours via pg_cron.
 // Scans all active fermentation sessions of Premium users (brewery/enterprise)
-// and writes actionable insights into `botlguide_insights`.
+// and writes actionable insights into `analytics_ai_insights`.
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -87,11 +87,11 @@ async function analyzeSessions(
         if (timeDiff >= 48 && gravityDiff < 0.002) {
           // Check: insight doesn't already exist (not dismissed) for this session
           const { data: existing } = await supabase
-            .from('botlguide_insights')
+            .from('analytics_ai_insights')
             .select('id')
             .eq('session_id', session.id)
             .eq('insight_type', 'fermentation_stall')
-            .eq('dismissed', false)
+            .eq('is_dismissed', false)
             .maybeSingle()
 
           if (!existing) {
@@ -124,11 +124,11 @@ async function analyzeSessions(
 
         if (temp < minTemp || temp > maxTemp) {
           const { data: existing } = await supabase
-            .from('botlguide_insights')
+            .from('analytics_ai_insights')
             .select('id')
             .eq('session_id', session.id)
             .eq('insight_type', 'temp_anomaly')
-            .eq('dismissed', false)
+            .eq('is_dismissed', false)
             .maybeSingle()
 
           if (!existing) {
@@ -154,11 +154,11 @@ async function analyzeSessions(
       const daysRunning = hoursBetween(session.started_at, now) / 24
       if (daysRunning > 21) {
         const { data: existing } = await supabase
-          .from('botlguide_insights')
+          .from('analytics_ai_insights')
           .select('id')
           .eq('session_id', session.id)
           .eq('insight_type', 'slow_fermentation')
-          .eq('dismissed', false)
+          .eq('is_dismissed', false)
           .maybeSingle()
 
         if (!existing) {
@@ -193,11 +193,11 @@ async function analyzeSessions(
           currentGravity <= (targetFG ?? 1.016)
         ) {
           const { data: existing } = await supabase
-            .from('botlguide_insights')
+            .from('analytics_ai_insights')
             .select('id')
             .eq('session_id', session.id)
             .eq('insight_type', 'ready_to_package')
-            .eq('dismissed', false)
+            .eq('is_dismissed', false)
             .maybeSingle()
 
           if (!existing) {
@@ -291,7 +291,7 @@ serve(async (req: Request) => {
     let inserted = 0
     if (newInsights.length > 0) {
       const { error: insertErr } = await supabase
-        .from('botlguide_insights')
+        .from('analytics_ai_insights')
         .insert(newInsights)
 
       if (insertErr) throw insertErr

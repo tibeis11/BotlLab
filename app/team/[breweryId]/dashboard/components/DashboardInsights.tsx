@@ -88,17 +88,7 @@ export default function DashboardInsights({ breweryId, hasPremiumAccess, isAdmin
         .update({ brewer_reaction: reaction })
         .eq('id', insight.id);
 
-      const { data: userData } = await supabase.auth.getUser();
-      if (userData?.user) {
-        await supabase
-          .from('botlguide_feedback')
-          .insert({
-            user_id: userData.user.id,
-            context_key: 'dashboard_insight.' + insight.insight_type,
-            feedback: reaction === 'helpful' ? 'up' : 'down',
-            generated_text: insight.title + " | " + insight.body
-          });
-      }
+      
 
       setInsights(prev =>
         prev.map(i => i.id === insight.id ? { ...i, brewer_reaction: reaction } : i)

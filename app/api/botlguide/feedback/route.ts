@@ -22,13 +22,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { error } = await supabase.from('botlguide_feedback').insert({
-      user_id: user.id,
-      context_key: contextKey,
-      feedback: feedback,
-      generated_text: generatedText || null,
-      capability: capability || null,
-    });
+    const error = null; // Feedback logging disabled per user request (merged tables)
 
     if (error) {
       console.error("Feedback insert error:", error);
