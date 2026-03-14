@@ -491,6 +491,20 @@ serve(async (req: Request) => {
     const supabase = createClient(supabaseUrl, serviceKey)
     const todayStr = new Date().toISOString().slice(0, 10)
 
+    let specificBreweryId: string | null = null
+    try {
+      if (req.method === 'POST') {
+        const clone = req.clone()
+        const text = await clone.text()
+        if (text) {
+          const body = JSON.parse(text)
+          if (body?.breweryId) specificBreweryId = body.breweryId
+        }
+      }
+    } catch (e) {
+      console.error('Error parsing request body:', e)
+    }
+
     // ── Layer 1: Only Premium breweries ───────────────────────────────────────
     // Get all brewery IDs owned by premium users with insights enabled
     const { data: premiumMembers } = await supabase
@@ -498,15 +512,19 @@ serve(async (req: Request) => {
       .select('brewery_id, user_id, profiles!inner(subscription_tier, botlguide_insights_enabled)')
       .eq('role', 'owner')
 
-    const eligibleBreweryIds: string[] = []
-    for (const member of premiumMembers ?? []) {
-      const profile = (member as any).profiles
-      if (
-        profile &&
-        ['brewery', 'enterprise'].includes(profile.subscription_tier) &&
-        profile.botlguide_insights_enabled === true
-      ) {
-        eligibleBreweryIds.push(member.brewery_id)
+    let eligibleBreweryIds: string[] = []
+    if (specificBreweryId) {
+      eligibleBreweryIds = [specificBreweryId]
+    } else {
+      for (const member of premiumMembers ?? []) {
+        const profile = (member as any).profiles
+        if (
+          profile &&
+          ['brewery', 'enterprise'].includes(profile.subscription_tier) &&
+          profile.botlguide_insights_enabled === true
+        ) {
+          eligibleBreweryIds.push(member.brewery_id)
+        }
       }
     }
 

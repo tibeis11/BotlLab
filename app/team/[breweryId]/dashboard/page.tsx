@@ -183,7 +183,7 @@ export default function TeamDashboardPage({ params }: { params: Promise<{ brewer
         <div className="flex-1 min-w-0 space-y-6">
 
             {/* AI Insights — premium feature teaser or real insights */}
-            <DashboardInsights breweryId={breweryId} hasPremiumAccess={isPremium} />
+            <DashboardInsights breweryId={breweryId} hasPremiumAccess={isPremium} isAdminMode={isAdminMode} />
 
             {/* Community Feedback + Top Brews side by side */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -28,12 +28,14 @@ const SEVERITY_STYLES: Record<string, { icon: React.ElementType; color: string; 
 interface DashboardInsightsProps {
   breweryId: string;
   hasPremiumAccess: boolean;
+  isAdminMode?: boolean;
 }
 
-export default function DashboardInsights({ breweryId, hasPremiumAccess }: DashboardInsightsProps) {
+export default function DashboardInsights({ breweryId, hasPremiumAccess, isAdminMode }: DashboardInsightsProps) {
   const [insights, setInsights] = useState<Insight[]>([]);
   const [loading, setLoading] = useState(true);
   const [reactingId, setReactingId] = useState<string | null>(null);
+  const [triggering, setTriggering] = useState(false);
 
   useEffect(() => {
     if (hasPremiumAccess) loadInsights();
@@ -57,6 +59,21 @@ export default function DashboardInsights({ breweryId, hasPremiumAccess }: Dashb
       console.error('Failed to load insights', e);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleManualTrigger() {
+    if (!isAdminMode || triggering) return;
+    setTriggering(true);
+    try {
+      await supabase.functions.invoke('botlguide-daily-analyst', {
+        body: { breweryId }
+      });
+      // reload after 2-3 seconds to give it time to save
+      setTimeout(() => loadInsights(), 2500);
+    } catch (e) {
+      console.error('Manual trigger failed', e);
+      setTriggering(false);
     }
   }
 
@@ -132,6 +149,15 @@ export default function DashboardInsights({ breweryId, hasPremiumAccess }: Dashb
         <div className="text-center py-3">
           <p className="text-xs text-text-disabled">Aktuell keine neuen Insights</p>
           <p className="text-[10px] text-text-disabled mt-1">BotlGuide analysiert deine Daten täglich um 07:00</p>
+          {isAdminMode && (
+            <button 
+              onClick={handleManualTrigger}
+              disabled={triggering}
+              className="mt-4 px-3 py-1.5 bg-brand/10 text-brand text-[10px] uppercase font-bold rounded-lg border border-brand/20 hover:bg-brand/20 disabled:opacity-50 transition-colors"
+            >
+              {triggering ? 'Analysiere...' : 'Manuell analysieren (Admin)'}
+            </button>
+          )}
         </div>
       </div>
     );
@@ -155,6 +181,16 @@ export default function DashboardInsights({ breweryId, hasPremiumAccess }: Dashb
             <h3 className="text-sm font-bold text-text-primary flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-accent-purple" />
               BotlGuide Tagesanalyse
+              {isAdminMode && (
+                <button 
+                  onClick={handleManualTrigger}
+                  disabled={triggering}
+                  className="ml-2 px-1.5 py-0.5 bg-brand/10 text-brand text-[8px] uppercase font-bold rounded border border-brand/20 hover:bg-brand/20 disabled:opacity-50 transition-colors"
+                  title="Neu generieren (Admin)"
+                >
+                  {triggering ? '...' : 'Re-Run'}
+                </button>
+              )}
             </h3>
             <span className="text-[10px] text-text-disabled">{timeLabel(dailyInsight.created_at)}</span>
           </div>
