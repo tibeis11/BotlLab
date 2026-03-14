@@ -70,7 +70,10 @@ export default function DashboardInsights({ breweryId, hasPremiumAccess, isAdmin
         body: { breweryId }
       });
       // reload after 2-3 seconds to give it time to save
-      setTimeout(() => loadInsights(), 2500);
+      setTimeout(async () => {
+        await loadInsights();
+        setTriggering(false);
+      }, 2500);
     } catch (e) {
       console.error('Manual trigger failed', e);
       setTriggering(false);

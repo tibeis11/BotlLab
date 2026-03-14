@@ -427,7 +427,7 @@ async function generateInsight(
       ],
       generationConfig: {
         temperature: 0.8,
-        maxOutputTokens: 1000,
+        maxOutputTokens: 2500,
         responseMimeType: 'application/json',
       },
     }),
