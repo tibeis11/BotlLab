@@ -30,9 +30,12 @@ export const BREW_PAGE_SIZE = 20;
 export const BREW_SELECT =
   'id,name,style,image_url,created_at,user_id,brew_type,mash_method,fermentation_type,copy_count,times_brewed,view_count,trending_score,quality_score,is_featured,abv,ibu,data,remix_parent_id,moderation_status,breweries!left(id,name,logo_url),ratings(rating),likes_count';
 
+import { mergeRecipeIngredientsIntoData } from '@/lib/ingredients/ingredient-adapter';
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function mapBrew(b: any) {
-  const bData = b.data as any;
+async function mapBrew(b: any, supabaseClient?: any) {
+  const bData = b.data ? await mergeRecipeIngredientsIntoData(b.data, b.id, supabaseClient) : null;
+  b.data = bData;
   return {
     ...b,
     // Prefer dedicated columns (kept in sync by trigger), fall back to JSON
@@ -61,7 +64,7 @@ async function getInitialBrews(minQuality = 0) {
     .order('quality_score', { ascending: false })
     .range(0, BREW_PAGE_SIZE - 1);
   if (error) { console.error('[SSR] Error loading brews:', error.message); return []; }
-  return (data || []).map(mapBrew);
+  return Promise.all((data || []).map(b => mapBrew(b, supabase)));
 }
 
 // Top-10 nach trending_score — DB-seitig sortiert, vollständig unabhängig vom
@@ -77,7 +80,7 @@ async function getTrendingBrews(minQuality = 0) {
     .order('trending_score', { ascending: false })
     .limit(10);
   if (error) { console.error('[SSR] Error loading trending:', error.message); return []; }
-  return (data || []).map(mapBrew);
+  return Promise.all((data || []).map(b => mapBrew(b, supabase)));
 }
 
 // Featured Brews — manuell vom Admin als empfohlen markierte Brews
@@ -92,7 +95,7 @@ async function getFeaturedBrews() {
     .order('quality_score', { ascending: false })
     .limit(12);
   if (error) { console.error('[SSR] Error loading featured:', error.message); return []; }
-  return (data || []).map(mapBrew);
+  return Promise.all((data || []).map(b => mapBrew(b, supabase)));
 }
 
 // ─── Skeleton (wird während Suspense-Fallback gezeigt) ────────────────────────

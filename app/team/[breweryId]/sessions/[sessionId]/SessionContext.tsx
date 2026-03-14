@@ -7,6 +7,7 @@ import { addTimelineEvent, updateSessionPhase, removeTimelineEvent } from '@/lib
 import { useRouter } from 'next/navigation';
 import { useOnlineStatus } from '@/lib/hooks/useOnlineStatus';
 import { useGlobalToast } from '@/app/context/AchievementNotificationContext';
+import { mergeRecipeIngredientsIntoData } from '@/lib/ingredients/ingredient-adapter';
 
 // Define Offline Queue Action Types
 type QueueAction = 
@@ -211,13 +212,23 @@ export function SessionProvider({
 
       if (measurementsError) throw measurementsError;
 
+      setMeasurements(measurementsData as BrewMeasurement[] || []);
+      
+      if (sessionData && sessionData.brew && sessionData.brew_id) {
+        try {
+          const enrichedRecipeData = await mergeRecipeIngredientsIntoData(sessionData.brew.recipe_data, sessionData.brew_id);
+          sessionData.brew.recipe_data = enrichedRecipeData;
+        } catch (err) {
+          console.error("Failed to enrich session brew data with ingredients:", err);
+        }
+      }
+
       const fullSession: SessionData = {
           ...sessionData,
           measurement_history: measurementsData || []
       } as unknown as SessionData;
 
       setSession(fullSession);
-      setMeasurements(measurementsData as BrewMeasurement[] || []);
       
     } catch (error: any) {
       console.error('Error fetching session:', error);

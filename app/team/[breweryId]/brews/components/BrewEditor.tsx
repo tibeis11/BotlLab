@@ -33,6 +33,7 @@ import { trackEvent } from '@/lib/actions/analytics-actions'; // This will need 
 import FlavorProfileEditor from './FlavorProfileEditor';
 import type { FlavorProfile } from '@/lib/flavor-profile-config';
 import ReactMarkdown from 'react-markdown';
+import { mergeRecipeIngredientsIntoData, extractAndSaveRecipeIngredients } from '@/lib/ingredients/ingredient-adapter';
 
 function formatIngredientsForPrompt(value: any): string {
     if (!value) return '';
@@ -678,19 +679,18 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
         if (bData) setBreweryTier(bData.tier || 'garage');
 
         if (id !== 'new') {
-            const { data, error } = await supabase
-                .from('brews')
-                .select('*')
-                .eq('id', id)
-                .eq('brewery_id', breweryId)
-                .maybeSingle();
+            const { getBrewForEdit } = await import('@/lib/actions/brew-actions');
+            const { data, error } = await getBrewForEdit(id, breweryId);
 
             if (error || !data) {
                 router.push(`/team/${breweryId}/brews`);
                 return;
             }
 
-            setBrew({ ...data, name: data.name || '', style: data.style || '', brew_type: data.brew_type || '', description: data.description || undefined, is_public: data.is_public || false, moderation_status: (data.moderation_status as any) || undefined, data: data.data || {}, flavor_profile: (data.flavor_profile as any) || null });
+            // INGREDIENTS v2: Intercept raw DB row, restore legacy arrays synchronically for UI math
+            const fullyMergedData = await mergeRecipeIngredientsIntoData(data.data || {}, data.id);
+
+            setBrew({ ...data, name: data.name || '', style: data.style || '', brew_type: data.brew_type || '', description: data.description || undefined, is_public: data.is_public || false, moderation_status: (data.moderation_status as any) || undefined, data: fullyMergedData, flavor_profile: (data.flavor_profile as any) || null });
             await loadRatings(data.id);
         }
 
@@ -744,7 +744,13 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
         };
 
         if (id === 'new') {
-            const { data, error } = await createBrew(payload);
+            // Strip ingredients out before creating the initial raw brew wrapper
+            const rawPayload = { ...payload };
+            delete rawPayload.data?.malts;
+            delete rawPayload.data?.hops;
+            delete rawPayload.data?.yeast;
+
+            const { data, error } = await createBrew(rawPayload);
 
             if (error || !data) {
                 const errorMsg = typeof error === 'string'
@@ -755,6 +761,10 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
                 return;
             }
 
+            // Post-Save Ingredient Extraction (since we now have a recipe_id)
+            if (payload.data) {
+                 await extractAndSaveRecipeIngredients(data.id, payload.data);
+            }
             // Feed Post
             addToFeed(supabase, breweryId, user, 'BREW_CREATED', {
                 brew_id: data.id,
@@ -828,7 +838,17 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
             return;
         }
 
+        // UPDATE Logic
+        const tempOriginalData = { ...payload.data }; // Save copy with arrays for our extractor
+        const { sanitisedData } = await extractAndSaveRecipeIngredients(id, payload.data);
+        payload.data = sanitisedData;
+
         const { data, error } = await updateBrew(id, payload);
+
+        // Put the original formatted array data back in the local UI state without making another fetch roundtrip
+        if (data) {
+            data.data = { ...(data.data || {}), ...tempOriginalData };
+        }
 
         if (error || !data) {
              const errorMsg = typeof error === 'string'

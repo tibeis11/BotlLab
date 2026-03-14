@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
-import { X, Plus, Pencil, Trash2, Layers, List } from 'lucide-react';
+import { Trash2, Plus, X, ChevronRight } from 'lucide-react';
+import { Command } from 'cmdk';
+import { useSupabase } from '@/lib/hooks/useSupabase';
 
 export interface Malt {
     name: string;
     amount: string;
     unit: string;
     color_ebc?: string;
+    potential_pts?: string | number;
 }
 
 interface MaltListEditorProps {
@@ -13,258 +16,274 @@ interface MaltListEditorProps {
     onChange: (value: Malt[]) => void;
 }
 
+function getEBCColor(ebc: number): string {
+    if (ebc < 4) return '#F8E783';
+    if (ebc < 8) return '#EACA5D';
+    if (ebc < 16) return '#D58A39';
+    if (ebc < 30) return '#C5622B';
+    if (ebc < 50) return '#A83B1B';
+    if (ebc < 80) return '#7F1A12';
+    if (ebc < 120) return '#5D0908';
+    if (ebc < 200) return '#3B0403';
+    return '#1A0000';
+}
+
+function MaltCombobox({ value, onSelect, malts }: { value: string; onSelect: (update: Partial<Malt>) => void; malts: any[]; }) {
+    const [open, setOpen] = useState(false);
+    const [search, setSearch] = useState(value || '');
+
+    useEffect(() => { if (value !== search) setSearch(value || ''); }, [value]);
+
+    return (
+        <Command className="relative overflow-visible w-full" shouldFilter={true}>
+            <Command.Input
+                className="w-full bg-transparent px-0 py-0 text-sm text-text-primary outline-none placeholder:text-text-disabled"
+                placeholder="Sorte suchen (z.B. Pilsner, Weizen)…"
+                value={search}
+                onValueChange={(val) => { setSearch(val); setOpen(true); onSelect({ name: val }); }}
+                onFocus={() => setOpen(true)}
+                onBlur={() => setTimeout(() => setOpen(false), 200)}
+            />
+            {open && search.length > 0 && (
+                <div className="absolute top-full mt-1 z-50 w-full min-w-[280px] bg-surface border border-border rounded-xl shadow-2xl overflow-hidden max-h-64 flex flex-col">
+                    <Command.List className="overflow-y-auto p-1">
+                        <Command.Empty className="p-3 text-sm text-text-muted text-center">Keine Zutaten gefunden.</Command.Empty>
+                        {malts.map(m => (
+                            <Command.Item
+                                key={m.id}
+                                value={m.name + " " + (m.aliases ? m.aliases.join(" ") : "")}
+                                onSelect={() => {
+                                    setSearch(m.name);
+                                    onSelect({ name: m.name, color_ebc: m.color_ebc?.toString(), potential_pts: m.potential_pts });
+                                    setOpen(false);
+                                }}
+                                className="px-3 py-2 cursor-pointer rounded-lg hover:bg-surface-hover flex items-center justify-between text-sm data-[selected='true']:bg-surface-hover"
+                            >
+                                <div className="font-semibold text-text-primary truncate mr-2">{m.name}</div>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                    {m.color_ebc && (
+                                        <span className="bg-orange-500/10 text-orange-500 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded flex items-center gap-1 border border-orange-500/20">
+                                            <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: getEBCColor(m.color_ebc) }} />
+                                            {m.color_ebc} EBC
+                                        </span>
+                                    )}
+                                </div>
+                            </Command.Item>
+                        ))}
+                    </Command.List>
+                </div>
+            )}
+        </Command>
+    );
+}
+
 export function MaltListEditor({ value, onChange }: MaltListEditorProps) {
+    const supabase = useSupabase();
     const [items, setItems] = useState<Malt[]>([]);
     const [initialized, setInitialized] = useState(false);
-    const [editingIndex, setEditingIndex] = useState<number | null>(null);
-
-    // Lock Body Scroll when Modal is Open
-    useEffect(() => {
-        if (editingIndex !== null) {
-            document.body.style.overflow = 'hidden';
-        } else {
-            document.body.style.overflow = 'unset';
-        }
-        return () => {
-             document.body.style.overflow = 'unset';
-        };
-    }, [editingIndex]);
+    const [dbMalts, setDbMalts] = useState<any[]>([]);
+    const [editingIdx, setEditingIdx] = useState<number | null>(null);
 
     useEffect(() => {
         if (initialized) return;
-        
-        if (Array.isArray(value)) {
-            setItems(value);
-        }
+        if (Array.isArray(value)) setItems(value);
         setInitialized(true);
     }, [value, initialized]);
 
-    const handleChange = (newItems: Malt[]) => {
-        setItems(newItems);
-        onChange(newItems);
+    useEffect(() => {
+        async function fetchMalts() {
+            const { data } = await supabase
+                .from('ingredient_products')
+                .select(`id, name, manufacturer, color_ebc, potential_pts, ingredient_master!inner(type, aliases, name)`)
+                .eq('ingredient_master.type', 'malt')
+                .order('name');
+            if (data) {
+                setDbMalts(data.map((p: any) => ({
+                    id: p.id,
+                    name: p.manufacturer && !p.name.includes(p.manufacturer) ? `${p.name} (${p.manufacturer})` : p.name,
+                    color_ebc: p.color_ebc,
+                    potential_pts: p.potential_pts,
+                    aliases: p.ingredient_master?.aliases || [],
+                })));
+            }
+        }
+        fetchMalts();
+    }, [supabase]);
+
+    const handleChange = (newItems: Malt[]) => { setItems(newItems); onChange(newItems); };
+    const addRow = () => { const idx = items.length; handleChange([...items, { name: '', amount: '', unit: 'kg', color_ebc: '' }]); setEditingIdx(idx); };
+    const updateRow = (index: number, field: keyof Malt, val: string) => { const n = [...items]; n[index] = { ...n[index], [field]: val }; handleChange(n); };
+    const updateRowPartial = (index: number, updates: Partial<Malt>) => { const n = [...items]; n[index] = { ...n[index], ...updates }; handleChange(n); };
+    const removeRow = (index: number) => { handleChange(items.filter((_, i) => i !== index)); setEditingIdx(null); };
+
+    const formatSummary = (item: Malt) => {
+        const parts: string[] = [];
+        if (item.amount) parts.push(`${item.amount} ${item.unit}`);
+        if (item.color_ebc) parts.push(`${item.color_ebc} EBC`);
+        return parts.join(' · ');
     };
 
-    const addRow = () => {
-        const newItem = { name: '', amount: '', unit: 'kg', color_ebc: '' };
-        const newItems = [...items, newItem];
-        handleChange(newItems);
-    };
-
-    const addRowMobile = () => {
-        const newItem = { name: '', amount: '', unit: 'kg', color_ebc: '' };
-        const newItems = [...items, newItem];
-        handleChange(newItems);
-        setEditingIndex(newItems.length - 1);
-    };
-
-    const updateRow = (index: number, field: keyof Malt, val: string) => {
-        const newItems = [...items];
-        newItems[index] = { ...newItems[index], [field]: val };
-        handleChange(newItems);
-    };
-
-    const removeRow = (index: number) => {
-        const newItems = items.filter((_, i) => i !== index);
-        handleChange(newItems);
-        if (editingIndex === index) setEditingIndex(null);
-    };
+    const editingItem = editingIdx !== null ? items[editingIdx] : null;
 
     return (
         <div>
-             <div className="flex justify-between items-end mb-2">
-                <label className="text-xs font-bold text-text-muted uppercase ml-1 block">Malz / Fermentables</label>
-            </div>
-            
-             {/* Mobile Modal for Editing */}
-             {editingIndex !== null && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-surface border border-border rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl relative flex flex-col max-h-[90vh]">
-                        <div className="flex justify-between items-center p-4 border-b border-border bg-surface shrink-0">
-                            <h3 className="font-bold text-text-primary flex items-center gap-2">
-                                <span className="w-8 h-8 rounded-full bg-orange-500/10 text-orange-500 flex items-center justify-center">
-                                    <List size={16} />
-                                </span>
-                                Malz bearbeiten
-                            </h3>
-                            <button onClick={() => setEditingIndex(null)} className="text-text-secondary hover:text-text-primary bg-surface-hover p-2 rounded-full">
-                                <X size={20}/>
-                            </button>
-                        </div>
-                        
-                        <div className="p-4 space-y-4 overflow-y-auto">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1">
-                                    <label className="text-[10px] uppercase font-bold text-text-muted">Menge</label>
-                                    <div className="relative">
-                                        <input 
-                                            type="text"
-                                            inputMode="decimal"
-                                            className="w-full bg-background border border-border rounded-xl pl-3 pr-3 py-3 text-text-primary focus:border-orange-500 outline-none placeholder:text-text-disabled"
-                                            placeholder="0"
-                                            value={items[editingIndex].amount}
-                                            onChange={(e) => updateRow(editingIndex, 'amount', e.target.value.replace(',', '.'))}
-                                        />
-                                    </div>
+            <label className="text-xs font-bold text-text-disabled uppercase ml-1 block mb-2 tracking-wider">Malz / Fermentables</label>
+
+            {/* ── MOBILE: Compact list ── */}
+            {items.length > 0 && (
+                <div className="md:hidden bg-surface border border-border rounded-xl overflow-hidden mb-2 divide-y divide-border">
+                    {items.map((item, idx) => (
+                        <button key={idx} type="button" onClick={() => setEditingIdx(idx)}
+                            className="w-full flex items-center gap-3 px-3 py-3 text-left">
+                            <div className="flex-1 min-w-0">
+                                <div className="text-sm font-semibold text-text-primary truncate">
+                                    {item.name || <span className="text-text-disabled italic font-normal">Sorte wählen…</span>}
                                 </div>
-                                <div className="space-y-1">
-                                    <label className="text-[10px] uppercase font-bold text-text-muted">Einheit</label>
-                                    <input 
-                                        className="w-full bg-background border border-border rounded-xl px-3 py-3 text-text-primary focus:border-orange-500 outline-none placeholder:text-text-disabled"
-                                        placeholder="kg"
-                                        value={items[editingIndex].unit}
-                                        onChange={(e) => updateRow(editingIndex, 'unit', e.target.value)}
-                                    />
-                                </div>
+                                {(item.amount || item.color_ebc) && (
+                                    <div className="text-xs text-text-muted mt-0.5">{formatSummary(item)}</div>
+                                )}
                             </div>
+                            <ChevronRight size={14} className="text-text-disabled shrink-0" />
+                        </button>
+                    ))}
+                </div>
+            )}
 
-                            <div className="space-y-1">
-                                <label className="text-[10px] uppercase font-bold text-text-muted">Name / Sorte</label>
-                                <input 
-                                    className="w-full bg-background border border-border rounded-xl px-3 py-3 text-text-primary focus:border-orange-500 outline-none placeholder:text-text-disabled"
-                                    placeholder="z.B. Pilsner Malz"
-                                    value={items[editingIndex].name}
-                                    onChange={(e) => updateRow(editingIndex, 'name', e.target.value)}
-                                />
-                            </div>
-
-                            <div className="space-y-1">
-                                <label className="text-[10px] uppercase font-bold text-text-muted flex items-center gap-1">
-                                    Farbe (EBC)
-                                </label>
-                                <input 
-                                    className="w-full bg-background border border-border rounded-xl px-3 py-3 text-text-primary focus:border-orange-500 outline-none placeholder:text-text-disabled"
-                                    placeholder="-"
-                                    value={items[editingIndex].color_ebc || ''}
-                                    onChange={(e) => updateRow(editingIndex, 'color_ebc', e.target.value)}
-                                />
+            {/* ── MOBILE: Full-screen sheet ── */}
+            {editingItem !== null && editingIdx !== null && (
+                <div className="md:hidden fixed inset-0 z-50 bg-background flex flex-col">
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
+                        <h2 className="text-base font-bold text-text-primary">Malz bearbeiten</h2>
+                        <button type="button" onClick={() => setEditingIdx(null)}
+                            className="w-8 h-8 flex items-center justify-center rounded-full bg-surface-hover text-text-secondary hover:text-text-primary transition">
+                            <X size={18} />
+                        </button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto px-4 py-5 space-y-4">
+                        <div>
+                            <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">Sorte</label>
+                            <div className="bg-surface border border-border rounded-xl px-3 py-2.5 focus-within:border-orange-500/50 transition">
+                                <MaltCombobox value={editingItem.name} onSelect={(u) => updateRowPartial(editingIdx, u)} malts={dbMalts} />
                             </div>
                         </div>
-
-                        <div className="p-4 border-t border-border bg-surface shrink-0 flex gap-3">
-                             <button 
-                                onClick={() => { removeRow(editingIndex); setEditingIndex(null); }} 
-                                className="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-500 text-sm font-bold px-4 py-3 rounded-xl transition flex items-center justify-center gap-2"
-                            > 
-                                <Trash2 size={16}/> Löschen 
-                            </button>
-                            <button 
-                                onClick={() => setEditingIndex(null)} 
-                                className="flex-[2] bg-white text-black hover:bg-surface-hover text-sm font-bold px-4 py-3 rounded-xl transition"
-                            >
-                                Übernehmen
-                            </button>
+                        <div>
+                            <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">Menge</label>
+                            <div className="flex bg-surface border border-border rounded-xl overflow-hidden focus-within:border-orange-500/50 transition">
+                                <input type="text" inputMode="decimal"
+                                    className="flex-1 bg-transparent pl-3.5 pr-2 py-3 text-sm text-text-primary outline-none text-right placeholder:text-text-disabled"
+                                    placeholder="0" value={editingItem.amount || ''}
+                                    onChange={(e) => updateRow(editingIdx, 'amount', e.target.value.replace(',', '.'))} />
+                                <select
+                                    className="bg-surface-hover border-l border-border px-3 py-3 text-sm font-bold text-text-secondary outline-none shrink-0"
+                                    value={editingItem.unit || 'kg'}
+                                    onChange={(e) => updateRow(editingIdx, 'unit', e.target.value)}>
+                                    <option value="kg">kg</option>
+                                    <option value="g">g</option>
+                                    <option value="lb">lb</option>
+                                    <option value="oz">oz</option>
+                                </select>
+                            </div>
                         </div>
+                        <div>
+                            <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">Farbe (EBC)</label>
+                            <div className="flex bg-surface border border-border rounded-xl overflow-hidden focus-within:border-orange-500/50 transition">
+                                <input type="text" inputMode="decimal"
+                                    className="flex-1 bg-transparent pl-3.5 pr-2 py-3 text-sm text-text-primary outline-none text-right placeholder:text-text-disabled"
+                                    placeholder="–" value={editingItem.color_ebc || ''}
+                                    onChange={(e) => updateRow(editingIdx, 'color_ebc', e.target.value.replace(',', '.'))} />
+                                {editingItem.color_ebc && (
+                                    <span className="flex items-center px-1.5">
+                                        <span className="w-5 h-5 rounded-full border border-border/50" style={{ backgroundColor: getEBCColor(Number(editingItem.color_ebc)) }} />
+                                    </span>
+                                )}
+                                <span className="flex items-center pr-3.5 text-text-disabled text-sm select-none">EBC</span>
+                            </div>
+                        </div>
+                        {editingItem.potential_pts && (
+                            <div className="flex items-center gap-2 text-xs text-text-muted px-1">
+                                <span className="text-orange-400 font-bold">{editingItem.potential_pts} PPG</span>
+                                <span>Extraktpotenzial</span>
+                            </div>
+                        )}
+                    </div>
+                    <div className="shrink-0 px-4 py-4 border-t border-border flex gap-3">
+                        <button type="button" onClick={() => removeRow(editingIdx)}
+                            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-border text-text-disabled hover:text-red-400 hover:border-red-500/30 transition text-sm font-medium">
+                            <Trash2 size={14} /> Löschen
+                        </button>
+                        <button type="button" onClick={() => setEditingIdx(null)}
+                            className="flex-1 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold rounded-xl transition">
+                            Fertig
+                        </button>
                     </div>
                 </div>
             )}
 
-            <div className="space-y-2 bg-surface border border-border rounded-xl p-3">
-                {items.length === 0 && (
-                    <div className="text-center py-4">
-                        <p className="text-sm text-text-disabled mb-2">Kein Malz eingetragen.</p>
-                        <button onClick={addRowMobile} className="text-xs font-bold bg-surface-hover hover:bg-surface-hover text-text-secondary px-3 py-1.5 rounded-lg transition">
-                            + Malz hinzufügen
-                        </button>
+            {/* ── DESKTOP: Merged container ── */}
+            <div className="hidden md:block bg-surface border border-border rounded-xl overflow-visible mb-2 divide-y divide-border">
+                    <div className="grid grid-cols-[1fr_130px_90px_28px] gap-x-3 px-3 py-1.5 bg-surface-hover/60 rounded-t-xl">
+                        <span className="text-[10px] font-bold text-text-disabled uppercase tracking-wider">Malz</span>
+                        <span className="text-[10px] font-bold text-text-disabled uppercase tracking-wider">Menge</span>
+                        <span className="text-[10px] font-bold text-text-disabled uppercase tracking-wider text-right pr-2">EBC</span>
+                        <span />
                     </div>
-                )}
-                
-                 {/* Mobile View (Cards) */}
-                 <div className="block md:hidden space-y-2">
                     {items.map((item, idx) => (
-                        <div 
-                            key={idx} 
-                            onClick={() => setEditingIndex(idx)}
-                            className="bg-background border border-border rounded-xl p-3 flex justify-between items-center active:border-orange-500 transition cursor-pointer gap-4"
-                        >
-                            <div className="flex items-center gap-4 flex-1 min-w-0">
-                                <div className="bg-surface h-12 min-w-[3.5rem] px-2 rounded-xl flex items-center justify-center border border-border shrink-0">
-                                    <span className="text-base font-bold text-text-primary max-w-[4rem] truncate">{item.amount || '0'}</span>
-                                    <span className="text-xs text-text-muted ml-1 mb-0.5">{item.unit || 'kg'}</span>
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                    <div className="text-base font-bold text-text-primary truncate">{item.name || 'Unbenannt'}</div>
-                                    <div className="flex flex-wrap gap-1.5 mt-1.5">
-                                        {item.color_ebc && (
-                                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-orange-950/30 text-orange-400 border border-orange-900/30 uppercase tracking-wider">
-                                                {item.color_ebc} EBC
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
+                        <div key={idx} className="grid grid-cols-[1fr_130px_90px_28px] gap-x-3 px-3 py-2.5 items-center group">
+                            {/* Sorte */}
+                            <div className="h-9 flex items-center bg-background border border-border rounded-lg px-2.5 focus-within:border-orange-500/50 transition">
+                                <MaltCombobox value={item.name} onSelect={(u) => updateRowPartial(idx, u)} malts={dbMalts} />
                             </div>
-                            <div className="text-text-disabled shrink-0 pl-2">
-                                <Pencil size={18} />
+                            {/* Menge + Einheit */}
+                            <div className="h-9 flex bg-background border border-border rounded-lg overflow-hidden focus-within:border-orange-500/50 transition">
+                                <input type="text" inputMode="decimal"
+                                    className="flex-1 min-w-0 bg-transparent pl-2.5 pr-1 text-sm text-text-primary outline-none text-right placeholder:text-text-disabled"
+                                    placeholder="0" value={item.amount || ''}
+                                    onChange={(e) => updateRow(idx, 'amount', e.target.value.replace(',', '.'))} />
+                                <select
+                                    className="bg-surface-hover border-l border-border px-1.5 text-xs font-bold text-text-secondary outline-none shrink-0 self-stretch"
+                                    value={item.unit || 'kg'}
+                                    onChange={(e) => updateRow(idx, 'unit', e.target.value)}>
+                                    <option value="kg">kg</option>
+                                    <option value="g">g</option>
+                                    <option value="lb">lb</option>
+                                    <option value="oz">oz</option>
+                                </select>
                             </div>
-                        </div>
-                    ))}
-                    {items.length > 0 && (
-                        <button onClick={addRowMobile} className="w-full py-3 text-sm font-bold text-text-secondary hover:text-text-primary bg-background hover:bg-surface rounded-lg transition border border-dashed border-border flex items-center justify-center gap-2">
-                            <Plus size={16}/> Malz hinzufügen
-                        </button>
-                    )}
-                </div>
-
-                {/* Desktop View */}
-                <div className="hidden md:block">
-                    {items.length > 0 && (
-                        <div className="grid grid-cols-[70px_60px_1fr_60px_30px] gap-2 mb-2 text-[10px] uppercase font-bold text-text-disabled">
-                            <div>Menge</div>
-                            <div>Einh.</div>
-                            <div>Name / Sorte</div>
-                            <div title="Farbe in EBC">EBC</div>
-                            <div></div>
-                        </div>
-                    )}
-
-                    <div className="space-y-2">
-                    {items.map((item, idx) => (
-                        <div key={idx} className="grid grid-cols-[70px_60px_1fr_60px_30px] gap-2 items-center animate-in fade-in slide-in-from-top-1 duration-200">
-                            <input 
-                                type="text"
-                                inputMode="decimal"
-                                className="w-full bg-background border border-border rounded-lg px-2 py-2.5 text-sm text-text-primary focus:border-brand outline-none text-right placeholder:text-text-disabled"
-                                placeholder="0"
-                                value={item.amount}
-                                onChange={(e) => updateRow(idx, 'amount', e.target.value.replace(',', '.'))}
-                            />
-                            <input 
-                                className="w-full bg-background border border-border rounded-lg px-2 py-2.5 text-sm text-text-primary focus:border-brand outline-none placeholder:text-text-disabled"
-                                placeholder="kg"
-                                value={item.unit}
-                                onChange={(e) => updateRow(idx, 'unit', e.target.value)}
-                            />
-                            <input 
-                                className="w-full bg-background border border-border rounded-lg px-2 py-2.5 text-sm text-text-primary focus:border-brand outline-none placeholder:text-text-disabled"
-                                placeholder="Name (z.B. Pilsner Malz)"
-                                value={item.name}
-                                onChange={(e) => updateRow(idx, 'name', e.target.value)}
-                            />
-                            <input 
-                                type="text"
-                                inputMode="decimal"
-                                className="w-full bg-background border border-border rounded-lg px-2 py-2.5 text-sm text-text-primary focus:border-brand outline-none text-right placeholder:text-text-disabled"
-                                placeholder="-"
-                                value={item.color_ebc || ''}
-                                onChange={(e) => updateRow(idx, 'color_ebc', e.target.value.replace(',', '.'))}
-                            />
-                            <button 
-                                onClick={() => removeRow(idx)}
-                                className="text-text-disabled hover:text-red-400 transition flex justify-center"
-                                title="Entfernen"
-                            >
-                            <Trash2 size={16} />
+                            {/* EBC */}
+                            <div className="h-9 flex bg-background border border-border rounded-lg overflow-hidden focus-within:border-orange-500/50 transition">
+                                <input type="text" inputMode="decimal"
+                                    className="flex-1 min-w-0 bg-transparent pl-2 pr-0 text-sm text-text-primary outline-none text-right placeholder:text-text-disabled"
+                                    placeholder="–" value={item.color_ebc || ''}
+                                    onChange={(e) => updateRow(idx, 'color_ebc', e.target.value.replace(',', '.'))} />
+                                <span className="flex items-center pl-1.5 pr-2 text-text-disabled text-xs select-none">EBC</span>
+                            </div>
+                            {/* Delete */}
+                            <button type="button" onClick={() => removeRow(idx)}
+                                className="flex text-text-disabled hover:text-red-400 transition justify-center items-center opacity-0 group-hover:opacity-100"
+                                title="Entfernen">
+                                <Trash2 size={15} />
                             </button>
                         </div>
                     ))}
-                    </div>
-                    
-                    {items.length > 0 && (
-                        <button onClick={addRow} className="w-full py-2 text-xs font-bold text-text-muted hover:text-text-secondary hover:bg-surface-hover/50 rounded-lg transition border border-dashed border-border mt-2">
-                            + Weiteres Malz hinzufügen
-                        </button>
-                    )}
+                <div className="px-3 py-2.5">
+                    <button type="button" onClick={addRow}
+                        className="flex items-center gap-2 text-text-muted hover:text-text-secondary transition text-sm font-medium">
+                        <span className="w-5 h-5 rounded-full bg-orange-500/10 text-orange-500 flex items-center justify-center">
+                            <Plus size={12} />
+                        </span>
+                        Malz hinzufügen
+                    </button>
                 </div>
             </div>
+
+            {/* Mobile add button */}
+            <button type="button" onClick={addRow}
+                className="md:hidden w-full py-2.5 bg-surface hover:bg-surface-hover border border-dashed border-border rounded-xl text-text-secondary text-sm font-semibold flex items-center justify-center gap-2 transition group">
+                <span className="w-5 h-5 rounded-full bg-orange-500/10 text-orange-500 flex items-center justify-center group-hover:bg-orange-500/20 transition">
+                    <Plus size={12} />
+                </span>
+                Malz hinzufügen
+            </button>
         </div>
     );
 }

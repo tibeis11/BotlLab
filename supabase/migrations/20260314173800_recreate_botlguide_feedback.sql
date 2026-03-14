@@ -15,16 +15,19 @@ CREATE INDEX IF NOT EXISTS idx_botlguide_feedback_user_capability
 
 ALTER TABLE public.botlguide_feedback ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can insert own feedback" ON public.botlguide_feedback;
 CREATE POLICY "Users can insert own feedback" 
 ON public.botlguide_feedback FOR INSERT 
 TO authenticated 
 WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Service role can read feedback" ON public.botlguide_feedback;
 CREATE POLICY "Service role can read feedback" 
 ON public.botlguide_feedback FOR SELECT 
 TO service_role 
 USING (true);
 
+DROP POLICY IF EXISTS "Users can read own feedback" ON public.botlguide_feedback;
 CREATE POLICY "Users can read own feedback"
 ON public.botlguide_feedback FOR SELECT
 TO authenticated

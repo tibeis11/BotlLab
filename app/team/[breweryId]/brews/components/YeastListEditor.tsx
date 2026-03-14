@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
-import { X, Plus, Pencil, Trash2, Beaker, List } from 'lucide-react';
+import { Trash2, Plus, X, ChevronRight } from 'lucide-react';
+import { Command } from 'cmdk';
+import { useSupabase } from '@/lib/hooks/useSupabase';
 
 export interface Yeast {
     name: string;
     amount: string;
     unit: string;
-    attenuation?: string; // %
-    type?: string; // dry, liquid
+    attenuation?: string;
+    type?: string;
 }
 
 interface YeastListEditorProps {
@@ -14,43 +16,107 @@ interface YeastListEditorProps {
     onChange: (value: Yeast[]) => void;
 }
 
+function YeastCombobox({ 
+    value, 
+    onSelect, 
+    yeasts 
+}: { 
+    value: string; 
+    onSelect: (update: Partial<Yeast>) => void;
+    yeasts: any[];
+}) {
+    const [open, setOpen] = useState(false);
+    const [search, setSearch] = useState(value || '');
+
+    useEffect(() => { 
+        if (value !== search) setSearch(value || ''); 
+    }, [value]);
+
+    return (
+        <Command className="relative overflow-visible w-full" shouldFilter={true}>
+            <Command.Input 
+                className="w-full bg-transparent px-0 py-0 text-sm text-text-primary outline-none placeholder:text-text-disabled"
+                placeholder="Sorte suchen (z.B. US-05, Weizenbierhefe)…"
+                value={search}
+                onValueChange={(val) => {
+                    setSearch(val);
+                    setOpen(true);
+                    onSelect({ name: val }); 
+                }}
+                onFocus={() => setOpen(true)}
+                onBlur={() => setTimeout(() => setOpen(false), 200)}
+            />
+            {open && search.length > 0 && (
+                <div className="absolute top-full mt-1 z-50 w-full min-w-[280px] bg-surface border border-border rounded-xl shadow-2xl overflow-hidden max-h-64 flex flex-col">
+                    <Command.List className="overflow-y-auto p-1">
+                        <Command.Empty className="p-3 text-sm text-text-muted text-center">Keine Hefe gefunden.</Command.Empty>
+                        {yeasts.map(y => (
+                            <Command.Item 
+                                key={y.id}
+                                value={y.name + " " + (y.aliases ? y.aliases.join(" ") : "")}
+                                onSelect={() => {
+                                    setSearch(y.name);
+                                    onSelect({ 
+                                        name: y.name, 
+                                        attenuation: y.attenuation_pct?.toString()
+                                    });
+                                    setOpen(false);
+                                }}
+                                className="px-3 py-2 cursor-pointer rounded-lg hover:bg-surface-hover flex items-center justify-between text-sm data-[selected='true']:bg-surface-hover"
+                            >
+                                <div className="font-semibold text-text-primary truncate mr-2">{y.name}</div>
+                                {y.attenuation_pct && (
+                                    <span className="shrink-0 bg-blue-500/10 text-blue-400 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border border-blue-500/20">
+                                        {y.attenuation_pct}% EVG
+                                    </span>
+                                )}
+                            </Command.Item>
+                        ))}
+                    </Command.List>
+                </div>
+            )}
+        </Command>
+    );
+}
+
 export function YeastListEditor({ value, onChange }: YeastListEditorProps) {
+    const supabase = useSupabase();
     const [items, setItems] = useState<Yeast[]>([]);
     const [initialized, setInitialized] = useState(false);
-    const [editingIndex, setEditingIndex] = useState<number | null>(null);
-
-    // Lock Body Scroll when Modal is Open
-    useEffect(() => {
-        if (editingIndex !== null) {
-            document.body.style.overflow = 'hidden';
-        } else {
-            document.body.style.overflow = 'unset';
-        }
-        return () => {
-             document.body.style.overflow = 'unset';
-        };
-    }, [editingIndex]);
+    const [dbYeasts, setDbYeasts] = useState<any[]>([]);
+    const [editingIdx, setEditingIdx] = useState<number | null>(null);
 
     useEffect(() => {
-        // Safe init: handle string legacy data or empty
         if (!initialized) {
             if (Array.isArray(value)) {
                 setItems(value as Yeast[]);
             } else if (typeof value === 'string' && value.trim() !== '') {
-                // Convert legacy string to single object
                 setItems([{ name: value, amount: '', unit: 'g', attenuation: '75', type: 'dry' }]);
             } else {
                 setItems([]);
             }
             setInitialized(true);
-        } else {
-            // If value changes externally (e.g. reset), sync back if it's an array
-            if (Array.isArray(value) && value !== items) {
-                // simple check to avoid loops, maybe deep equal needed but simplistic for now
-                // actually better to only sync on init or just trust local state and push up
-            }
         }
     }, [value, initialized]);
+
+    useEffect(() => {
+        async function fetchYeasts() {
+            const { data } = await supabase
+                .from('ingredient_products')
+                .select(`id, name, manufacturer, attenuation_pct, ingredient_master!inner(type, aliases, name)`)
+                .eq('ingredient_master.type', 'yeast')
+                .order('name');
+            if (data) {
+                setDbYeasts(data.map((p: any) => ({
+                    id: p.id,
+                    name: p.manufacturer && !p.name.includes(p.manufacturer) ? `${p.name} (${p.manufacturer})` : p.name,
+                    attenuation_pct: p.attenuation_pct,
+                    aliases: p.ingredient_master?.aliases || [],
+                })));
+            }
+        }
+        fetchYeasts();
+    }, [supabase]);
 
     const handleChange = (newItems: Yeast[]) => {
         setItems(newItems);
@@ -58,16 +124,9 @@ export function YeastListEditor({ value, onChange }: YeastListEditorProps) {
     };
 
     const addRow = () => {
-        const newItem = { name: '', amount: '', unit: 'g', attenuation: '75', type: 'dry' };
-        const newItems = [...items, newItem];
-        handleChange(newItems);
-    };
-
-    const addRowMobile = () => {
-        const newItem = { name: '', amount: '', unit: 'g', attenuation: '75', type: 'dry' };
-        const newItems = [...items, newItem];
-        handleChange(newItems);
-        setEditingIndex(newItems.length - 1);
+        const newIdx = items.length;
+        handleChange([...items, { name: '', amount: '', unit: 'g', attenuation: '75', type: 'dry' }]);
+        setEditingIdx(newIdx);
     };
 
     const updateRow = (index: number, field: keyof Yeast, val: string) => {
@@ -76,213 +135,292 @@ export function YeastListEditor({ value, onChange }: YeastListEditorProps) {
         handleChange(newItems);
     };
 
-    const removeRow = (index: number) => {
-        const newItems = items.filter((_, i) => i !== index);
+    const updateRowPartial = (index: number, updates: Partial<Yeast>) => {
+        const newItems = [...items];
+        newItems[index] = { ...newItems[index], ...updates };
         handleChange(newItems);
-        if (editingIndex === index) setEditingIndex(null);
     };
+
+    const removeRow = (index: number) => {
+        handleChange(items.filter((_, i) => i !== index));
+        setEditingIdx(null);
+    };
+
+    const formatSummary = (item: Yeast) => {
+        const parts: string[] = [];
+        if (item.amount) parts.push(`${item.amount} ${item.unit}`);
+        if (item.type) parts.push(item.type === 'dry' ? 'Trocken' : 'Flüssig');
+        if (item.attenuation) parts.push(`EVG ${item.attenuation}%`);
+        return parts.join(' · ');
+    };
+
+    const editingItem = editingIdx !== null ? items[editingIdx] : null;
 
     return (
         <div>
-             <div className="flex justify-between items-end mb-2">
-                <label className="text-xs font-bold text-text-muted uppercase ml-1 block">Hefe</label>
-            </div>
-            
-             {/* Mobile Modal for Editing */}
-             {editingIndex !== null && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-surface border border-border rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl relative flex flex-col max-h-[90vh]">
-                        <div className="flex justify-between items-center p-4 border-b border-border bg-surface shrink-0">
-                            <h3 className="font-bold text-text-primary flex items-center gap-2">
-                                <span className="w-8 h-8 rounded-full bg-blue-500/10 text-blue-500 flex items-center justify-center">
-                                    <Beaker size={16} />
-                                </span>
-                                Hefe bearbeiten
-                            </h3>
-                            <button onClick={() => setEditingIndex(null)} className="text-text-secondary hover:text-text-primary bg-surface-hover p-2 rounded-full">
-                                <X size={20}/>
-                            </button>
-                        </div>
-                        
-                        <div className="p-4 space-y-4 overflow-y-auto">
-                            <div className="space-y-1">
-                                <label className="text-[10px] uppercase font-bold text-text-muted">Name / Sorte</label>
-                                <input 
-                                    className="w-full bg-background border border-border rounded-xl px-3 py-3 text-text-primary focus:border-blue-500 outline-none placeholder:text-text-disabled"
-                                    placeholder="z.B. US-05"
-                                    value={items[editingIndex].name}
-                                    onChange={(e) => updateRow(editingIndex, 'name', e.target.value)}
+            <label className="text-xs font-bold text-text-disabled uppercase ml-1 block mb-2 tracking-wider">Hefe</label>
+
+            {/* ── MOBILE: Compact single-line list ── */}
+            {items.length > 0 && (
+                <div className="md:hidden bg-surface border border-border rounded-xl overflow-hidden mb-2 divide-y divide-border">
+                    {items.map((item, idx) => (
+                        <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setEditingIdx(idx)}
+                            className="w-full flex items-center gap-3 px-3 py-3 text-left"
+                        >
+                            <div className="flex-1 min-w-0">
+                                <div className="text-sm font-semibold text-text-primary truncate">
+                                    {item.name || <span className="text-text-disabled italic font-normal">Sorte wählen…</span>}
+                                </div>
+                                {(item.amount || item.type || item.attenuation) && (
+                                    <div className="text-xs text-text-muted mt-0.5">{formatSummary(item)}</div>
+                                )}
+                            </div>
+                            <ChevronRight size={14} className="text-text-disabled shrink-0" />
+                        </button>
+                    ))}
+                </div>
+            )}
+
+            {/* ── MOBILE: Full-screen edit sheet ── */}
+            {editingItem !== null && editingIdx !== null && (
+                <div className="md:hidden fixed inset-0 z-50 bg-background flex flex-col">
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
+                        <h2 className="text-base font-bold text-text-primary">Hefe bearbeiten</h2>
+                        <button
+                            type="button"
+                            onClick={() => setEditingIdx(null)}
+                            className="w-8 h-8 flex items-center justify-center rounded-full bg-surface-hover text-text-secondary hover:text-text-primary transition"
+                        >
+                            <X size={18} />
+                        </button>
+                    </div>
+
+                    {/* Fields */}
+                    <div className="flex-1 overflow-y-auto px-4 py-5 space-y-4">
+                        <div>
+                            <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">Sorte</label>
+                            <div className="bg-surface border border-border rounded-xl px-3 py-2.5 focus-within:border-blue-500/50 transition">
+                                <YeastCombobox
+                                    value={editingItem.name}
+                                    onSelect={(updates) => updateRowPartial(editingIdx, updates)}
+                                    yeasts={dbYeasts}
                                 />
                             </div>
+                        </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1">
-                                    <label className="text-[10px] uppercase font-bold text-text-muted">Menge</label>
-                                    <div className="relative">
-                                        <input 
-                                            type="text"
-                                            inputMode="decimal"
-                                            className="w-full bg-background border border-border rounded-xl pl-3 pr-3 py-3 text-text-primary focus:border-blue-500 outline-none placeholder:text-text-disabled"
-                                            placeholder="—"
-                                            value={items[editingIndex].amount}
-                                            onChange={(e) => updateRow(editingIndex, 'amount', e.target.value.replace(',', '.'))}
-                                        />
-                                    </div>
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="text-[10px] uppercase font-bold text-text-muted">Einheit</label>
-                                    <input 
-                                        className="w-full bg-background border border-border rounded-xl px-3 py-3 text-text-primary focus:border-blue-500 outline-none placeholder:text-text-disabled"
-                                        placeholder="g"
-                                        value={items[editingIndex].unit}
-                                        onChange={(e) => updateRow(editingIndex, 'unit', e.target.value)}
-                                    />
-                                </div>
+                        <div>
+                            <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">Menge</label>
+                            <div className="flex bg-surface border border-border rounded-xl overflow-hidden focus-within:border-blue-500/50 transition">
+                                <input
+                                    type="text"
+                                    inputMode="decimal"
+                                    className="flex-1 bg-transparent pl-3.5 pr-2 py-3 text-sm text-text-primary outline-none text-right placeholder:text-text-disabled"
+                                    placeholder="0"
+                                    value={editingItem.amount || ''}
+                                    onChange={(e) => updateRow(editingIdx, 'amount', e.target.value.replace(',', '.'))}
+                                />
+                                <select
+                                    className="bg-surface-hover border-l border-border px-3 py-3 text-sm font-bold text-text-secondary outline-none shrink-0"
+                                    value={editingItem.unit || 'g'}
+                                    onChange={(e) => updateRow(editingIdx, 'unit', e.target.value)}
+                                >
+                                    <option value="g">g</option>
+                                    <option value="ml">ml</option>
+                                    <option value="pkg">pkg</option>
+                                </select>
                             </div>
+                        </div>
 
-                            <div className="space-y-1">
-                                <label className="text-[10px] uppercase font-bold text-text-muted flex items-center gap-1">
-                                    Vergärungsgrad (VG%)
-                                </label>
-                                <input 
-                                    className="w-full bg-background border border-border rounded-xl px-3 py-3 text-text-primary focus:border-blue-500 outline-none placeholder:text-text-disabled"
+                        <div>
+                            <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">Typ</label>
+                            <div className="flex bg-surface-hover border border-border rounded-xl p-1 gap-1">
+                                <button
+                                    type="button"
+                                    onClick={() => updateRow(editingIdx, 'type', 'dry')}
+                                    className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${
+                                        (editingItem.type || 'dry') === 'dry'
+                                            ? 'bg-background text-text-primary shadow-sm'
+                                            : 'text-text-disabled hover:text-text-muted'
+                                    }`}
+                                >
+                                    Trocken
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => updateRow(editingIdx, 'type', 'liquid')}
+                                    className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${
+                                        editingItem.type === 'liquid'
+                                            ? 'bg-background text-text-primary shadow-sm'
+                                            : 'text-text-disabled hover:text-text-muted'
+                                    }`}
+                                >
+                                    Flüssig
+                                </button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">Vergärungsgrad (EVG)</label>
+                            <div className="flex bg-surface border border-border rounded-xl overflow-hidden focus-within:border-blue-500/50 transition">
+                                <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    className="flex-1 bg-transparent pl-3.5 pr-2 py-3 text-sm text-text-primary outline-none text-right placeholder:text-text-disabled"
                                     placeholder="75"
-                                    value={items[editingIndex].attenuation || ''}
-                                    onChange={(e) => updateRow(editingIndex, 'attenuation', e.target.value)}
+                                    value={editingItem.attenuation || ''}
+                                    onChange={(e) => updateRow(editingIdx, 'attenuation', e.target.value)}
                                 />
+                                <span className="flex items-center pr-3.5 text-text-disabled text-sm select-none">%</span>
                             </div>
                         </div>
+                    </div>
 
-                        <div className="p-4 border-t border-border bg-surface shrink-0 flex gap-3">
-                             <button 
-                                onClick={() => { removeRow(editingIndex); setEditingIndex(null); }} 
-                                className="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-500 text-sm font-bold px-4 py-3 rounded-xl transition flex items-center justify-center gap-2"
-                            > 
-                                <Trash2 size={16}/> Löschen 
-                            </button>
-                            <button 
-                                onClick={() => setEditingIndex(null)} 
-                                className="flex-[2] bg-text-primary text-background hover:bg-surface-hover text-sm font-bold px-4 py-3 rounded-xl transition"
-                            >
-                                Übernehmen
-                            </button>
-                        </div>
+                    {/* Footer: Delete + Done */}
+                    <div className="shrink-0 px-4 py-4 border-t border-border flex gap-3">
+                        <button
+                            type="button"
+                            onClick={() => removeRow(editingIdx)}
+                            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-border text-text-disabled hover:text-red-400 hover:border-red-500/30 transition text-sm font-medium"
+                        >
+                            <Trash2 size={14} /> Löschen
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setEditingIdx(null)}
+                            className="flex-1 py-2.5 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition"
+                        >
+                            Fertig
+                        </button>
                     </div>
                 </div>
             )}
 
-            <div className="space-y-2 bg-surface border border-border rounded-xl p-3">
-                {items.length === 0 && (
-                    <div className="text-center py-4">
-                        <p className="text-sm text-text-disabled mb-2">Keine Hefe eingetragen.</p>
-                        <button onClick={addRowMobile} className="text-xs font-bold bg-surface-hover hover:bg-surface-hover text-text-secondary px-3 py-1.5 rounded-lg transition">
-                            + Hefe hinzufügen
-                        </button>
+            {/* ── DESKTOP: Merged container with pixel-perfect aligned headers ── */}
+            {/* Fixed column widths (not fr/auto) guarantee header ↔ row alignment */}
+            {/* overflow-visible so the cmdk dropdown is not clipped */}
+            <div className="hidden md:block bg-surface border border-border rounded-xl overflow-visible mb-2 divide-y divide-border">
+                    <div className="grid grid-cols-[1fr_130px_160px_92px_28px] gap-x-3 px-3 py-1.5 bg-surface-hover/60 rounded-t-xl">
+                        <span className="text-[10px] font-bold text-text-disabled uppercase tracking-wider">Sorte</span>
+                        <span className="text-[10px] font-bold text-text-disabled uppercase tracking-wider">Menge</span>
+                        <span className="text-[10px] font-bold text-text-disabled uppercase tracking-wider">Typ</span>
+                        <span className="text-[10px] font-bold text-text-disabled uppercase tracking-wider text-right pr-2">EVG</span>
+                        <span />
                     </div>
-                )}
-                
-                {/* Mobile View */}
-                <div className="block md:hidden space-y-2">
+
                     {items.map((item, idx) => (
-                        <div 
-                            key={idx} 
-                            onClick={() => setEditingIndex(idx)}
-                            className="bg-background border border-border rounded-xl p-3 flex justify-between items-center active:border-blue-500 transition cursor-pointer gap-4"
+                        <div
+                            key={idx}
+                            className="grid grid-cols-[1fr_130px_160px_92px_28px] gap-x-3 px-3 py-2.5 items-center group"
                         >
-                            <div className="flex items-center gap-4 flex-1 min-w-0">
-                                <div className="bg-surface h-12 min-w-[3.5rem] px-2 rounded-xl flex items-center justify-center border border-border shrink-0">
-                                    <span className="text-base font-bold text-text-primary max-w-[4rem] truncate">{item.amount || '—'}</span>
-                                    <span className="text-xs text-text-muted ml-1 mb-0.5">{item.amount ? (item.unit || 'g') : ''}</span>
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                    <div className="text-base font-bold text-text-primary truncate">{item.name || 'Unbenannt'}</div>
-                                    <div className="flex flex-wrap gap-1.5 mt-1.5">
-                                        {item.attenuation && (
-                                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] uppercase font-bold bg-blue-950/30 text-blue-400 border border-blue-900/30 tracking-wider">
-                                                VG: {item.attenuation}%
-                                            </span>
-                                        )}
-                                        {item.type && (
-                                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-surface text-text-secondary border border-border capitalize">
-                                               {item.type}
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
+                            {/* Sorte */}
+                            <div className="h-9 flex items-center bg-background border border-border rounded-lg px-2.5 focus-within:border-blue-500/50 transition">
+                                <YeastCombobox
+                                    value={item.name}
+                                    onSelect={(updates) => updateRowPartial(idx, updates)}
+                                    yeasts={dbYeasts}
+                                />
                             </div>
-                            <div className="text-text-disabled shrink-0 pl-2">
-                                <Pencil size={18} />
+
+                            {/* Menge + Einheit */}
+                            <div className="h-9 flex bg-background border border-border rounded-lg overflow-hidden focus-within:border-blue-500/50 transition">
+                                <input
+                                    type="text"
+                                    inputMode="decimal"
+                                    className="flex-1 min-w-0 bg-transparent pl-2.5 pr-1 text-sm text-text-primary outline-none text-right placeholder:text-text-disabled"
+                                    placeholder="0"
+                                    value={item.amount || ''}
+                                    onChange={(e) => updateRow(idx, 'amount', e.target.value.replace(',', '.'))}
+                                />
+                                <select
+                                    className="bg-surface-hover border-l border-border px-1.5 text-xs font-bold text-text-secondary outline-none shrink-0 self-stretch"
+                                    value={item.unit || 'g'}
+                                    onChange={(e) => updateRow(idx, 'unit', e.target.value)}
+                                >
+                                    <option value="g">g</option>
+                                    <option value="ml">ml</option>
+                                    <option value="pkg">pkg</option>
+                                </select>
                             </div>
-                        </div>
-                    ))}
-                    {items.length > 0 && (
-                        <button onClick={addRowMobile} className="w-full py-3 text-sm font-bold text-text-secondary hover:text-text-primary bg-background hover:bg-surface rounded-lg transition border border-dashed border-border flex items-center justify-center gap-2">
-                            <Plus size={16}/> Hefe hinzufügen
-                        </button>
-                    )}
-                </div>
 
-                {/* Desktop View */}
-                <div className="hidden md:block">
-                    {items.length > 0 && (
-                        <div className="grid grid-cols-[1fr_60px_60px_50px_30px] gap-2 mb-2 text-[10px] uppercase font-bold text-text-disabled">
-                            <div>Name / Sorte</div>
-                            <div>Menge</div>
-                            <div>Einh.</div>
-                            <div title="Vergärungsgrad">VG %</div>
-                            <div></div>
-                        </div>
-                    )}
+                            {/* Typ – Segmented pill toggle */}
+                            <div className="h-9 flex bg-surface-hover border border-border rounded-lg p-0.5 gap-0.5">
+                                <button
+                                    type="button"
+                                    onClick={() => updateRow(idx, 'type', 'dry')}
+                                    className={`flex-1 whitespace-nowrap px-3 text-xs font-bold rounded-md transition-all flex items-center justify-center ${
+                                        (item.type || 'dry') === 'dry'
+                                            ? 'bg-background text-text-primary shadow-sm'
+                                            : 'text-text-disabled hover:text-text-muted'
+                                    }`}
+                                >
+                                    Trocken
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => updateRow(idx, 'type', 'liquid')}
+                                    className={`flex-1 whitespace-nowrap px-3 text-xs font-bold rounded-md transition-all flex items-center justify-center ${
+                                        item.type === 'liquid'
+                                            ? 'bg-background text-text-primary shadow-sm'
+                                            : 'text-text-disabled hover:text-text-muted'
+                                    }`}
+                                >
+                                    Flüssig
+                                </button>
+                            </div>
 
-                    {items.map((item, idx) => (
-                        <div key={idx} className="grid grid-cols-[1fr_60px_60px_50px_30px] gap-2 items-center animate-in fade-in slide-in-from-top-1 duration-200">
-                            <input 
-                                className="w-full bg-background border border-border rounded-lg px-2 py-2 text-sm text-text-primary focus:border-cyan-500 outline-none placeholder:text-text-disabled"
-                                placeholder="Name (z.B. US-05)"
-                                value={item.name}
-                                onChange={(e) => updateRow(idx, 'name', e.target.value)}
-                            />
-                            <input 
-                                type="text"
-                                inputMode="decimal"
-                                className="w-full bg-background border border-border rounded-lg px-2 py-2 text-sm text-text-primary focus:border-cyan-500 outline-none text-right placeholder:text-text-disabled"
-                                placeholder="—"
-                                value={item.amount}
-                                onChange={(e) => updateRow(idx, 'amount', e.target.value.replace(',', '.'))}
-                            />
-                            <input 
-                                className="w-full bg-background border border-border rounded-lg px-2 py-2 text-sm text-text-primary focus:border-cyan-500 outline-none placeholder:text-text-disabled"
-                                placeholder="g"
-                                value={item.unit}
-                                onChange={(e) => updateRow(idx, 'unit', e.target.value)}
-                            />
-                            <input 
-                                type="text"
-                                inputMode="decimal"
-                                className="w-full bg-background border border-border rounded-lg px-2 py-2 text-sm text-text-primary focus:border-cyan-500 outline-none text-right placeholder:text-text-disabled"
-                                placeholder="75"
-                                value={item.attenuation || ''}
-                                onChange={(e) => updateRow(idx, 'attenuation', e.target.value.replace(',', '.'))}
-                            />
-                            <button 
+                            {/* EVG % */}
+                            <div className="h-9 flex bg-background border border-border rounded-lg overflow-hidden focus-within:border-blue-500/50 transition">
+                                <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    className="flex-1 min-w-0 bg-transparent pl-2 pr-0 text-sm text-text-primary outline-none text-right placeholder:text-text-disabled"
+                                    placeholder="75"
+                                    value={item.attenuation || ''}
+                                    onChange={(e) => updateRow(idx, 'attenuation', e.target.value)}
+                                />
+                                <span className="flex items-center pl-1.5 pr-2.5 text-text-disabled text-sm select-none">%</span>
+                            </div>
+
+                            {/* Delete */}
+                            <button
+                                type="button"
                                 onClick={() => removeRow(idx)}
-                                className="text-text-disabled hover:text-red-400 transition flex justify-center"
+                                className="flex text-text-disabled hover:text-red-400 transition justify-center items-center opacity-0 group-hover:opacity-100"
                                 title="Entfernen"
                             >
-                            <Trash2 size={16} />
+                                <Trash2 size={15} />
                             </button>
                         </div>
                     ))}
-                    
-                    {items.length > 0 && (
-                        <button onClick={addRow} className="w-full py-2 text-xs font-bold text-text-muted hover:text-text-secondary hover:bg-surface-hover/50 rounded-lg transition border border-dashed border-border mt-2">
-                            + Weitere Hefe hinzufügen
-                        </button>
-                    )}
+                <div className="px-3 py-2.5">
+                    <button
+                        type="button"
+                        onClick={addRow}
+                        className="flex items-center gap-2 text-text-muted hover:text-text-secondary transition text-sm font-medium"
+                    >
+                        <span className="w-5 h-5 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center">
+                            <Plus size={12} />
+                        </span>
+                        Hefe hinzufügen
+                    </button>
                 </div>
             </div>
+
+            {/* Mobile add button */}
+            <button
+                type="button"
+                onClick={addRow}
+                className="md:hidden w-full py-2.5 bg-surface hover:bg-surface-hover border border-dashed border-border rounded-xl text-text-secondary text-sm font-semibold flex items-center justify-center gap-2 transition group"
+            >
+                <span className="w-5 h-5 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center group-hover:bg-blue-500/20 transition">
+                    <Plus size={12} />
+                </span>
+                Hefe hinzufügen
+            </button>
         </div>
     );
 }
-
-

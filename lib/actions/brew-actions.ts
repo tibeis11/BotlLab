@@ -115,3 +115,26 @@ export async function updateBrew(id: string, input: BrewInput): Promise<ActionRe
   
   return { data };
 }
+
+import { mergeRecipeIngredientsIntoData } from "@/lib/ingredients/ingredient-adapter";
+
+export async function getBrewForEdit(brewId: string, breweryId: string) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: "Nicht authentiziert" };
+
+    const { data, error } = await supabase
+        .from('brews')
+        .select('*')
+        .eq('id', brewId)
+        .eq('brewery_id', breweryId)
+        .maybeSingle();
+
+    if (error) return { error: error.message };
+    if (!data) return { error: "Nicht gefunden" };
+
+    const mergedData = await mergeRecipeIngredientsIntoData(data.data, data.id, supabase);
+    data.data = mergedData;
+
+    return { data };
+}

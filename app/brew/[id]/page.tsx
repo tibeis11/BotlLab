@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase-server';
 import ClientBrewPage from './ClientBrewPage';
+import { mergeRecipeIngredientsIntoData } from '@/lib/ingredients/ingredient-adapter';
 
 export default async function BrewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -15,6 +16,10 @@ export default async function BrewPage({ params }: { params: Promise<{ id: strin
     .maybeSingle();
 
   let initialError = null;
+
+  if (brewData && brewData.data) {
+    brewData.data = await mergeRecipeIngredientsIntoData(brewData.data, brewData.id, supabase);
+  }
 
   if (brewError || !brewData) {
     initialError = "Rezept nicht gefunden";

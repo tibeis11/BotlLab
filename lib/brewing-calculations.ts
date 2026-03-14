@@ -17,7 +17,8 @@ export interface MaltItem {
     name: string;
     amount: string; // usually kg
     unit: string;
-    color_ebc?: string;
+    color_ebc?: string | number;
+    potential_pts?: string | number; // Optional DB override for exact calculations
 }
 
 export interface HopItem {
@@ -509,7 +510,11 @@ export function calculateOGDetails(
     const parts: OGContribution[] = [];
     for (const malt of malts) {
         const amountKg = maltAmountKg(malt); // BUG-FIX: unit-aware conversion
-        const potential = getMaltPotential(malt.name); // BUG-FIX: name-based lookup
+        
+        // 1. Check for DB override value (Hybrid approach), 2. Fall back to Regex table
+        const rawPotential = safeFloat(malt.potential_pts);
+        const potential = rawPotential > 0 ? rawPotential : getMaltPotential(malt.name);
+        
         const maltPoints = amountKg * potential;
         totalPoints += maltPoints;
         parts.push({

@@ -18,6 +18,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createClient, createAdminClient } from '@/lib/supabase-server';
 import { canUseAI, getUserPremiumStatus, trackAIUsage } from '@/lib/premium-checks';
 import { trackEvent } from '@/lib/actions/analytics-actions';
+import { mergeRecipeIngredientsIntoData } from '@/lib/ingredients/ingredient-adapter';
 import {
   CAPABILITY_META,
   CREDIT_COST,
@@ -340,6 +341,9 @@ export async function POST(req: NextRequest) {
       });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const recentBrews: any[] = brewCtx?.recentBrews ?? [];
+      for (const reqBrew of recentBrews) {
+          await mergeRecipeIngredientsIntoData(reqBrew, reqBrew.id, supabase);
+      }
       // Experience tier from RPC avoids an extra round-trip (overrides the profile select above)
       if (brewCtx?.experienceTier) {
         experience = mapExperienceTier(brewCtx.experienceTier as string);

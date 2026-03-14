@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase-server';
 import ClientScanPage from './ClientScanPage';
+import { mergeRecipeIngredientsIntoData } from '@/lib/ingredients/ingredient-adapter';
 import { BottleWithBrew } from './types';
 
 export const dynamic = 'force-dynamic';
@@ -37,6 +38,10 @@ export default async function PublicPage({ params }: { params: Promise<{ id: str
           : Promise.resolve({ data: null, error: null }),
         supabase.from('brews').select('*').eq('id', bottle.brew_id).single(),
       ]);
+
+      if (brewResult.data) {
+        brewResult.data.data = await mergeRecipeIngredientsIntoData(brewResult.data.data, brewResult.data.id, supabase);
+      }
 
       initialData = {
         ...(bottle as any),

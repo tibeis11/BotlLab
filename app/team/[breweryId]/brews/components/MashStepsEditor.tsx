@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { X, Plus, Pencil, Trash2, Thermometer, Clock, Flame, PauseCircle, Flag, Droplets, Info } from 'lucide-react';
+import { X, Plus, Trash2, Thermometer, Flame, PauseCircle, Flag, Droplets, ChevronRight } from 'lucide-react';
 import { calculateDecoctionVolume } from '@/lib/brewing-calculations';
 
 // ─── Mash Step Types ─────────────────────────────────────────────
@@ -7,27 +7,22 @@ export type MashStepType = 'rest' | 'decoction' | 'mashout' | 'strike';
 export type DecoctionForm = 'thick' | 'thin' | 'liquid';
 
 export interface MashStep {
-    // Pflichtfelder (alle Verfahren)
     name: string;
-    temperature: string;        // Zieltemperatur der Hauptmaische nach diesem Schritt (°C)
-    duration: string;           // Rastzeit der Hauptmaische (min)
-
-    // Optionale Metadaten (alle Verfahren)
-    step_type?: MashStepType;   // expliziter Typ; wenn leer: 'rest'
-
-    // Nur für Dekoktion relevant
-    volume_liters?: string;           // gezogenes Teilmaische-Volumen (L)
-    decoction_form?: DecoctionForm;   // Dickmaische / Dünnmaische / Kochwasser
-    decoction_rest_temp?: string;     // Temperatur der Teilmaische vor dem Kochen (°C)
-    decoction_rest_time?: string;     // Rastzeit der Teilmaische vor dem Kochen (min)
-    decoction_boil_time?: string;     // Kochzeit der Teilmaische (min)
+    temperature: string;
+    duration: string;
+    step_type?: MashStepType;
+    volume_liters?: string;
+    decoction_form?: DecoctionForm;
+    decoction_rest_temp?: string;
+    decoction_rest_time?: string;
+    decoction_boil_time?: string;
 }
 
 interface MashStepsEditorProps {
     value: MashStep[] | undefined;
     onChange: (value: MashStep[]) => void;
-    mashProcess?: string;           // 'infusion' | 'decoction' | 'step_mash'
-    mashInfusionTotal?: string;     // Gesamtmaischevolumen für Volumen-Empfehlung (L)
+    mashProcess?: string;
+    mashInfusionTotal?: string;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────
@@ -47,10 +42,10 @@ const DECOCTION_FORM_LABELS: Record<DecoctionForm, string> = {
 function StepTypeBadge({ type }: { type?: MashStepType }) {
     const t = type || 'rest';
     const config: Record<MashStepType, { icon: React.ReactNode; bg: string; text: string }> = {
-        rest:       { icon: <PauseCircle size={10} />, bg: 'bg-surface-hover', text: 'text-text-secondary' },
-        decoction:  { icon: <Flame size={10} />,       bg: 'bg-amber-500/15', text: 'text-amber-500' },
-        mashout:    { icon: <Flag size={10} />,         bg: 'bg-red-500/15', text: 'text-error' },
-        strike:     { icon: <Droplets size={10} />,     bg: 'bg-cyan-500/15', text: 'text-cyan-400' },
+        rest:      { icon: <PauseCircle size={10} />, bg: 'bg-surface-hover',  text: 'text-text-secondary' },
+        decoction: { icon: <Flame size={10} />,       bg: 'bg-amber-500/15',   text: 'text-amber-500' },
+        mashout:   { icon: <Flag size={10} />,         bg: 'bg-red-500/15',     text: 'text-error' },
+        strike:    { icon: <Droplets size={10} />,     bg: 'bg-cyan-500/15',    text: 'text-cyan-400' },
     };
     const c = config[t];
     return (
@@ -60,7 +55,6 @@ function StepTypeBadge({ type }: { type?: MashStepType }) {
     );
 }
 
-/** Shared hook: Body-Scroll sperren wenn ein Modal offen ist */
 function useBodyScrollLock(isLocked: boolean) {
     useEffect(() => {
         document.body.style.overflow = isLocked ? 'hidden' : 'unset';
@@ -68,7 +62,6 @@ function useBodyScrollLock(isLocked: boolean) {
     }, [isLocked]);
 }
 
-/** Stellt sicher, dass Einmaischen (strike) am Anfang und Abmaischen (mashout) am Ende stehen */
 function ensureBookends(steps: MashStep[]): MashStep[] {
     const result = [...steps];
     if (result.length === 0 || result[0].step_type !== 'strike') {
@@ -81,7 +74,7 @@ function ensureBookends(steps: MashStep[]): MashStep[] {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  1) SINGLE STEP EDITOR — Infusion (1 Zeile, kein Hinzufügen)
+//  1) SINGLE STEP EDITOR – Infusion (eine Kombirast)
 // ═══════════════════════════════════════════════════════════════════
 function SingleStepEditor({ value, onChange }: Omit<MashStepsEditorProps, 'mashProcess'>) {
     const item: MashStep = Array.isArray(value) && value.length > 0
@@ -93,40 +86,41 @@ function SingleStepEditor({ value, onChange }: Omit<MashStepsEditorProps, 'mashP
     };
 
     return (
-        <div className="bg-surface border border-border rounded-xl p-4 animate-in fade-in zoom-in-95 duration-200">
-            <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider mb-3 flex items-center gap-2">
-                <Thermometer size={14} className="text-error" /> Kombi-Rast
-            </h3>
-            <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-bold text-text-muted">Zieltemperatur (°C)</label>
+        <div className="bg-surface border border-border rounded-xl overflow-visible mb-2 divide-y divide-border">
+            <div className="grid grid-cols-2 gap-x-3 px-3 py-1.5 bg-surface-hover/60 rounded-t-xl">
+                <span className="text-[10px] font-bold text-text-disabled uppercase tracking-wider">Zieltemperatur</span>
+                <span className="text-[10px] font-bold text-text-disabled uppercase tracking-wider">Rastdauer</span>
+            </div>
+            <div className="grid grid-cols-2 gap-x-3 px-3 py-2.5 items-center">
+                <div className="h-9 flex items-center bg-background border border-border rounded-lg overflow-hidden focus-within:border-red-500/50 transition">
                     <input
                         type="text"
                         inputMode="decimal"
-                        className="w-full bg-background border border-border rounded-xl px-3 py-3 text-text-primary focus:border-brand outline-none placeholder:text-text-disabled"
+                        className="flex-1 min-w-0 bg-transparent pl-2.5 pr-1 text-sm text-text-primary outline-none placeholder:text-text-disabled"
                         placeholder="67"
                         value={item.temperature || ''}
                         onChange={(e) => updateField('temperature', e.target.value.replace(',', '.'))}
                     />
+                    <span className="pr-2.5 text-text-disabled text-xs select-none">°C</span>
                 </div>
-                <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-bold text-text-muted flex items-center gap-1"><Clock size={10} /> Rastdauer (min)</label>
+                <div className="h-9 flex items-center bg-background border border-border rounded-lg overflow-hidden focus-within:border-red-500/50 transition">
                     <input
-                        type="number"
-                        className="w-full bg-background border border-border rounded-xl px-3 py-3 text-text-primary focus:border-brand outline-none placeholder:text-text-disabled"
+                        type="text"
+                        inputMode="decimal"
+                        className="flex-1 min-w-0 bg-transparent pl-2.5 pr-1 text-sm text-text-primary outline-none placeholder:text-text-disabled"
                         placeholder="60"
                         value={item.duration || ''}
                         onChange={(e) => updateField('duration', e.target.value)}
                     />
+                    <span className="pr-2.5 text-text-disabled text-xs select-none">min</span>
                 </div>
             </div>
-            <p className="text-[10px] text-text-disabled mt-3">Ein einzelner Temperaturschritt – perfekt für Single-Step Infusion.</p>
         </div>
     );
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  2) STEP MASH EDITOR — Stufeninfusion / Zubrüh (mehrere Rasten)
+//  2) STEP MASH EDITOR – Stufeninfusion / Zubrüh
 // ═══════════════════════════════════════════════════════════════════
 function StepMashEditor({ value, onChange }: Omit<MashStepsEditorProps, 'mashProcess'>) {
     const items = useMemo(() => ensureBookends(Array.isArray(value) ? value : []), [value]);
@@ -157,138 +151,218 @@ function StepMashEditor({ value, onChange }: Omit<MashStepsEditorProps, 'mashPro
     };
 
     const addRestMobile = () => {
-        const newItems = [...items];
         const insertIdx = items.length - 1;
+        const newItems = [...items];
         newItems.splice(insertIdx, 0, { name: '', temperature: '', duration: '', step_type: 'rest' });
         handleChange(newItems);
         setEditingIndex(insertIdx);
     };
 
+    const editingItem = editingIndex !== null ? items[editingIndex] : null;
+    const editFixed = editingIndex !== null ? isFixed(editingIndex) : false;
+
+    const formatSummary = (item: MashStep, fixed: boolean) => {
+        const parts: string[] = [];
+        if (item.temperature) parts.push(`${item.temperature} °C`);
+        if (!fixed && item.duration) parts.push(`${item.duration} min`);
+        return parts.join(' · ');
+    };
+
     return (
-        <div className="space-y-4 animate-in fade-in duration-200">
-            {/* Mobile Modal */}
-            {editingIndex !== null && items[editingIndex] && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-surface border border-border rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
-                        <div className="flex justify-between items-center p-4 border-b border-border shrink-0">
-                            <h3 className="font-bold text-text-primary flex items-center gap-2">
-                                <span className={`w-8 h-8 rounded-full flex items-center justify-center ${items[editingIndex].step_type === 'strike' ? 'bg-cyan-500/10 text-cyan-400' : items[editingIndex].step_type === 'mashout' ? 'bg-error/10 text-error' : 'bg-error/10 text-error'}`}>
-                                    {items[editingIndex].step_type === 'strike' ? <Droplets size={16} /> : items[editingIndex].step_type === 'mashout' ? <Flag size={16} /> : <Thermometer size={16} />}
-                                </span>
-                                {items[editingIndex].step_type === 'strike' ? 'Einmaischen' : items[editingIndex].step_type === 'mashout' ? 'Abmaischen' : 'Rast bearbeiten'}
-                            </h3>
-                            <button onClick={() => setEditingIndex(null)} className="text-text-secondary hover:text-text-primary bg-surface-hover p-2 rounded-full"><X size={20} /></button>
-                        </div>
-                        <div className="p-4 space-y-4 overflow-y-auto">
-                            {!isFixed(editingIndex) && (
-                                <div className="space-y-1">
-                                    <label className="text-[10px] uppercase font-bold text-text-muted">Name</label>
+        <div className="space-y-2 animate-in fade-in duration-200">
+
+            {/* ── MOBILE: Full-screen edit sheet ── */}
+            {editingItem !== null && editingIndex !== null && (
+                <div className="md:hidden fixed inset-0 z-50 bg-background flex flex-col">
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
+                        <h2 className="text-base font-bold text-text-primary flex items-center gap-2">
+                            {editingItem.step_type === 'strike' ? (
+                                <span className="w-7 h-7 rounded-full bg-cyan-500/10 text-cyan-400 flex items-center justify-center"><Droplets size={14} /></span>
+                            ) : editingItem.step_type === 'mashout' ? (
+                                <span className="w-7 h-7 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center"><Flag size={14} /></span>
+                            ) : (
+                                <span className="w-7 h-7 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center"><Thermometer size={14} /></span>
+                            )}
+                            {editingItem.step_type === 'strike' ? 'Einmaischen' : editingItem.step_type === 'mashout' ? 'Abmaischen' : 'Rast bearbeiten'}
+                        </h2>
+                        <button type="button" onClick={() => setEditingIndex(null)} className="w-8 h-8 flex items-center justify-center rounded-full bg-surface-hover text-text-secondary hover:text-text-primary transition">
+                            <X size={18} />
+                        </button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto px-4 py-5 space-y-4">
+                        {!editFixed && (
+                            <div>
+                                <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">Name</label>
+                                <div className="bg-surface border border-border rounded-xl px-3 focus-within:border-red-500/50 transition">
                                     <input
-                                        className="w-full bg-background border border-border rounded-xl px-3 py-3 text-text-primary focus:border-brand outline-none placeholder:text-text-disabled"
+                                        className="w-full bg-transparent py-3 text-sm text-text-primary outline-none placeholder:text-text-disabled"
                                         placeholder="z.B. Maltoserast"
-                                        value={items[editingIndex].name}
+                                        value={editingItem.name}
                                         onChange={(e) => updateRow(editingIndex, 'name', e.target.value)}
                                     />
                                 </div>
-                            )}
-                            <div className="space-y-1">
-                                <label className="text-[10px] uppercase font-bold text-text-muted">Zieltemp. (°C)</label>
+                            </div>
+                        )}
+                        <div>
+                            <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">Zieltemperatur (°C)</label>
+                            <div className="flex bg-surface border border-border rounded-xl overflow-hidden focus-within:border-red-500/50 transition">
                                 <input
-                                    type="text" inputMode="decimal"
-                                    className="w-full bg-background border border-border rounded-xl px-3 py-3 text-text-primary focus:border-brand outline-none"
-                                    placeholder={items[editingIndex].step_type === 'mashout' ? '78' : '57'}
-                                    value={items[editingIndex].temperature || ''}
+                                    type="text"
+                                    inputMode="decimal"
+                                    className="flex-1 bg-transparent pl-3.5 pr-2 py-3 text-sm text-text-primary outline-none text-right placeholder:text-text-disabled"
+                                    placeholder={editingItem.step_type === 'mashout' ? '78' : '63'}
+                                    value={editingItem.temperature || ''}
                                     onChange={(e) => updateRow(editingIndex, 'temperature', e.target.value.replace(',', '.'))}
                                 />
+                                <span className="flex items-center pr-3.5 text-text-disabled text-sm select-none">°C</span>
                             </div>
-                            {!isFixed(editingIndex) && (
-                                <div className="space-y-1">
-                                    <label className="text-[10px] uppercase font-bold text-text-muted">Dauer (min)</label>
+                        </div>
+                        {!editFixed && (
+                            <div>
+                                <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">Dauer (min)</label>
+                                <div className="flex bg-surface border border-border rounded-xl overflow-hidden focus-within:border-red-500/50 transition">
                                     <input
-                                        type="number"
-                                        className="w-full bg-background border border-border rounded-xl px-3 py-3 text-text-primary focus:border-brand outline-none"
+                                        type="text"
+                                        inputMode="decimal"
+                                        className="flex-1 bg-transparent pl-3.5 pr-2 py-3 text-sm text-text-primary outline-none text-right placeholder:text-text-disabled"
                                         placeholder="45"
-                                        value={items[editingIndex].duration || ''}
+                                        value={editingItem.duration || ''}
                                         onChange={(e) => updateRow(editingIndex, 'duration', e.target.value)}
                                     />
+                                    <span className="flex items-center pr-3.5 text-text-disabled text-sm select-none">min</span>
                                 </div>
-                            )}
-                        </div>
-                        <div className="p-4 border-t border-border shrink-0 flex gap-3">
-                            {!isFixed(editingIndex) && (
-                                <button onClick={() => { removeRow(editingIndex); setEditingIndex(null); }} className="flex-1 bg-error/10 hover:bg-error/20 text-error text-sm font-bold px-4 py-3 rounded-xl transition flex items-center justify-center gap-2"><Trash2 size={16} /> Löschen</button>
-                            )}
-                            <button onClick={() => setEditingIndex(null)} className={`${isFixed(editingIndex) ? 'flex-1' : 'flex-[2]'} bg-text-primary text-background hover:bg-surface-hover text-sm font-bold px-4 py-3 rounded-xl transition`}>Übernehmen</button>
-                        </div>
+                            </div>
+                        )}
+                    </div>
+                    <div className="shrink-0 px-4 py-4 border-t border-border flex gap-3">
+                        {!editFixed && (
+                            <button type="button" onClick={() => { removeRow(editingIndex); setEditingIndex(null); }} className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-border text-text-disabled hover:text-red-400 hover:border-red-500/30 transition text-sm font-medium">
+                                <Trash2 size={14} /> Löschen
+                            </button>
+                        )}
+                        <button type="button" onClick={() => setEditingIndex(null)} className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white text-sm font-bold rounded-xl transition">
+                            Fertig
+                        </button>
                     </div>
                 </div>
             )}
 
-            <div className="bg-surface border border-border rounded-xl p-3">
-                {/* Mobile View */}
-                <div className="block md:hidden space-y-2">
-                    {items.map((item, idx) => {
-                        const fixed = isFixed(idx);
-                        return (
-                            <div key={idx} onClick={() => setEditingIndex(idx)} className={`rounded-xl p-3 flex justify-between items-center transition cursor-pointer gap-4 ${fixed ? 'bg-surface border border-dashed border-border' : 'bg-background border border-border active:border-brand'}`}>
-                                <div className="flex items-center gap-4 flex-1 min-w-0">
-                                    <div className={`h-12 min-w-[3.5rem] px-2 rounded-xl flex items-center justify-center border shrink-0 ${item.step_type === 'strike' ? 'bg-cyan-500/5 border-cyan-500/20' : item.step_type === 'mashout' ? 'bg-red-500/5 border-red-500/20' : 'bg-surface border-border'}`}>
-                                        <span className="text-base font-bold text-text-primary">{item.temperature || '—'}</span><span className="text-xs text-text-muted ml-0.5 mb-1.5 align-top">°</span>
-                                    </div>
-                                    <div className="min-w-0 flex-1">
-                                        {fixed ? (
-                                            <StepTypeBadge type={item.step_type} />
-                                        ) : (
-                                            <>
-                                                <div className="text-base font-bold text-text-primary truncate">{item.name || 'Unbenannt'}</div>
-                                                <div className="text-[10px] uppercase font-bold text-text-secondary mt-1 inline-flex items-center bg-surface border border-border px-2 py-0.5 rounded-md tracking-wider"><span className="mr-1">⏳</span> {item.duration || '0'} min</div>
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
-                                <Pencil size={18} className="text-text-disabled shrink-0" />
+            {/* ── MOBILE: Compact list ── */}
+            <div className="md:hidden bg-surface border border-border rounded-xl overflow-hidden mb-2 divide-y divide-border">
+                {items.map((item, idx) => (
+                    <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setEditingIndex(idx)}
+                        className="w-full flex items-center gap-3 px-3 py-3 text-left"
+                    >
+                        <div className={`h-10 min-w-[3rem] px-1.5 rounded-lg flex items-center justify-center border shrink-0 ${item.step_type === 'strike' ? 'bg-cyan-500/5 border-cyan-500/20' : item.step_type === 'mashout' ? 'bg-red-500/5 border-red-500/20' : 'bg-surface border-border'}`}>
+                            <span className="text-sm font-bold text-text-primary leading-tight">{item.temperature || '—'}</span>
+                            <span className="text-[10px] text-text-muted ml-0.5 mb-1 self-end">°</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <div className="text-sm font-semibold text-text-primary truncate">
+                                {item.step_type === 'strike' ? 'Einmaischen' : item.step_type === 'mashout' ? 'Abmaischen' : item.name || <span className="text-text-disabled italic font-normal">Unbenannt</span>}
                             </div>
-                        );
-                    })}
-                    <button onClick={addRestMobile} className="w-full py-3 text-sm font-bold text-text-secondary hover:text-text-primary bg-background hover:bg-surface rounded-lg transition border border-dashed border-border flex items-center justify-center gap-2">
-                        <Plus size={16} /> Rast hinzufügen
+                            {(item.temperature || (!isFixed(idx) && item.duration)) && (
+                                <div className="text-xs text-text-muted mt-0.5">{formatSummary(item, isFixed(idx))}</div>
+                            )}
+                        </div>
+                        <ChevronRight size={14} className="text-text-disabled shrink-0" />
                     </button>
-                </div>
+                ))}
+            </div>
+            <button
+                type="button"
+                onClick={addRestMobile}
+                className="md:hidden w-full py-2.5 bg-surface hover:bg-surface-hover border border-dashed border-border rounded-xl text-text-secondary text-sm font-semibold flex items-center justify-center gap-2 transition group mb-2"
+            >
+                <span className="w-5 h-5 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center group-hover:bg-red-500/20 transition">
+                    <Plus size={12} />
+                </span>
+                Rast hinzufügen
+            </button>
 
-                {/* Desktop View */}
-                <div className="hidden md:block space-y-2">
-                    <div className="grid grid-cols-[1fr_80px_80px_30px] gap-2 px-1 mb-1">
-                        <span className="text-[10px] uppercase font-bold text-text-disabled">Name</span>
-                        <span className="text-[10px] uppercase font-bold text-text-disabled text-right">Temp. (°C)</span>
-                        <span className="text-[10px] uppercase font-bold text-text-disabled text-right">Dauer (min)</span>
-                        <span />
-                    </div>
-                    {items.map((item, idx) => {
-                        const fixed = isFixed(idx);
-                        return (
-                            <div key={idx} className="animate-in fade-in slide-in-from-top-1 duration-200">
-                                {fixed ? (
-                                    <div className="grid grid-cols-[1fr_80px_80px_30px] gap-2 items-center">
-                                        <div className="px-2 text-sm text-text-muted">
-                                            {item.step_type === 'mashout' ? 'Abmaischen' : 'Einmaischen'}
-                                        </div>
-                                        <input type="text" inputMode="decimal" className="w-full bg-background border border-border focus:border-brand outline-none rounded-lg px-2 py-2 text-sm text-text-primary text-right placeholder:text-text-disabled" placeholder={item.step_type === 'mashout' ? '78' : '57'} value={item.temperature} onChange={(e) => updateRow(idx, 'temperature', e.target.value.replace(',', '.'))} />
-                                        <div className="text-center text-text-disabled text-sm">—</div>
-                                        <span />
-                                    </div>
-                                ) : (
-                                    <div className="grid grid-cols-[1fr_80px_80px_30px] gap-2 items-center">
-                                        <input className="w-full bg-background border border-border focus:border-brand outline-none rounded-lg px-2 py-2 text-sm text-text-primary placeholder:text-text-disabled" placeholder="z.B. Maltoserast" value={item.name} onChange={(e) => updateRow(idx, 'name', e.target.value)} />
-                                        <input type="text" inputMode="decimal" className="w-full bg-background border border-border focus:border-brand outline-none rounded-lg px-2 py-2 text-sm text-text-primary text-right placeholder:text-text-disabled" placeholder="63" value={item.temperature} onChange={(e) => updateRow(idx, 'temperature', e.target.value.replace(',', '.'))} />
-                                        <input type="text" inputMode="decimal" className="w-full bg-background border border-border focus:border-brand outline-none rounded-lg px-2 py-2 text-sm text-text-primary text-right placeholder:text-text-disabled" placeholder="60" value={item.duration} onChange={(e) => updateRow(idx, 'duration', e.target.value)} />
-                                        <button onClick={() => removeRow(idx)} className="text-text-disabled hover:text-error transition flex justify-center" title="Entfernen"><Trash2 size={16} /></button>
-                                    </div>
-                                )}
+            {/* ── DESKTOP: Merged container ── */}
+            <div className="hidden md:block bg-surface border border-border rounded-xl overflow-visible mb-2 divide-y divide-border">
+                <div className="grid grid-cols-[1fr_90px_90px_28px] gap-x-3 px-3 py-1.5 bg-surface-hover/60 rounded-t-xl">
+                    <span className="text-[10px] font-bold text-text-disabled uppercase tracking-wider">Name</span>
+                    <span className="text-[10px] font-bold text-text-disabled uppercase tracking-wider text-right">Temp.</span>
+                    <span className="text-[10px] font-bold text-text-disabled uppercase tracking-wider text-right">Dauer</span>
+                    <span />
+                </div>
+                {items.map((item, idx) => {
+                    const fixed = isFixed(idx);
+                    return (
+                        <div key={idx} className="grid grid-cols-[1fr_90px_90px_28px] gap-x-3 px-3 py-2.5 items-center group">
+                            {/* Name */}
+                            {fixed ? (
+                                <div className="h-9 flex items-center px-1">
+                                    <StepTypeBadge type={item.step_type} />
+                                </div>
+                            ) : (
+                                <div className="h-9 flex items-center bg-background border border-border rounded-lg overflow-hidden focus-within:border-red-500/50 transition">
+                                    <input
+                                        className="flex-1 min-w-0 bg-transparent pl-2.5 pr-2.5 text-sm text-text-primary outline-none placeholder:text-text-disabled"
+                                        placeholder="z.B. Maltoserast"
+                                        value={item.name}
+                                        onChange={(e) => updateRow(idx, 'name', e.target.value)}
+                                    />
+                                </div>
+                            )}
+                            {/* Temp */}
+                            <div className="h-9 flex items-center bg-background border border-border rounded-lg overflow-hidden focus-within:border-red-500/50 transition">
+                                <input
+                                    type="text"
+                                    inputMode="decimal"
+                                    className="flex-1 min-w-0 bg-transparent pl-2 pr-1 text-sm text-text-primary outline-none text-right placeholder:text-text-disabled"
+                                    placeholder={item.step_type === 'mashout' ? '78' : '63'}
+                                    value={item.temperature}
+                                    onChange={(e) => updateRow(idx, 'temperature', e.target.value.replace(',', '.'))}
+                                />
+                                <span className="pr-2 text-text-disabled text-xs select-none">°C</span>
                             </div>
-                        );
-                    })}
-                    <button onClick={addRest} className="w-full py-2 text-xs font-bold text-text-muted hover:text-text-secondary hover:bg-surface-hover/50 rounded-lg transition border border-dashed border-border mt-2 flex items-center justify-center gap-2">
-                        <Plus size={14} /> Rast hinzufügen
+                            {/* Duration */}
+                            {fixed ? (
+                                <div className="h-9 flex items-center justify-center text-text-disabled text-sm">—</div>
+                            ) : (
+                                <div className="h-9 flex items-center bg-background border border-border rounded-lg overflow-hidden focus-within:border-red-500/50 transition">
+                                    <input
+                                        type="text"
+                                        inputMode="decimal"
+                                        className="flex-1 min-w-0 bg-transparent pl-2 pr-1 text-sm text-text-primary outline-none text-right placeholder:text-text-disabled"
+                                        placeholder="60"
+                                        value={item.duration}
+                                        onChange={(e) => updateRow(idx, 'duration', e.target.value)}
+                                    />
+                                    <span className="pr-2 text-text-disabled text-xs select-none">min</span>
+                                </div>
+                            )}
+                            {/* Delete */}
+                            {fixed ? (
+                                <span />
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={() => removeRow(idx)}
+                                    className="opacity-0 group-hover:opacity-100 flex items-center justify-center w-7 h-7 text-text-disabled hover:text-red-500 transition"
+                                >
+                                    <Trash2 size={14} />
+                                </button>
+                            )}
+                        </div>
+                    );
+                })}
+                <div className="px-3 py-2.5 rounded-b-xl">
+                    <button
+                        type="button"
+                        onClick={addRest}
+                        className="flex items-center gap-2 text-text-muted hover:text-text-secondary transition text-sm font-medium"
+                    >
+                        <span className="w-5 h-5 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center">
+                            <Plus size={12} />
+                        </span>
+                        Rast hinzufügen
                     </button>
                 </div>
             </div>
@@ -297,7 +371,7 @@ function StepMashEditor({ value, onChange }: Omit<MashStepsEditorProps, 'mashPro
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  3) DECOCTION EDITOR — Dekoktion (Rasten + Teilmaischen)
+//  3) DECOCTION EDITOR – Dekoktion
 // ═══════════════════════════════════════════════════════════════════
 function DecoctionEditor({ value, onChange, mashInfusionTotal }: Omit<MashStepsEditorProps, 'mashProcess'>) {
     const items = useMemo(() => ensureBookends(Array.isArray(value) ? value : []), [value]);
@@ -326,28 +400,37 @@ function DecoctionEditor({ value, onChange, mashInfusionTotal }: Omit<MashStepsE
         newItems.splice(items.length - 1, 0, { name: '', temperature: '', duration: '', step_type: 'rest' });
         handleChange(newItems);
     };
+
     const addDecoction = () => {
         const newItems = [...items];
-        newItems.splice(items.length - 1, 0, { name: '', temperature: '', duration: '', step_type: 'decoction', decoction_form: 'thick', volume_liters: '', decoction_boil_time: '', decoction_rest_temp: '', decoction_rest_time: '' });
+        newItems.splice(items.length - 1, 0, {
+            name: '', temperature: '', duration: '', step_type: 'decoction',
+            decoction_form: 'thick', volume_liters: '', decoction_boil_time: '',
+            decoction_rest_temp: '', decoction_rest_time: '',
+        });
         handleChange(newItems);
     };
 
     const addRestMobile = () => {
-        const newItems = [...items];
         const insertIdx = items.length - 1;
+        const newItems = [...items];
         newItems.splice(insertIdx, 0, { name: '', temperature: '', duration: '', step_type: 'rest' });
         handleChange(newItems);
         setEditingIndex(insertIdx);
     };
+
     const addDecoctionMobile = () => {
-        const newItems = [...items];
         const insertIdx = items.length - 1;
-        newItems.splice(insertIdx, 0, { name: '', temperature: '', duration: '', step_type: 'decoction', decoction_form: 'thick', volume_liters: '', decoction_boil_time: '', decoction_rest_temp: '', decoction_rest_time: '' });
+        const newItems = [...items];
+        newItems.splice(insertIdx, 0, {
+            name: '', temperature: '', duration: '', step_type: 'decoction',
+            decoction_form: 'thick', volume_liters: '', decoction_boil_time: '',
+            decoction_rest_temp: '', decoction_rest_time: '',
+        });
         handleChange(newItems);
         setEditingIndex(insertIdx);
     };
 
-    /** Berechne empfohlenes Dekoktionsvolumen für einen Schritt */
     const getRecommendedVolume = (idx: number): number | null => {
         const totalVol = parseFloat(mashInfusionTotal || '0');
         if (totalVol <= 0) return null;
@@ -359,211 +442,356 @@ function DecoctionEditor({ value, onChange, mashInfusionTotal }: Omit<MashStepsE
         return calculateDecoctionVolume(totalVol, prevTemp, targetTemp, 100, step.decoction_form || 'thick');
     };
 
-    return (
-        <div className="space-y-4 animate-in fade-in duration-200">
-            {/* Mobile Modal */}
-            {editingIndex !== null && items[editingIndex] && (
-                <div className="fixed inset-0 z-[100] overflow-y-auto flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-surface border border-border rounded-3xl w-full max-w-sm shadow-2xl flex flex-col my-auto max-h-[90vh]">
-                        <div className="flex justify-between items-center p-4 border-b border-border shrink-0">
-                            <h3 className="font-bold text-text-primary flex items-center gap-2">
-                                {items[editingIndex].step_type === 'strike' ? (
-                                    <><span className="w-8 h-8 rounded-full bg-cyan-500/10 text-cyan-400 flex items-center justify-center"><Droplets size={16} /></span> Einmaischen</>
-                                ) : items[editingIndex].step_type === 'mashout' ? (
-                                    <><span className="w-8 h-8 rounded-full bg-error/10 text-error flex items-center justify-center"><Flag size={16} /></span> Abmaischen</>
-                                ) : items[editingIndex].step_type === 'decoction' ? (
-                                    <><span className="w-8 h-8 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center"><Flame size={16} /></span> Teilmaische</>
-                                ) : (
-                                    <><span className="w-8 h-8 rounded-full bg-surface-hover text-text-secondary flex items-center justify-center"><PauseCircle size={16} /></span> Rast</>
-                                )}
-                            </h3>
-                            <button onClick={() => setEditingIndex(null)} className="text-text-secondary hover:text-text-primary bg-surface-hover p-2 rounded-full"><X size={20} /></button>
-                        </div>
-                        <div className="p-4 space-y-4 overflow-y-auto">
-                            {!isFixed(editingIndex) && (
-                                <div className="space-y-1">
-                                    <label className="text-[10px] uppercase font-bold text-text-muted">Name</label>
-                                    <input className="w-full bg-background border border-border rounded-xl px-3 py-3 text-text-primary focus:border-brand outline-none placeholder:text-text-disabled" placeholder="z.B. Eiweißrast" value={items[editingIndex].name} onChange={(e) => updateRow(editingIndex, 'name', e.target.value)} />
-                                </div>
-                            )}
-                            <div className="space-y-1">
-                                <label className="text-[10px] uppercase font-bold text-text-muted">Zieltemp. (°C)</label>
-                                <input type="text" inputMode="decimal" className="w-full bg-background border border-border rounded-xl px-3 py-3 text-text-primary focus:border-brand outline-none" placeholder={items[editingIndex].step_type === 'mashout' ? '78' : '57'} value={items[editingIndex].temperature || ''} onChange={(e) => updateRow(editingIndex, 'temperature', e.target.value.replace(',', '.'))} />
-                            </div>
-                            {!isFixed(editingIndex) && (
-                                <div className="space-y-1">
-                                    <label className="text-[10px] uppercase font-bold text-text-muted">Dauer (min)</label>
-                                    <input type="number" className="w-full bg-background border border-border rounded-xl px-3 py-3 text-text-primary focus:border-brand outline-none" placeholder="30" value={items[editingIndex].duration || ''} onChange={(e) => updateRow(editingIndex, 'duration', e.target.value)} />
-                                </div>
-                            )}
+    const editingItem = editingIndex !== null ? items[editingIndex] : null;
+    const editFixed = editingIndex !== null ? isFixed(editingIndex) : false;
 
-                            {/* Teilmaische-Details (nur bei decoction) */}
-                            {items[editingIndex].step_type === 'decoction' && (
-                                <div className="space-y-4 pt-4 mt-2 border-t border-border">
-                                    <p className="text-[10px] uppercase font-bold text-amber-500/70 tracking-wider flex items-center gap-1"><Flame size={10} /> Parameter Teilmaische</p>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] uppercase font-bold text-text-muted">Form</label>
-                                            <select className="w-full bg-background border border-border focus:border-brand outline-none rounded-xl px-3 py-3 text-text-primary" value={items[editingIndex].decoction_form || 'thick'} onChange={(e) => updateRow(editingIndex, 'decoction_form', e.target.value)}>
-                                                <option value="thick">Dickmaische</option><option value="thin">Dünnmaische</option><option value="liquid">Kochwasser</option>
+    const formatSummary = (item: MashStep, fixed: boolean) => {
+        const parts: string[] = [];
+        if (item.temperature) parts.push(`${item.temperature} °C`);
+        if (!fixed && item.duration) parts.push(`${item.duration} min`);
+        if (item.step_type === 'decoction' && item.volume_liters) parts.push(`${item.volume_liters} L ${DECOCTION_FORM_LABELS[item.decoction_form || 'thick']}`);
+        return parts.join(' · ');
+    };
+
+    return (
+        <div className="space-y-2 animate-in fade-in duration-200">
+
+            {/* ── MOBILE: Full-screen edit sheet ── */}
+            {editingItem !== null && editingIndex !== null && (
+                <div className="md:hidden fixed inset-0 z-50 bg-background flex flex-col">
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
+                        <h2 className="text-base font-bold text-text-primary flex items-center gap-2">
+                            {editingItem.step_type === 'strike' ? (
+                                <span className="w-7 h-7 rounded-full bg-cyan-500/10 text-cyan-400 flex items-center justify-center"><Droplets size={14} /></span>
+                            ) : editingItem.step_type === 'mashout' ? (
+                                <span className="w-7 h-7 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center"><Flag size={14} /></span>
+                            ) : editingItem.step_type === 'decoction' ? (
+                                <span className="w-7 h-7 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center"><Flame size={14} /></span>
+                            ) : (
+                                <span className="w-7 h-7 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center"><Thermometer size={14} /></span>
+                            )}
+                            {editingItem.step_type === 'strike' ? 'Einmaischen' : editingItem.step_type === 'mashout' ? 'Abmaischen' : editingItem.step_type === 'decoction' ? 'Teilmaische' : 'Rast bearbeiten'}
+                        </h2>
+                        <button type="button" onClick={() => setEditingIndex(null)} className="w-8 h-8 flex items-center justify-center rounded-full bg-surface-hover text-text-secondary hover:text-text-primary transition">
+                            <X size={18} />
+                        </button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto px-4 py-5 space-y-4">
+                        {!editFixed && (
+                            <div>
+                                <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">Name</label>
+                                <div className="bg-surface border border-border rounded-xl px-3 focus-within:border-red-500/50 transition">
+                                    <input
+                                        className="w-full bg-transparent py-3 text-sm text-text-primary outline-none placeholder:text-text-disabled"
+                                        placeholder={editingItem.step_type === 'decoction' ? 'z.B. Dekoktion 1' : 'z.B. Maltoserast'}
+                                        value={editingItem.name}
+                                        onChange={(e) => updateRow(editingIndex, 'name', e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                        )}
+                        <div>
+                            <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">Zieltemperatur (°C)</label>
+                            <div className="flex bg-surface border border-border rounded-xl overflow-hidden focus-within:border-red-500/50 transition">
+                                <input
+                                    type="text"
+                                    inputMode="decimal"
+                                    className="flex-1 bg-transparent pl-3.5 pr-2 py-3 text-sm text-text-primary outline-none text-right placeholder:text-text-disabled"
+                                    placeholder={editingItem.step_type === 'mashout' ? '78' : '63'}
+                                    value={editingItem.temperature || ''}
+                                    onChange={(e) => updateRow(editingIndex, 'temperature', e.target.value.replace(',', '.'))}
+                                />
+                                <span className="flex items-center pr-3.5 text-text-disabled text-sm select-none">°C</span>
+                            </div>
+                        </div>
+                        {!editFixed && (
+                            <div>
+                                <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">Dauer (min)</label>
+                                <div className="flex bg-surface border border-border rounded-xl overflow-hidden focus-within:border-red-500/50 transition">
+                                    <input
+                                        type="text"
+                                        inputMode="decimal"
+                                        className="flex-1 bg-transparent pl-3.5 pr-2 py-3 text-sm text-text-primary outline-none text-right placeholder:text-text-disabled"
+                                        placeholder="30"
+                                        value={editingItem.duration || ''}
+                                        onChange={(e) => updateRow(editingIndex, 'duration', e.target.value)}
+                                    />
+                                    <span className="flex items-center pr-3.5 text-text-disabled text-sm select-none">min</span>
+                                </div>
+                            </div>
+                        )}
+                        {/* Teilmaische-Details */}
+                        {editingItem.step_type === 'decoction' && (
+                            <div className="space-y-4 pt-4 mt-2 border-t border-amber-500/20">
+                                <p className="text-[10px] uppercase font-bold text-amber-500/80 tracking-wider flex items-center gap-1"><Flame size={10} /> Parameter Teilmaische</p>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">Form</label>
+                                        <div className="h-11 flex items-center bg-surface border border-border rounded-xl overflow-hidden focus-within:border-amber-500/50 transition">
+                                            <select
+                                                className="flex-1 bg-transparent px-3 text-sm text-text-primary outline-none self-stretch"
+                                                value={editingItem.decoction_form || 'thick'}
+                                                onChange={(e) => updateRow(editingIndex, 'decoction_form', e.target.value)}
+                                            >
+                                                <option value="thick">Dickmaische</option>
+                                                <option value="thin">Dünnmaische</option>
+                                                <option value="liquid">Kochwasser</option>
                                             </select>
                                         </div>
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] uppercase font-bold text-text-muted">Volumen (L)</label>
-                                            <input type="text" inputMode="decimal" className="w-full bg-background border border-border focus:border-brand outline-none rounded-xl px-3 py-3 text-text-primary placeholder:text-text-disabled" placeholder="6.0" value={items[editingIndex].volume_liters || ''} onChange={(e) => updateRow(editingIndex, 'volume_liters', e.target.value.replace(',', '.'))} />
-                                            {(() => { const r = getRecommendedVolume(editingIndex); return r ? <p className="text-[10px] text-amber-500/60 flex items-center gap-1 mt-1"><Info size={10} /> Empfohlen: ~{r} L</p> : null; })()}
-                                        </div>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] uppercase font-bold text-text-muted">Rast vor Kochen (°C)</label>
-                                            <input type="text" inputMode="decimal" className="w-full bg-background border border-border focus:border-brand outline-none rounded-xl px-3 py-3 text-text-primary placeholder:text-text-disabled" placeholder="72" value={items[editingIndex].decoction_rest_temp || ''} onChange={(e) => updateRow(editingIndex, 'decoction_rest_temp', e.target.value.replace(',', '.'))} />
+                                    <div>
+                                        <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">
+                                            Volumen (L)
+                                            {(() => { const r = getRecommendedVolume(editingIndex); return r ? <span className="ml-1 text-amber-500/60 font-normal lowercase">~{r}L</span> : null; })()}
+                                        </label>
+                                        <div className="flex bg-surface border border-border rounded-xl overflow-hidden focus-within:border-amber-500/50 transition">
+                                            <input
+                                                type="text" inputMode="decimal"
+                                                className="flex-1 bg-transparent pl-3.5 pr-2 py-3 text-sm text-text-primary outline-none text-right placeholder:text-text-disabled"
+                                                placeholder="6.0"
+                                                value={editingItem.volume_liters || ''}
+                                                onChange={(e) => updateRow(editingIndex, 'volume_liters', e.target.value.replace(',', '.'))}
+                                            />
+                                            <span className="flex items-center pr-3.5 text-text-disabled text-sm select-none">L</span>
                                         </div>
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] uppercase font-bold text-text-muted">Rast vor Kochen (min)</label>
-                                            <input type="number" className="w-full bg-background border border-border focus:border-brand outline-none rounded-xl px-3 py-3 text-text-primary placeholder:text-text-disabled" placeholder="10" value={items[editingIndex].decoction_rest_time || ''} onChange={(e) => updateRow(editingIndex, 'decoction_rest_time', e.target.value)} />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <label className="text-[10px] uppercase font-bold text-text-muted flex items-center gap-1"><Flame size={10} /> Kochzeit Teilmaische (min)</label>
-                                        <input type="number" className="w-full bg-background border border-border focus:border-brand outline-none rounded-xl px-3 py-3 text-text-primary placeholder:text-text-disabled" placeholder="15" value={items[editingIndex].decoction_boil_time || ''} onChange={(e) => updateRow(editingIndex, 'decoction_boil_time', e.target.value)} />
                                     </div>
                                 </div>
-                            )}
-                        </div>
-                        <div className="p-4 border-t border-border shrink-0 flex gap-3">
-                            {!isFixed(editingIndex) && (
-                                <button onClick={() => { removeRow(editingIndex); setEditingIndex(null); }} className="flex-1 bg-error/10 hover:bg-error/20 text-error text-sm font-bold px-4 py-3 rounded-xl transition flex items-center justify-center gap-2"><Trash2 size={16} /> Löschen</button>
-                            )}
-                            <button onClick={() => setEditingIndex(null)} className={`${isFixed(editingIndex) ? 'flex-1' : 'flex-[2]'} bg-text-primary text-background hover:bg-surface-hover text-sm font-bold px-4 py-3 rounded-xl transition`}>Übernehmen</button>
-                        </div>
+                                <div>
+                                    <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block flex items-center gap-1">
+                                        <Flame size={10} className="text-amber-500" /> Kochzeit Teilmaische (min)
+                                    </label>
+                                    <div className="flex bg-surface border border-border rounded-xl overflow-hidden focus-within:border-amber-500/50 transition">
+                                        <input
+                                            type="text" inputMode="decimal"
+                                            className="flex-1 bg-transparent pl-3.5 pr-2 py-3 text-sm text-text-primary outline-none text-right placeholder:text-text-disabled"
+                                            placeholder="15"
+                                            value={editingItem.decoction_boil_time || ''}
+                                            onChange={(e) => updateRow(editingIndex, 'decoction_boil_time', e.target.value)}
+                                        />
+                                        <span className="flex items-center pr-3.5 text-text-disabled text-sm select-none">min</span>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">Rast v. Kochen (°C)</label>
+                                        <div className="flex bg-surface border border-border rounded-xl overflow-hidden focus-within:border-amber-500/50 transition">
+                                            <input
+                                                type="text" inputMode="decimal"
+                                                className="flex-1 bg-transparent pl-3.5 pr-2 py-3 text-sm text-text-primary outline-none text-right placeholder:text-text-disabled"
+                                                placeholder="72"
+                                                value={editingItem.decoction_rest_temp || ''}
+                                                onChange={(e) => updateRow(editingIndex, 'decoction_rest_temp', e.target.value.replace(',', '.'))}
+                                            />
+                                            <span className="flex items-center pr-3.5 text-text-disabled text-sm select-none">°C</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">Rast v. Kochen (min)</label>
+                                        <div className="flex bg-surface border border-border rounded-xl overflow-hidden focus-within:border-amber-500/50 transition">
+                                            <input
+                                                type="text" inputMode="decimal"
+                                                className="flex-1 bg-transparent pl-3.5 pr-2 py-3 text-sm text-text-primary outline-none text-right placeholder:text-text-disabled"
+                                                placeholder="10"
+                                                value={editingItem.decoction_rest_time || ''}
+                                                onChange={(e) => updateRow(editingIndex, 'decoction_rest_time', e.target.value)}
+                                            />
+                                            <span className="flex items-center pr-3.5 text-text-disabled text-sm select-none">min</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    <div className="shrink-0 px-4 py-4 border-t border-border flex gap-3">
+                        {!editFixed && (
+                            <button type="button" onClick={() => { removeRow(editingIndex); setEditingIndex(null); }} className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-border text-text-disabled hover:text-red-400 hover:border-red-500/30 transition text-sm font-medium">
+                                <Trash2 size={14} /> Löschen
+                            </button>
+                        )}
+                        <button type="button" onClick={() => setEditingIndex(null)} className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white text-sm font-bold rounded-xl transition">
+                            Fertig
+                        </button>
                     </div>
                 </div>
             )}
 
-            <div className="bg-surface border border-border rounded-xl p-3">
-                {/* Mobile View */}
-                <div className="block md:hidden space-y-2">
-                    {items.map((item, idx) => {
-                        const fixed = isFixed(idx);
-                        return (
-                            <div key={idx} onClick={() => setEditingIndex(idx)} className={`rounded-xl p-3 flex justify-between items-center transition cursor-pointer gap-4 ${fixed ? 'bg-surface border border-dashed border-border' : 'bg-background border border-border active:border-brand'}`}>
-                                <div className="flex items-center gap-4 flex-1 min-w-0">
-                                    <div className={`h-12 min-w-[3.5rem] px-2 rounded-xl flex items-center justify-center border shrink-0 ${item.step_type === 'strike' ? 'bg-cyan-500/5 border-cyan-500/20' : item.step_type === 'mashout' ? 'bg-red-500/5 border-red-500/20' : item.step_type === 'decoction' ? 'bg-amber-500/5 border-amber-500/20' : 'bg-surface border-border'}`}>
-                                        <span className="text-base font-bold text-text-primary">{item.temperature || '—'}</span><span className="text-xs text-text-muted ml-0.5 mb-1.5 align-top">°</span>
-                                    </div>
-                                    <div className="min-w-0 flex-1">
-                                        {fixed ? (
-                                            <StepTypeBadge type={item.step_type} />
-                                        ) : (
-                                            <>
-                                                <div className="text-base font-bold text-text-primary truncate">{item.name || 'Unbenannt'}</div>
-                                                <div className="flex flex-wrap gap-1.5 mt-1.5">
-                                                    <StepTypeBadge type={item.step_type} />
-                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] uppercase font-bold bg-surface text-text-secondary border border-border tracking-wider"><span className="mr-1">⏳</span> {item.duration || '0'} min</span>
-                                                    {item.step_type === 'decoction' && item.volume_liters && (
-                                                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] uppercase font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20 tracking-wider">{item.volume_liters} L {DECOCTION_FORM_LABELS[item.decoction_form || 'thick']}</span>
-                                                    )}
-                                                </div>
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
-                                <Pencil size={18} className="text-text-disabled shrink-0" />
+            {/* ── MOBILE: Compact list ── */}
+            <div className="md:hidden bg-surface border border-border rounded-xl overflow-hidden mb-2 divide-y divide-border">
+                {items.map((item, idx) => (
+                    <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setEditingIndex(idx)}
+                        className="w-full flex items-center gap-3 px-3 py-3 text-left"
+                    >
+                        <div className={`h-10 min-w-[3rem] px-1.5 rounded-lg flex items-center justify-center border shrink-0 ${item.step_type === 'strike' ? 'bg-cyan-500/5 border-cyan-500/20' : item.step_type === 'mashout' ? 'bg-red-500/5 border-red-500/20' : item.step_type === 'decoction' ? 'bg-amber-500/5 border-amber-500/20' : 'bg-surface border-border'}`}>
+                            <span className="text-sm font-bold text-text-primary leading-tight">{item.temperature || '—'}</span>
+                            <span className="text-[10px] text-text-muted ml-0.5 mb-1 self-end">°</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <div className="text-sm font-semibold text-text-primary truncate flex items-center gap-2">
+                                {item.step_type === 'strike' ? 'Einmaischen' : item.step_type === 'mashout' ? 'Abmaischen' : item.name || <span className="text-text-disabled italic font-normal">Unbenannt</span>}
+                                {item.step_type === 'decoction' && <span className="inline-flex items-center gap-0.5 text-[10px] text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider"><Flame size={8} /> Dek.</span>}
                             </div>
-                        );
-                    })}
-                    <div className="grid grid-cols-2 gap-2">
-                        <button onClick={addRestMobile} className="w-full py-3 text-sm font-bold text-text-secondary hover:text-text-primary bg-background hover:bg-surface rounded-lg transition border border-dashed border-border flex items-center justify-center gap-2"><Plus size={16} /> Rast</button>
-                        <button onClick={addDecoctionMobile} className="w-full py-3 text-sm font-bold text-amber-500 hover:text-amber-400 bg-amber-500/5 hover:bg-amber-500/10 rounded-lg transition border border-dashed border-amber-500/30 flex items-center justify-center gap-2"><Flame size={14} /> Teilmaische</button>
-                    </div>
-                </div>
+                            <div className="text-xs text-text-muted mt-0.5">{formatSummary(item, isFixed(idx))}</div>
+                        </div>
+                        <ChevronRight size={14} className="text-text-disabled shrink-0" />
+                    </button>
+                ))}
+            </div>
+            <div className="md:hidden grid grid-cols-2 gap-2 mb-2">
+                <button
+                    type="button"
+                    onClick={addRestMobile}
+                    className="py-2.5 bg-surface hover:bg-surface-hover border border-dashed border-border rounded-xl text-text-secondary text-sm font-semibold flex items-center justify-center gap-2 transition group"
+                >
+                    <span className="w-5 h-5 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center group-hover:bg-red-500/20 transition"><Plus size={12} /></span>
+                    Rast
+                </button>
+                <button
+                    type="button"
+                    onClick={addDecoctionMobile}
+                    className="py-2.5 bg-amber-500/5 hover:bg-amber-500/10 border border-dashed border-amber-500/30 rounded-xl text-amber-500 text-sm font-semibold flex items-center justify-center gap-2 transition group"
+                >
+                    <span className="w-5 h-5 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center group-hover:bg-amber-500/20 transition"><Flame size={12} /></span>
+                    Teilmaische
+                </button>
+            </div>
 
-                {/* Desktop View */}
-                <div className="hidden md:block space-y-2">
-                    <div className="grid grid-cols-[100px_1fr_80px_80px_30px] gap-2 px-1 mb-1">
-                        <span className="text-[10px] uppercase font-bold text-text-disabled">Typ</span>
-                        <span className="text-[10px] uppercase font-bold text-text-disabled">Name</span>
-                        <span className="text-[10px] uppercase font-bold text-text-disabled text-right">Temp. (°C)</span>
-                        <span className="text-[10px] uppercase font-bold text-text-disabled text-right">Dauer (min)</span>
-                        <span />
-                    </div>
-                    {items.map((item, idx) => {
-                        const fixed = isFixed(idx);
-                        return (
-                            <div key={idx} className="animate-in slide-in-from-top-2 duration-200">
+            {/* ── DESKTOP: Merged container ── */}
+            <div className="hidden md:block bg-surface border border-border rounded-xl overflow-visible mb-2 divide-y divide-border">
+                <div className="grid grid-cols-[110px_1fr_90px_90px_28px] gap-x-3 px-3 py-1.5 bg-surface-hover/60 rounded-t-xl">
+                    <span className="text-[10px] font-bold text-text-disabled uppercase tracking-wider">Typ</span>
+                    <span className="text-[10px] font-bold text-text-disabled uppercase tracking-wider">Name</span>
+                    <span className="text-[10px] font-bold text-text-disabled uppercase tracking-wider text-right">Temp.</span>
+                    <span className="text-[10px] font-bold text-text-disabled uppercase tracking-wider text-right">Dauer</span>
+                    <span />
+                </div>
+                {items.map((item, idx) => {
+                    const fixed = isFixed(idx);
+                    return (
+                        <div key={idx} className="group">
+                            <div className="grid grid-cols-[110px_1fr_90px_90px_28px] gap-x-3 px-3 py-2.5 items-center">
+                                {/* Typ */}
+                                <div className="h-9 flex items-center">
+                                    <StepTypeBadge type={item.step_type} />
+                                </div>
+                                {/* Name */}
                                 {fixed ? (
-                                    /* Einmaischen / Abmaischen: im gleichen Grid ausrichten */
-                                    <div className="grid grid-cols-[100px_1fr_80px_80px_30px] gap-2 items-center">
-                                        <div className="col-span-2 px-1 text-sm text-text-muted">
-                                            {item.step_type === 'mashout' ? 'Abmaischen' : 'Einmaischen'}
-                                        </div>
-                                        <input type="text" inputMode="decimal" className="w-full bg-background border border-border focus:border-brand outline-none rounded-lg px-2 py-2 text-sm text-text-primary text-right placeholder:text-text-disabled" placeholder={item.step_type === 'mashout' ? '78' : '57'} value={item.temperature} onChange={(e) => updateRow(idx, 'temperature', e.target.value.replace(',', '.'))} />
-                                        <div className="text-center text-text-disabled text-sm">—</div>
-                                        <span />
-                                    </div>
-                                ) : item.step_type !== 'decoction' ? (
-                                    /* Rast-Zeile (kompakt) */
-                                    <div className="grid grid-cols-[100px_1fr_80px_80px_30px] gap-2 items-center">
-                                        <div><StepTypeBadge type={item.step_type} /></div>
-                                        <input className="w-full bg-background border border-border focus:border-brand outline-none rounded-lg px-2 py-2 text-sm text-text-primary placeholder:text-text-disabled" placeholder="z.B. Maltoserast" value={item.name} onChange={(e) => updateRow(idx, 'name', e.target.value)} />
-                                        <input type="text" inputMode="decimal" className="w-full bg-background border border-border focus:border-brand outline-none rounded-lg px-2 py-2 text-sm text-text-primary text-right placeholder:text-text-disabled" placeholder="63" value={item.temperature} onChange={(e) => updateRow(idx, 'temperature', e.target.value.replace(',', '.'))} />
-                                        <input type="text" inputMode="decimal" className="w-full bg-background border border-border focus:border-brand outline-none rounded-lg px-2 py-2 text-sm text-text-primary text-right placeholder:text-text-disabled" placeholder="30" value={item.duration} onChange={(e) => updateRow(idx, 'duration', e.target.value)} />
-                                        <button onClick={() => removeRow(idx)} className="text-text-disabled hover:text-error transition flex justify-center" title="Entfernen"><Trash2 size={16} /></button>
+                                    <div className="h-9 flex items-center px-1 text-sm text-text-muted">
+                                        {item.step_type === 'strike' ? 'Einmaischen' : 'Abmaischen'}
                                     </div>
                                 ) : (
-                                    /* Teilmaische-Zeile (kompakt integriert) */
-                                    <div className="space-y-1 mt-1 mb-2 group">
-                                        <div className="grid grid-cols-[100px_1fr_80px_80px_30px] gap-2 items-center">
-                                            <div><StepTypeBadge type={item.step_type} /></div>
-                                            <input className="w-full bg-background border border-border focus:border-brand outline-none rounded-lg px-2 py-2 text-sm text-text-primary placeholder:text-text-disabled" placeholder="z.B. Dekoktion 1" value={item.name} onChange={(e) => updateRow(idx, 'name', e.target.value)} />
-                                            <input type="text" inputMode="decimal" className="w-full bg-background border border-border focus:border-brand outline-none rounded-lg px-2 py-2 text-sm text-text-primary text-right placeholder:text-text-disabled" placeholder="72" value={item.temperature} onChange={(e) => updateRow(idx, 'temperature', e.target.value.replace(',', '.'))} />
-                                            <input type="text" inputMode="decimal" className="w-full bg-background border border-border focus:border-brand outline-none rounded-lg px-2 py-2 text-sm text-text-primary text-right placeholder:text-text-disabled" placeholder="30" value={item.duration} onChange={(e) => updateRow(idx, 'duration', e.target.value)} />
-                                            <button onClick={() => removeRow(idx)} className="text-text-disabled hover:text-error transition flex justify-center py-2" title="Entfernen"><Trash2 size={16} /></button>
-                                        </div>
-                                        <div className="grid grid-cols-[100px_1fr_30px] gap-2">
-                                            <div />
-                                            <div className="grid grid-cols-5 gap-2 items-end bg-amber-500/5 px-2.5 py-1.5 rounded-lg border border-amber-500/20">
-                                                <div>
-                                                    <label className="text-[8px] uppercase font-bold text-amber-500/80 mb-1 flex justify-between items-center w-full">Vol (L) {(() => { const r = getRecommendedVolume(idx); return r ? <span className="lowercase font-normal">~{r}L</span> : null; })()}</label>
-                                                    <input type="text" inputMode="decimal" className="w-full bg-background border border-amber-500/20 focus:border-brand outline-none rounded px-2 py-1 text-xs text-text-primary placeholder:text-text-disabled" placeholder="6.0" value={item.volume_liters || ''} onChange={(e) => updateRow(idx, 'volume_liters', e.target.value.replace(',', '.'))} />
-                                                </div>
-                                                <div>
-                                                    <label className="text-[8px] uppercase font-bold text-amber-500/80 mb-1 block">Kochzeit (m)</label>
-                                                    <input type="text" inputMode="decimal" className="w-full bg-background border border-amber-500/20 focus:border-brand outline-none rounded px-2 py-1 text-xs text-text-primary placeholder:text-text-disabled" placeholder="15" value={item.decoction_boil_time || ''} onChange={(e) => updateRow(idx, 'decoction_boil_time', e.target.value)} />
-                                                </div>
-                                                <div>
-                                                    <label className="text-[8px] uppercase font-bold text-amber-500/80 mb-1 block">R. v. Koch(°C)</label>
-                                                    <input type="text" inputMode="decimal" className="w-full bg-background border border-amber-500/20 focus:border-brand outline-none rounded px-2 py-1 text-xs text-text-primary placeholder:text-text-disabled" placeholder="72" value={item.decoction_rest_temp || ''} onChange={(e) => updateRow(idx, 'decoction_rest_temp', e.target.value.replace(',', '.'))} />
-                                                </div>
-                                                <div>
-                                                    <label className="text-[8px] uppercase font-bold text-amber-500/80 mb-1 block">R. v. Koch(m)</label>
-                                                    <input type="text" inputMode="decimal" className="w-full bg-background border border-amber-500/20 focus:border-brand outline-none rounded px-2 py-1 text-xs text-text-primary placeholder:text-text-disabled" placeholder="10" value={item.decoction_rest_time || ''} onChange={(e) => updateRow(idx, 'decoction_rest_time', e.target.value)} />
-                                                </div>
-                                                <div>
-                                                    <label className="text-[8px] uppercase font-bold text-amber-500/80 mb-1 block">Form</label>
-                                                    <select className="w-full bg-background border border-amber-500/20 focus:border-brand outline-none rounded px-1 py-1 text-xs text-text-primary" value={item.decoction_form || 'thick'} onChange={(e) => updateRow(idx, 'decoction_form', e.target.value)}>
-                                                        <option value="thick">Dick.</option><option value="thin">Dünn.</option><option value="liquid">Flüs.</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                            <div />
-                                        </div>
+                                    <div className="h-9 flex items-center bg-background border border-border rounded-lg overflow-hidden focus-within:border-red-500/50 transition">
+                                        <input
+                                            className="flex-1 min-w-0 bg-transparent pl-2.5 pr-2.5 text-sm text-text-primary outline-none placeholder:text-text-disabled"
+                                            placeholder={item.step_type === 'decoction' ? 'z.B. Dekoktion 1' : 'z.B. Maltoserast'}
+                                            value={item.name}
+                                            onChange={(e) => updateRow(idx, 'name', e.target.value)}
+                                        />
                                     </div>
                                 )}
+                                {/* Temp */}
+                                <div className="h-9 flex items-center bg-background border border-border rounded-lg overflow-hidden focus-within:border-red-500/50 transition">
+                                    <input
+                                        type="text"
+                                        inputMode="decimal"
+                                        className="flex-1 min-w-0 bg-transparent pl-2 pr-1 text-sm text-text-primary outline-none text-right placeholder:text-text-disabled"
+                                        placeholder={item.step_type === 'mashout' ? '78' : '63'}
+                                        value={item.temperature}
+                                        onChange={(e) => updateRow(idx, 'temperature', e.target.value.replace(',', '.'))}
+                                    />
+                                    <span className="pr-2 text-text-disabled text-xs select-none">°C</span>
+                                </div>
+                                {/* Duration */}
+                                {fixed ? (
+                                    <div className="h-9 flex items-center justify-center text-text-disabled text-sm">—</div>
+                                ) : (
+                                    <div className="h-9 flex items-center bg-background border border-border rounded-lg overflow-hidden focus-within:border-red-500/50 transition">
+                                        <input
+                                            type="text"
+                                            inputMode="decimal"
+                                            className="flex-1 min-w-0 bg-transparent pl-2 pr-1 text-sm text-text-primary outline-none text-right placeholder:text-text-disabled"
+                                            placeholder="30"
+                                            value={item.duration}
+                                            onChange={(e) => updateRow(idx, 'duration', e.target.value)}
+                                        />
+                                        <span className="pr-2 text-text-disabled text-xs select-none">min</span>
+                                    </div>
+                                )}
+                                {/* Delete */}
+                                {fixed ? (
+                                    <span />
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={() => removeRow(idx)}
+                                        className="opacity-0 group-hover:opacity-100 flex items-center justify-center w-7 h-7 text-text-disabled hover:text-red-500 transition"
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                )}
                             </div>
-                        );
-                    })}
-
-                    {/* Zwei separate Hinzufügen-Buttons */}
-                    <div className="grid grid-cols-2 gap-3 mt-3">
-                        <button onClick={addRest} className="w-full py-2 text-xs font-bold text-text-muted hover:text-text-secondary hover:bg-surface-hover/50 rounded-lg transition border border-dashed border-border flex items-center justify-center gap-2">
-                            <Plus size={14} /> Rast hinzufügen
-                        </button>
-                        <button onClick={addDecoction} className="w-full py-3 text-sm font-bold text-amber-500 hover:text-amber-400 bg-amber-500/5 hover:bg-amber-500/10 rounded-lg transition border border-dashed border-amber-500/30 flex items-center justify-center gap-2">
-                            <Flame size={14} /> Teilmaische hinzufügen
-                        </button>
-                    </div>
+                            {/* Decoction sub-row */}
+                            {item.step_type === 'decoction' && (
+                                <div className="grid grid-cols-[110px_1fr_28px] gap-x-3 px-3 pb-3">
+                                    <div />
+                                    <div className="grid grid-cols-5 gap-2 bg-amber-500/5 px-2.5 py-2 rounded-lg border border-amber-500/20">
+                                        <div>
+                                            <label className="text-[8px] uppercase font-bold text-amber-500/80 mb-1 flex justify-between items-center">
+                                                Vol (L)
+                                                {(() => { const r = getRecommendedVolume(idx); return r ? <span className="lowercase font-normal text-amber-500/60">~{r}L</span> : null; })()}
+                                            </label>
+                                            <input type="text" inputMode="decimal" className="w-full bg-background border border-amber-500/20 focus:border-amber-500/50 outline-none rounded px-2 py-1 text-xs text-text-primary placeholder:text-text-disabled" placeholder="6.0" value={item.volume_liters || ''} onChange={(e) => updateRow(idx, 'volume_liters', e.target.value.replace(',', '.'))} />
+                                        </div>
+                                        <div>
+                                            <label className="text-[8px] uppercase font-bold text-amber-500/80 mb-1 block">Koch (min)</label>
+                                            <input type="text" inputMode="decimal" className="w-full bg-background border border-amber-500/20 focus:border-amber-500/50 outline-none rounded px-2 py-1 text-xs text-text-primary placeholder:text-text-disabled" placeholder="15" value={item.decoction_boil_time || ''} onChange={(e) => updateRow(idx, 'decoction_boil_time', e.target.value)} />
+                                        </div>
+                                        <div>
+                                            <label className="text-[8px] uppercase font-bold text-amber-500/80 mb-1 block">Rast (°C)</label>
+                                            <input type="text" inputMode="decimal" className="w-full bg-background border border-amber-500/20 focus:border-amber-500/50 outline-none rounded px-2 py-1 text-xs text-text-primary placeholder:text-text-disabled" placeholder="72" value={item.decoction_rest_temp || ''} onChange={(e) => updateRow(idx, 'decoction_rest_temp', e.target.value.replace(',', '.'))} />
+                                        </div>
+                                        <div>
+                                            <label className="text-[8px] uppercase font-bold text-amber-500/80 mb-1 block">Rast (min)</label>
+                                            <input type="text" inputMode="decimal" className="w-full bg-background border border-amber-500/20 focus:border-amber-500/50 outline-none rounded px-2 py-1 text-xs text-text-primary placeholder:text-text-disabled" placeholder="10" value={item.decoction_rest_time || ''} onChange={(e) => updateRow(idx, 'decoction_rest_time', e.target.value)} />
+                                        </div>
+                                        <div>
+                                            <label className="text-[8px] uppercase font-bold text-amber-500/80 mb-1 block">Form</label>
+                                            <select className="w-full bg-background border border-amber-500/20 focus:border-amber-500/50 outline-none rounded px-1 py-1 text-xs text-text-primary" value={item.decoction_form || 'thick'} onChange={(e) => updateRow(idx, 'decoction_form', e.target.value)}>
+                                                <option value="thick">Dick.</option>
+                                                <option value="thin">Dünn.</option>
+                                                <option value="liquid">Flüs.</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div />
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+                <div className="px-3 py-2.5 rounded-b-xl flex gap-4">
+                    <button
+                        type="button"
+                        onClick={addRest}
+                        className="flex items-center gap-2 text-text-muted hover:text-text-secondary transition text-sm font-medium"
+                    >
+                        <span className="w-5 h-5 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center">
+                            <Plus size={12} />
+                        </span>
+                        Rast
+                    </button>
+                    <button
+                        type="button"
+                        onClick={addDecoction}
+                        className="flex items-center gap-2 text-amber-500 hover:text-amber-400 transition text-sm font-medium"
+                    >
+                        <span className="w-5 h-5 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center">
+                            <Flame size={12} />
+                        </span>
+                        Teilmaische
+                    </button>
                 </div>
             </div>
         </div>
@@ -571,14 +799,12 @@ function DecoctionEditor({ value, onChange, mashInfusionTotal }: Omit<MashStepsE
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  MAIN WRAPPER — rendert je nach mashProcess den richtigen Editor
+//  MAIN WRAPPER
 // ═══════════════════════════════════════════════════════════════════
 export function MashStepsEditor(props: MashStepsEditorProps) {
     return (
         <div className="space-y-2">
-            <div className="flex justify-between items-end mb-2">
-                <label className="text-xs font-bold text-text-muted uppercase ml-1 block">Maischplan / Rasten</label>
-            </div>
+            <label className="text-xs font-bold text-text-disabled uppercase ml-1 block tracking-wider">Maischplan / Rasten</label>
             {props.mashProcess === 'infusion' ? (
                 <SingleStepEditor {...props} />
             ) : props.mashProcess === 'decoction' ? (

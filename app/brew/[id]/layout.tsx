@@ -1,21 +1,24 @@
 import { Metadata } from 'next';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase-server';
 
-// Initialize Supabase Client for Server Side Usage (Admin/Public read)
 import { calcWeightedAvg } from '@/lib/rating-utils';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { mergeRecipeIngredientsIntoData } from '@/lib/ingredients/ingredient-adapter';
 
 // ─── Shared data fetch ────────────────────────────────────────────────────────
 async function getBrew(id: string) {
+  const supabase = await createClient();
   const { data } = await supabase
     .from('brews')
     .select('*, profiles(display_name), ratings(rating)')
     .eq('id', id)
     .single();
+    
+  if (data && data.data) {
+    try {
+      data.data = await mergeRecipeIngredientsIntoData(data.data, data.id, supabase);
+    } catch(e) { console.error("Adapter error", e); }
+  }
+  
   return data;
 }
 
@@ -35,11 +38,13 @@ export async function generateMetadata(
     return { title: 'BotlLab – Rezept nicht gefunden' };
   }
 
-  const volume = brew.data?.batch_size_liters ? `${brew.data.batch_size_liters}L` : '';
-  const abv = brew.data?.abv ? `${brew.data.abv}% ABV` : '';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const d = brew.data as Record<string, any> | null;
+  const volume = d?.batch_size_liters ? `${d.batch_size_liters}L` : '';
+  const abv = d?.abv ? `${d.abv}% ABV` : '';
   const style = brew.style || 'Handcrafted';
   const brewer = brew.profiles?.display_name || 'BotlLab Brewer';
-  const description = `Ein ${volume} ${style} Rezept von ${brewer}. ${abv}${brew.data?.ibu ? ` • ${brew.data.ibu} IBU` : ''}. Entdecke Details und Bewertungen auf BotlLab.`;
+  const description = `Ein ${volume} ${style} Rezept von ${brewer}. ${abv}${d?.ibu ? ` • ${d.ibu} IBU` : ''}. Entdecke Details und Bewertungen auf BotlLab.`;
 
   return {
     title: `${brew.name} | Rezept auf BotlLab`,
@@ -55,7 +60,7 @@ export async function generateMetadata(
           url: brew.image_url || 'https://botllab.de/brand/og-default.jpg',
           width: 1200,
           height: 630,
-          alt: brew.name,
+          alt: brew.name ?? 'Brew',
         },
       ],
       locale: 'de_DE',
@@ -63,7 +68,7 @@ export async function generateMetadata(
     },
     twitter: {
       card: 'summary_large_image',
-      title: brew.name,
+      title: brew.name ?? 'Brew',
       description,
       images: [brew.image_url || ''],
     },
@@ -78,24 +83,26 @@ export default async function Layout({ params, children }: Props) {
   let jsonLd: Record<string, unknown> | null = null;
 
   if (brew) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const bd = brew.data as Record<string, any> | null;
     const brewer = brew.profiles?.display_name || 'BotlLab Brewer';
     const style = brew.style || '';
-    const volume = brew.data?.batch_size_liters ? `${brew.data.batch_size_liters} Liter` : '';
+    const volume = bd?.batch_size_liters ? `${bd.batch_size_liters} Liter` : '';
     const description = `Ein ${volume} ${style} Rezept von ${brewer}.`.trim();
 
-    // Build ingredient list from JSONB data
-    const malts: string[] = (brew.data?.malts ?? []).map(
+    // Build ingredient list from recipe_ingredients (merged by adapter)
+    const malts: string[] = (bd?.malts ?? []).map(
       (m: { name?: string; amount?: string | number; unit?: string }) =>
         [m.amount, m.unit, m.name].filter(Boolean).join(' ')
     );
-    const hops: string[] = (brew.data?.hops ?? []).map(
+    const hops: string[] = (bd?.hops ?? []).map(
       (h: { name?: string; amount?: string | number; unit?: string }) =>
         [h.amount, h.unit, h.name].filter(Boolean).join(' ')
     );
-    const yeast: string[] = Array.isArray(brew.data?.yeast)
-      ? brew.data.yeast.map((y: { name?: string }) => y.name).filter(Boolean)
-      : brew.data?.yeast
-      ? [String(brew.data.yeast)]
+    const yeast: string[] = Array.isArray(bd?.yeast)
+      ? bd.yeast.map((y: { name?: string }) => y.name).filter((n: unknown): n is string => !!n)
+      : bd?.yeast
+      ? [String(bd.yeast)]
       : [];
     const ingredients = [...malts, ...hops, ...yeast];
 
@@ -130,10 +137,10 @@ export default async function Layout({ params, children }: Props) {
           worstRating: 1,
         },
       }),
-      ...(brew.data?.abv && {
+      ...(bd?.abv && {
         nutrition: {
           '@type': 'NutritionInformation',
-          alcoholContent: `${brew.data.abv}%`,
+          alcoholContent: `${bd.abv}%`,
         },
       }),
       publisher: {

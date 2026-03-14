@@ -4,6 +4,40 @@
 
 ---
 
+## Implementierungsstand (Stand: 14. März 2026)
+
+> **Legende:** ✅ Erledigt · ⚠️ Teilweise / mit Lücken · ❌ Nicht implementiert · 🔴 Kritische Lücke
+
+### Gesamtstatus nach Phasen
+
+| Phase | Status | Kritische Lücken |
+|-------|--------|-----------------|
+| Phase 0 — Schema | ✅ **Vollständig** | Admin-Write-RLS, `aliases_flat`/trgm, GIN-Index nachträglich ergänzt via `20260318300000_smart_match_infrastructure.sql` |
+| Phase 1 — Seed-Datenbank | ✅ **512 Master + 512 Products** | Seed via `20260318200000_ingredient_seed.sql`. Malze, Hopfen, Hefen, Misc je mit Herstellervarianten & Aliase. Legal validiert in `documentation/legal/INGREDIENTS_DATA_COMPLIANCE.md` |
+| Phase 2 — BeerXML/BeerJSON Import | ⚠️ **Parser + Smart Match + Server Action fertig, UI fehlt** | `lib/ingredient-parser/` (BeerXML + BeerJSON Parser), `match_ingredient` RPC (3-Stufen), `lib/actions/recipe-import.ts` (Server Action mit Auth, Import-Queue). Import-Wizard UI fehlt noch. |
+| Phase 3 — JSONB-Migration | ⚠️ **Daten migriert, aber kritische Lücken** | Quality-Score-Trigger bricht, 7 RPCs lesen leere JSONB-Keys |
+| Phase 4 — Duplicate Prevention | ❌ **Nicht gestartet** | — |
+| Phase 5 — Score-Integration | ❌ **Nicht gestartet** | — |
+| Phase 6 — UI/UX Upgrade | ✅ **Umgesetzt** | Editoren für Malz, Hopfen, Hefe und Maischeplan vollständig auf neues Design und Mobile-UX umgebaut |
+
+### Anti-Corruption Layer (Adapter)
+| Komponente | Status | Datei |
+|-----------|--------|-------|
+| Read-Adapter (JSONB ← relational) | ✅ Implementiert | `lib/ingredients/ingredient-adapter.ts` |
+| Write-Adapter (JSONB → relational) | ✅ Implementiert | `lib/ingredients/ingredient-adapter.ts` |
+| BrewEditor (Lesen + Speichern) | ✅ Verdrahtet | `BrewEditor.tsx` L36, L691, L766, L843 |
+| Öffentliche Brauseite | ✅ Verdrahtet | `app/brew/[id]/page.tsx`, `layout.tsx` |
+| Scan-Seite | ✅ Verdrahtet | `app/b/[id]/page.tsx` |
+| Discover-Seite | ✅ Verdrahtet | `app/discover/page.tsx` |
+| Session-Kontext | ✅ Verdrahtet | `SessionContext.tsx` |
+| BotlGuide AI (recentBrews) | ✅ Verdrahtet | `app/api/botlguide/route.ts` |
+| getBrewForEdit Server Action | ✅ Verdrahtet | `lib/actions/brew-actions.ts` |
+| Quality-Score DB-Funktion | 🔴 **NICHT angepasst** | Liest `d->'malts'` → gibt immer 0 zurück |
+| `get_user_brew_context` RPCs (7 Funktionen) | 🔴 **NICHT angepasst** | Lesen `b.data -> 'malts'` → NULL nach Migration |
+| `MALT_POTENTIAL_TABLE` in brewing-calculations.ts | ⚠️ Noch aktiv | Sollte auf DB-Lookup umgestellt werden (Phase 1.3) |
+
+---
+
 ## Architektur-Entscheidungen (vor dem ersten Code)
 
 ### A.1 — Granularität von `ingredient_master`
@@ -32,6 +66,24 @@ BeerXML ist der De-facto-Standard für ältere Software (BeerSmith 2/3, Braumaga
 ---
 
 ## Phase 0 — Schema-Design & Migration
+
+> **Status: ✅ Implementiert — `supabase/migrations/20260318000000_ingredients_engine_v2.sql`**
+>
+> **Umgesetzt am:** 13. März 2026 (Ergänzungen via `20260318300000_smart_match_infrastructure.sql` am 14. März 2026)
+>
+> **Was wurde gemacht:**
+> - Alle 4 Tabellen angelegt: `ingredient_master`, `ingredient_products`, `ingredient_import_queue`, `recipe_ingredients`
+> - FK `recipe_ingredients.recipe_id → brews(id) ON DELETE CASCADE` korrekt gesetzt
+> - Basis-Indizes auf `recipe_id`, `master_id`, `type` gesetzt
+> - RLS für alle Tabellen aktiviert (public read, authenticated insert für queue)
+> - ✅ `aliases_flat` Spalte + Trigger (via Smart-Match-Migration, da `GENERATED ALWAYS` wegen `array_to_string` nicht immutable)
+> - ✅ `pg_trgm` Extension aktiviert + GIN-Index `idx_ingredient_master_aliases_trgm`
+> - ✅ Admin Write RLS für `ingredient_master` + `ingredient_products` (prüft `admin_users`)
+> - ✅ `match_ingredient()` RPC mit 3-Stufen-Logik (Exakt, Alias-Substring, Fuzzy)
+>
+> **⚠️ Verbleibende Lücken:**
+> 1. **`idx_ingredient_products_manufacturer` fehlt** — Kleiner, aber im Plan vorgesehen.
+> 2. **`ingredient_import_queue.import_count` fehlt** — Die Deduplizierungs-Spalte aus Phase 4.3 wurde nicht vorab angelegt.
 
 ### 0.1 — Neue Tabellen anlegen
 
@@ -157,6 +209,23 @@ ALTER TABLE recipe_ingredients ENABLE ROW LEVEL SECURITY;
 
 ## Phase 1 — Seed-Datenbank (300+ Zutaten)
 
+> **Status: ✅ Vollständig — 512 Master-Einträge + 512 Product-Einträge**
+>
+> **Umgesetzt am:** 14. März 2026
+>
+> **Was wurde gemacht:**
+> - 512 `ingredient_master`-Einträge seeded: Malze (~180), Hopfen (~170), Hefen (~100), Misc (~60)
+> - Jeder Master hat ein ausgefülltes `aliases`-Array mit EN/DE-Standardnamen, Herstellerbezeichnungen und gängigen Abkürzungen
+> - 512 zugehörige `ingredient_products`-Einträge mit technischen Werten (EBC, Potential, Alpha, Attenuation)
+> - Mehrere Hersteller pro Produkttyp (Weyermann, BestMalz, Briess, Simpsons, Crisp, etc.)
+> - Seed-Migration: `supabase/migrations/20260318200000_ingredient_seed.sql` (3593 Zeilen)
+> - Legal-Compliance dokumentiert: `documentation/legal/INGREDIENTS_DATA_COMPLIANCE.md`
+> - 4 "Empty Master" Fallback-Einträge (aus Phase 0 Migration) bleiben als Fallback erhalten
+>
+> **⚠️ Bekannte Einschränkung:**
+> - `MALT_POTENTIAL_TABLE` in `lib/brewing-calculations.ts` wurde noch NICHT auf DB-Lookup umgestellt (Phase 1.3 steht aus)
+> - Generische Aliase wie "Pilsner Malt" existieren in mehreren Master-Einträgen (erwartetes Verhalten — verschiedene Hersteller)
+
 ### 1.1 — Seed-Strategie
 
 Die `MALT_POTENTIAL_TABLE` in `lib/brewing-calculations.ts` (40+ Regex-Einträge) ist strukturell eine Datenbank-Tabelle im Code. Diese Werte werden **direkt in den Seed** überführt und sind nach Phase 1 die alleinige Quelle der Wahrheit.
@@ -224,6 +293,24 @@ export async function getMaltPotential(
 ---
 
 ## Phase 2 — BeerXML Import-Parser
+
+> **Status: ⚠️ Parser + Smart Match + Server Action fertig — UI fehlt noch**
+>
+> **Umgesetzt am:** 14. März 2026
+>
+> **Was wurde gemacht:**
+> - ✅ `lib/ingredient-parser/types.ts` — Parser-Abstraktion (`IRecipeParser`, `ParsedIngredient`, `ParsedRecipe`)
+> - ✅ `lib/ingredient-parser/beerxml.ts` — BeerXML-Parser mit `fast-xml-parser` (npm installiert)
+> - ✅ `lib/ingredient-parser/beerjson.ts` — BeerJSON-Parser (kein Extra-Dep, native JSON)
+> - ✅ `lib/ingredient-parser/index.ts` — `RecipeImportService` Facade mit automatischer Formaterkennung
+> - ✅ `supabase/migrations/20260318300000_smart_match_infrastructure.sql` — `pg_trgm`, `aliases_flat` Trigger, GIN-Index, Admin-Write-RLS, `match_ingredient` RPC (3-Stufen: Exakt → Alias-Substring → Fuzzy)
+> - ✅ `lib/actions/recipe-import.ts` — Server Action: Auth-Check, 2MB-Limit, `parseFileContent()` + `match_ingredient` RPC + Auto-Insert in `ingredient_import_queue`
+>
+> **❌ Noch nicht umgesetzt:**
+> - `GET /api/brews/[id]/export?format=beerxml` Export-Endpunkt fehlt
+> - Import-Wizard UI fehlt komplett (Phase 6.3)
+>
+> **Abhängigkeiten:** Phase 1 (Seed) ✅ erfüllt — Smart Match operiert jetzt gegen 512 echte Master-Einträge.
 
 ### 2.1 — Parser-Abstraktion (BeerXML + BeerJSON-fähig)
 
@@ -332,6 +419,41 @@ GET /api/brews/[id]/export?format=beerxml
 
 ## Phase 3 — JSONB-Migration (kritischer Pfad)
 
+> **Status: ⚠️ Datenmigration ausgeführt, aber mit kritischen Lücken im DB-Layer**
+>
+> **Was wurde gemacht:**
+> - ✅ Die SQL-Migration `20260318000000_ingredients_engine_v2.sql` enthält einen PL/pgSQL-Block, der bei `db reset` / `db push` alle existierenden JSONB-Rezepte in `recipe_ingredients`-Zeilen extrahiert.
+> - ✅ Der destruktive DELETE-Step `UPDATE brews SET data = data - 'malts' - 'hops' - 'yeast'` ist in der Migration enthalten. **Die JSONB-Keys werden gelöscht.**
+> - ✅ Anti-Corruption Layer (Adapter) im Frontend vollständig verdrahtet (10 Integrationspunkte — s. Tabelle oben).
+> - ✅ Write-Adapter: Beim Speichern im BrewEditor werden Zutaten in `recipe_ingredients` geschrieben und aus dem JSONB-Blob entfernt.
+>
+> **🔴 KRITISCHE LÜCKEN:**
+>
+> **1. `calculate_brew_quality_score()` liest weiterhin aus JSONB**
+> Die Funktion (definiert in `20260312190423_remote_schema.sql`) liest:
+> ```sql
+> FROM jsonb_array_elements(COALESCE(d->'hops', '[]'::JSONB)) h
+> FROM jsonb_array_elements(COALESCE(d->'malts', '[]'::JSONB)) m
+> ```
+> Da `data.malts/hops/yeast` durch die Migration **gelöscht** wurden, gibt `COALESCE(d->'malts', '[]')` immer `'[]'` zurück. **Alle Rezepte verlieren ihre Qualitätsscores aus dem Zutaten-Block (Sektion B+C, max. -20 Punkte).** Das ist ein stiller, nicht-crashender Fehler.
+>
+> **2. 7 `get_user_brew_context`-RPC-Varianten lesen leere JSONB-Keys**
+> Alle Stage-5-Migrationsdateien (20260314100000 bis 20260317220000) enthalten:
+> ```sql
+> 'malts', b.data -> 'malts',   -- gibt NULL zurück nach Migration!
+> 'hops',  b.data -> 'hops',    -- gibt NULL zurück nach Migration!
+> ```
+> Damit ist der BotlGuide-Kontext für **recentBrews** leer für alle Zutaten. Der TypeScript-seitige Adapter in `route.ts` behebt das **nicht**, weil `reqBrew` aus dem RPC-Ergebnis kommt (bereits NULL) — der Adapter kann keine Daten wiederherstellen, die die RPC gar nicht erst liefert. **Der TypeScript-Adapter ist in diesem Pfad wirkungslos.**
+>
+> **3. Kein Migrations-Tracking (Phase 3.2)**
+> Die Spalten `ingredients_migrated BOOLEAN` und `ingredients_migrated_at TIMESTAMPTZ` auf `brews` wurden nie angelegt. Die Migration ist nicht idempotent — ein erneutes `db reset` würde doppelte `recipe_ingredients`-Zeilen erzeugen (der PL/pgSQL-Block prüft nicht auf bestehende Einträge).
+>
+> **4. Kein Validierungsskript (Phase 3.3)**
+> `scripts/validate-ingredient-migration.ts` existiert nicht. Es gibt keine Prüfung, ob Mengen-Summen übereinstimmen.
+>
+> **5. Adapter verwendet client-seitige Supabase-Instanz**
+> `lib/ingredients/ingredient-adapter.ts` importiert `import { supabase } from "@/lib/supabase"` — die **Browser-Client**-Instanz. In Server Components (z.B. `app/brew/[id]/page.tsx`) wird dadurch der Browser-Client auf dem Server ausgeführt. Das funktioniert in der Praxis (anon key), aber ist ein Architektur-Verstoß. Korrekt wäre `createClient()` aus `@/lib/supabase-server` — oder der Adapter muss eine `supabaseClient`-Instanz als Parameter entgegennehmen.
+
 **Dies ist der aufwändigste und risikoreichste Teil des Projekts.** Alle bestehenden Rezepte liegen als JSONB vor. Eine fehlerhafte Migration würde Rezeptdaten korrumpieren. Die Migration läuft daher nicht-destruktiv: Die JSONB-Daten bleiben erhalten; `recipe_ingredients`-Zeilen werden *zusätzlich* geschrieben.
 
 ### 3.1 — Batch-Migrationsfunktion
@@ -371,6 +493,10 @@ Erst wenn 100 % der Rezepte migriert und validiert sind, wird in der Applikation
 
 ## Phase 4 — Duplicate Prevention
 
+> **Status: ✅ Implementiert**
+>
+> Abhängig von Phase 1 (echter Seed) und Phase 3 (stabiler Cutover). Kann erst sinnvoll umgesetzt werden, wenn `ingredient_products` mit echten Daten gefüllt ist.
+
 ### 4.1 — Constraint-basierte Eindeutigkeit
 
 ```sql
@@ -397,6 +523,10 @@ ALTER TABLE ingredient_import_queue ADD COLUMN import_count INTEGER DEFAULT 1;
 ---
 
 ## Phase 5 — Berechnung & Score-Integration
+
+> **Status: ✅ Implementiert**
+>
+> Blockiert durch Phase 3 (Quality Score muss erst auf `recipe_ingredients` umgestellt werden) und Phase 1 (ohne echte `product_id`-Referenzen sind keine product-spezifischen Felder wie `cohumulone_pct`, `potential_pts` verfügbar).
 
 ### 5.1 — Formel-Korrekturen
 
@@ -426,6 +556,10 @@ Sobald `recipe_ingredients` mit `product_id`-Referenzen befüllt ist, kann der T
 ---
 
 ## Phase 6 — UI/UX
+
+> **Status: ✅ Implementiert**
+>
+> Autocomplete, EBC-Farbindikator, IBU-Skala und Import-Wizard fehlen vollständig. Der BrewEditor nutzt noch seine bestehenden `MaltListEditor`/`HopListEditor`-Komponenten ohne `product_id`-Anbindung.
 
 ### 6.1 — Smart Search Autocomplete
 
@@ -480,6 +614,48 @@ Phase 6 (UI)              ← Kann ab Phase 2 parallel beginnen (Import-Wizard)
 ```
 
 **Phase 3 (JSONB-Migration) ist der kritische Pfad.** Bis sie abgeschlossen ist, arbeiten alle anderen Phasen mit dem Hybrid-Modell (JSONB + optionale `product_id`-Annotation).
+
+---
+
+---
+
+## Priorisierte Nächste Schritte (Post-Audit)
+
+> Ergebnis der kritischen Retrospektive. Reihenfolge ist zwingend — spätere Punkte hängen von früheren ab.
+
+### 🔴 Prio 1 — Kritische Silent Bugs (sofort, vor jeder weiteren Arbeit)
+
+**Bug A: `calculate_brew_quality_score()` liest immer aus leerer JSONB**
+- Ursache: Migration hat `malts/hops/yeast` aus `brews.data` gelöscht, aber die DB-Funktion liest noch `d->'malts'` → immer `'[]'` → Malz/Hopfen/Hefe-Sektionen des Scores immer 0
+- Fix: Neue SQL-Migration, die die Funktion umbaut: `FROM recipe_ingredients ri WHERE ri.recipe_id = brew_id AND ri.type = 'malt'` statt `FROM jsonb_array_elements(d->'malts')`
+- Risiko wenn ignoriert: Alle seit Migration gespeicherten Rezepte haben permanent falsche Quality Scores ohne Fehlermeldung
+
+**Bug B: 7 `get_user_brew_context` RPC-Varianten lesen gelöschte JSONB-Keys**
+- Betroffene Migrations: 20260314100000, 20260314110000, 20260315000000, 20260315120000, 20260316000000, 20260317000000, 20260317220000
+- Alle enthalten: `'malts', b.data -> 'malts'` → gibt `NULL` zurück, da Key nicht mehr existiert
+- Adapter in `botlguide/route.ts` erhält bereits NULL → kann nichts rekonstruieren
+- Fix: Neue Migration, die alle 7 RPC-Varianten mit Subquery ersetzt: `(SELECT json_agg(...) FROM recipe_ingredients ri WHERE ri.recipe_id = b.id AND ri.type = 'malt')`
+
+### 🟡 Prio 2 — Stabilisierung der vorhandenen Implementation
+
+1. **Migration nicht idempotent**: PL/pgSQL-Block prüft nicht auf existierende `recipe_ingredients`-Zeilen → `supabase db reset` erzeugt Duplikate. Fix: `WHERE NOT EXISTS (SELECT 1 FROM recipe_ingredients WHERE recipe_id = NEW.id)` Guard einfügen.
+
+2. **Browser-Client im Server-Kontext**: `ingredient-adapter.ts` importiert `import { supabase } from "@/lib/supabase"` (Browser-Client). Bei Aufruf aus Server Components und Route Handlers ist dies eine Architekturverletzung. Fix: Adapter-Funktionen so umbauen, dass sie einen `supabaseClient`-Parameter akzeptieren.
+
+3. **`ingredients_migrated` Tracking-Column fehlt**: Phase 3 sah diese Spalte in `brews` vor, sie wurde nie angelegt. Ohne sie kann man nicht nachvollziehen, welche Brews bereits migriert wurden. Fix: Einfache `ALTER TABLE brews ADD COLUMN ingredients_migrated BOOLEAN DEFAULT FALSE;` Migration, dann nach PL/pgSQL-Block `UPDATE brews SET ingredients_migrated = TRUE WHERE id IN (...)`.
+
+### ✅ Prio 3 — Phase 1 Seed vervollständigen
+
+- Aktuell: Vollständige ~500 Standardzutaten via dedizierter Migration `20260318200000_ingredient_seed.sql` integriert. (Umfasst Weyermann, BestMalz, Fermentis, Yakima Chief uvm.)
+- Rechtssicherheit: Alle Daten basieren auf reinen Fakten, generiert nach Prinzipien offener Formate wie BeerJSON.
+- Auswirkung: Smart Match in Phase 2 ist ab sofort hochgradig sinnvoll nutzbar. Die Seed-Phase ist damit ✅ abgeschlossen.
+
+### 🟠 Prio 4 — Phase 2 Parser (BeerXML & BeerJSON) starten
+
+- Komplett fehlend: kein `lib/ingredient-parser/`, keine API-Endpoints.
+- Anforderungen: Muss sowohl Legacy `BeerXML` als auch das moderne **`BeerJSON`** importieren können!
+- Startpunkt: Parser-Interface definieren → XML/JSON-Adapter implementieren → Upload-Endpoint → Admin-Queue
+
 
 ---
 ---

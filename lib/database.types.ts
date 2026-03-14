@@ -226,10 +226,12 @@ export type Database = {
           insight_type: string
           is_dismissed: boolean
           is_read: boolean
+          session_id: string | null
           severity: string
           source_phases: string[] | null
           title: string
           trigger_data: Json
+          user_id: string | null
         }
         Insert: {
           action_suggestion?: string | null
@@ -244,10 +246,12 @@ export type Database = {
           insight_type: string
           is_dismissed?: boolean
           is_read?: boolean
+          session_id?: string | null
           severity?: string
           source_phases?: string[] | null
           title: string
           trigger_data?: Json
+          user_id?: string | null
         }
         Update: {
           action_suggestion?: string | null
@@ -262,10 +266,12 @@ export type Database = {
           insight_type?: string
           is_dismissed?: boolean
           is_read?: boolean
+          session_id?: string | null
           severity?: string
           source_phases?: string[] | null
           title?: string
           trigger_data?: Json
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -280,6 +286,13 @@ export type Database = {
             columns: ["brewery_id"]
             isOneToOne: false
             referencedRelation: "breweries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analytics_ai_insights_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "brewing_sessions"
             referencedColumns: ["id"]
           },
         ]
@@ -1065,73 +1078,6 @@ export type Database = {
         }
         Relationships: []
       }
-      botlguide_insights: {
-        Row: {
-          body: string
-          brew_id: string | null
-          brewery_id: string | null
-          created_at: string
-          dismissed: boolean
-          dismissed_at: string | null
-          id: string
-          insight_type: string
-          session_id: string | null
-          severity: string
-          title: string
-          user_id: string
-        }
-        Insert: {
-          body: string
-          brew_id?: string | null
-          brewery_id?: string | null
-          created_at?: string
-          dismissed?: boolean
-          dismissed_at?: string | null
-          id?: string
-          insight_type: string
-          session_id?: string | null
-          severity?: string
-          title: string
-          user_id: string
-        }
-        Update: {
-          body?: string
-          brew_id?: string | null
-          brewery_id?: string | null
-          created_at?: string
-          dismissed?: boolean
-          dismissed_at?: string | null
-          id?: string
-          insight_type?: string
-          session_id?: string | null
-          severity?: string
-          title?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "botlguide_insights_brew_id_fkey"
-            columns: ["brew_id"]
-            isOneToOne: false
-            referencedRelation: "brews"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "botlguide_insights_brewery_id_fkey"
-            columns: ["brewery_id"]
-            isOneToOne: false
-            referencedRelation: "breweries"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "botlguide_insights_session_id_fkey"
-            columns: ["session_id"]
-            isOneToOne: false
-            referencedRelation: "brewing_sessions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       bottle_scans: {
         Row: {
           bottle_age_days: number | null
@@ -1863,6 +1809,7 @@ export type Database = {
           ibu_calculated: number | null
           id: string
           image_url: string | null
+          ingredients_migrated: boolean | null
           is_featured: boolean
           is_public: boolean | null
           likes_count: number
@@ -1902,6 +1849,7 @@ export type Database = {
           ibu_calculated?: number | null
           id?: string
           image_url?: string | null
+          ingredients_migrated?: boolean | null
           is_featured?: boolean
           is_public?: boolean | null
           likes_count?: number
@@ -1941,6 +1889,7 @@ export type Database = {
           ibu_calculated?: number | null
           id?: string
           image_url?: string | null
+          ingredients_migrated?: boolean | null
           is_featured?: boolean
           is_public?: boolean | null
           likes_count?: number
@@ -2667,6 +2616,163 @@ export type Database = {
           },
         ]
       }
+      ingredient_import_queue: {
+        Row: {
+          created_at: string | null
+          id: string
+          imported_by: string | null
+          raw_data: Json | null
+          raw_name: string
+          status: string | null
+          suggested_master_id: string | null
+          type: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          imported_by?: string | null
+          raw_data?: Json | null
+          raw_name: string
+          status?: string | null
+          suggested_master_id?: string | null
+          type?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          imported_by?: string | null
+          raw_data?: Json | null
+          raw_name?: string
+          status?: string | null
+          suggested_master_id?: string | null
+          type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingredient_import_queue_suggested_master_id_fkey"
+            columns: ["suggested_master_id"]
+            isOneToOne: false
+            referencedRelation: "ingredient_master"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ingredient_master: {
+        Row: {
+          aliases: string[] | null
+          aliases_flat: string | null
+          alpha_pct: number | null
+          color_ebc: number | null
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          potential_pts: number | null
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          aliases?: string[] | null
+          aliases_flat?: string | null
+          alpha_pct?: number | null
+          color_ebc?: number | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          potential_pts?: number | null
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          aliases?: string[] | null
+          aliases_flat?: string | null
+          alpha_pct?: number | null
+          color_ebc?: number | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          potential_pts?: number | null
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      ingredient_products: {
+        Row: {
+          alcohol_tolerance_pct: number | null
+          alpha_pct: number | null
+          attenuation_pct: number | null
+          beta_pct: number | null
+          cohumulone_pct: number | null
+          color_ebc: number | null
+          created_at: string | null
+          flocculation: string | null
+          id: string
+          is_verified: boolean | null
+          manufacturer: string | null
+          master_id: string
+          max_temp_c: number | null
+          min_temp_c: number | null
+          name: string
+          notes: string | null
+          potential_pts: number | null
+          source_url: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          alcohol_tolerance_pct?: number | null
+          alpha_pct?: number | null
+          attenuation_pct?: number | null
+          beta_pct?: number | null
+          cohumulone_pct?: number | null
+          color_ebc?: number | null
+          created_at?: string | null
+          flocculation?: string | null
+          id?: string
+          is_verified?: boolean | null
+          manufacturer?: string | null
+          master_id: string
+          max_temp_c?: number | null
+          min_temp_c?: number | null
+          name: string
+          notes?: string | null
+          potential_pts?: number | null
+          source_url?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          alcohol_tolerance_pct?: number | null
+          alpha_pct?: number | null
+          attenuation_pct?: number | null
+          beta_pct?: number | null
+          cohumulone_pct?: number | null
+          color_ebc?: number | null
+          created_at?: string | null
+          flocculation?: string | null
+          id?: string
+          is_verified?: boolean | null
+          manufacturer?: string | null
+          master_id?: string
+          max_temp_c?: number | null
+          min_temp_c?: number | null
+          name?: string
+          notes?: string | null
+          potential_pts?: number | null
+          source_url?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingredient_products_master_id_fkey"
+            columns: ["master_id"]
+            isOneToOne: false
+            referencedRelation: "ingredient_master"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       label_templates: {
         Row: {
           brewery_id: string
@@ -2807,6 +2913,7 @@ export type Database = {
           banner_url: string | null
           bio: string | null
           birthdate: string | null
+          botlguide_insights_enabled: boolean
           custom_brewery_slogan: string | null
           display_name: string | null
           founded_year: number | null
@@ -2837,6 +2944,7 @@ export type Database = {
           banner_url?: string | null
           bio?: string | null
           birthdate?: string | null
+          botlguide_insights_enabled?: boolean
           custom_brewery_slogan?: string | null
           display_name?: string | null
           founded_year?: number | null
@@ -2867,6 +2975,7 @@ export type Database = {
           banner_url?: string | null
           bio?: string | null
           birthdate?: string | null
+          botlguide_insights_enabled?: boolean
           custom_brewery_slogan?: string | null
           display_name?: string | null
           founded_year?: number | null
@@ -3036,6 +3145,82 @@ export type Database = {
           {
             foreignKeyName: "ratings_brew_id_fkey"
             columns: ["brew_id"]
+            isOneToOne: false
+            referencedRelation: "brews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recipe_ingredients: {
+        Row: {
+          amount: number | null
+          created_at: string | null
+          id: string
+          master_id: string | null
+          override_alpha: number | null
+          override_attenuation: number | null
+          override_color_ebc: number | null
+          product_id: string | null
+          raw_name: string | null
+          recipe_id: string
+          sort_order: number | null
+          time_minutes: number | null
+          type: string | null
+          unit: string | null
+          usage: string | null
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string | null
+          id?: string
+          master_id?: string | null
+          override_alpha?: number | null
+          override_attenuation?: number | null
+          override_color_ebc?: number | null
+          product_id?: string | null
+          raw_name?: string | null
+          recipe_id: string
+          sort_order?: number | null
+          time_minutes?: number | null
+          type?: string | null
+          unit?: string | null
+          usage?: string | null
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string | null
+          id?: string
+          master_id?: string | null
+          override_alpha?: number | null
+          override_attenuation?: number | null
+          override_color_ebc?: number | null
+          product_id?: string | null
+          raw_name?: string | null
+          recipe_id?: string
+          sort_order?: number | null
+          time_minutes?: number | null
+          type?: string | null
+          unit?: string | null
+          usage?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_ingredients_master_id_fkey"
+            columns: ["master_id"]
+            isOneToOne: false
+            referencedRelation: "ingredient_master"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipe_ingredients_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "ingredient_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipe_ingredients_recipe_id_fkey"
+            columns: ["recipe_id"]
             isOneToOne: false
             referencedRelation: "brews"
             referencedColumns: ["id"]
@@ -3890,6 +4075,19 @@ export type Database = {
         Returns: number
       }
       is_member_of: { Args: { _brewery_id: string }; Returns: boolean }
+      match_ingredient: {
+        Args: { search_term: string; search_type: string }
+        Returns: {
+          alpha_pct: number
+          color_ebc: number
+          master_id: string
+          match_level: number
+          match_score: number
+          name: string
+          potential_pts: number
+          type: string
+        }[]
+      }
       record_brew_page_view: {
         Args: { p_brew_id: string; p_user_id?: string }
         Returns: undefined
@@ -3937,6 +4135,8 @@ export type Database = {
         Args: { p_brewery_id: string; p_profile_id: string }
         Returns: undefined
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       update_active_brewery: {
         Args: { brewery_id: string }
         Returns: undefined
