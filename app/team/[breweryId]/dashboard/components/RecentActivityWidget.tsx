@@ -10,9 +10,8 @@ import {
 
 interface FeedEntry {
   id: string;
-  event_type: string;
-  content: string | null;
-  metadata: Record<string, any> | null;
+  type: string;
+  content: any;
   created_at: string;
   user_id: string;
   profiles?: {
@@ -43,7 +42,7 @@ export default function RecentActivityWidget({ breweryId }: { breweryId: string 
     try {
       const { data } = await supabase
         .from('brewery_feed')
-        .select('id, event_type, content, metadata, created_at, user_id, profiles(display_name, avatar_url)')
+        .select('id, type, content, created_at, user_id, profiles(display_name, avatar_url)')
         .eq('brewery_id', breweryId)
         .order('created_at', { ascending: false })
         .limit(6);
@@ -72,18 +71,18 @@ export default function RecentActivityWidget({ breweryId }: { breweryId: string 
 
   function getEventText(entry: FeedEntry): string {
     const name = entry.profiles?.display_name || 'Jemand';
-    switch (entry.event_type) {
-      case 'POST': return entry.content || `${name} hat gepostet`;
+    switch (entry.type) {
+      case 'POST': return entry.content?.message || `${name} hat gepostet`;
       case 'BREW_CREATED': return `${name} hat ein neues Rezept erstellt`;
       case 'BREW_UPDATED': return `${name} hat ein Rezept aktualisiert`;
       case 'BREW_RATED': {
-        const rating = (entry.metadata as any)?.rating;
+        const rating = entry.content?.rating;
         return rating ? `${name} hat mit ${rating}★ bewertet` : `${name} hat bewertet`;
       }
       case 'MEMBER_JOINED': return `${name} ist dem Team beigetreten`;
       case 'ACHIEVEMENT': return `${name} hat ein Achievement freigeschaltet`;
       case 'FORUM_THREAD_CREATED': return `${name} hat einen Thread erstellt`;
-      default: return `${name} — ${entry.event_type}`;
+      default: return `${name} — ${entry.type}`;
     }
   }
 
@@ -123,8 +122,8 @@ export default function RecentActivityWidget({ breweryId }: { breweryId: string 
       ) : (
         <div className="divide-y divide-border-subtle">
           {entries.map((entry) => {
-            const config = EVENT_CONFIG[entry.event_type] || { 
-              icon: Activity, color: 'text-text-muted', label: entry.event_type 
+            const config = EVENT_CONFIG[entry.type] || { 
+              icon: Activity, color: 'text-text-muted', label: entry.type 
             };
             const Icon = config.icon;
 

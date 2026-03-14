@@ -42,7 +42,7 @@ export default function AttributeStats({ data }: { data: DistributionData }) {
             </div>
             
             <div className="h-24 w-full">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                  <BarChart data={chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                     <Tooltip 
                         cursor={{ fill: 'var(--border)' }}

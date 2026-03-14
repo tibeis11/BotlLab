@@ -282,7 +282,7 @@ function FermentationMonitor({ session }: { session: any }) {
                         <div className="space-y-6">
                             {measurements.length > 1 && (
                                 <div className="h-64 w-full bg-background/30 rounded-lg p-4 border border-border/50">
-                                    <ResponsiveContainer width="100%" height="100%">
+                                    <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                                         <LineChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                                             <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
                                             <XAxis 

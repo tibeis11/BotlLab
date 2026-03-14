@@ -100,7 +100,7 @@ export function FermentationGraph({ height = 300, minimal = false }: { height?: 
     if (minimal) {
         return (
             <div style={{ height }} className="w-full">
-                 <ResponsiveContainer width="100%" height="100%">
+                 <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                     <LineChart data={chartData}>
                         <Line type="monotone" dataKey="gravity" stroke="#0891b2" strokeWidth={2} dot={false} />
                     </LineChart>
@@ -148,7 +148,7 @@ export function FermentationGraph({ height = 300, minimal = false }: { height?: 
 
     return (
         <div style={{ height }} className="w-full bg-background/30 rounded-lg p-4 border border-border/50">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                 <LineChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
                     <XAxis

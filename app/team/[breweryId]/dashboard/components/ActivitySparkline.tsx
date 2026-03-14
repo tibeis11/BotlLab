@@ -126,7 +126,7 @@ export default function ActivitySparkline({ breweryId }: { breweryId: string }) 
 
         {/* Chart */}
         <div className="h-[80px] -mx-2">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
             <AreaChart data={last7} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
               <defs>
                 <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
