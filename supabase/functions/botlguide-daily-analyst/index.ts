@@ -553,9 +553,14 @@ serve(async (req: Request) => {
           .lt('created_at', `${todayStr}T23:59:59.999Z`)
           .maybeSingle()
 
-        if (existing) {
+        if (existing && !specificBreweryId) {
           skipped++
           continue
+        }
+
+        if (existing && specificBreweryId) {
+          // If we manually re-run, we might want to clean up the old one from today to avoid clutter
+          await supabase.from('analytics_ai_insights').delete().eq('id', existing.id)
         }
 
         // ── Collect context ───────────────────────────────────────────────────
