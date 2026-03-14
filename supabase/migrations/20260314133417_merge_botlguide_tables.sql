@@ -7,4 +7,4 @@ ADD COLUMN IF NOT EXISTS session_id uuid REFERENCES public.brewing_sessions(id) 
 
 -- 2. Drop the redundant tables
 DROP TABLE IF EXISTS public.botlguide_insights CASCADE;
-DROP TABLE IF EXISTS public.botlguide_feedback CASCADE;
+-- Restored botlguide_feedback
