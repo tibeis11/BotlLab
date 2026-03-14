@@ -80,16 +80,28 @@ export default function DashboardInsights({ breweryId, hasPremiumAccess, isAdmin
     }
   }
 
-  async function handleReaction(insightId: string, reaction: 'helpful' | 'not_helpful') {
-    setReactingId(insightId);
+  async function handleReaction(insight: Insight, reaction: 'helpful' | 'not_helpful') {
+    setReactingId(insight.id);
     try {
       await supabase
         .from('analytics_ai_insights')
         .update({ brewer_reaction: reaction })
-        .eq('id', insightId);
+        .eq('id', insight.id);
+
+      const { data: userData } = await supabase.auth.getUser();
+      if (userData?.user) {
+        await supabase
+          .from('botlguide_feedback')
+          .insert({
+            user_id: userData.user.id,
+            context_key: 'dashboard_insight.' + insight.insight_type,
+            feedback: reaction === 'helpful' ? 'up' : 'down',
+            generated_text: insight.title + " | " + insight.body
+          });
+      }
 
       setInsights(prev =>
-        prev.map(i => i.id === insightId ? { ...i, brewer_reaction: reaction } : i)
+        prev.map(i => i.id === insight.id ? { ...i, brewer_reaction: reaction } : i)
       );
     } catch (e) {
       console.error('Failed to save reaction', e);
@@ -219,14 +231,14 @@ export default function DashboardInsights({ breweryId, hasPremiumAccess, isAdmin
               ) : (
                 <div className="flex gap-1.5">
                   <button
-                    onClick={() => handleReaction(dailyInsight.id, 'helpful')}
+                    onClick={() => handleReaction(dailyInsight, 'helpful')}
                     disabled={reactingId === dailyInsight.id}
                     className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] text-text-muted hover:text-success hover:bg-success-bg border border-border-subtle transition-colors disabled:opacity-50"
                   >
                     <ThumbsUp className="w-3 h-3" /> Ja
                   </button>
                   <button
-                    onClick={() => handleReaction(dailyInsight.id, 'not_helpful')}
+                    onClick={() => handleReaction(dailyInsight, 'not_helpful')}
                     disabled={reactingId === dailyInsight.id}
                     className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] text-text-muted hover:text-error hover:bg-error/5 border border-border-subtle transition-colors disabled:opacity-50"
                   >
