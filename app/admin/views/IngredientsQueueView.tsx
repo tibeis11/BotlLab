@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { Package, CheckCheck, X, RefreshCw, Wheat, Hop, FlaskConical } from 'lucide-react';
+import { Package, CheckCheck, X, RefreshCw, Wheat, Hop, FlaskConical, Clock, GitMerge, Ban } from 'lucide-react';
+import MetricCard from '../components/MetricCard';
 import type { ImportQueueItem, QueueStats } from '@/lib/types/ingredients';
 import {
   getIngredientQueueItems,
@@ -43,8 +44,8 @@ function RejectConfirmModal({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-      <div className="bg-(--surface) border border-(--border-hover) rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-(--surface) border border-(--border-hover) rounded-xl w-full max-w-md p-6 space-y-4 shadow-2xl">
         <h3 className="text-lg font-bold text-(--text-primary) flex items-center gap-2">
           <X className="text-red-400" />
           Eintrag ablehnen
@@ -71,7 +72,7 @@ function RejectConfirmModal({
             value={reason}
             onChange={e => setReason(e.target.value)}
             placeholder="Anderer Grund..."
-            className="w-full px-4 py-2.5 bg-(--surface-sunken) border border-(--border) rounded-xl text-sm text-(--text-primary) focus:outline-none focus:border-red-500"
+            className="w-full px-4 py-2.5 bg-zinc-900/60 border border-zinc-800 rounded-xl text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-red-500 transition"
           />
         </div>
 
@@ -84,7 +85,7 @@ function RejectConfirmModal({
           </button>
           <button
             onClick={() => onConfirm(reason)}
-            className="flex-1 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-sm transition"
+            className="flex-1 px-4 py-2.5 rounded-xl bg-red-950/20 text-red-400 border border-red-900/30 hover:bg-red-900/30 font-semibold text-sm transition"
           >
             Ablehnen
           </button>
@@ -182,17 +183,10 @@ export default function IngredientsQueueView() {
 
       {/* Titel + Refresh */}
       <div className="flex items-center justify-between pb-4 border-b border-(--border)">
-        <div>
-          <h2 className="text-xl font-bold text-(--text-primary) flex items-center gap-2">
-            <Package className="w-5 h-5" />
-            Zutaten-Import-Queue
-          </h2>
-          {stats && (
-            <p className="text-xs text-(--text-muted) mt-1">
-              {stats.pending} ausstehend · {stats.merged} zusammengeführt · {stats.rejected} abgelehnt
-            </p>
-          )}
-        </div>
+        <h2 className="text-xl font-bold text-(--text-primary) flex items-center gap-2">
+          <Package className="w-5 h-5" />
+          Zutaten-Import-Queue
+        </h2>
         <button
           onClick={load}
           disabled={loading}
@@ -201,6 +195,28 @@ export default function IngredientsQueueView() {
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           Aktualisieren
         </button>
+      </div>
+
+      {/* Metriken */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <MetricCard
+          title="Ausstehend"
+          value={stats?.pending ?? '—'}
+          icon={<Clock className="w-5 h-5" />}
+          loading={!stats}
+        />
+        <MetricCard
+          title="Zusammengeführt"
+          value={stats?.merged ?? '—'}
+          icon={<GitMerge className="w-5 h-5" />}
+          loading={!stats}
+        />
+        <MetricCard
+          title="Abgelehnt"
+          value={stats?.rejected ?? '—'}
+          icon={<Ban className="w-5 h-5" />}
+          loading={!stats}
+        />
       </div>
 
       {/* Erfolgs-Toast */}
@@ -261,14 +277,18 @@ export default function IngredientsQueueView() {
           ))}
         </div>
       ) : items.length === 0 ? (
-        <div className="flex flex-col items-center justify-center p-16 text-(--text-muted) border border-(--border) border-dashed rounded-2xl">
-          <CheckCheck className="w-8 h-8 text-(--text-disabled) mb-4" />
-          <h3 className="text-lg font-bold text-(--text-primary)">Keine Einträge</h3>
-          <p className="text-sm">
-            {activeTab === 'pending'
-              ? 'Alle Zutaten in der Queue wurden bearbeitet.'
-              : 'Keine Einträge in dieser Kategorie.'}
-          </p>
+        <div className="flex flex-col items-center py-16 gap-4 text-center border border-dashed border-(--border) rounded-2xl bg-zinc-950/50">
+          <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center mx-auto">
+            <CheckCheck className="w-6 h-6 text-zinc-500" />
+          </div>
+          <div>
+            <p className="text-zinc-500 font-medium text-sm">Keine Einträge</p>
+            <p className="text-zinc-700 text-xs max-w-xs mx-auto mt-1">
+              {activeTab === 'pending'
+                ? 'Alle Zutaten in der Queue wurden bearbeitet.'
+                : 'Keine Einträge in dieser Kategorie.'}
+            </p>
+          </div>
         </div>
       ) : (
         <>

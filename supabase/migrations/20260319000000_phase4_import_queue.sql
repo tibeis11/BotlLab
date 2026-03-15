@@ -16,13 +16,15 @@ ALTER TABLE public.ingredient_import_queue
   ADD COLUMN IF NOT EXISTS rejection_reason TEXT;
 
 -- Duplikate vor dem Unique Index bereinigen (behalte älteste Zeile je Master+Hersteller)
+-- Nur Zeilen mit manufacturer IS NOT NULL betreffen — NULL-Zeilen explizit ausschließen.
 DELETE FROM public.ingredient_products
-WHERE id NOT IN (
-  SELECT DISTINCT ON (master_id, LOWER(manufacturer)) id
-  FROM public.ingredient_products
-  WHERE manufacturer IS NOT NULL
-  ORDER BY master_id, LOWER(manufacturer), created_at ASC NULLS LAST, id ASC
-);
+WHERE manufacturer IS NOT NULL
+  AND id NOT IN (
+    SELECT DISTINCT ON (master_id, LOWER(manufacturer)) id
+    FROM public.ingredient_products
+    WHERE manufacturer IS NOT NULL
+    ORDER BY master_id, LOWER(manufacturer), created_at ASC NULLS LAST, id ASC
+  );
 
 -- Unique Constraint: verhindert doppelte Produkte (gleicher Master + gleicher Hersteller)
 CREATE UNIQUE INDEX IF NOT EXISTS idx_ingredient_products_unique

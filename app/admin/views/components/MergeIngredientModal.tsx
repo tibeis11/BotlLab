@@ -161,8 +161,8 @@ export default function MergeIngredientModal({ item, onClose, onSuccess }: Merge
   const highDuplicate = duplicates.find(d => d.similarity_score >= 0.7);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-      <div className="bg-(--surface) border border-(--border-hover) rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-(--surface) border border-(--border-hover) rounded-xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
 
         {/* Header */}
         <div className="flex items-start justify-between p-6 border-b border-(--border) shrink-0">
@@ -213,7 +213,7 @@ export default function MergeIngredientModal({ item, onClose, onSuccess }: Merge
                   value={searchQuery}
                   onChange={e => { setSearchQuery(e.target.value); setSelectedMaster(null); }}
                   placeholder={`${item.type === 'malt' ? 'Malz' : item.type === 'hop' ? 'Hopfen' : 'Hefe'} suchen...`}
-                  className="w-full pl-10 pr-4 py-2.5 bg-(--surface-sunken) border border-(--border) rounded-xl text-sm text-(--text-primary) focus:outline-none focus:border-cyan-500"
+                  className="w-full pl-10 pr-4 py-2.5 bg-zinc-900/60 border border-zinc-800 rounded-xl text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-500 transition"
                 />
               </div>
 
@@ -284,7 +284,7 @@ export default function MergeIngredientModal({ item, onClose, onSuccess }: Merge
                 <input
                   value={newName}
                   onChange={e => setNewName(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-(--surface-sunken) border border-(--border) rounded-xl text-sm text-(--text-primary) focus:outline-none focus:border-cyan-500"
+                  className="w-full px-4 py-2.5 bg-zinc-900/60 border border-zinc-800 rounded-xl text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-500 transition"
                 />
                 {checkingDuplicates && <p className="text-xs text-(--text-muted) mt-1 animate-pulse">Prüfe auf Duplikate...</p>}
               </div>
@@ -297,7 +297,7 @@ export default function MergeIngredientModal({ item, onClose, onSuccess }: Merge
                     onChange={e => setNewAliasInput(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addAlias())}
                     placeholder="Alias eingeben + Enter"
-                    className="flex-1 px-4 py-2 bg-(--surface-sunken) border border-(--border) rounded-xl text-sm text-(--text-primary) focus:outline-none focus:border-cyan-500"
+                    className="flex-1 px-4 py-2 bg-zinc-900/60 border border-zinc-800 rounded-xl text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-500 transition"
                   />
                   <button onClick={addAlias} className="px-3 py-2 bg-(--surface-hover) border border-(--border) rounded-xl text-sm text-(--text-secondary) hover:text-(--text-primary) transition">
                     <Plus className="w-4 h-4" />
@@ -331,7 +331,7 @@ export default function MergeIngredientModal({ item, onClose, onSuccess }: Merge
                     value={productName}
                     onChange={e => setProductName(e.target.value)}
                     placeholder={item.raw_name}
-                    className="w-full px-3 py-2 bg-(--surface-sunken) border border-(--border) rounded-lg text-sm text-(--text-primary) focus:outline-none focus:border-cyan-500"
+                    className="w-full px-3 py-2 bg-zinc-900/60 border border-zinc-800 rounded-lg text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-500 transition"
                   />
                 </div>
                 <div>
@@ -340,7 +340,7 @@ export default function MergeIngredientModal({ item, onClose, onSuccess }: Merge
                     value={manufacturer}
                     onChange={e => setManufacturer(e.target.value)}
                     placeholder="z.B. Weyermann"
-                    className="w-full px-3 py-2 bg-(--surface-sunken) border border-(--border) rounded-lg text-sm text-(--text-primary) focus:outline-none focus:border-cyan-500"
+                    className="w-full px-3 py-2 bg-zinc-900/60 border border-zinc-800 rounded-lg text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-500 transition"
                   />
                 </div>
               </div>
@@ -350,24 +350,24 @@ export default function MergeIngredientModal({ item, onClose, onSuccess }: Merge
                   <>
                     <div>
                       <label className="block text-xs text-(--text-muted) mb-1">Farbe (EBC)</label>
-                      <input type="number" value={colorEbc} onChange={e => setColorEbc(e.target.value)} placeholder="z.B. 4.5" className="w-full px-3 py-2 bg-(--surface-sunken) border border-(--border) rounded-lg text-sm text-(--text-primary) focus:outline-none focus:border-cyan-500" />
+                      <input type="number" value={colorEbc} onChange={e => setColorEbc(e.target.value)} placeholder="z.B. 4.5" className="w-full px-3 py-2 bg-zinc-900/60 border border-zinc-800 rounded-lg text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-500 transition" />
                     </div>
                     <div>
                       <label className="block text-xs text-(--text-muted) mb-1">Potential (Pts)</label>
-                      <input type="number" value={potentialPts} onChange={e => setPotentialPts(e.target.value)} placeholder="z.B. 36" className="w-full px-3 py-2 bg-(--surface-sunken) border border-(--border) rounded-lg text-sm text-(--text-primary) focus:outline-none focus:border-cyan-500" />
+                      <input type="number" value={potentialPts} onChange={e => setPotentialPts(e.target.value)} placeholder="z.B. 36" className="w-full px-3 py-2 bg-zinc-900/60 border border-zinc-800 rounded-lg text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-500 transition" />
                     </div>
                   </>
                 )}
                 {item.type === 'hop' && (
                   <div>
                     <label className="block text-xs text-(--text-muted) mb-1">Alpha (%)</label>
-                    <input type="number" value={alphaPct} onChange={e => setAlphaPct(e.target.value)} placeholder="z.B. 13.5" className="w-full px-3 py-2 bg-(--surface-sunken) border border-(--border) rounded-lg text-sm text-(--text-primary) focus:outline-none focus:border-cyan-500" />
+                    <input type="number" value={alphaPct} onChange={e => setAlphaPct(e.target.value)} placeholder="z.B. 13.5" className="w-full px-3 py-2 bg-zinc-900/60 border border-zinc-800 rounded-lg text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-500 transition" />
                   </div>
                 )}
                 {item.type === 'yeast' && (
                   <div>
                     <label className="block text-xs text-(--text-muted) mb-1">Vergärung (%)</label>
-                    <input type="number" value={attenuationPct} onChange={e => setAttenuationPct(e.target.value)} placeholder="z.B. 75" className="w-full px-3 py-2 bg-(--surface-sunken) border border-(--border) rounded-lg text-sm text-(--text-primary) focus:outline-none focus:border-cyan-500" />
+                    <input type="number" value={attenuationPct} onChange={e => setAttenuationPct(e.target.value)} placeholder="z.B. 75" className="w-full px-3 py-2 bg-zinc-900/60 border border-zinc-800 rounded-lg text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-500 transition" />
                   </div>
                 )}
               </div>
@@ -378,7 +378,7 @@ export default function MergeIngredientModal({ item, onClose, onSuccess }: Merge
                   value={productNotes}
                   onChange={e => setProductNotes(e.target.value)}
                   placeholder="Optionale Anmerkungen..."
-                  className="w-full px-3 py-2 bg-(--surface-sunken) border border-(--border) rounded-lg text-sm text-(--text-primary) focus:outline-none focus:border-cyan-500"
+                  className="w-full px-3 py-2 bg-zinc-900/60 border border-zinc-800 rounded-lg text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-500 transition"
                 />
               </div>
             </div>
@@ -405,10 +405,10 @@ export default function MergeIngredientModal({ item, onClose, onSuccess }: Merge
           <button
             onClick={handleConfirm}
             disabled={saving || (tab === 'link_existing' && !selectedMaster)}
-            className="flex-1 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm flex items-center justify-center gap-2 transition disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex-1 px-4 py-2.5 rounded-xl bg-emerald-950/20 text-emerald-400 border border-emerald-900/30 hover:bg-emerald-900/30 font-semibold text-sm flex items-center justify-center gap-2 transition disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {saving ? (
-              <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <span className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
             ) : (
               <CheckCircle className="w-4 h-4" />
             )}

@@ -9,7 +9,7 @@ const TYPE_CONFIG = {
   hop:   { label: 'Hopfen',  color: 'text-green-400',  bg: 'bg-green-500/10 border-green-500/20',  Icon: Hop },
   yeast: { label: 'Hefe',    color: 'text-blue-400',   bg: 'bg-blue-500/10 border-blue-500/20',    Icon: FlaskConical },
   misc:  { label: 'Sonstig', color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/20', Icon: Package },
-  water: { label: 'Wasser',  color: 'text-cyan-400',   bg: 'bg-cyan-500/10 border-cyan-500/20',    Icon: Package },
+  water: { label: 'Wasser',  color: 'text-cyan-400',   bg: 'bg-cyan-950/20 border-cyan-900/30',    Icon: Package },
 } as const;
 
 function formatRawData(raw: Record<string, unknown> | null): string[] {
@@ -44,7 +44,7 @@ export default function ImportQueueCard({ item, onMerge, onReject, processing }:
       {/* Header */}
       <div className="p-4 flex items-start gap-3">
         {/* Typ-Badge */}
-        <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border text-xs font-semibold shrink-0 ${bg} ${color}`}>
+        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider shrink-0 ${bg} ${color}`}>
           <Icon className="w-3 h-3" />
           {label}
         </span>

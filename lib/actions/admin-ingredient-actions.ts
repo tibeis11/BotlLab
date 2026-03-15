@@ -11,7 +11,11 @@ import type {
 } from '@/lib/types/ingredients';
 
 async function requireAdmin() {
-  const { isAdmin } = await checkAdminAccess();
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+  const user = data?.user;
+  if (!user?.id) throw new Error('Nicht angemeldet.');
+  const { isAdmin } = await checkAdminAccess({ id: user.id, email: user.email ?? '' });
   if (!isAdmin) throw new Error('Kein Admin-Zugang.');
 }
 
