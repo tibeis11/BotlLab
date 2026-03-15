@@ -223,7 +223,7 @@ export default function SeedPage() {
                 phase: 'fermenting',
                 status: 'fermenting',
                 batch_code: 'B-TEST-01',
-                brewed_at: startDate,
+                brewed_at: startDate.toISOString(),
                 timeline: timeline,
                 measurements: { og: 1.048 } // Legacy cache
             })

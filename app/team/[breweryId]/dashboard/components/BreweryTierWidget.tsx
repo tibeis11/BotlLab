@@ -91,7 +91,7 @@ export default function BreweryTierWidget({ breweryId }: { breweryId: string }) 
         .single();
       
       if (ownerMember) {
-        const status = await getSpecificUserPremiumStatus(ownerMember.user_id);
+        const status = await getSpecificUserPremiumStatus(ownerMember.user_id!);
         setPremiumStatus(status);
       }
 

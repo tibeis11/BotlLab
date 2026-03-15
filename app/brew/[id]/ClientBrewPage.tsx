@@ -277,8 +277,8 @@ export default function ClientBrewPage({ initialData, initialError, initialUser 
     }
     
     // Check Brewery Limits
-    const { data: brewery } = await supabase.from('breweries').select('tier').eq('id', member.brewery_id).single();
-    const { data: brews } = await supabase.from('brews').select('id', { count: 'exact', head: true }).eq('brewery_id', member.brewery_id);
+    const { data: brewery } = await supabase.from('breweries').select('tier').eq('id', member.brewery_id!).single();
+    const { data: brews } = await supabase.from('brews').select('id', { count: 'exact', head: true }).eq('brewery_id', member.brewery_id!);
     
     // Check if user has premium status that allows bypassing limits
     const premiumStatus = await getPremiumStatus();

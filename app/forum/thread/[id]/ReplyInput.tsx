@@ -76,7 +76,7 @@ export default function ReplyInput({ threadId }: { threadId: string }) {
                 .select('id, display_name')
                 .ilike('display_name', `%${mentionAnchor.query}%`)
                 .limit(6);
-            setMentionResults(data ?? []);
+            setMentionResults((data ?? []).map(d => ({ ...d, display_name: d.display_name ?? '' })));
             setMentionSelectedIdx(0);
         }, 200);
         return () => clearTimeout(timer);

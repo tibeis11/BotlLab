@@ -31,9 +31,9 @@ export async function getBrewTasteProfile(
     return null;
   }
   
-  if (!data || data.count === 0) return null;
+  if (!data || (data as any).count === 0) return null;
 
-  return data as TasteProfile;
+  return data as unknown as TasteProfile;
 }
 
 // Minimum number of community flavor profiles required before showing the
@@ -53,11 +53,11 @@ export async function getBrewFlavorProfile(brewId: string) {
 
   if (!fpError && fpData && fpData.length > 0) {
     for (const fp of fpData) {
-      sweetness += fp.sweetness;
-      bitterness += fp.bitterness;
-      body += fp.body;
-      roast += fp.roast;
-      fruitiness += fp.fruitiness;
+      sweetness += fp.sweetness ?? 0;
+      bitterness += fp.bitterness ?? 0;
+      body += fp.body ?? 0;
+      roast += fp.roast ?? 0;
+      fruitiness += fp.fruitiness ?? 0;
       count++;
     }
   }

@@ -27,7 +27,7 @@ export async function addTimelineEvent(
   const { data, error } = await supabase
     .rpc('append_timeline_entry', {
       p_session_id: sessionId,
-      p_new_entry: newEvent
+      p_new_entry: newEvent as any
     });
 
   if (error) {
@@ -35,7 +35,7 @@ export async function addTimelineEvent(
     throw new Error(error.message);
   }
 
-  return data as TimelineEvent[];
+  return data as unknown as TimelineEvent[];
 }
 
 /**
@@ -52,19 +52,19 @@ export async function removeTimelineEvent(sessionId: string, eventId: string): P
     if (fetchError) throw fetchError;
     
     // 2. Filter out the event
-    const currentTimeline = (session?.timeline || []) as TimelineEvent[];
+    const currentTimeline = (session?.timeline || []) as unknown as TimelineEvent[];
     const updatedTimeline = currentTimeline.filter(e => e.id !== eventId);
-    
+
     // 3. Update the row
     const { data, error: updateError } = await supabase
         .from('brewing_sessions')
-        .update({ timeline: updatedTimeline })
+        .update({ timeline: updatedTimeline as any })
         .eq('id', sessionId)
         .select('timeline')
         .single();
-        
+
     if (updateError) throw updateError;
-    return (data.timeline || []) as TimelineEvent[];
+    return (data.timeline || []) as unknown as TimelineEvent[];
 }
 
 /**

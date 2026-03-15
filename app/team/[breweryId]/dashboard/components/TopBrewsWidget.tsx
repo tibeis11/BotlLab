@@ -55,15 +55,15 @@ export default function TopBrewsWidget({ breweryId }: { breweryId: string }) {
       });
 
       // Build summaries
-      const summaries: BrewSummary[] = allBrews.map((b: { id: string; name: string; style: string | null; created_at: string }) => {
+      const summaries: BrewSummary[] = allBrews.map((b: { id: string; name: string | null; style: string | null; created_at: string | null }) => {
         const stats = ratingMap.get(b.id) || { sum: 0, count: 0 };
         return {
           id: b.id,
-          name: b.name,
+          name: b.name ?? '',
           style: b.style,
           avg_rating: stats.count > 0 ? Math.round((stats.sum / stats.count) * 10) / 10 : 0,
           rating_count: stats.count,
-          created_at: b.created_at,
+          created_at: b.created_at ?? '',
         };
       });
 

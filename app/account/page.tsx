@@ -284,7 +284,7 @@ export default function AccountPage() {
             // 1) Create brewery
             const { data: newBrewery, error: brewErr } = await supabase
                 .from('breweries')
-                .insert({ name: createName.trim(), invite_code: inviteCode, created_at: new Date() })
+                .insert({ name: createName.trim(), invite_code: inviteCode, created_at: new Date().toISOString() })
                 .select('id, name')
                 .single();
 

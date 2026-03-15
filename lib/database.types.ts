@@ -34,6 +34,75 @@ export type Database = {
   }
   public: {
     Tables: {
+      bjcp_styles: {
+        Row: {
+          id: string
+          code: string
+          category: string | null
+          name_en: string
+          name_de: string | null
+          og_min: number | null
+          og_max: number | null
+          fg_min: number | null
+          fg_max: number | null
+          abv_min: number | null
+          abv_max: number | null
+          ibu_min: number | null
+          ibu_max: number | null
+          ebc_min: number | null
+          ebc_max: number | null
+          description_de: string | null
+          ingredients_de: string | null
+          examples: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          code: string
+          category?: string | null
+          name_en: string
+          name_de?: string | null
+          og_min?: number | null
+          og_max?: number | null
+          fg_min?: number | null
+          fg_max?: number | null
+          abv_min?: number | null
+          abv_max?: number | null
+          ibu_min?: number | null
+          ibu_max?: number | null
+          ebc_min?: number | null
+          ebc_max?: number | null
+          description_de?: string | null
+          ingredients_de?: string | null
+          examples?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          code?: string
+          category?: string | null
+          name_en?: string
+          name_de?: string | null
+          og_min?: number | null
+          og_max?: number | null
+          fg_min?: number | null
+          fg_max?: number | null
+          abv_min?: number | null
+          abv_max?: number | null
+          ibu_min?: number | null
+          ibu_max?: number | null
+          ebc_min?: number | null
+          ebc_max?: number | null
+          description_de?: string | null
+          ingredients_de?: string | null
+          examples?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       achievements: {
         Row: {
           category: string

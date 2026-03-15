@@ -168,10 +168,10 @@ export async function createDefaultBreweryTemplate(breweryId: string) {
     const { error } = await supabase
         .from('label_templates')
         .insert({
-            brewery_id: breweryId,
-            name: defaultDesign.name,
+            brewery_id: breweryId!,
+            name: defaultDesign.name!,
             format_id: defaultDesign.formatId,
-            config: defaultDesign,
+            config: defaultDesign as any,
             is_default: true
         });
 
