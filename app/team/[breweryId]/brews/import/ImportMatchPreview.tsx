@@ -3,11 +3,15 @@
 import { CheckCircle2, AlertTriangle, ArrowRight } from 'lucide-react';
 import type { ProcessedRecipe, MatchedIngredient } from '@/lib/actions/recipe-import';
 
-// match_level codes from match_ingredient RPC: 1=Exakt, 2=Alias, 3=Fuzzy
+// match_level codes from match_ingredient RPC:
+// 1=Exakt (Produkt), 2=Alias (Master/Alias), 3=Alias-Substring,
+// 4=Fuzzy Produkt, 5=Fuzzy Master
 const MATCH_LEVEL_CONFIG: Record<number, { label: string; className: string }> = {
-  1: { label: 'Exakt', className: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
-  2: { label: 'Alias', className: 'text-cyan-400 bg-cyan-950/20 border-cyan-900/30' },
-  3: { label: 'Fuzzy', className: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
+  1: { label: 'Exakt',  className: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
+  2: { label: 'Alias',  className: 'text-cyan-400 bg-cyan-950/20 border-cyan-900/30' },
+  3: { label: 'Alias',  className: 'text-cyan-400 bg-cyan-950/20 border-cyan-900/30' },
+  4: { label: 'Fuzzy',  className: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
+  5: { label: 'Fuzzy',  className: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
 };
 
 const TYPE_FALLBACK: Record<string, string> = {
