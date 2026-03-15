@@ -1,4 +1,4 @@
-import { IRecipeParser, ParsedRecipe, ParsedIngredient, BaseIngredientType } from './types';
+import { IRecipeParser, ParsedRecipe, ParsedIngredient, ParsedMashStep, BaseIngredientType } from './types';
 
 export class BeerJsonParser implements IRecipeParser {
   canParse(content: string): boolean {
@@ -36,7 +36,12 @@ export class BeerJsonParser implements IRecipeParser {
         batch_size_liters: this.extractVolumeLiters(recipe.batch_size),
         boil_size_liters: this.extractVolumeLiters(recipe.boil_size),
         style_name: recipe.style?.name,
-        ingredients: []
+        ingredients: [],
+        description: recipe.description || recipe.notes || undefined,
+        boil_time_minutes: this.extractTimeMinutesFromBoil(recipe.boil),
+        fermentation_temp_c: this.extractFermentationTemp(recipe.fermentation),
+        efficiency: recipe.efficiency?.brewhouse?.value ?? recipe.efficiency?.mash?.value ?? undefined,
+        mash_steps: this.extractMashSteps(recipe.mash),
       };
 
       const ingredients = recipe.ingredients || {};
@@ -130,6 +135,42 @@ export class BeerJsonParser implements IRecipeParser {
 
       return parsedRecipe;
     });
+  }
+
+  private extractTimeMinutesFromBoil(boil: any): number | undefined {
+    if (!boil?.boil_time) return undefined;
+    const t = boil.boil_time;
+    if (t.unit === 'min') return t.value;
+    if (t.unit === 'sec') return t.value / 60;
+    if (t.unit === 'hr') return t.value * 60;
+    return t.value;
+  }
+
+  private extractFermentationTemp(fermentation: any): number | undefined {
+    const step = fermentation?.fermentation_steps?.[0];
+    if (!step?.start_temperature) return undefined;
+    const t = step.start_temperature;
+    if (t.unit === 'C') return t.value;
+    if (t.unit === 'F') return (t.value - 32) * 5 / 9;
+    return t.value;
+  }
+
+  private extractMashSteps(mash: any): ParsedMashStep[] | undefined {
+    if (!Array.isArray(mash?.mash_steps)) return undefined;
+    const result = mash.mash_steps
+      .map((s: any): ParsedMashStep | null => {
+        const tempObj = s.step_temperature;
+        const timeObj = s.step_time;
+        if (!tempObj?.value || !timeObj?.value) return null;
+        let temp = tempObj.value;
+        if (tempObj.unit === 'F') temp = (temp - 32) * 5 / 9;
+        let time = timeObj.value;
+        if (timeObj.unit === 'hr') time = time * 60;
+        if (timeObj.unit === 'sec') time = time / 60;
+        return { name: s.name || undefined, temperature_c: Math.round(temp * 10) / 10, duration_minutes: Math.round(time) };
+      })
+      .filter((s: ParsedMashStep | null): s is ParsedMashStep => s !== null);
+    return result.length > 0 ? result : undefined;
   }
 
   // --- Hilfsfunktionen für das komplexe BeerJSON Struct ---

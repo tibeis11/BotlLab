@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/lib/supabase-server';
+import { createClient, createAdminClient } from '@/lib/supabase-server';
 import { checkAdminAccess } from '@/lib/admin-auth';
 import type {
   ImportQueueItem,
@@ -28,7 +28,7 @@ export async function getIngredientQueueItems(params: {
   pageSize?: number;
 }): Promise<{ items: ImportQueueItem[]; total: number }> {
   await requireAdmin();
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { status = 'pending', type, page = 1, pageSize = 20 } = params;
   const from = (page - 1) * pageSize;
@@ -59,7 +59,7 @@ export async function getIngredientQueueItems(params: {
 
 export async function getQueueStats(): Promise<QueueStats> {
   await requireAdmin();
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase
     .from('ingredient_import_queue')
@@ -89,7 +89,7 @@ export async function getQueueStats(): Promise<QueueStats> {
 /** Leichtgewichtige Variante für den Sidebar-Badge */
 export async function getIngredientQueueCount(): Promise<number> {
   await requireAdmin();
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { count, error } = await supabase
     .from('ingredient_import_queue')
@@ -106,7 +106,7 @@ export async function mergeQueueItem(
   options: MergeQueueOptions
 ): Promise<{ masterId: string; productId: string | null; recipesUpdated: number }> {
   await requireAdmin();
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { queueId, mode, masterId, newMaster, product } = options;
 
@@ -140,7 +140,7 @@ export async function mergeQueueItem(
 
 export async function rejectQueueItem(queueId: string, reason?: string): Promise<void> {
   await requireAdmin();
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { error } = await supabase.rpc('reject_queue_item' as any, {
     p_queue_id: queueId,
@@ -152,7 +152,7 @@ export async function rejectQueueItem(queueId: string, reason?: string): Promise
 
 export async function bulkRejectQueueItems(ids: string[]): Promise<void> {
   await requireAdmin();
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { error } = await (supabase.from('ingredient_import_queue') as any).update({
     status:           'rejected',
@@ -170,7 +170,7 @@ export async function checkIngredientDuplicate(
   manufacturer?: string
 ): Promise<DuplicateCheckResult[]> {
   await requireAdmin();
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase.rpc('check_ingredient_duplicate' as any, {
     p_name:         name,
@@ -187,7 +187,7 @@ export async function searchIngredientMaster(
   type?: string
 ): Promise<IngredientMasterSearchResult[]> {
   await requireAdmin();
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   let q = supabase
     .from('ingredient_master')

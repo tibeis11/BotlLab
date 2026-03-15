@@ -17,6 +17,7 @@ export type MatchedIngredient = ParsedIngredient & (
         color_ebc?: number | null;
         potential_pts?: number | null;
         alpha_pct?: number | null;
+        attenuation_pct?: number | null;
       };
     }
   | { status: 'unmatched'; match?: undefined }
@@ -91,7 +92,8 @@ export async function importAndMatchRecipe(formData: FormData) {
              match_level: data[0].match_level,
              color_ebc: data[0].color_ebc,
              potential_pts: data[0].potential_pts,
-             alpha_pct: data[0].alpha_pct
+             alpha_pct: data[0].alpha_pct,
+             attenuation_pct: (data[0] as any).attenuation_pct
           }
         });
       } else {

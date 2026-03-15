@@ -1,5 +1,5 @@
 import { XMLParser } from 'fast-xml-parser';
-import { IRecipeParser, ParsedRecipe, ParsedIngredient, BaseIngredientType } from './types';
+import { IRecipeParser, ParsedRecipe, ParsedIngredient, ParsedMashStep, BaseIngredientType } from './types';
 
 export class BeerXmlParser implements IRecipeParser {
   private parser: XMLParser;
@@ -12,7 +12,7 @@ export class BeerXmlParser implements IRecipeParser {
       trimValues: true,
       // Array-Felder erzwingen, selbst wenn nur 1 Element vorhanden ist
       isArray: (name, jpath, isLeafNode, isAttribute) => {
-        const arrayTags = ['RECIPE', 'FERMENTABLE', 'HOP', 'YEAST', 'MISC', 'WATER'];
+        const arrayTags = ['RECIPE', 'FERMENTABLE', 'HOP', 'YEAST', 'MISC', 'WATER', 'MASH_STEP'];
         return arrayTags.includes(name.toUpperCase());
       }
     });
@@ -40,7 +40,12 @@ export class BeerXmlParser implements IRecipeParser {
         batch_size_liters: Number(recipe.BATCH_SIZE),
         boil_size_liters: Number(recipe.BOIL_SIZE),
         style_name: recipe.STYLE?.NAME,
-        ingredients: []
+        ingredients: [],
+        description: recipe.NOTES || undefined,
+        boil_time_minutes: recipe.BOIL_TIME != null ? Number(recipe.BOIL_TIME) : undefined,
+        fermentation_temp_c: recipe.PRIMARY_TEMP != null ? Number(recipe.PRIMARY_TEMP) : undefined,
+        efficiency: recipe.EFFICIENCY != null ? Number(recipe.EFFICIENCY) : undefined,
+        mash_steps: this.parseMashSteps(recipe.MASH),
       };
 
       // Fermentables (Malz)
@@ -116,6 +121,21 @@ export class BeerXmlParser implements IRecipeParser {
 
       return parsedRecipe;
     });
+  }
+
+  private parseMashSteps(mash: any): ParsedMashStep[] | undefined {
+    const steps = mash?.MASH_STEPS?.MASH_STEP;
+    if (!steps) return undefined;
+    const arr = Array.isArray(steps) ? steps : [steps];
+    const result = arr
+      .map((s: any): ParsedMashStep | null => {
+        const temp = Number(s.STEP_TEMP);
+        const time = Number(s.STEP_TIME);
+        if (isNaN(temp) || isNaN(time)) return null;
+        return { name: s.NAME || undefined, temperature_c: temp, duration_minutes: time };
+      })
+      .filter((s): s is ParsedMashStep => s !== null);
+    return result.length > 0 ? result : undefined;
   }
 
   private mapFermentableType(xmlType: string): BaseIngredientType {

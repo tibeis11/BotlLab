@@ -1,10 +1,13 @@
 'use client';
 
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { Star, Shuffle, Library, Share2, Heart, CheckCircle2, MessageCircle } from 'lucide-react';
+import { Star, Shuffle, Library, Share2, Heart, CheckCircle2, MessageCircle, Download, FileCode, FileJson, FileText } from 'lucide-react';
 import BrewActionButton from './BrewActionButton';
 import LikeButton from '@/app/components/LikeButton';
 import ReportButton from '@/app/components/reporting/ReportButton';
+import { exportBrew } from '@/lib/recipe-export';
+import { exportBrewPDF } from '@/lib/brew-pdf';
 
 interface BrewHeroProps {
   brew: any;
@@ -245,7 +248,7 @@ function HeroActionBar({
   copied: boolean;
 }) {
   return (
-    <div className="grid grid-cols-4 gap-1 w-full pt-2 lg:max-w-xs">
+    <div className="grid grid-cols-5 gap-1 w-full pt-2 lg:max-w-sm">
       <BrewActionButton
         icon={Shuffle}
         label="Remix"
@@ -283,6 +286,80 @@ function HeroActionBar({
         href={`/forum/create?categorySlug=rezepte&brewId=${brew.id}&title=${encodeURIComponent('Diskussion: ' + brew.name)}`}
         title="Im Forum diskutieren"
       />
+      <ExportDropdown brew={brew} />
+    </div>
+  );
+}
+
+function ExportDropdown({ brew }: { brew: any }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative flex flex-col items-center">
+      <button
+        onClick={() => setOpen(v => !v)}
+        title="Rezept exportieren"
+        className={[
+          'flex flex-col items-center justify-center gap-1.5 px-2 py-2 rounded-xl transition-all group w-full',
+          open
+            ? 'bg-surface/60 text-text-primary'
+            : 'bg-surface/0 text-text-secondary hover:text-text-primary hover:bg-surface/60',
+        ].join(' ')}
+      >
+        <div className="w-9 h-9 flex items-center justify-center">
+          <Download size={20} className="transition-transform group-hover:scale-110" />
+        </div>
+        <span className="text-[10px] font-bold uppercase tracking-wider leading-none text-text-muted group-hover:text-text-secondary">
+          Export
+        </span>
+      </button>
+
+      {open && (
+        <div className="absolute bottom-full mb-2 right-0 z-[60] w-48 bg-surface border border-border rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+          <button
+            onClick={() => { exportBrew(brew, 'beerxml'); setOpen(false); }}
+            className="flex items-center gap-3 w-full px-4 py-3 text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary transition-colors group/item"
+          >
+            <FileCode size={16} className="shrink-0 text-brand" />
+            <div className="text-left">
+              <p className="font-semibold leading-none text-text-primary">BeerXML</p>
+              <p className="text-[10px] text-text-muted mt-0.5">BeerSmith, Craftbeerpi</p>
+            </div>
+          </button>
+          <div className="h-px bg-border" />
+          <button
+            onClick={() => { exportBrew(brew, 'beerjson'); setOpen(false); }}
+            className="flex items-center gap-3 w-full px-4 py-3 text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary transition-colors group/item"
+          >
+            <FileJson size={16} className="shrink-0 text-brand" />
+            <div className="text-left">
+              <p className="font-semibold leading-none text-text-primary">BeerJSON</p>
+              <p className="text-[10px] text-text-muted mt-0.5">Brewfather, BrewTracker</p>
+            </div>
+          </button>
+          <div className="h-px bg-border" />
+          <button
+            onClick={() => { exportBrewPDF(brew); setOpen(false); }}
+            className="flex items-center gap-3 w-full px-4 py-3 text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary transition-colors group/item"
+          >
+            <FileText size={16} className="shrink-0 text-brand" />
+            <div className="text-left">
+              <p className="font-semibold leading-none text-text-primary">PDF</p>
+              <p className="text-[10px] text-text-muted mt-0.5">Drucken, Archivieren</p>
+            </div>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

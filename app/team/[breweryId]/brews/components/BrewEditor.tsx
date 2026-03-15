@@ -782,8 +782,10 @@ export default function BrewEditor({ breweryId, brewId, initialData }: { brewery
         };
 
         if (id === 'new') {
-            // Strip ingredients out before creating the initial raw brew wrapper
-            const rawPayload = { ...payload };
+            // Strip ingredients out before creating the initial raw brew wrapper.
+            // IMPORTANT: use a one-level-deeper copy so the deletes below don't also
+            // mutate payload.data (which is used by extractAndSaveRecipeIngredients below).
+            const rawPayload = { ...payload, data: { ...sanitizedData } };
             delete rawPayload.data?.malts;
             delete rawPayload.data?.hops;
             delete rawPayload.data?.yeast;

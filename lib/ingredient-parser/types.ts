@@ -18,6 +18,19 @@ export interface ParsedIngredient {
   notes?: string;
 }
 
+export interface ParsedMashStep {
+  name?: string;
+  temperature_c: number;
+  duration_minutes: number;
+  step_type?: 'rest' | 'decoction';
+  // Dekoktions-spezifisch
+  volume_liters?: number;
+  decoction_form?: 'thick' | 'thin' | 'liquid';
+  decoction_rest_temp?: number;
+  decoction_rest_time?: number;
+  decoction_boil_time?: number;
+}
+
 export interface ParsedRecipe {
   name: string;
   brewer?: string;
@@ -25,6 +38,14 @@ export interface ParsedRecipe {
   boil_size_liters?: number;
   style_name?: string;
   ingredients: ParsedIngredient[];
+  description?: string;
+  notes?: string;
+  boil_time_minutes?: number;
+  fermentation_temp_c?: number;
+  efficiency?: number;
+  mash_process?: string;
+  carbonation_g_l?: number;
+  mash_steps?: ParsedMashStep[];
 }
 
 export interface IRecipeParser {

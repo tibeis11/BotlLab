@@ -1,6 +1,24 @@
 import { supabase as browserClient } from "@/lib/supabase";
 import { SupabaseClient } from "@supabase/supabase-js";
 
+const FALLBACK_MASTER_IDS = new Set([
+  '00000000-0000-4000-a000-000000000001',
+  '00000000-0000-4000-a000-000000000002',
+  '00000000-0000-4000-a000-000000000003',
+  '00000000-0000-4000-a000-000000000004',
+]);
+
+// Gibt den "besten" Anzeigenamen zurück:
+// - Echter Master-Match → ingredient_master.name (sauber, kein Hersteller-Prefix)
+// - Fallback/kein Match → raw_name (Original-Eingabe)
+function displayName(i: any, fallback: string): string {
+  const masterName = (i.ingredient_master as any)?.name;
+  if (masterName && i.master_id && !FALLBACK_MASTER_IDS.has(i.master_id)) {
+    return masterName;
+  }
+  return i.raw_name || masterName || fallback;
+}
+
 // Caller can pass a server-side client; falls back to the browser client.
 type AnySupabaseClient = SupabaseClient<any, any, any>;
 
@@ -48,7 +66,7 @@ export async function mergeRecipeIngredientsIntoData(
   // Query recipe_ingredients for this brew
   const { data: ingredients, error } = await sb
     .from('recipe_ingredients')
-    .select('*, ingredient_master(name), ingredient_products(manufacturer)')
+    .select('*, ingredient_master(name, color_ebc, alpha_pct), ingredient_products(manufacturer, color_ebc, alpha_pct, attenuation_pct)')
     .eq('recipe_id', brewId);
   
   if (error || !ingredients) {
@@ -59,44 +77,55 @@ export async function mergeRecipeIngredientsIntoData(
   // Group by type and map back to Legacy interfaces
   const malts: LegacyMaltItem[] = ingredients
     .filter((i) => i.type === 'malt')
-    .map((i) => ({
-      id: i.id,
-      master_id: i.master_id || undefined,
-      product_id: i.product_id || undefined,
-      name: i.raw_name || (i.ingredient_master as any)?.name || 'Unbekanntes Malz',
-      manufacturer: (i.ingredient_products as any)?.manufacturer || undefined,
-      amount: i.amount || 0,
-      unit: i.unit || 'kg',
-      color: i.override_color_ebc || undefined
-    }));
+    .map((i) => {
+      const master = i.ingredient_master as any;
+      const product = i.ingredient_products as any;
+      return {
+        id: i.id,
+        master_id: i.master_id || undefined,
+        product_id: i.product_id || undefined,
+        name: displayName(i, 'Unbekanntes Malz'),
+        manufacturer: product?.manufacturer || undefined,
+        amount: i.amount || 0,
+        unit: i.unit || 'kg',
+        color: i.override_color_ebc ?? product?.color_ebc ?? master?.color_ebc ?? undefined,
+      };
+    });
 
   const hops: LegacyHopItem[] = ingredients
     .filter((i) => i.type === 'hop')
-    .map((i) => ({
-      id: i.id,
-      master_id: i.master_id || undefined,
-      product_id: i.product_id || undefined,
-      name: i.raw_name || (i.ingredient_master as any)?.name || 'Unbekannter Hopfen',
-      manufacturer: (i.ingredient_products as any)?.manufacturer || undefined,
-      amount: i.amount || 0,
-      unit: i.unit || 'g',
-      time: i.time_minutes || 0,
-      usage: i.usage || 'boil',
-      alpha: i.override_alpha || undefined
-    }));
+    .map((i) => {
+      const master = i.ingredient_master as any;
+      const product = i.ingredient_products as any;
+      return {
+        id: i.id,
+        master_id: i.master_id || undefined,
+        product_id: i.product_id || undefined,
+        name: displayName(i, 'Unbekannter Hopfen'),
+        manufacturer: product?.manufacturer || undefined,
+        amount: i.amount || 0,
+        unit: i.unit || 'g',
+        time: i.time_minutes || 0,
+        usage: i.usage || 'boil',
+        alpha: i.override_alpha ?? product?.alpha_pct ?? master?.alpha_pct ?? undefined,
+      };
+    });
 
   const yeast: LegacyYeastItem[] = ingredients
     .filter((i) => i.type === 'yeast')
-    .map((i) => ({
-      id: i.id,
-      master_id: i.master_id || undefined,
-      product_id: i.product_id || undefined,
-      name: i.raw_name || (i.ingredient_master as any)?.name || 'Unbekannte Hefe',
-      manufacturer: (i.ingredient_products as any)?.manufacturer || undefined,
-      amount: i.amount || 0,
-      unit: i.unit || 'pkg',
-      attenuation: i.override_attenuation || undefined
-    }));
+    .map((i) => {
+      const product = i.ingredient_products as any;
+      return {
+        id: i.id,
+        master_id: i.master_id || undefined,
+        product_id: i.product_id || undefined,
+        name: displayName(i, 'Unbekannte Hefe'),
+        manufacturer: product?.manufacturer || undefined,
+        amount: i.amount || 0,
+        unit: i.unit || 'pkg',
+        attenuation: i.override_attenuation ?? product?.attenuation_pct ?? undefined,
+      };
+    });
 
   // Re-inject simulating perfectly the old jsonb format for frontend sync math
   // We strictly fall back to brewData arrays in case this is unmigrated seed data!
@@ -143,7 +172,7 @@ export async function extractAndSaveRecipeIngredients(
       type: 'malt',
       amount: m.amount || null,
       unit: m.unit || 'kg',
-      override_color_ebc: m.color || null,
+      override_color_ebc: m.color_ebc || m.color || null,
       sort_order: i
     });
   }

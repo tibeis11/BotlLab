@@ -6,7 +6,7 @@ import { ArrowLeft, Upload, FileJson, AlertCircle, Loader2 } from 'lucide-react'
 import BrewEditor from '@/app/team/[breweryId]/brews/components/BrewEditor';
 import ImportMatchPreview from './ImportMatchPreview';
 import { importAndMatchRecipe } from '@/lib/actions/recipe-import';
-import type { ProcessedRecipe } from '@/lib/actions/recipe-import';
+import type { ProcessedRecipe, MatchedIngredient } from '@/lib/actions/recipe-import';
 import type { BrewForm } from '@/app/team/[breweryId]/brews/components/BrewEditor';
 
 type WizardStep = 'upload' | 'preview' | 'editor';
@@ -42,18 +42,41 @@ function mapRecipeToBrewForm(recipe: ProcessedRecipe): Partial<BrewForm> {
       name: i.match ? i.match.name : i.raw_name,
       amount: i.amount.toString(),
       unit: 'pkg',
-      attenuation: i.override_attenuation?.toString() || '',
+      attenuation: i.override_attenuation?.toString()
+        || (i.status === 'matched' ? i.match.attenuation_pct?.toString() : undefined)
+        || '',
     }));
 
   return {
     name: recipe.name || 'Importiertes Rezept',
     style: recipe.style_name || '',
     brew_type: 'beer' as const,
+    description: recipe.description || '',
     data: {
       batch_size_liters: recipe.batch_size_liters?.toString() || '',
+      boil_time: recipe.boil_time_minutes?.toString() || '',
+      primary_temp: recipe.fermentation_temp_c?.toString() || '',
+      efficiency: recipe.efficiency?.toString() || '',
+      mash_process: !recipe.mash_process ? ''
+        : recipe.mash_process === 'decoction' ? 'decoction'
+        : (recipe.mash_steps?.length ?? 0) > 1 ? 'step_mash'
+        : 'infusion',
+      carbonation_g_l: recipe.carbonation_g_l?.toString() || '',
+      notes: recipe.notes || '',
       malts,
       hops,
       yeast: yeasts,
+      mash_steps: (recipe.mash_steps ?? []).map(s => ({
+        name: s.name || 'Rast',
+        temperature: s.temperature_c.toString(),
+        duration: s.duration_minutes.toString(),
+        step_type: (s.step_type ?? 'rest') as 'rest' | 'decoction' | 'mashout' | 'strike',
+        ...(s.volume_liters != null && { volume_liters: s.volume_liters.toString() }),
+        ...(s.decoction_form != null && { decoction_form: s.decoction_form }),
+        ...(s.decoction_rest_temp != null && { decoction_rest_temp: s.decoction_rest_temp.toString() }),
+        ...(s.decoction_rest_time != null && { decoction_rest_time: s.decoction_rest_time.toString() }),
+        ...(s.decoction_boil_time != null && { decoction_boil_time: s.decoction_boil_time.toString() }),
+      })),
     },
   };
 }
@@ -104,6 +127,15 @@ export default function ImportWizardPage({ params }: { params: Promise<{ brewery
     setMatchedRecipe(null);
     setImportedData(null);
     setError(null);
+  };
+
+  const handleIngredientUpdate = (index: number, updated: MatchedIngredient) => {
+    setMatchedRecipe(prev => {
+      if (!prev) return prev;
+      const ingredients = [...prev.ingredients];
+      ingredients[index] = updated;
+      return { ...prev, ingredients };
+    });
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -187,6 +219,7 @@ export default function ImportWizardPage({ params }: { params: Promise<{ brewery
           recipe={matchedRecipe}
           onConfirm={confirmImport}
           onCancel={resetToUpload}
+          onIngredientUpdate={handleIngredientUpdate}
         />
       </main>
     );

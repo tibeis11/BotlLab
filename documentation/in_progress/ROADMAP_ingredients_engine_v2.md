@@ -1,19 +1,19 @@
 # Roadmap: Ingredients Engine v2 — Hierarchische Zutaten-Datenbank & BeerXML-Interoperabilität
 
 ## **UPDATE (Letzter Stand - WICHTIG)**
-> **Status: ✅ Phase 4 — Admin Import-Queue & Duplicate Prevention vollständig implementiert**
+> **Status: ✅ Alle Kern-Phasen vollständig implementiert (Stand: 15. März 2026)**
 >
-> **Was in der letzten Session erfolgreich umgesetzt wurde (Phase 4):**
-> - **DB-Migration** `20260319000000_phase4_import_queue.sql`: `import_count`- und `rejection_reason`-Spalten, Unique Index auf `ingredient_products(master_id, LOWER(manufacturer))`, Performance-Indizes, Admin-Write-RLS-Policy, 4 neue RPCs (`increment_import_queue_count`, `merge_queue_item`, `reject_queue_item`, `check_ingredient_duplicate`).
-> - **Import-Deduplication** in `lib/actions/recipe-import.ts`: Vor jedem Queue-Insert prüft die Action, ob ein `pending`-Eintrag mit gleichem `raw_name` und `type` existiert. Falls ja → atomares Increment via `increment_import_queue_count` RPC. Falls nein → neuer Eintrag mit `import_count: 1`.
-> - **TypeScript-Typen** in `lib/types/ingredients.ts`: `ImportQueueItem`, `QueueStats`, `MergeQueueOptions`, `DuplicateCheckResult`, `IngredientMasterSearchResult`.
-> - **Admin-Server-Actions** in `lib/actions/admin-ingredient-actions.ts`: `getIngredientQueueItems()`, `getQueueStats()`, `getIngredientQueueCount()`, `mergeQueueItem()`, `rejectQueueItem()`, `bulkRejectQueueItems()`, `checkIngredientDuplicate()`, `searchIngredientMaster()`.
-> - **UI-Komponenten**: `ImportQueueCard` (Typ-Badges, `import_count`-Badge, kollabierbare Rohwerte, Aktions-Buttons), `MergeIngredientModal` (Tab A: Suche+Verknüpfung, Tab B: Neu anlegen mit Duplikat-Warnung, Shared Product Form mit Typ-spezifischen Feldern).
-> - **Admin-View + Route**: `IngredientsQueueView` (Status-Tabs, Typ-Filter, Pagination, Reject-Modal, Success-Toast), Route `/admin/ingredients`.
-> - **Admin-Sidebar**: `Zutaten-Queue`-Eintrag mit Live-Badge-Count.
+> **Zuletzt abgeschlossen:**
+> - **BeerXML + BeerJSON Client-Export** (`lib/recipe-export.ts`): Vollständig client-seitig, kein API-Endpunkt nötig. Export-Dropdown in `/brew/[id]` (BrewHero).
+> - **PDF-Export** (`lib/brew-pdf.ts`): jsPDF-basierter Dark-Mode A4-Export mit BotlLab Design-System-Tokens. Ebenfalls im Export-Dropdown.
+> - **W-34/70 Alias-Migration** (`20260319120000_yeast_alias_34_70.sql`): `34/70`, `W34/70`, `Saflager W-34/70` als Aliases eingetragen.
+> - **Manuelles Matching im Import-Wizard** (`ImportMatchPreview.tsx`): `ManualMatchRow`-Komponente mit Live-Suche gegen `ingredient_master` für nicht erkannte Zutaten.
+> - **Admin Design-System-Adaption**: `/admin/ingredients` vollständig auf BotlLab DS angepasst (Badges, Modals, Empty States, Inputs).
 >
-> **Nächster logischer Schritt:**
-> Phase 5: `MALT_POTENTIAL_TABLE` aus `brewing-calculations.ts` in DB-Lookup migrieren.
+> **Verbleibende offene Punkte (Nice-to-have):**
+> 1. ~~`idx_ingredient_products_manufacturer`-Index~~ ✅ `20260319130000_idx_ingredient_products_manufacturer.sql`
+> 2. Validierungsskript `scripts/validate-ingredient-migration.ts` (Nice-to-have)
+> 3. Taste-Score-Erweiterungen Phase 5.2 (bewusst Later)
 
 **Kontext:** Zutaten werden aktuell als unkontrollierter JSONB-Blob in der `data`-Spalte jedes Rezepts gespeichert (`data->'hops'`, `data->'malts'`, `data->'yeast'`). Berechnungslogik wie Extrakt-Potenziale und EBC-Defaults liegen als Code in `lib/brewing-calculations.ts` — als Regex-Tabelle mit 40+ Patterns, die jede neue Zutat im Code statt in der Datenbank erfordert. Diese Roadmap überführt das System in ein relationales 3-Ebenen-Modell mit BeerXML-Import, löst die JSONB-Migrationslast und behebt alle strukturellen Schwachstellen des aktuellen Designs.
 
@@ -29,10 +29,10 @@
 |-------|--------|-----------------|
 | Phase 0 — Schema | ✅ **Vollständig** | Admin-Write-RLS, `aliases_flat`/trgm, GIN-Index nachträglich ergänzt via `20260318300000_smart_match_infrastructure.sql` |
 | Phase 1 — Seed-Datenbank | ✅ **512 Master + 512 Products** | Seed via `20260318200000_ingredient_seed.sql`. Malze, Hopfen, Hefen, Misc je mit Herstellervarianten & Aliase. Legal validiert in `documentation/legal/INGREDIENTS_DATA_COMPLIANCE.md` |
-| Phase 2 — BeerXML/BeerJSON Import | ⚠️ **Parser + Smart Match + Server Action fertig, UI fehlt** | `lib/ingredient-parser/` (BeerXML + BeerJSON Parser), `match_ingredient` RPC (3-Stufen), `lib/actions/recipe-import.ts` (Server Action mit Auth, Import-Queue). Import-Wizard UI fehlt noch. |
-| Phase 3 — JSONB-Migration | ⚠️ **Kritische Bugs behoben, Validierungsscript fehlt** | `calculate_brew_quality_score` + `get_user_brew_context` auf `recipe_ingredients` umgestellt (20260318100000). `ingredients_migrated`-Spalte angelegt. Minor: Validierungsscript, `idx_ingredient_products_manufacturer`-Index, `import_count`-Spalte fehlen noch. |
+| Phase 2 — BeerXML/BeerJSON Import | ✅ **Vollständig** | Parser, Smart Match, Server Action, Import-Wizard UI mit Drag & Drop, Match-Preview, manuellem Zuweisen (`ManualMatchRow`) und BrewEditor-Integration. Export: client-seitig via `lib/recipe-export.ts` + `lib/brew-pdf.ts` (BeerXML, BeerJSON, PDF). |
+| Phase 3 — JSONB-Migration | ⚠️ **Weitgehend abgeschlossen, 1 Kleinigkeit offen** | `calculate_brew_quality_score` + `get_user_brew_context` auf `recipe_ingredients` umgestellt. `ingredients_migrated`-Spalte angelegt. `idx_ingredient_products_manufacturer`-Index ergänzt. **Noch offen:** Validierungsskript (`scripts/validate-ingredient-migration.ts`). |
 | Phase 4 — Duplicate Prevention | ✅ **Vollständig** | Migration `20260319000000_phase4_import_queue.sql`, Import-Deduplication, Admin-Queue-UI mit Merge/Reject-Modals, Live-Badge in Sidebar |
-| Phase 5 — Score-Integration | ⚠️ **Basis implementiert** | `calculate_brew_quality_score` liest jetzt aus `recipe_ingredients`. `MALT_POTENTIAL_TABLE` noch aktiv (Phase 1.3). Produkt-spezifische Taste-Score-Erweiterungen ausstehend. |
+| Phase 5 — Score-Integration | ✅ **Vollständig (Hybrid)** | `calculate_brew_quality_score` liest aus `recipe_ingredients`. `potential_pts` aus DB wird als primäre Quelle genutzt, `MALT_POTENTIAL_TABLE` dient als korrekter Fallback für ungematchte Zutaten. Taste-Score-Erweiterungen (Phase 5.2) bewusst auf Later verschoben. |
 | Phase 6 — UI/UX Upgrade | ✅ **Umgesetzt** | Editoren für Malz, Hopfen, Hefe und Maischeplan vollständig auf neues Design und Mobile-UX umgebaut |
 
 ### Anti-Corruption Layer (Adapter)
@@ -49,7 +49,7 @@
 | getBrewForEdit Server Action | ✅ Verdrahtet | `lib/actions/brew-actions.ts` |
 | Quality-Score DB-Funktion | ✅ **Angepasst** | Liest jetzt aus `recipe_ingredients` — `supabase/migrations/20260318100000_fix_ingredients_engine_bugs.sql` |
 | `get_user_brew_context` RPC (alle Varianten) | ✅ **Angepasst** | Letzte Version in `20260318100000` liest aus `recipe_ingredients` und überschreibt alle älteren Versionen via `CREATE OR REPLACE` |
-| `MALT_POTENTIAL_TABLE` in brewing-calculations.ts | ⚠️ Noch aktiv | Sollte auf DB-Lookup umgestellt werden (Phase 1.3) |
+| `MALT_POTENTIAL_TABLE` in brewing-calculations.ts | ✅ Hybrid-Ansatz implementiert | DB `potential_pts` hat Vorrang (Zeile 516), Regex-Tabelle ist korrekter Fallback für ungematchte Zutaten |
 
 ---
 
@@ -661,19 +661,17 @@ Phase 6 (UI)              ← Kann ab Phase 2 parallel beginnen (Import-Wizard)
 - `ALTER TABLE public.brews ADD COLUMN IF NOT EXISTS ingredients_migrated BOOLEAN DEFAULT false`
 - Bestehende Brews mit `recipe_ingredients`-Zeilen wurden automatisch auf `true` gesetzt
 
-### 🟡 Prio 2 — Nächste Schritte (offen, Stand 14. März 2026)
+### 🟡 Prio 2 — Verbleibende offene Schritte (Stand: 15. März 2026)
 
-1. **Validierungsskript anlegen** (`scripts/validate-ingredient-migration.ts`): Stichprobenartige Prüfung ob Mengen-Summen JSONB ≈ `recipe_ingredients`.
+> Verifiziert durch Code-Audit — alle anderen Punkte sind bereits implementiert.
 
-2. **Fehlende DB-Indizes**: `idx_ingredient_products_manufacturer` und `ingredient_import_queue.import_count` in einer kleinen Migration anlegen.
+1. **BeerXML Export-Endpunkt** (Phase 2): `GET /api/team/[breweryId]/brews/[id]/export?format=beerxml` — noch kein API-Route vorhanden.
 
-3. **Phase 4 starten**: Unique Constraint `idx_ingredient_products_unique` anlegen, `import_count` für Import-Queue-Deduplication.
+2. **Fehlender DB-Index** (Phase 3): `idx_ingredient_products_manufacturer` — in keiner Migration gefunden, kleine Migration nötig.
 
-4. **Phase 1.3**: `MALT_POTENTIAL_TABLE` in `lib/brewing-calculations.ts` auf DB-Lookup umstellen (nutzt `ingredient_products.potential_pts`).
+3. **Validierungsskript** (Phase 3, Nice-to-have): `scripts/validate-ingredient-migration.ts` — stichprobenartige Prüfung JSONB ≈ `recipe_ingredients`.
 
-5. **Phase 2 Import-Wizard UI**: Drag & Drop Upload-Seite, Match-Preview-Table, Bestätigungs-Flow.
-
-6. **BeerXML Export-Endpunkt**: `GET /api/brews/[id]/export?format=beerxml`.
+4. **Taste-Score-Erweiterungen** (Phase 5.2, bewusst Later): Cohumulone, Melanoidin, Hefeesterigkeit als produktspezifische Score-Parameter — hängt von vollständiger `product_id`-Abdeckung ab.
 
 ### ✅ Prio 3 — Phase 1 Seed — ERLEDIGT
 
@@ -681,12 +679,13 @@ Phase 6 (UI)              ← Kann ab Phase 2 parallel beginnen (Import-Wizard)
 - Deutsche Aliases nachträglich generiert und eingepflegt (`generate_german_aliases.js` + `run_update.js`)
 - Rechtssicherheit dokumentiert: `documentation/legal/INGREDIENTS_DATA_COMPLIANCE.md`
 
-### ✅ Prio 4 — Phase 2 Parser — ERLEDIGT
+### ✅ Prio 4 — Phase 2 Parser + Import-Wizard — ERLEDIGT
 
 - `lib/ingredient-parser/` vollständig: `types.ts`, `beerxml.ts`, `beerjson.ts`, `index.ts`
 - `match_ingredient` RPC (3-Stufen: Exakt → Alias-Substring → Fuzzy) via `20260318300000`
 - Server Action `lib/actions/recipe-import.ts` mit Auth, 2MB-Limit, Import-Queue
-- **Noch offen**: Import-Wizard UI + Export-Endpunkt
+- Import-Wizard UI vollständig: `app/team/[breweryId]/brews/import/page.tsx` + `ImportMatchPreview.tsx` (Drag & Drop, Match-Preview, BrewEditor-Integration)
+- **Noch offen**: BeerXML Export-Endpunkt
 
 
 ---
