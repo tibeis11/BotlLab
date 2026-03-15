@@ -12,9 +12,9 @@ BEGIN
 
   UPDATE public.ingredient_master
   SET
-    color_ebc     = (SELECT AVG(color_ebc)     FROM public.ingredient_products WHERE master_id = v_master_id AND color_ebc     IS NOT NULL),
-    alpha_pct     = (SELECT AVG(alpha_pct)     FROM public.ingredient_products WHERE master_id = v_master_id AND alpha_pct     IS NOT NULL),
-    potential_pts = (SELECT AVG(potential_pts) FROM public.ingredient_products WHERE master_id = v_master_id AND potential_pts IS NOT NULL)
+    color_ebc     = ROUND((SELECT AVG(color_ebc)     FROM public.ingredient_products WHERE master_id = v_master_id AND color_ebc     IS NOT NULL)::NUMERIC, 1),
+    alpha_pct     = ROUND((SELECT AVG(alpha_pct)     FROM public.ingredient_products WHERE master_id = v_master_id AND alpha_pct     IS NOT NULL)::NUMERIC, 1),
+    potential_pts = ROUND((SELECT AVG(potential_pts) FROM public.ingredient_products WHERE master_id = v_master_id AND potential_pts IS NOT NULL)::NUMERIC, 1)
   WHERE id = v_master_id;
 
   RETURN NEW;
@@ -35,9 +35,9 @@ SET
 FROM (
   SELECT
     master_id,
-    AVG(color_ebc)     AS avg_color_ebc,
-    AVG(alpha_pct)     AS avg_alpha_pct,
-    AVG(potential_pts) AS avg_potential_pts
+    ROUND(AVG(color_ebc)::NUMERIC,     1) AS avg_color_ebc,
+    ROUND(AVG(alpha_pct)::NUMERIC,     1) AS avg_alpha_pct,
+    ROUND(AVG(potential_pts)::NUMERIC, 1) AS avg_potential_pts
   FROM public.ingredient_products
   GROUP BY master_id
 ) agg
