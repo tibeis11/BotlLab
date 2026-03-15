@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, TrendingUp, FileText, DollarSign, QrCode, BookOpen, Mail,
   Shield, AlertTriangle, Scale, ClipboardList, Palette,
-  Server, Activity, Settings2, Search, Key, UserCog, Wrench,
+  Server, Activity, Settings2, Search, Key, UserCog, Wrench, Package,
 } from 'lucide-react'
 import type { AdminRole } from '@/lib/admin-auth'
 import type { AdminArea } from './AdminShell'
@@ -15,7 +15,7 @@ interface SidebarConfig {
   label: string
   href: string
   Icon: React.ElementType
-  badgeKey?: 'alerts' | 'moderation'
+  badgeKey?: 'alerts' | 'moderation' | 'ingredientQueue'
   superAdminOnly?: boolean
 }
 
@@ -27,6 +27,7 @@ const COMMAND_CENTER_NAV: SidebarConfig[] = [
   { id: 'scans', label: 'Scans & CIS', href: '/admin/scans', Icon: QrCode },
   { id: 'botlguide', label: 'BotlGuide', href: '/admin/botlguide', Icon: BookOpen },
   { id: 'email', label: 'E-Mail-Zustellung', href: '/admin/email', Icon: Mail },
+  { id: 'ingredients', label: 'Zutaten-Queue', href: '/admin/ingredients', Icon: Package, badgeKey: 'ingredientQueue' },
 ]
 
 const MODERATION_NAV: SidebarConfig[] = [
@@ -58,9 +59,10 @@ interface AdminSidebarProps {
   role: AdminRole
   alertCount: number
   moderationCount: number
+  ingredientQueueCount: number
 }
 
-export default function AdminSidebar({ activeArea, role, alertCount, moderationCount }: AdminSidebarProps) {
+export default function AdminSidebar({ activeArea, role, alertCount, moderationCount, ingredientQueueCount }: AdminSidebarProps) {
   const pathname = usePathname()
   const isSuperAdmin = role === 'super_admin'
 
@@ -69,9 +71,10 @@ export default function AdminSidebar({ activeArea, role, alertCount, moderationC
     return true
   })
 
-  function getBadge(badgeKey?: 'alerts' | 'moderation') {
+  function getBadge(badgeKey?: 'alerts' | 'moderation' | 'ingredientQueue') {
     if (badgeKey === 'alerts') return alertCount
     if (badgeKey === 'moderation') return moderationCount
+    if (badgeKey === 'ingredientQueue') return ingredientQueueCount
     return 0
   }
 

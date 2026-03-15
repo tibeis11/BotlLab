@@ -1,17 +1,19 @@
 # Roadmap: Ingredients Engine v2 — Hierarchische Zutaten-Datenbank & BeerXML-Interoperabilität
 
 ## **UPDATE (Letzter Stand - WICHTIG)**
-> **Status: ✅ UI-Refactoring, Sorte/Hersteller Split & Deutsche Aliasse Implementiert**
-> 
-> **Was in der letzten Session erfolgreich umgesetzt wurde (Phase 2 & 3 UI-Polishing):**
-> - **Architektur-Split im UI:** Strikte Trennung von "Sorte" (Master Ingredient) und "Hersteller" (Product Ingredient) in den Editoren (`MaltListEditor`, `HopListEditor`, `YeastListEditor`). Die UI zwingt den User dazu, erst eine Sorte zu wählen, bevor herstellerspezifische Daten ausgewählt werden.
-> - **Deutsche Aliasse:** Die Migration `20260318600000_german_aliases.sql` wurde erstellt und lokal ausgeführt. Sie integriert deutsche Übersetzungen für generische Malz- und Hopfensorten, was den `Smart Match` erheblich verbessert.
-> - **UI-Layering / Z-Index Fix:** Die Comboboxen der Ingredient-Listen überlappten sich fehlerhaft. Dies wurde mit `relative focus-within:z-[60]` in den List-Editoren behoben.
-> - **Lokale Sandbox vs. Prod:** Es wurde strikt darauf geachtet, dass Datenbank-Änderungen und Tests ausschließlich in der lokalen Supabase-Umgebung (`npx supabase db reset`) stattfinden. Ein Push nach Prod (`npx supabase db push --include-all --yes`) verursachte einen alten Foreign Key Constraint Fehler zu `ingredient_master`, den wir ignorieren, da die Entwicklung rein lokal weitergeht.
-> - **Krisenmanagement:** Ein `git restore` Unfall, der die UI-Komponenten temporär gelöscht hatte, wurde durch Extraktion der Code-Stände aus der _VS Code Local History_ vollständig restoriert und gerettet.
-> 
+> **Status: ✅ Phase 4 — Admin Import-Queue & Duplicate Prevention vollständig implementiert**
+>
+> **Was in der letzten Session erfolgreich umgesetzt wurde (Phase 4):**
+> - **DB-Migration** `20260319000000_phase4_import_queue.sql`: `import_count`- und `rejection_reason`-Spalten, Unique Index auf `ingredient_products(master_id, LOWER(manufacturer))`, Performance-Indizes, Admin-Write-RLS-Policy, 4 neue RPCs (`increment_import_queue_count`, `merge_queue_item`, `reject_queue_item`, `check_ingredient_duplicate`).
+> - **Import-Deduplication** in `lib/actions/recipe-import.ts`: Vor jedem Queue-Insert prüft die Action, ob ein `pending`-Eintrag mit gleichem `raw_name` und `type` existiert. Falls ja → atomares Increment via `increment_import_queue_count` RPC. Falls nein → neuer Eintrag mit `import_count: 1`.
+> - **TypeScript-Typen** in `lib/types/ingredients.ts`: `ImportQueueItem`, `QueueStats`, `MergeQueueOptions`, `DuplicateCheckResult`, `IngredientMasterSearchResult`.
+> - **Admin-Server-Actions** in `lib/actions/admin-ingredient-actions.ts`: `getIngredientQueueItems()`, `getQueueStats()`, `getIngredientQueueCount()`, `mergeQueueItem()`, `rejectQueueItem()`, `bulkRejectQueueItems()`, `checkIngredientDuplicate()`, `searchIngredientMaster()`.
+> - **UI-Komponenten**: `ImportQueueCard` (Typ-Badges, `import_count`-Badge, kollabierbare Rohwerte, Aktions-Buttons), `MergeIngredientModal` (Tab A: Suche+Verknüpfung, Tab B: Neu anlegen mit Duplikat-Warnung, Shared Product Form mit Typ-spezifischen Feldern).
+> - **Admin-View + Route**: `IngredientsQueueView` (Status-Tabs, Typ-Filter, Pagination, Reject-Modal, Success-Toast), Route `/admin/ingredients`.
+> - **Admin-Sidebar**: `Zutaten-Queue`-Eintrag mit Live-Badge-Count.
+>
 > **Nächster logischer Schritt:**
-> Phase 4: Admin Import-Queue Handling für unbekannte Zutaten.
+> Phase 5: `MALT_POTENTIAL_TABLE` aus `brewing-calculations.ts` in DB-Lookup migrieren.
 
 **Kontext:** Zutaten werden aktuell als unkontrollierter JSONB-Blob in der `data`-Spalte jedes Rezepts gespeichert (`data->'hops'`, `data->'malts'`, `data->'yeast'`). Berechnungslogik wie Extrakt-Potenziale und EBC-Defaults liegen als Code in `lib/brewing-calculations.ts` — als Regex-Tabelle mit 40+ Patterns, die jede neue Zutat im Code statt in der Datenbank erfordert. Diese Roadmap überführt das System in ein relationales 3-Ebenen-Modell mit BeerXML-Import, löst die JSONB-Migrationslast und behebt alle strukturellen Schwachstellen des aktuellen Designs.
 
@@ -29,7 +31,7 @@
 | Phase 1 — Seed-Datenbank | ✅ **512 Master + 512 Products** | Seed via `20260318200000_ingredient_seed.sql`. Malze, Hopfen, Hefen, Misc je mit Herstellervarianten & Aliase. Legal validiert in `documentation/legal/INGREDIENTS_DATA_COMPLIANCE.md` |
 | Phase 2 — BeerXML/BeerJSON Import | ⚠️ **Parser + Smart Match + Server Action fertig, UI fehlt** | `lib/ingredient-parser/` (BeerXML + BeerJSON Parser), `match_ingredient` RPC (3-Stufen), `lib/actions/recipe-import.ts` (Server Action mit Auth, Import-Queue). Import-Wizard UI fehlt noch. |
 | Phase 3 — JSONB-Migration | ⚠️ **Kritische Bugs behoben, Validierungsscript fehlt** | `calculate_brew_quality_score` + `get_user_brew_context` auf `recipe_ingredients` umgestellt (20260318100000). `ingredients_migrated`-Spalte angelegt. Minor: Validierungsscript, `idx_ingredient_products_manufacturer`-Index, `import_count`-Spalte fehlen noch. |
-| Phase 4 — Duplicate Prevention | ❌ **Nicht gestartet** | Unique Constraint, `import_count`-Spalte und Pre-Insert-Check UI fehlen noch |
+| Phase 4 — Duplicate Prevention | ✅ **Vollständig** | Migration `20260319000000_phase4_import_queue.sql`, Import-Deduplication, Admin-Queue-UI mit Merge/Reject-Modals, Live-Badge in Sidebar |
 | Phase 5 — Score-Integration | ⚠️ **Basis implementiert** | `calculate_brew_quality_score` liest jetzt aus `recipe_ingredients`. `MALT_POTENTIAL_TABLE` noch aktiv (Phase 1.3). Produkt-spezifische Taste-Score-Erweiterungen ausstehend. |
 | Phase 6 — UI/UX Upgrade | ✅ **Umgesetzt** | Editoren für Malz, Hopfen, Hefe und Maischeplan vollständig auf neues Design und Mobile-UX umgebaut |
 
@@ -508,14 +510,9 @@ Erst wenn 100 % der Rezepte migriert und validiert sind, wird in der Applikation
 
 ## Phase 4 — Duplicate Prevention
 
-> **Status: ❌ Nicht implementiert**
+> **Status: ✅ Vollständig implementiert (15. März 2026)**
 >
-> Abhängig von Phase 1 (echter Seed ✅ vorhanden) und Phase 3 (stabiler Cutover ⚠️ weitgehend erreicht). Kann jetzt angegangen werden.
->
-> **Noch nicht umgesetzt:**
-> - `CREATE UNIQUE INDEX idx_ingredient_products_unique` fehlt
-> - `ALTER TABLE ingredient_import_queue ADD COLUMN import_count` fehlt
-> - Pre-Insert-Check im Admin-UI fehlt
+> Migration `20260319000000_phase4_import_queue.sql` lokal ausgeführt. Admin-Import-Queue UI, Merge/Reject-Flow und alle RPCs fertiggestellt.
 
 ### 4.1 — Constraint-basierte Eindeutigkeit
 

@@ -7,6 +7,7 @@ import AdminSidebar from './AdminSidebar'
 import ErrorBoundary from './ErrorBoundary'
 import type { AdminRole } from '@/lib/admin-auth'
 import { getUnacknowledgedAlertCount, getPendingModerationCount } from '@/lib/actions/analytics-admin-actions'
+import { getIngredientQueueCount } from '@/lib/actions/admin-ingredient-actions'
 
 export type AdminArea = 'command-center' | 'moderation' | 'settings'
 
@@ -27,6 +28,7 @@ export default function AdminShell({ role, userId, children }: AdminShellProps) 
   const pathname = usePathname()
   const [alertCount, setAlertCount] = useState(0)
   const [moderationCount, setModerationCount] = useState(0)
+  const [ingredientQueueCount, setIngredientQueueCount] = useState(0)
 
   // Determine active area from URL
   const activeArea: AdminArea = pathname.startsWith('/admin/moderation')
@@ -39,9 +41,11 @@ export default function AdminShell({ role, userId, children }: AdminShellProps) 
     Promise.all([
       getUnacknowledgedAlertCount().catch(() => 0),
       getPendingModerationCount().catch(() => 0),
-    ]).then(([alerts, moderation]) => {
+      getIngredientQueueCount().catch(() => 0),
+    ]).then(([alerts, moderation, ingredientQueue]) => {
       setAlertCount(alerts)
       setModerationCount(moderation)
+      setIngredientQueueCount(ingredientQueue)
     })
   }, [])
 
@@ -59,6 +63,7 @@ export default function AdminShell({ role, userId, children }: AdminShellProps) 
           role={role}
           alertCount={alertCount}
           moderationCount={moderationCount}
+          ingredientQueueCount={ingredientQueueCount}
         />
         <main id="main-content" className="flex-1 overflow-y-auto p-8">
           <div className="max-w-[1400px] mx-auto">

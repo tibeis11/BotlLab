@@ -63,7 +63,7 @@ export async function importAndMatchRecipe(formData: FormData) {
 
     // 2. Zutaten abgleichen (Smart Match)
     const processedIngredients: MatchedIngredient[] = [];
-    const unmatchedForQueue: { raw_name: string; type: string }[] = [];
+    const unmatchedForQueue: { raw_name: string; type: string; raw_data: Record<string, unknown> }[] = [];
 
     for (const ing of recipe.ingredients) {
       if (ing.type === 'water') {
@@ -96,20 +96,52 @@ export async function importAndMatchRecipe(formData: FormData) {
           ...ing,
           status: 'unmatched'
         });
-        unmatchedForQueue.push({ raw_name: ing.raw_name, type: ing.type });
+        unmatchedForQueue.push({
+          raw_name: ing.raw_name,
+          type: ing.type,
+          raw_data: {
+            amount: ing.amount,
+            unit: ing.unit,
+            ...(ing.time_minutes != null && { time_minutes: ing.time_minutes }),
+            ...(ing.usage != null && { usage: ing.usage }),
+            ...(ing.override_alpha != null && { alpha_pct: ing.override_alpha }),
+            ...(ing.override_color_ebc != null && { color_ebc: ing.override_color_ebc }),
+            ...(ing.override_attenuation != null && { attenuation_pct: ing.override_attenuation }),
+          },
+        });
       }
     }
 
     // 3. Unbekannte Zutaten in die Import-Queue schreiben (max. 50 pro Import)
+    // Deduplizierung: gleicher raw_name + type → import_count erhöhen statt neue Row
     if (unmatchedForQueue.length > 0) {
       const limitedQueue = unmatchedForQueue.slice(0, 50);
       for (const item of limitedQueue) {
-        await supabase.from('ingredient_import_queue').insert({
-          raw_name: item.raw_name,
-          type: item.type,
-          imported_by: user.id,
-          status: 'pending'
-        });
+        // Deduplizierung: existierenden pending-Eintrag suchen und Zähler erhöhen
+        const { data: existing } = await supabase
+          .from('ingredient_import_queue')
+          .select('id')
+          .eq('status', 'pending')
+          .ilike('raw_name', item.raw_name)
+          .eq('type', item.type)
+          .maybeSingle();
+
+        if (existing) {
+          // Atomares Increment via RPC (neue Spalte noch nicht in generierten Typen)
+          await supabase.rpc('increment_import_queue_count' as any, {
+            p_queue_id: existing.id,
+          });
+        } else {
+          // Neue Row — neue Spalten via Cast einfügen bis Typen regeneriert
+          await (supabase.from('ingredient_import_queue') as any).insert({
+            raw_name: item.raw_name,
+            type: item.type,
+            raw_data: item.raw_data,
+            imported_by: user.id,
+            status: 'pending',
+            import_count: 1,
+          });
+        }
       }
     }
 
