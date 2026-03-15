@@ -10,12 +10,13 @@ import type { ParsedMashStep } from '@/lib/ingredient-parser/types';
 // 0=Manuell, 1=Exakt (Produkt), 2=Alias (Master/Alias), 3=Alias-Substring,
 // 4=Fuzzy Produkt, 5=Fuzzy Master
 const MATCH_LEVEL_CONFIG: Record<number, { label: string; className: string }> = {
-  0: { label: 'Manuell', className: 'text-violet-400 bg-violet-500/10 border-violet-500/20' },
-  1: { label: 'Exakt',   className: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
-  2: { label: 'Alias',   className: 'text-cyan-400 bg-cyan-950/20 border-cyan-900/30' },
-  3: { label: 'Alias',   className: 'text-cyan-400 bg-cyan-950/20 border-cyan-900/30' },
-  4: { label: 'Fuzzy',   className: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
-  5: { label: 'Fuzzy',   className: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
+  0:  { label: 'Manuell', className: 'text-violet-400 bg-violet-500/10 border-violet-500/20' },
+  1:  { label: 'Exakt',   className: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
+  2:  { label: 'Alias',   className: 'text-cyan-400 bg-cyan-950/20 border-cyan-900/30' },
+  3:  { label: 'Alias',   className: 'text-cyan-400 bg-cyan-950/20 border-cyan-900/30' },
+  4:  { label: 'Fuzzy',   className: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
+  5:  { label: 'Fuzzy',   className: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
+  99: { label: 'Gewürz',  className: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
 };
 
 const TYPE_FALLBACK: Record<string, string> = {
@@ -23,6 +24,7 @@ const TYPE_FALLBACK: Record<string, string> = {
   hop:   'Unbekannter Hopfen',
   yeast: 'Unbekannte Hefe',
   misc:  'Unbekannte Zutat',
+  spice: 'Gewürz',
 };
 
 interface MasterOption {
@@ -100,7 +102,7 @@ function ManualMatchRow({
       <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/5 border border-amber-500/15">
         <div className="flex-1 min-w-0">
           <p className="text-amber-200/70 text-sm font-medium truncate">{ing.raw_name}</p>
-          <p className="text-zinc-500 text-xs">{TYPE_FALLBACK[ing.type] ?? 'Unbekannte Zutat'}</p>
+          <p className="text-zinc-500 text-xs">{ing.usage === 'spice' ? 'Gewürz' : (TYPE_FALLBACK[ing.type] ?? 'Unbekannte Zutat')}</p>
         </div>
         <button
           onClick={openSearch}

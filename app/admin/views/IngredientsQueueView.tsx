@@ -8,11 +8,13 @@ import {
   getIngredientQueueItems,
   getQueueStats,
   rejectQueueItem,
+  getIngredientUsageStats,
+  type IngredientUsageStat,
 } from '@/lib/actions/admin-ingredient-actions';
 import ImportQueueCard from './components/ImportQueueCard';
 import MergeIngredientModal from './components/MergeIngredientModal';
 
-type StatusTab = 'pending' | 'merged' | 'rejected';
+type StatusTab = 'pending' | 'merged' | 'rejected' | 'stats';
 type TypeFilter = 'all' | 'malt' | 'hop' | 'yeast' | 'misc';
 
 const TYPE_FILTERS: { value: TypeFilter; label: string; Icon: React.ElementType }[] = [
@@ -107,6 +109,10 @@ export default function IngredientsQueueView() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<string | null>(null);
 
+  // Analytics state
+  const [usageStats, setUsageStats] = useState<IngredientUsageStat[]>([]);
+  const [statsLoading, setStatsLoading] = useState(false);
+
   // Modal-State
   const [mergeTarget, setMergeTarget] = useState<ImportQueueItem | null>(null);
   const [rejectTarget, setRejectTarget] = useState<ImportQueueItem | null>(null);
@@ -115,6 +121,7 @@ export default function IngredientsQueueView() {
   const PAGE_SIZE = 20;
 
   const load = useCallback(async () => {
+    if (activeTab === 'stats') return;
     setLoading(true);
     try {
       const [queueResult, queueStats] = await Promise.all([
@@ -142,6 +149,13 @@ export default function IngredientsQueueView() {
   function handleTabChange(tab: StatusTab) {
     setActiveTab(tab);
     setPage(1);
+    if (tab === 'stats' && usageStats.length === 0) {
+      setStatsLoading(true);
+      getIngredientUsageStats(50).then(data => {
+        setUsageStats(data);
+        setStatsLoading(false);
+      }).catch(() => setStatsLoading(false));
+    }
   }
   function handleTypeChange(type: TypeFilter) {
     setTypeFilter(type);
@@ -228,8 +242,8 @@ export default function IngredientsQueueView() {
       )}
 
       {/* Status-Tabs */}
-      <div className="flex gap-1 bg-(--surface-sunken) p-1 rounded-xl w-fit">
-        {(['pending', 'merged', 'rejected'] as StatusTab[]).map(tab => (
+      <div className="flex gap-1 bg-(--surface-sunken) p-1 rounded-xl w-fit flex-wrap">
+        {(['pending', 'merged', 'rejected', 'stats'] as StatusTab[]).map(tab => (
           <button
             key={tab}
             onClick={() => handleTabChange(tab)}
@@ -242,11 +256,55 @@ export default function IngredientsQueueView() {
             {tab === 'pending'  && `Ausstehend ${stats ? `(${stats.pending})` : ''}`}
             {tab === 'merged'   && `Zusammengeführt ${stats ? `(${stats.merged})` : ''}`}
             {tab === 'rejected' && `Abgelehnt ${stats ? `(${stats.rejected})` : ''}`}
+            {tab === 'stats'    && 'Beliebteste Zutaten'}
           </button>
         ))}
       </div>
 
-      {/* Typ-Filter */}
+      {/* Beliebteste Zutaten — Analytics Tab */}
+      {activeTab === 'stats' && (
+        <div className="space-y-3">
+          {statsLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {Array.from({ length: 10 }).map((_, i) => (
+                <div key={i} className="h-12 bg-(--surface-sunken) rounded-xl animate-pulse" />
+              ))}
+            </div>
+          ) : usageStats.length === 0 ? (
+            <p className="text-sm text-(--text-muted) py-8 text-center">Keine Daten verfügbar.</p>
+          ) : (
+            <div className="space-y-1">
+              {usageStats.map((s, i) => {
+                const typeIcon = s.type === 'malt' ? '🌾' : s.type === 'hop' ? '🌿' : s.type === 'yeast' ? '🧫' : '⚗️';
+                const maxCount = usageStats[0]?.usage_count || 1;
+                const pct = Math.round((s.usage_count / maxCount) * 100);
+                return (
+                  <div key={s.id} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-(--surface-hover) transition group">
+                    <span className="text-xs text-(--text-disabled) w-5 text-right shrink-0">{i + 1}</span>
+                    <span className="text-base shrink-0">{typeIcon}</span>
+                    <span className="flex-1 text-sm text-(--text-primary) truncate font-medium">{s.name}</span>
+                    <div className="hidden sm:flex items-center gap-2 shrink-0">
+                      <div className="w-24 h-1.5 bg-(--surface-sunken) rounded-full overflow-hidden">
+                        <div className="h-full bg-cyan-500/60 rounded-full" style={{ width: `${pct}%` }} />
+                      </div>
+                      <span className="text-xs text-(--text-muted) w-12 text-right">
+                        {s.usage_count}×
+                      </span>
+                      <span className="text-xs text-(--text-disabled) w-16 text-right">
+                        {s.recipe_count} Rez.
+                      </span>
+                    </div>
+                    <div className="flex sm:hidden text-xs text-(--text-muted)">{s.usage_count}×</div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Typ-Filter + Liste (nur für Queue-Tabs) */}
+      {activeTab !== 'stats' && <>
       <div className="flex gap-2 flex-wrap">
         {TYPE_FILTERS.map(({ value, label, Icon }) => (
           <button
@@ -331,6 +389,7 @@ export default function IngredientsQueueView() {
           )}
         </>
       )}
+      </>}
 
       {/* Modals */}
       {mergeTarget && (

@@ -2620,9 +2620,11 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          import_count: number | null
           imported_by: string | null
           raw_data: Json | null
           raw_name: string
+          rejection_reason: string | null
           status: string | null
           suggested_master_id: string | null
           type: string | null
@@ -2630,9 +2632,11 @@ export type Database = {
         Insert: {
           created_at?: string | null
           id?: string
+          import_count?: number | null
           imported_by?: string | null
           raw_data?: Json | null
           raw_name: string
+          rejection_reason?: string | null
           status?: string | null
           suggested_master_id?: string | null
           type?: string | null
@@ -2640,9 +2644,11 @@ export type Database = {
         Update: {
           created_at?: string | null
           id?: string
+          import_count?: number | null
           imported_by?: string | null
           raw_data?: Json | null
           raw_name?: string
+          rejection_reason?: string | null
           status?: string | null
           suggested_master_id?: string | null
           type?: string | null
@@ -2653,6 +2659,13 @@ export type Database = {
             columns: ["suggested_master_id"]
             isOneToOne: false
             referencedRelation: "ingredient_master"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_import_queue_suggested_master_id_fkey"
+            columns: ["suggested_master_id"]
+            isOneToOne: false
+            referencedRelation: "ingredient_usage_stats"
             referencedColumns: ["id"]
           },
         ]
@@ -2769,6 +2782,13 @@ export type Database = {
             columns: ["master_id"]
             isOneToOne: false
             referencedRelation: "ingredient_master"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_products_master_id_fkey"
+            columns: ["master_id"]
+            isOneToOne: false
+            referencedRelation: "ingredient_usage_stats"
             referencedColumns: ["id"]
           },
         ]
@@ -3209,6 +3229,13 @@ export type Database = {
             columns: ["master_id"]
             isOneToOne: false
             referencedRelation: "ingredient_master"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipe_ingredients_master_id_fkey"
+            columns: ["master_id"]
+            isOneToOne: false
+            referencedRelation: "ingredient_usage_stats"
             referencedColumns: ["id"]
           },
           {
@@ -3843,6 +3870,16 @@ export type Database = {
         }
         Relationships: []
       }
+      ingredient_usage_stats: {
+        Row: {
+          id: string | null
+          name: string | null
+          recipe_count: number | null
+          type: string | null
+          usage_count: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       admin_clear_trending_override: {
@@ -3898,6 +3935,16 @@ export type Database = {
       check_and_increment_ai_credits: {
         Args: { user_id: string }
         Returns: Record<string, unknown>
+      }
+      check_ingredient_duplicate: {
+        Args: { p_manufacturer?: string; p_name: string; p_type: string }
+        Returns: {
+          manufacturer: string
+          master_name: string
+          product_id: string
+          product_name: string
+          similarity_score: number
+        }[]
       }
       claim_anonymous_session: {
         Args: { p_session_token: string; p_user_id: string }
@@ -4066,6 +4113,10 @@ export type Database = {
         Args: { thread_id: string }
         Returns: undefined
       }
+      increment_import_queue_count: {
+        Args: { p_queue_id: string }
+        Returns: undefined
+      }
       increment_profile_views: {
         Args: { p_profile_id: string }
         Returns: undefined
@@ -4079,6 +4130,7 @@ export type Database = {
         Args: { search_term: string; search_type: string }
         Returns: {
           alpha_pct: number
+          attenuation_pct: number
           color_ebc: number
           master_id: string
           match_level: number
@@ -4087,6 +4139,39 @@ export type Database = {
           potential_pts: number
           type: string
         }[]
+      }
+      match_ingredients_batch: {
+        Args: { p_terms: Json }
+        Returns: {
+          alpha_pct: number
+          attenuation_pct: number
+          color_ebc: number
+          input_index: number
+          master_id: string
+          match_level: number
+          match_score: number
+          name: string
+          potential_pts: number
+          type: string
+        }[]
+      }
+      merge_queue_item: {
+        Args: {
+          p_alpha_pct?: number
+          p_attenuation_pct?: number
+          p_beta_pct?: number
+          p_color_ebc?: number
+          p_manufacturer?: string
+          p_master_aliases?: string[]
+          p_master_id?: string
+          p_master_name?: string
+          p_master_type?: string
+          p_notes?: string
+          p_potential_pts?: number
+          p_product_name?: string
+          p_queue_id: string
+        }
+        Returns: Json
       }
       record_brew_page_view: {
         Args: { p_brew_id: string; p_user_id?: string }
@@ -4099,6 +4184,10 @@ export type Database = {
       refresh_brew_style_averages: { Args: never; Returns: undefined }
       refresh_brew_style_flavor_averages: { Args: never; Returns: undefined }
       refresh_trending_scores: { Args: never; Returns: undefined }
+      reject_queue_item: {
+        Args: { p_queue_id: string; p_reason?: string }
+        Returns: undefined
+      }
       search_botlguide_embeddings: {
         Args: {
           p_match_count?: number
@@ -4299,4 +4388,3 @@ export const Constants = {
     },
   },
 } as const
-

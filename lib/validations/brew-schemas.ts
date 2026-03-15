@@ -48,6 +48,8 @@ export const brewSchema = z.object({
     fruitiness: z.number().min(0).max(1),
     source: z.enum(['manual', 'data_suggestion', 'botlguide']),
   }).optional().nullable(),
+  stats_mode: z.enum(['live', 'manual']).optional().default('live'),
+  manual_stats: z.record(z.string(), z.any()).optional().nullable(),
 });
 
 export type BrewInput = z.infer<typeof brewSchema>;

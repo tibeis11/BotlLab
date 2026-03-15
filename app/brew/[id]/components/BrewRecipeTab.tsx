@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
-import { Wheat, Thermometer, Flame, Microscope, Scale, Clock, Shuffle, Droplets } from 'lucide-react';
+import { Wheat, Thermometer, Flame, Microscope, Scale, Clock, Shuffle, Droplets, Info, X } from 'lucide-react';
 import { ebcToHex, sgToPlato } from '@/lib/brewing-calculations';
 
 /* ─── Helpers ─── */
@@ -396,6 +396,84 @@ function IngredientView({ value, factor = 1 }: { value: any; factor?: number }) 
   return null;
 }
 
+/* ─── Session Stats Types ─── */
+
+interface SessionStats {
+  og_sg: number | null;
+  fg_sg: number | null;
+  abv: number | null;
+  efficiency: number | null;
+  abv_min: number | null;
+  abv_max: number | null;
+  og_sg_min: number | null;
+  og_sg_max: number | null;
+  session_count: number;
+  last_updated: string;
+}
+
+/* ─── Session Stats Popup ─── */
+
+function SessionStatsPopup({ stats, onClose }: { stats: SessionStats; onClose: () => void }) {
+  const lastDate = new Date(stats.last_updated).toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-surface border border-border rounded-2xl p-6 w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="flex items-start justify-between mb-5">
+          <div>
+            <h3 className="font-bold text-text-primary text-base">Tatsächliche Brau-Ergebnisse</h3>
+            <p className="text-[11px] text-text-muted mt-0.5">
+              Basierend auf {stats.session_count} archivierten {stats.session_count === 1 ? 'Sud' : 'Suden'}
+            </p>
+          </div>
+          <button onClick={onClose} className="text-text-disabled hover:text-text-primary transition-colors p-1">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          {stats.og_sg && (
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-text-muted uppercase font-bold tracking-wider">Stammwürze</span>
+              <div className="text-right">
+                <span className="font-mono font-bold text-text-primary">Ø {sgToPlato(stats.og_sg).toFixed(1)}°P</span>
+                {stats.og_sg_min && stats.og_sg_max && (
+                  <span className="text-[10px] text-text-disabled block">
+                    {sgToPlato(stats.og_sg_min).toFixed(1)} – {sgToPlato(stats.og_sg_max).toFixed(1)}°P
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+          {stats.abv && (
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-text-muted uppercase font-bold tracking-wider">Alkohol</span>
+              <div className="text-right">
+                <span className="font-mono font-bold text-text-primary">Ø {stats.abv.toFixed(1)}%</span>
+                {stats.abv_min && stats.abv_max && (
+                  <span className="text-[10px] text-text-disabled block">
+                    {stats.abv_min.toFixed(1)} – {stats.abv_max.toFixed(1)}%
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+          {stats.efficiency && (
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-text-muted uppercase font-bold tracking-wider">SHA</span>
+              <span className="font-mono font-bold text-text-primary">Ø {stats.efficiency.toFixed(1)}%</span>
+            </div>
+          )}
+        </div>
+
+        <p className="text-[10px] text-text-disabled mt-5 pt-4 border-t border-border">
+          Letzte Aktualisierung: {lastDate} · Diese Werte stammen aus echten Braudurchgängen dieser Brauerei.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Stat Box ─── */
 
 function StatItem({ label, value, unit, accent, colorHex }: {
@@ -451,11 +529,16 @@ export default function BrewRecipeTab({
   maltFactor,
   volFactor,
 }: BrewRecipeTabProps) {
+  const [showLive, setShowLive] = useState(false);
+  const [showPopup, setShowPopup] = useState(false);
+
   if (!brew.data) return (
     <div className="py-16 text-center text-text-disabled">Kein Rezept verfügbar.</div>
   );
 
   const isBeer = !brew.brew_type || brew.brew_type === 'beer';
+  const sessionStats: SessionStats | null = brew.session_stats ?? null;
+  const hasLiveStats = !!(sessionStats && sessionStats.session_count > 0);
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 space-y-14">
@@ -533,11 +616,35 @@ export default function BrewRecipeTab({
 
       {/* ── Spec Stats ── */}
       {isBeer && (
-        <div className="bg-surface border border-border rounded-2xl p-6 shadow-sm">
-          <SectionLabel label="Technische Details" />
+        <div className={`bg-surface border rounded-2xl p-6 shadow-sm transition-colors ${showLive && hasLiveStats ? 'border-cyan-500/30' : 'border-border'}`}>
+          <div className="flex items-center justify-between mb-6">
+            <SectionLabel label="Technische Details" />
+            {hasLiveStats && (
+              <div className="flex items-center gap-1 p-0.5 rounded-full border border-border bg-surface-hover text-[10px] font-bold uppercase tracking-wider shrink-0 -mt-6">
+                <button
+                  onClick={() => setShowLive(false)}
+                  className={`px-3 py-1 rounded-full transition-colors ${!showLive ? 'bg-surface text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
+                >
+                  Berechnet
+                </button>
+                <button
+                  onClick={() => setShowLive(true)}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-full transition-colors ${showLive ? 'bg-surface text-cyan-400 shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shrink-0" />
+                  Tatsächlich
+                </button>
+              </div>
+            )}
+          </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            <StatItem label="Alkohol" value={brew.data.abv || brew.data.est_abv || '–'} unit="%" accent />
-            
+            <StatItem
+              label="Alkohol"
+              value={showLive && sessionStats?.abv ? sessionStats.abv.toFixed(1) : (brew.data.abv || brew.data.est_abv || '–')}
+              unit="%"
+              accent={!showLive}
+            />
+
             <StatItem
               label="Farbe"
               value={
@@ -553,12 +660,13 @@ export default function BrewRecipeTab({
               }
               unit="EBC"
             />
-            
+
             <StatItem label="Bittere" value={brew.data.ibu || '–'} unit="IBU" />
-            
+
             <StatItem
               label="Stammwürze"
               value={(() => {
+                if (showLive && sessionStats?.og_sg) return sgToPlato(sessionStats.og_sg).toFixed(1);
                 const val = brew.data.og;
                 if (!val) return '–';
                 const num = typeof val === 'string' ? parseFloat(val.replace(',', '.')) : val;
@@ -568,8 +676,28 @@ export default function BrewRecipeTab({
               })()}
               unit="°P"
             />
+
           </div>
+
+          {showLive && hasLiveStats && sessionStats && (
+            <div className="flex items-center justify-between mt-5 pt-4 border-t border-cyan-500/20">
+              <p className="text-[10px] text-cyan-600/70">
+                Ø aus {sessionStats.session_count} {sessionStats.session_count === 1 ? 'Brausession' : 'Brausessions'}
+                {sessionStats.last_updated && ` · aktualisiert ${new Date(sessionStats.last_updated).toLocaleDateString('de-DE', { day: 'numeric', month: 'short', year: 'numeric' })}`}
+              </p>
+              <button
+                onClick={() => setShowPopup(true)}
+                className="flex items-center gap-1 text-[10px] text-cyan-500/70 hover:text-cyan-400 transition-colors font-bold"
+              >
+                <Info className="w-3.5 h-3.5" /> Details
+              </button>
+            </div>
+          )}
         </div>
+      )}
+
+      {showPopup && sessionStats && (
+        <SessionStatsPopup stats={sessionStats} onClose={() => setShowPopup(false)} />
       )}
 
       {/* ── BEER Recipe sections ── */}

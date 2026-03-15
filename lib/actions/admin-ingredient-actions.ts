@@ -34,8 +34,7 @@ export async function getIngredientQueueItems(params: {
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
 
-  // Neue Spalten (import_count, rejection_reason) via Cast abfragen
-  let query = (supabase as any)
+  let query = supabase
     .from('ingredient_import_queue')
     .select(
       'id, raw_name, type, raw_data, suggested_master_id, imported_by, status, import_count, rejection_reason, created_at, suggested_master:ingredient_master(name)',
@@ -110,20 +109,20 @@ export async function mergeQueueItem(
 
   const { queueId, mode, masterId, newMaster, product } = options;
 
-  const { data, error } = await supabase.rpc('merge_queue_item' as any, {
+  const { data, error } = await supabase.rpc('merge_queue_item', {
     p_queue_id:        queueId,
-    p_master_id:       mode === 'link_existing' ? (masterId ?? null) : null,
-    p_master_name:     newMaster?.name ?? null,
-    p_master_type:     newMaster?.type ?? null,
+    p_master_id:       mode === 'link_existing' ? (masterId ?? undefined) : undefined,
+    p_master_name:     newMaster?.name ?? undefined,
+    p_master_type:     newMaster?.type ?? undefined,
     p_master_aliases:  newMaster?.aliases ?? [],
-    p_manufacturer:    product?.manufacturer ?? null,
-    p_product_name:    product?.name ?? null,
-    p_color_ebc:       product?.color_ebc ?? null,
-    p_potential_pts:   product?.potential_pts ?? null,
-    p_alpha_pct:       product?.alpha_pct ?? null,
-    p_beta_pct:        product?.beta_pct ?? null,
-    p_attenuation_pct: product?.attenuation_pct ?? null,
-    p_notes:           product?.notes ?? null,
+    p_manufacturer:    product?.manufacturer ?? undefined,
+    p_product_name:    product?.name ?? undefined,
+    p_color_ebc:       product?.color_ebc ?? undefined,
+    p_potential_pts:   product?.potential_pts ?? undefined,
+    p_alpha_pct:       product?.alpha_pct ?? undefined,
+    p_beta_pct:        product?.beta_pct ?? undefined,
+    p_attenuation_pct: product?.attenuation_pct ?? undefined,
+    p_notes:           product?.notes ?? undefined,
   });
 
   if (error) throw new Error(error.message);
@@ -142,9 +141,9 @@ export async function rejectQueueItem(queueId: string, reason?: string): Promise
   await requireAdmin();
   const supabase = createAdminClient();
 
-  const { error } = await supabase.rpc('reject_queue_item' as any, {
+  const { error } = await supabase.rpc('reject_queue_item', {
     p_queue_id: queueId,
-    p_reason:   reason ?? null,
+    p_reason:   reason,
   });
 
   if (error) throw new Error(error.message);
@@ -154,7 +153,7 @@ export async function bulkRejectQueueItems(ids: string[]): Promise<void> {
   await requireAdmin();
   const supabase = createAdminClient();
 
-  const { error } = await (supabase.from('ingredient_import_queue') as any).update({
+  const { error } = await supabase.from('ingredient_import_queue').update({
     status:           'rejected',
     rejection_reason: 'Massenablehnung durch Admin',
   }).in('id', ids);
@@ -172,14 +171,33 @@ export async function checkIngredientDuplicate(
   await requireAdmin();
   const supabase = createAdminClient();
 
-  const { data, error } = await supabase.rpc('check_ingredient_duplicate' as any, {
+  const { data, error } = await supabase.rpc('check_ingredient_duplicate', {
     p_name:         name,
     p_type:         type,
-    p_manufacturer: manufacturer ?? null,
+    p_manufacturer: manufacturer,
   });
 
   if (error) throw new Error(error.message);
   return (data as DuplicateCheckResult[]) ?? [];
+}
+
+export type IngredientUsageStat = {
+  id: string;
+  name: string;
+  type: string;
+  usage_count: number;
+  recipe_count: number;
+};
+
+export async function getIngredientUsageStats(limit = 50): Promise<IngredientUsageStat[]> {
+  await requireAdmin();
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from('ingredient_usage_stats')
+    .select('id, name, type, usage_count, recipe_count')
+    .limit(limit);
+  if (error) throw new Error(error.message);
+  return (data ?? []) as IngredientUsageStat[];
 }
 
 export async function searchIngredientMaster(

@@ -34,6 +34,7 @@ import FlavorProfileEditor from './FlavorProfileEditor';
 import type { FlavorProfile } from '@/lib/flavor-profile-config';
 import ReactMarkdown from 'react-markdown';
 import { mergeRecipeIngredientsIntoData, extractAndSaveRecipeIngredients } from '@/lib/ingredients/ingredient-adapter';
+import { Command } from 'cmdk';
 
 function formatIngredientsForPrompt(value: any): string {
     if (!value) return '';
@@ -64,6 +65,224 @@ function ArrowLeftIcon({ className }: { className?: string }) {
     );
 }
 
+// ─── DB types ────────────────────────────────────────────────────────────────
+
+export interface DbBjcpStyle {
+    id: string;
+    code: string;
+    category: string;
+    name_en: string;
+    name_de: string;
+    og_min: number | null;
+    og_max: number | null;
+    fg_min: number | null;
+    fg_max: number | null;
+    abv_min: number | null;
+    abv_max: number | null;
+    ibu_min: number | null;
+    ibu_max: number | null;
+    ebc_min: number | null;
+    ebc_max: number | null;
+    description_de: string | null;
+    ingredients_de: string | null;
+    examples: string | null;
+}
+
+// ─── Style Combobox ──────────────────────────────────────────────────────────
+
+function StyleCombobox({ value, onChange, styles }: { value: string; onChange: (val: string) => void; styles: DbBjcpStyle[] }) {
+    const [open, setOpen] = useState(false);
+    const [search, setSearch] = useState(value || '');
+
+    useEffect(() => { if (value !== search) setSearch(value || ''); }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const filtered = styles.filter(s => {
+        if (!search.trim()) return true;
+        const q = search.toLowerCase();
+        return s.code.toLowerCase().includes(q) ||
+            s.name_en.toLowerCase().includes(q) ||
+            s.name_de.toLowerCase().includes(q) ||
+            s.category.toLowerCase().includes(q);
+    });
+
+    const isCustom = search.trim() && !styles.some(
+        s => s.name_de === search.trim() || s.name_en === search.trim()
+    );
+
+    return (
+        <Command className="relative overflow-visible w-full" shouldFilter={false}>
+            <Command.Input
+                className="w-full bg-surface text-text-primary border border-border rounded-xl px-4 py-3.5 text-base font-semibold focus:border-brand/50 focus:ring-1 focus:ring-brand/20 transition outline-none placeholder:text-text-disabled"
+                placeholder="z.B. Irish Red Ale"
+                value={search}
+                onValueChange={(val) => { setSearch(val); setOpen(true); }}
+                onFocus={() => setOpen(true)}
+                onBlur={() => setTimeout(() => {
+                    setOpen(false);
+                    if (search.trim() !== value) onChange(search.trim());
+                }, 200)}
+            />
+            <div className={`absolute ${open ? '' : 'hidden'} top-full mt-1 left-0 z-50 w-full min-w-[320px] bg-surface border border-border rounded-xl shadow-2xl overflow-hidden`}>
+                <Command.List className="overflow-y-auto max-h-72 p-1">
+                    <Command.Empty className="p-3 text-sm text-text-muted text-center">
+                        {styles.length === 0 ? 'Stile werden geladen…' : 'Kein Stil gefunden.'}
+                    </Command.Empty>
+                    {isCustom && (
+                        <Command.Item
+                            value={`__custom__${search}`}
+                            onSelect={() => { onChange(search.trim()); setSearch(search.trim()); setOpen(false); }}
+                            className="px-3 py-2 cursor-pointer rounded-lg hover:bg-surface-hover flex items-center gap-2 text-sm data-[selected='true']:bg-surface-hover"
+                        >
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-brand border border-brand/40 rounded px-1.5 py-0.5">Neu</span>
+                            <span className="font-semibold text-text-primary">„{search.trim()}"</span>
+                            <span className="text-text-muted text-xs ml-auto">Freier Text</span>
+                        </Command.Item>
+                    )}
+                    {filtered.map(s => (
+                        <Command.Item
+                            key={s.code}
+                            value={`${s.code} ${s.name_en} ${s.name_de} ${s.category}`}
+                            onSelect={() => { onChange(s.name_de); setSearch(s.name_de); setOpen(false); }}
+                            className="px-3 py-2 cursor-pointer rounded-lg hover:bg-surface-hover flex items-center gap-3 data-[selected='true']:bg-surface-hover"
+                        >
+                            <span className="text-[10px] font-black text-brand font-mono w-8 shrink-0">{s.code}</span>
+                            <div className="min-w-0">
+                                <div className="text-sm font-semibold text-text-primary truncate">{s.name_de}</div>
+                                <div className="text-[10px] text-text-muted truncate">{s.name_en}</div>
+                            </div>
+                            <div className="ml-auto text-[9px] text-text-disabled whitespace-nowrap">
+                                {s.abv_min}–{s.abv_max}% · {s.ibu_min}–{s.ibu_max} IBU
+                            </div>
+                        </Command.Item>
+                    ))}
+                </Command.List>
+            </div>
+        </Command>
+    );
+}
+
+// ─── BJCP helpers ────────────────────────────────────────────────────────────
+
+function sgToPlatoUtil(sg: number): number {
+    return parseFloat((259 - 259 / sg).toFixed(1));
+}
+
+function findBjcpStyle(styleName: string, styles: DbBjcpStyle[]): DbBjcpStyle | null {
+    if (!styleName?.trim() || styles.length === 0) return null;
+    const q = styleName.toLowerCase().trim();
+    return styles.find(s =>
+        s.name_en.toLowerCase().includes(q) ||
+        s.name_de.toLowerCase().includes(q) ||
+        q.includes(s.name_en.toLowerCase()) ||
+        q.includes(s.name_de.toLowerCase())
+    ) ?? null;
+}
+
+interface RangeBarProps {
+    label: string;
+    unit: string;
+    value: number | null;
+    sessionAvg?: number | null;
+    sessionCount?: number;
+    bjcpMin?: number | null;
+    bjcpMax?: number | null;
+    scaleMin: number;
+    scaleMax: number;
+    decimals?: number;
+    isEbc?: boolean;
+}
+
+function StyleRangeBar({ label, unit, value, sessionAvg, sessionCount, bjcpMin, bjcpMax, scaleMin, scaleMax, decimals = 1, isEbc }: RangeBarProps) {
+    const range = scaleMax - scaleMin;
+    const pct = (v: number) => Math.max(0, Math.min(100, ((v - scaleMin) / range) * 100));
+    const fmt = (v: number) => v.toFixed(decimals);
+
+    const bjcpLeft = bjcpMin != null ? pct(bjcpMin) : null;
+    const bjcpWidth = (bjcpMin != null && bjcpMax != null) ? Math.max(2, pct(bjcpMax) - pct(bjcpMin)) : null;
+    const valuePct = value != null ? pct(value) : null;
+    const sessionPct = sessionAvg != null ? pct(sessionAvg) : null;
+
+    const inRange = value != null && bjcpMin != null && bjcpMax != null && value >= bjcpMin && value <= bjcpMax;
+
+    return (
+        <div className="space-y-1.5">
+            <div className="flex items-baseline justify-between">
+                <span className="text-[10px] uppercase font-bold tracking-widest text-text-muted">{label}</span>
+                <div className="flex items-baseline gap-1">
+                    {value != null
+                        ? <span className={`text-2xl font-mono font-black leading-none ${inRange ? 'text-emerald-400' : 'text-text-primary'}`}>{fmt(value)}</span>
+                        : <span className="text-2xl font-mono font-black leading-none text-text-disabled">—</span>
+                    }
+                    <span className="text-xs text-text-muted">{unit}</span>
+                </div>
+            </div>
+
+            {/* Bar track */}
+            <div className="relative h-2.5 rounded-full overflow-hidden bg-border">
+                {isEbc && (
+                    <div className="absolute inset-0" style={{ background: 'linear-gradient(to right, #f5e84a 0%, #e8b84b 15%, #d4862a 30%, #a05020 50%, #5a2010 70%, #1a0808 90%, #050505 100%)' }} />
+                )}
+                {/* BJCP zone */}
+                {bjcpLeft != null && bjcpWidth != null && (
+                    <div
+                        className={`absolute h-full rounded-sm ${isEbc ? 'border-2 border-zinc-900/40 bg-zinc-900/10' : 'bg-brand/30 border border-brand/50'}`}
+                        style={{ left: `${bjcpLeft}%`, width: `${bjcpWidth}%` }}
+                    />
+                )}
+                {/* Calculated value marker */}
+                {valuePct != null && (
+                    <div
+                        className="absolute top-0 bottom-0 w-[2px] bg-foreground shadow-sm"
+                        style={{ left: `${valuePct}%`, transform: 'translateX(-50%)' }}
+                    />
+                )}
+                {/* Session avg marker */}
+                {sessionPct != null && (
+                    <div
+                        className="absolute top-0 bottom-0 w-[2px] bg-cyan-500"
+                        style={{ left: `${sessionPct}%`, transform: 'translateX(-50%)' }}
+                    />
+                )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-between text-[9px] text-text-disabled">
+                <span>{scaleMin}{unit}</span>
+                {bjcpMin != null && bjcpMax != null && (
+                    <span className="text-brand/60 font-mono">{fmt(bjcpMin)}–{fmt(bjcpMax)} BJCP</span>
+                )}
+                <span>{scaleMax}{unit}</span>
+            </div>
+
+            {/* Session avg label */}
+            {sessionAvg != null && sessionCount != null && (
+                <div className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shrink-0" />
+                    <span className="text-[10px] text-cyan-400 font-mono font-bold">{fmt(sessionAvg)}{unit}</span>
+                    <span className="text-[9px] text-text-disabled">Ø {sessionCount} {sessionCount === 1 ? 'Sud' : 'Sude'}</span>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type StatsMode = 'live' | 'manual';
+
+export interface SessionStats {
+    og_sg: number | null;
+    fg_sg: number | null;
+    abv: number | null;
+    efficiency: number | null;
+    abv_min: number | null;
+    abv_max: number | null;
+    og_sg_min: number | null;
+    og_sg_max: number | null;
+    session_count: number;
+    last_updated: string;
+}
+
 export interface BrewForm {
     id?: string;
     name: string;
@@ -78,6 +297,8 @@ export interface BrewForm {
     remix_parent_id?: string | null;
     moderation_status?: 'pending' | 'approved' | 'rejected';
     moderation_rejection_reason?: string | null;
+    stats_mode?: StatsMode;
+    session_stats?: SessionStats | null;
 }
 
 function NumberInput({
@@ -315,9 +536,20 @@ export default function BrewEditor({ breweryId, brewId, initialData }: { brewery
     const [generatingName, setGeneratingName] = useState(false);
     const [generatingDescription, setGeneratingDescription] = useState(false);
     const [generatingLabelPrompt, setGeneratingLabelPrompt] = useState(false);
-    const [resultsEditable, setResultsEditable] = useState(false);
     // Tracks which result fields the user has manually overridden (prevents auto-calc from clobbering them)
     const manualOverrides = useRef<Set<string>>(new Set());
+    // Stats mode: 'live' = auto-calc + session overlay, 'manual' = free editing
+    const [statsMode, setStatsMode] = useState<StatsMode>((initialData as any)?.stats_mode ?? 'live');
+    const [sessionStats, setSessionStats] = useState<SessionStats | null>(
+      (initialData as any)?.session_stats ?? null
+    );
+    const [bjcpStyles, setBjcpStyles] = useState<DbBjcpStyle[]>([]);
+    useEffect(() => {
+        supabase.from('bjcp_styles')
+            .select('id,code,category,name_en,name_de,og_min,og_max,fg_min,fg_max,abv_min,abv_max,ibu_min,ibu_max,ebc_min,ebc_max')
+            .order('code')
+            .then(({ data }) => { if (data) setBjcpStyles(data as DbBjcpStyle[]); });
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
     const [analyzingRecipe, setAnalyzingRecipe] = useState(false);
     const [optimizationSuggestions, setOptimizationSuggestions] = useState<string[]>([]);
     // Stage 2 AI state
@@ -485,6 +717,14 @@ export default function BrewEditor({ breweryId, brewId, initialData }: { brewery
     function updateData(key: string, value: any) {
         setBrew(prev => ({ ...prev, data: { ...(prev.data || {}), [key]: value } }));
     }
+
+    function switchStatsMode(mode: StatsMode) {
+        if (mode === 'live') manualOverrides.current.clear();
+        setStatsMode(mode);
+    }
+
+    const sgToPlato = (sg: number) => parseFloat((259 - 259 / sg).toFixed(1));
+    const bjcpStyle = findBjcpStyle(brew.style ?? '', bjcpStyles);
 
     // --- Smart Suggestions: Braumethode, Maischverfahren, Gärungstyp ---
     // Tracks which suggestions the user has explicitly dismissed
@@ -728,7 +968,9 @@ export default function BrewEditor({ breweryId, brewId, initialData }: { brewery
             // INGREDIENTS v2: Intercept raw DB row, restore legacy arrays synchronically for UI math
             const fullyMergedData = await mergeRecipeIngredientsIntoData(data.data || {}, data.id);
 
-            setBrew({ ...data, name: data.name || '', style: data.style || '', brew_type: data.brew_type || '', description: data.description || undefined, is_public: data.is_public || false, moderation_status: (data.moderation_status as any) || undefined, data: fullyMergedData, flavor_profile: (data.flavor_profile as any) || null });
+            setBrew({ ...data, name: data.name || '', style: data.style || '', brew_type: data.brew_type || '', description: data.description || undefined, is_public: data.is_public || false, moderation_status: (data.moderation_status as any) || undefined, data: fullyMergedData, flavor_profile: (data.flavor_profile as any) || null, stats_mode: (data as any).stats_mode ?? 'live', session_stats: (data as any).session_stats ?? null });
+            setStatsMode((data as any).stats_mode ?? 'live');
+            setSessionStats((data as any).session_stats ?? null);
             await loadRatings(data.id);
         }
 
@@ -779,6 +1021,15 @@ export default function BrewEditor({ breweryId, brewId, initialData }: { brewery
             fermentation_type: sanitizedData.fermentation_type ?? null,
             // Beat the Brewer: Flavor profile (Phase 11)
             flavor_profile: brew.flavor_profile ?? null,
+            // Results mode + manual overrides
+            stats_mode: statsMode,
+            manual_stats: statsMode === 'manual' ? {
+                ibu: sanitizedData.ibu,
+                color: sanitizedData.color,
+                abv: sanitizedData.abv,
+                og: sanitizedData.og,
+                fg: sanitizedData.fg,
+            } : null,
         };
 
         if (id === 'new') {
@@ -804,7 +1055,10 @@ export default function BrewEditor({ breweryId, brewId, initialData }: { brewery
             // Post-Save Ingredient Extraction (since we now have a recipe_id)
             if (payload.data) {
                 try {
-                    await extractAndSaveRecipeIngredients(data.id, payload.data);
+                    const extractResult = await extractAndSaveRecipeIngredients(data.id, payload.data);
+                    if (extractResult.newIngredients > 0) {
+                        setMessage(`Gespeichert · ${extractResult.newIngredients} neue Zutat${extractResult.newIngredients > 1 ? 'en' : ''} für die Datenbank vorgeschlagen.`);
+                    }
                 } catch (extractErr: any) {
                     setMessage(extractErr.message || 'Zutaten konnten nicht gespeichert werden.');
                     setSaving(false);
@@ -854,7 +1108,7 @@ export default function BrewEditor({ breweryId, brewId, initialData }: { brewery
             await loadRatings(data.id);
 
             checkAndGrantAchievements(user.id).then(newAchievements => {
-                newAchievements.forEach(achievement => showAchievement(achievement));
+                newAchievements.forEach((achievement: any) => showAchievement(achievement));
             }).catch(console.error);
 
             // Fire-and-forget: BotlGuide RAG — update recipe embedding
@@ -887,9 +1141,11 @@ export default function BrewEditor({ breweryId, brewId, initialData }: { brewery
         // UPDATE Logic
         const tempOriginalData = { ...payload.data }; // Save copy with arrays for our extractor
         let sanitisedData: any;
+        let newIngredientCount = 0;
         try {
             const result = await extractAndSaveRecipeIngredients(id, payload.data);
             sanitisedData = result.sanitisedData;
+            newIngredientCount = result.newIngredients;
         } catch (extractErr: any) {
             setMessage(extractErr.message || 'Zutaten konnten nicht gespeichert werden.');
             setSaving(false);
@@ -923,12 +1179,14 @@ export default function BrewEditor({ breweryId, brewId, initialData }: { brewery
             }
 
             setBrew({ ...data, name: data.name || '', style: data.style || '', brew_type: data.brew_type || '', description: data.description || undefined, is_public: data.is_public || false, moderation_status: (data.moderation_status as any) || undefined, data: data.data || {}, flavor_profile: (data.flavor_profile as any) || null });
-            setMessage('Gespeichert.');
+            setMessage(newIngredientCount > 0
+                ? `Gespeichert · ${newIngredientCount} neue Zutat${newIngredientCount > 1 ? 'en' : ''} für die Datenbank vorgeschlagen.`
+                : 'Gespeichert.');
 
             if (data.id) await loadRatings(data.id);
 
             checkAndGrantAchievements(user.id).then(newAchievements => {
-                newAchievements.forEach(achievement => showAchievement(achievement));
+                newAchievements.forEach((achievement: any) => showAchievement(achievement));
             }).catch(console.error);
 
             // Fire-and-forget: BotlGuide RAG — update recipe embedding
@@ -1915,11 +2173,10 @@ export default function BrewEditor({ breweryId, brewId, initialData }: { brewery
                                         </div>
                                         <div className="lg:col-span-4 space-y-1.5">
                                             <label className="text-[10px] uppercase font-bold tracking-widest text-text-disabled block">Stil</label>
-                                            <input
+                                            <StyleCombobox
                                                 value={brew.style}
-                                                onChange={(e) => handleField('style', e.target.value)}
-                                                className="w-full bg-surface text-text-primary border border-border rounded-xl px-4 py-3.5 text-base font-semibold focus:border-brand/50 focus:ring-1 focus:ring-brand/20 transition outline-none placeholder:text-text-disabled"
-                                                placeholder="z.B. Hazy IPA"
+                                                onChange={(val) => handleField('style', val)}
+                                                styles={bjcpStyles}
                                             />
                                         </div>
                                     </div>
@@ -2014,80 +2271,167 @@ export default function BrewEditor({ breweryId, brewId, initialData }: { brewery
                                             <div>
                                                 <div className="flex items-center justify-between gap-2 mb-4">
                                                     <span className="text-[10px] uppercase font-bold text-text-secondary tracking-widest border-l-2 border-brand pl-3">Ergebnisse / Prognose</span>
-                                                    <button
-                                                        onClick={() => {
-                                                            if (resultsEditable) {
-                                                                // Toggling OFF edit mode: clear all manual overrides so auto-calc resumes
-                                                                manualOverrides.current.clear();
-                                                            }
-                                                            setResultsEditable(!resultsEditable);
-                                                        }}
-                                                        className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded transition-colors ${resultsEditable ? 'bg-brand-bg/40 text-brand border border-brand-dim' : 'text-text-disabled hover:text-text-secondary border border-transparent hover:border-border'}`}
-                                                    >
-                                                        {resultsEditable ? <><Check className="w-3 h-3 inline mr-1" />Fertig</> : <><Pencil className="w-3 h-3 inline mr-1" />Bearbeiten</>}
-                                                    </button>
+                                                    {/* 2-Modus-Toggle: Prognose+Live / Manuell */}
+                                                    <div className="flex items-center gap-0.5 p-0.5 rounded-lg border border-border bg-surface-hover text-[10px] font-bold uppercase tracking-wider">
+                                                        <button
+                                                            onClick={() => switchStatsMode('live')}
+                                                            className={`px-3 py-1 rounded-md transition-colors ${statsMode === 'live' ? 'bg-surface text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
+                                                        >
+                                                            Prognose{sessionStats?.session_count ? ' + Live' : ''}
+                                                        </button>
+                                                        <button
+                                                            onClick={() => switchStatsMode('manual')}
+                                                            className={`px-3 py-1 rounded-md transition-colors ${statsMode === 'manual' ? 'bg-surface text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
+                                                        >
+                                                            <Pencil className="w-2.5 h-2.5 inline mr-1" />Manuell
+                                                        </button>
+                                                    </div>
                                                 </div>
-                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                                                    <NumberInput
-                                                        label="Bittere (IBU)"
-                                                        value={brew.data?.ibu || ''}
-                                                        onChange={(val) => { manualOverrides.current.add('ibu'); updateData('ibu', val); }}
-                                                        placeholder="30"
-                                                        step={0.1}
-                                                        isCalculated={!!brew.data?.hops?.length}
-                                                        calculationInfo="Berechnet nach Tinseth-Formel (Hopfen & Kochzeit)"
-                                                        onInspectorOpen={() => handleOpenInspector('IBU')}
-                                                        readOnly={!resultsEditable}
-                                                    />
+                                                {statsMode === 'live' ? (
+                                                    /* ── Prognose: graphische Range-Bars ── */
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
+                                                        {bjcpStyle && (
+                                                            <div className="md:col-span-2 flex items-center gap-2 text-[10px] text-text-muted border border-brand/20 bg-brand/5 rounded-lg px-3 py-1.5">
+                                                                <span className="text-brand font-bold">{bjcpStyle.code}</span>
+                                                                <span>{bjcpStyle.name_de}</span>
+                                                                <span className="ml-auto text-text-disabled">BJCP 2021</span>
+                                                            </div>
+                                                        )}
+                                                        <StyleRangeBar
+                                                            label="Alkohol (ABV)"
+                                                            unit="%"
+                                                            value={brew.data?.abv ? parseFloat(brew.data.abv) : null}
+                                                            sessionAvg={sessionStats?.abv ?? null}
+                                                            sessionCount={sessionStats?.session_count}
+                                                            bjcpMin={bjcpStyle?.abv_min ?? null}
+                                                            bjcpMax={bjcpStyle?.abv_max ?? null}
+                                                            scaleMin={0}
+                                                            scaleMax={15}
+                                                        />
+                                                        <StyleRangeBar
+                                                            label="Stammwürze"
+                                                            unit="°P"
+                                                            value={brew.data?.og ? parseFloat(brew.data.og) : null}
+                                                            sessionAvg={sessionStats?.og_sg ? sgToPlato(sessionStats.og_sg) : null}
+                                                            sessionCount={sessionStats?.session_count}
+                                                            bjcpMin={bjcpStyle?.og_min ? sgToPlato(bjcpStyle.og_min) : null}
+                                                            bjcpMax={bjcpStyle?.og_max ? sgToPlato(bjcpStyle.og_max) : null}
+                                                            scaleMin={4}
+                                                            scaleMax={28}
+                                                        />
+                                                        <StyleRangeBar
+                                                            label="Restextrakt"
+                                                            unit="°P"
+                                                            value={brew.data?.fg ? parseFloat(brew.data.fg) : null}
+                                                            sessionAvg={sessionStats?.fg_sg ? sgToPlato(sessionStats.fg_sg) : null}
+                                                            sessionCount={sessionStats?.session_count}
+                                                            bjcpMin={bjcpStyle?.fg_min ? sgToPlato(bjcpStyle.fg_min) : null}
+                                                            bjcpMax={bjcpStyle?.fg_max ? sgToPlato(bjcpStyle.fg_max) : null}
+                                                            scaleMin={0}
+                                                            scaleMax={12}
+                                                        />
+                                                        <StyleRangeBar
+                                                            label="Bittere"
+                                                            unit=" IBU"
+                                                            value={brew.data?.ibu ? parseFloat(brew.data.ibu) : null}
+                                                            bjcpMin={bjcpStyle?.ibu_min ?? null}
+                                                            bjcpMax={bjcpStyle?.ibu_max ?? null}
+                                                            scaleMin={0}
+                                                            scaleMax={120}
+                                                            decimals={0}
+                                                        />
+                                                        <StyleRangeBar
+                                                            label="Farbe"
+                                                            unit=" EBC"
+                                                            value={brew.data?.color ? parseFloat(brew.data.color) : null}
+                                                            bjcpMin={bjcpStyle?.ebc_min ?? null}
+                                                            bjcpMax={bjcpStyle?.ebc_max ?? null}
+                                                            scaleMin={2}
+                                                            scaleMax={80}
+                                                            decimals={0}
+                                                            isEbc
+                                                        />
+                                                        {sessionStats?.efficiency && (
+                                                            <div className="flex items-center gap-2 text-[11px]">
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shrink-0" />
+                                                                <span className="text-text-muted uppercase font-bold tracking-wider text-[10px]">SHA</span>
+                                                                <span className="text-cyan-400 font-mono font-bold">{sessionStats.efficiency.toFixed(1)}%</span>
+                                                                <span className="text-text-disabled text-[9px]">Ø {sessionStats.session_count} {sessionStats.session_count === 1 ? 'Sud' : 'Sude'}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    /* ── Manuell: editierbare Eingabefelder ── */
+                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                                                        <NumberInput
+                                                            label="Bittere (IBU)"
+                                                            value={brew.data?.ibu || ''}
+                                                            onChange={(val) => { manualOverrides.current.add('ibu'); updateData('ibu', val); }}
+                                                            placeholder="30"
+                                                            step={0.1}
+                                                            isCalculated={!!brew.data?.hops?.length}
+                                                            calculationInfo="Berechnet nach Tinseth-Formel (Hopfen & Kochzeit)"
+                                                            onInspectorOpen={() => handleOpenInspector('IBU')}
+                                                        />
+                                                        <NumberInput
+                                                            label="Farbe (EBC)"
+                                                            value={brew.data?.color || ''}
+                                                            onChange={(val) => { manualOverrides.current.add('color'); updateData('color', val); }}
+                                                            placeholder="10"
+                                                            previewColor={brew.data?.color ? ebcToHex(parseFloat(brew.data.color)) : undefined}
+                                                            isCalculated={!!brew.data?.malts?.length}
+                                                            calculationInfo="Berechnet nach Morey-Formel (Malze)"
+                                                            onInspectorOpen={() => handleOpenInspector('Color')}
+                                                        />
+                                                        <NumberInput
+                                                            label="Alkohol (ABV %)"
+                                                            value={brew.data?.abv || ''}
+                                                            onChange={(val) => { manualOverrides.current.add('abv'); updateData('abv', val); }}
+                                                            placeholder="5.2"
+                                                            step={0.1}
+                                                            isCalculated={!!brew.data?.og}
+                                                            calculationInfo="Berechnet aus Stammwürze & Restextrakt"
+                                                            onInspectorOpen={() => handleOpenInspector('ABV')}
+                                                        />
+                                                        <NumberInput
+                                                            label="Stammwürze (°P)"
+                                                            value={brew.data?.og || ''}
+                                                            onChange={(val) => { manualOverrides.current.add('og'); updateData('og', val); }}
+                                                            placeholder="12.0"
+                                                            step={0.1}
+                                                            isCalculated={!!brew.data?.malts?.length}
+                                                            calculationInfo="Berechnet aus Schüttung & SHA"
+                                                            onInspectorOpen={() => handleOpenInspector('OG')}
+                                                        />
+                                                        <NumberInput
+                                                            label="Restextrakt (°P)"
+                                                            value={brew.data?.fg || ''}
+                                                            onChange={(val) => { manualOverrides.current.add('fg'); updateData('fg', val); }}
+                                                            placeholder="3.0"
+                                                            step={0.1}
+                                                            isCalculated={!!brew.data?.og}
+                                                            calculationInfo="Berechnet aus Stammwürze & Hefe-Vergärungsgrad"
+                                                            onInspectorOpen={() => handleOpenInspector('FG')}
+                                                        />
+                                                    </div>
+                                                )}
 
-                                                    <NumberInput
-                                                        label="Farbe (EBC)"
-                                                        value={brew.data?.color || ''}
-                                                        onChange={(val) => { manualOverrides.current.add('color'); updateData('color', val); }}
-                                                        placeholder="10"
-                                                        previewColor={brew.data?.color ? ebcToHex(parseFloat(brew.data.color)) : undefined}
-                                                        isCalculated={!!brew.data?.malts?.length}
-                                                        calculationInfo="Berechnet nach Morey-Formel (Malze)"
-                                                        onInspectorOpen={() => handleOpenInspector('Color')}
-                                                        readOnly={!resultsEditable}
-                                                    />
-
-                                                    <NumberInput
-                                                        label="Alkohol (ABV %)"
-                                                        value={brew.data?.abv || ''}
-                                                        onChange={(val) => { manualOverrides.current.add('abv'); updateData('abv', val); }}
-                                                        placeholder="5.2"
-                                                        step={0.1}
-                                                        isCalculated={!!brew.data?.og}
-                                                        calculationInfo="Berechnet aus Stammwürze & Restextrakt"
-                                                        onInspectorOpen={() => handleOpenInspector('ABV')}
-                                                        readOnly={!resultsEditable}
-                                                    />
-
-                                                    <NumberInput
-                                                        label="Stammwürze (°P)"
-                                                        value={brew.data?.og || ''}
-                                                        onChange={(val) => { manualOverrides.current.add('og'); updateData('og', val); }}
-                                                        placeholder="12.0"
-                                                        step={0.1}
-                                                        isCalculated={!!brew.data?.malts?.length}
-                                                        calculationInfo="Berechnet aus Schüttung & SHA"
-                                                        onInspectorOpen={() => handleOpenInspector('OG')}
-                                                        readOnly={!resultsEditable}
-                                                    />
-
-                                                    <NumberInput
-                                                        label="Restextrakt (°P)"
-                                                        value={brew.data?.fg || ''}
-                                                        onChange={(val) => { manualOverrides.current.add('fg'); updateData('fg', val); }}
-                                                        placeholder="3.0"
-                                                        step={0.1}
-                                                        isCalculated={!!brew.data?.og}
-                                                        calculationInfo="Berechnet aus Stammwürze & Hefe-Vergärungsgrad"
-                                                        onInspectorOpen={() => handleOpenInspector('FG')}
-                                                        readOnly={!resultsEditable}
-                                                    />
-                                                </div>
+                                                {/* SHA-Sync Banner */}
+                                                {statsMode === 'live' && sessionStats?.efficiency &&
+                                                 Math.abs(sessionStats.efficiency - parseFloat(brew.data?.efficiency || '75')) > 5 && (
+                                                    <div className="mt-4 flex items-center gap-3 p-3 rounded-xl bg-amber-500/5 border border-amber-500/20 text-xs">
+                                                        <span className="text-amber-400 flex-1">
+                                                            Deine reale SHA ({sessionStats.efficiency.toFixed(1)}%) weicht von der Rezept-SHA ({brew.data?.efficiency || 75}%) ab.
+                                                        </span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => updateData('efficiency', sessionStats.efficiency!.toFixed(1))}
+                                                            className="font-bold text-amber-400 hover:text-amber-300 whitespace-nowrap transition-colors"
+                                                        >
+                                                            Anpassen →
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
 

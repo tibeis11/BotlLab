@@ -217,7 +217,7 @@ export function CompletedTab() {
             attenuation = parseFloat((((og - fg) / (og - 1)) * 100).toFixed(0));
         }
 
-        return { og, fg, abv, attenuation };
+        return { og, fg, abv, attenuation, sha: session?.measured_efficiency ?? null };
     }, [session, measurements]);
 
     // Get existing Note
@@ -252,8 +252,9 @@ export function CompletedTab() {
                     status: 'ARCHIVED',
                     completed_at: new Date().toISOString(),
                     measured_abv: stats.abv,
-                    apparent_attenuation: stats.attenuation
-                } as any); 
+                    apparent_attenuation: stats.attenuation,
+                    ...(stats.sha !== null && { measured_efficiency: stats.sha }),
+                } as any);
                 
                 router.push(`/team/${session?.brewery_id}/sessions`);
             } catch (e) {
@@ -305,7 +306,7 @@ export function CompletedTab() {
             <PhaseDescription>Fasse deine Ergebnisse zusammen, bewerte das Bier und archiviere den Sud.</PhaseDescription>
 
             {/* Final Stats Card */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
                  <div className="md:bg-surface md:border md:border-border md:p-4 md:rounded-lg py-2 px-1 border-b border-border md:border-b-0">
                     <div className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-1">Stammwürze (OG)</div>
                     <div className="text-xl font-mono font-bold text-text-primary">{stats.og?.toFixed(3) || '—'}</div>
@@ -318,10 +319,14 @@ export function CompletedTab() {
                     <div className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-1">Alkohol (ABV)</div>
                     <div className="text-xl font-mono font-bold text-emerald-400">{stats.abv}%</div>
                  </div>
-                 <div className="md:bg-surface md:border md:border-border md:p-4 md:rounded-lg py-2 px-1 border-b border-border md:border-b-0 md:last:border-0">
+                 <div className="md:bg-surface md:border md:border-border md:p-4 md:rounded-lg py-2 px-1 border-b border-border md:border-b-0">
                     <div className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-1">Vergärungsgrad</div>
                     <div className="text-xl font-mono font-bold text-brand">{stats.attenuation}%</div>
                     <BotlGuideTrigger guideKey="effizienz.sudhausausbeute" />
+                 </div>
+                 <div className="md:bg-surface md:border md:border-border md:p-4 md:rounded-lg py-2 px-1 border-b border-border md:border-b-0 md:last:border-0">
+                    <div className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-1">SHA (Sudausbeute)</div>
+                    <div className="text-xl font-mono font-bold text-cyan-400">{stats.sha !== null ? `${stats.sha}%` : '—'}</div>
                  </div>
             </div>
 

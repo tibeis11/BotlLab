@@ -512,8 +512,9 @@ export function calculateOGDetails(
         const amountKg = maltAmountKg(malt); // BUG-FIX: unit-aware conversion
         
         // 1. Check for DB override value (Hybrid approach), 2. Fall back to Regex table
+        // DB stores pts·L/kg (~200–384). Values ≤ 2 are placeholders (e.g. 1.0) — ignore them.
         const rawPotential = safeFloat(malt.potential_pts);
-        const potential = rawPotential > 0 ? rawPotential : getMaltPotential(malt.name);
+        const potential = rawPotential > 2 ? rawPotential : getMaltPotential(malt.name);
         
         const maltPoints = amountKg * potential;
         totalPoints += maltPoints;
@@ -545,6 +546,38 @@ export function calculateOGDetails(
         ogSG: parseFloat(sg.toFixed(3)),
         parts
     };
+}
+
+/**
+ * Calculates the achieved brewhouse efficiency (Sudhausausbeute) from measured results.
+ * Formula: SHA (%) = (actual gravity points) / (theoretical gravity points at 100%) × 100
+ *
+ * @param measuredOGSG  - measured original gravity as SG (e.g. 1.058)
+ * @param batchSizeLiters - actual collected wort volume in liters
+ * @param malts - grain bill (same MaltItem[] used in recipe)
+ * @returns efficiency in percent (0–100+), rounded to 1 decimal, or 0 if data is insufficient
+ */
+export function calculateMeasuredEfficiency(
+    measuredOGSG: number,
+    batchSizeLiters: number,
+    malts: MaltItem[]
+): number {
+    if (!measuredOGSG || measuredOGSG <= 1 || batchSizeLiters <= 0 || !malts || malts.length === 0) return 0;
+
+    // Actual gravity points in the batch
+    const actualPoints = (measuredOGSG - 1) * 1000 * batchSizeLiters;
+
+    // Theoretical maximum points (100% efficiency)
+    let theoreticalPoints = 0;
+    for (const malt of malts) {
+        const amountKg = maltAmountKg(malt);
+        const rawPotential = safeFloat(malt.potential_pts);
+        const potential = rawPotential > 2 ? rawPotential : getMaltPotential(malt.name);
+        theoreticalPoints += amountKg * potential;
+    }
+
+    if (theoreticalPoints <= 0) return 0;
+    return Math.round((actualPoints / theoreticalPoints) * 1000) / 10; // 1 decimal
 }
 
 /**

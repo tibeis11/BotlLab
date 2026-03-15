@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { useOnlineStatus } from '@/lib/hooks/useOnlineStatus';
 import { useGlobalToast } from '@/app/context/AchievementNotificationContext';
 import { mergeRecipeIngredientsIntoData } from '@/lib/ingredients/ingredient-adapter';
+import { calculateMeasuredEfficiency } from '@/lib/brewing-calculations';
 
 // Define Offline Queue Action Types
 type QueueAction = 
@@ -385,6 +386,17 @@ export function SessionProvider({
       if (updates.apparent_attenuation !== undefined) safeUpdates.apparent_attenuation = updates.apparent_attenuation;
 
       if (Object.keys(safeUpdates).length === 0) return;
+
+      // Auto-calculate SHA when OG or volume is updated
+      if ('measured_og' in safeUpdates || 'measure_volume' in safeUpdates) {
+        const effectiveOg = (safeUpdates.measured_og ?? session.measured_og) as number | null;
+        const effectiveVol = (safeUpdates.measure_volume ?? session.measure_volume) as number | null;
+        const malts = session.brew?.recipe_data?.malts;
+        if (effectiveOg && effectiveVol && Array.isArray(malts) && malts.length > 0) {
+          const sha = calculateMeasuredEfficiency(effectiveOg, Number(effectiveVol), malts);
+          if (sha > 0) safeUpdates.measured_efficiency = sha;
+        }
+      }
 
       // Optimistic Update
       setSession(prev => prev ? { ...prev, ...safeUpdates } : null);

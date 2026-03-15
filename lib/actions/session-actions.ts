@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { QuickSessionCreateSchema, formatZodError } from "@/lib/validations/session-schemas";
+import { platoToSG, calculateMeasuredEfficiency } from "@/lib/brewing-calculations";
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import type { TimelineEvent } from "@/lib/types/session-log";
@@ -109,14 +110,38 @@ export async function createQuickSession(input: unknown) {
 
   // 7. Prepare Measurements (Merge Recipe defaults with overrides)
   const recipeMeasurements = brew.data as any; // JSONB from brews.data
+
+  // Helper: convert Plato to SG if value > 2 (Plato values are typically 8–25)
+  const toSG = (val: number | null | undefined): number | null => {
+    if (val == null) return null;
+    return val > 2 ? platoToSG(val) : val;
+  };
+
+  const rawOG = measurements?.og ?? (recipeMeasurements?.og ? parseFloat(String(recipeMeasurements.og)) : null);
+  const rawFG = measurements?.fg ?? (recipeMeasurements?.fg ? parseFloat(String(recipeMeasurements.fg)) : null);
+  const rawVolume = measurements?.volume ?? (recipeMeasurements?.batchSize ? parseFloat(String(recipeMeasurements.batchSize)) : null);
+  const rawABV = measurements?.abv ?? (recipeMeasurements?.abv ? parseFloat(String(recipeMeasurements.abv)) : null);
+
+  const measuredOG = toSG(rawOG);
+  const measuredFG = toSG(rawFG);
+
+  // Calculate SHA if OG + volume + malts are available
+  const malts = recipeMeasurements?.malts;
+  let measuredEfficiency: number | null = null;
+  if (measuredOG && rawVolume && Array.isArray(malts) && malts.length > 0) {
+    const sha = calculateMeasuredEfficiency(measuredOG, rawVolume, malts);
+    if (sha > 0) measuredEfficiency = sha;
+  }
+
   const finalMeasurements = {
-    og: measurements?.og ?? recipeMeasurements?.og ?? null,
-    fg: measurements?.fg ?? recipeMeasurements?.fg ?? null,
-    volume: measurements?.volume ?? recipeMeasurements?.batchSize ?? null,
-    abv: measurements?.abv ?? recipeMeasurements?.abv ?? null,
+    og: measuredOG,
+    fg: measuredFG,
+    volume: rawVolume,
+    abv: rawABV,
   };
 
   // 8. Insert Session
+  // Quick sessions are immediately ARCHIVED so they feed into session_stats aggregation
   const { data: session, error: insertError } = await supabase
     .from("brewing_sessions")
     .insert({
@@ -124,12 +149,18 @@ export async function createQuickSession(input: unknown) {
       brewery_id: breweryId,
       session_type: 'quick',
       phase: 'completed',
-      status: 'completed',
+      status: 'ARCHIVED',
       brewed_at: brewedAt || new Date().toISOString().split('T')[0],
       started_at: new Date().toISOString(),
+      completed_at: new Date().toISOString(),
       batch_code: finalBatchCode,
       timeline: initialTimeline,
       measurements: finalMeasurements,
+      measured_og: measuredOG,
+      measured_fg: measuredFG,
+      measured_abv: rawABV,
+      measured_efficiency: measuredEfficiency,
+      measure_volume: rawVolume,
       notes: notes || null,
     })
     .select()

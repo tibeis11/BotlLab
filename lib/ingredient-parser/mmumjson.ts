@@ -1,6 +1,29 @@
 import { IRecipeParser, ParsedRecipe, ParsedMashStep } from "./types";
 import { clampAmount } from "./utils";
 
+/**
+ * Repariert Latin-1-in-UTF-8-Doppelkodierung (häufiger Bug auf maischemalzundmehr.de).
+ * "Ã¼" → "ü", "Ã¶" → "ö" etc.
+ */
+function fixEncoding(s: unknown): string {
+  if (typeof s !== 'string') return String(s ?? '');
+  try {
+    return decodeURIComponent(escape(s));
+  } catch {
+    return s;
+  }
+}
+
+/**
+ * Extrahiert die erste Zahl aus einem Wert — auch wenn er ein String wie "18 - 22°C" ist.
+ */
+function extractNumber(val: unknown): number {
+  const n = parseFloat(String(val ?? ''));
+  if (!isNaN(n) && n > 0) return n;
+  const match = String(val ?? '').match(/\d+([.,]\d+)?/);
+  return match ? parseFloat(match[0].replace(',', '.')) : NaN;
+}
+
 export class MMuMJsonParser implements IRecipeParser {
   canParse(content: string): boolean {
     const text = content.trim();
@@ -16,8 +39,15 @@ export class MMuMJsonParser implements IRecipeParser {
   parse(content: string): ParsedRecipe[] {
     const recipe = JSON.parse(content);
 
+    const fermentationTemp = (() => {
+      const t1 = extractNumber(recipe.Gaertemperatur);
+      if (!isNaN(t1) && t1 > 0) return t1;
+      const t2 = extractNumber(recipe.Gaer_Temp_1);
+      return (!isNaN(t2) && t2 > 0) ? t2 : undefined;
+    })();
+
     const parsedRecipe: ParsedRecipe = {
-      name: recipe.Name || "MMuM Rezept",
+      name: fixEncoding(recipe.Name) || "MMuM Rezept",
       brewer: recipe.Autor,
       batch_size_liters:
         parseFloat(recipe.Ausschlagwuerze) > 0 ? parseFloat(recipe.Ausschlagwuerze)
@@ -26,30 +56,29 @@ export class MMuMJsonParser implements IRecipeParser {
         : 20,
       style_name: recipe.Sorte,
       ingredients: [],
-      description: recipe.Kurzbeschreibung || recipe.Bemerkung || recipe.Anmerkung || undefined,
-      notes: recipe.Anmerkung_Autor || undefined,
+      description: fixEncoding(recipe.Kurzbeschreibung || recipe.Bemerkung || recipe.Anmerkung) || undefined,
+      notes: fixEncoding(recipe.Anmerkung_Autor) || undefined,
       boil_time_minutes: parseFloat(recipe.Kochzeit_Wuerze) > 0 ? parseFloat(recipe.Kochzeit_Wuerze) : undefined,
-      fermentation_temp_c:
-        parseFloat(recipe.Gaertemperatur) > 0 ? parseFloat(recipe.Gaertemperatur)
-        : parseFloat(recipe.Gaer_Temp_1) > 0 ? parseFloat(recipe.Gaer_Temp_1)
-        : undefined,
+      fermentation_temp_c: fermentationTemp,
       efficiency:
         parseFloat(recipe.Sudhausausbeute) > 0 ? parseFloat(recipe.Sudhausausbeute)
         : parseFloat(recipe.Ausbeute) > 0 ? parseFloat(recipe.Ausbeute)
         : undefined,
       mash_process: recipe.Maischform === 'dekoktion' ? 'decoction' : recipe.Maischform ? 'infusion' : undefined,
       carbonation_g_l: parseFloat(recipe.Karbonisierung) > 0 ? parseFloat(recipe.Karbonisierung) : undefined,
-      mash_steps: this.parseMashSteps(recipe),
+      mash_steps: this.parseMashSteps(recipe, parseFloat(recipe.Einmaischtemperatur)),
     };
 
     if (Array.isArray(recipe.Malze)) {
       recipe.Malze.forEach((m: any) => {
+        const rawAmount = parseFloat(m.Menge) || 0;
+        const amountKg = String(m.Einheit).toLowerCase() === 'g' ? rawAmount / 1000 : rawAmount;
         parsedRecipe.ingredients.push({
-          raw_name: m.Name,
+          raw_name: fixEncoding(m.Name),
           type: "malt",
-          amount: clampAmount(parseFloat(m.Menge) || 0, 'malt'),
+          amount: clampAmount(amountKg, 'malt'),
           unit: "kg",
-          usage: "mash"
+          usage: "mash",
         });
       });
     }
@@ -57,19 +86,33 @@ export class MMuMJsonParser implements IRecipeParser {
     if (Array.isArray(recipe.Hopfenkochen)) {
       recipe.Hopfenkochen.forEach((h: any) => {
         parsedRecipe.ingredients.push({
-          raw_name: h.Sorte,
+          raw_name: fixEncoding(h.Sorte),
           type: "hop",
           amount: clampAmount(parseFloat(h.Menge) || 0, 'hop'),
           unit: "g",
-          override_alpha: parseFloat(h.Alpha),
+          override_alpha: parseFloat(h.Alpha) || undefined,
           time_minutes: parseFloat(h.Zeit),
           usage: this.mapHopTyp(h.Typ),
         });
       });
     }
 
+    if (Array.isArray(recipe.Stopfhopfen)) {
+      recipe.Stopfhopfen.forEach((h: any) => {
+        parsedRecipe.ingredients.push({
+          raw_name: fixEncoding(h.Sorte),
+          type: "hop",
+          amount: clampAmount(parseFloat(h.Menge) || 0, 'hop'),
+          unit: "g",
+          override_alpha: parseFloat(h.Alpha) || undefined,
+          time_minutes: 0,
+          usage: 'dry hop',
+        });
+      });
+    }
+
     if (recipe.Hefe) {
-      const yeastNames = recipe.Hefe.split(",").map((y: string) => y.trim());
+      const yeastNames = fixEncoding(recipe.Hefe).split(",").map((y: string) => y.trim());
       yeastNames.forEach((yName: string) => {
         parsedRecipe.ingredients.push({
           raw_name: yName,
@@ -77,6 +120,21 @@ export class MMuMJsonParser implements IRecipeParser {
           amount: 1,
           unit: "pkg",
           override_attenuation: parseFloat(recipe.Endvergaerungsgrad) || undefined
+        });
+      });
+    }
+
+    if (Array.isArray(recipe.Gewuerze_etc)) {
+      recipe.Gewuerze_etc.forEach((g: any) => {
+        const name = fixEncoding(g.Name || g.Sorte || '');
+        if (!name) return;
+        parsedRecipe.ingredients.push({
+          raw_name: name,
+          type: 'hop',
+          amount: clampAmount(parseFloat(g.Menge) || 1, 'hop'),
+          unit: g.Einheit || 'g',
+          time_minutes: parseFloat(g.Kochzeit) || 0,
+          usage: 'spice',
         });
       });
     }
@@ -94,9 +152,14 @@ export class MMuMJsonParser implements IRecipeParser {
     }
   }
 
-  private parseMashSteps(recipe: any): ParsedMashStep[] | undefined {
+  private parseMashSteps(recipe: any, einmaischTemp?: number): ParsedMashStep[] | undefined {
+    const strikeStep: ParsedMashStep | null = (!isNaN(einmaischTemp!) && einmaischTemp! > 0)
+      ? { name: 'Einmaischen', temperature_c: einmaischTemp!, duration_minutes: 0, step_type: 'strike' }
+      : null;
+
     if (recipe.Maischform === 'dekoktion' && Array.isArray(recipe.Dekoktionen) && recipe.Dekoktionen.length > 0) {
-      return this.parseDekoktionen(recipe.Dekoktionen);
+      const steps = this.parseDekoktionen(recipe.Dekoktionen);
+      return strikeStep ? [strikeStep, ...steps] : steps;
     }
 
     if (Array.isArray(recipe.Rasten) && recipe.Rasten.length > 0) {
@@ -113,10 +176,11 @@ export class MMuMJsonParser implements IRecipeParser {
           };
         })
         .filter((s: ParsedMashStep | null): s is ParsedMashStep => s !== null);
-      return result.length > 0 ? result : undefined;
+      const steps = result.length > 0 ? result : [];
+      return strikeStep ? [strikeStep, ...steps] : (steps.length > 0 ? steps : undefined);
     }
 
-    return undefined;
+    return strikeStep ? [strikeStep] : undefined;
   }
 
   private parseDekoktionen(dekoktionen: any[]): ParsedMashStep[] {

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Trash2, Plus, X, ChevronRight } from 'lucide-react';
 import { Command } from 'cmdk';
 import { useSupabase } from '@/lib/hooks/useSupabase';
+import { FALLBACK_MASTER_ID_SET } from '@/lib/ingredients/constants';
 
 export interface Yeast {
     name: string;
@@ -33,7 +34,7 @@ interface YeastListEditorProps {
     onChange: (value: Yeast[]) => void;
 }
 
-function SorteCombobox({ value, onSelect, yeasts }: { value: string; onSelect: (master: MasterYeast) => void; yeasts: MasterYeast[]; }) {
+function SorteCombobox({ value, onSelect, onFreeText, yeasts }: { value: string; onSelect: (master: MasterYeast) => void; onFreeText?: (name: string) => void; yeasts: MasterYeast[]; }) {
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState(value || '');
 
@@ -48,7 +49,10 @@ function SorteCombobox({ value, onSelect, yeasts }: { value: string; onSelect: (
                 value={search}
                 onValueChange={(val) => { setSearch(val); setOpen(true); }}
                 onFocus={() => setOpen(true)}
-                onBlur={() => setTimeout(() => setOpen(false), 200)}
+                onBlur={() => setTimeout(() => {
+                    setOpen(false);
+                    if (search !== value && onFreeText) onFreeText(search);
+                }, 200)}
             />
             <div className={`absolute ${open ? "" : "hidden"} top-full mt-1 left-0 z-50 w-full min-w-[280px] bg-surface border border-border rounded-xl shadow-2xl overflow-hidden max-h-64 flex flex-col`}>
                     <Command.List className="overflow-y-auto p-1">
@@ -187,6 +191,15 @@ export function YeastListEditor({ value, onChange }: YeastListEditorProps) {
         updateRowPartial(index, { name: master.name, master_id: master.id, manufacturer: '', attenuation: master.attenuation_pct ? master.attenuation_pct.toString() : '' });
     };
 
+    const handleFreeText = (index: number, name: string) => {
+        const exactMatch = dbYeasts.find(m => m.name.toLowerCase() === name.toLowerCase());
+        if (exactMatch) {
+            handleSorteSelect(index, exactMatch);
+        } else {
+            updateRowPartial(index, { name, master_id: undefined });
+        }
+    };
+
     const handleManufacturerSelect = (index: number, manufacturer: string) => {
         const item = items[index];
         const master = dbYeasts.find(m => m.name === item.name);
@@ -216,8 +229,13 @@ export function YeastListEditor({ value, onChange }: YeastListEditorProps) {
                             className="w-full flex items-center gap-3 px-3 py-3 text-left"
                         >
                             <div className="flex-1 min-w-0">
-                                <div className="text-sm font-semibold text-text-primary truncate">
-                                    {item.name || <span className="text-text-disabled italic font-normal">Sorte wählen…</span>}
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm font-semibold text-text-primary truncate">
+                                        {item.name || <span className="text-text-disabled italic font-normal">Sorte wählen…</span>}
+                                    </span>
+                                    {item.name && (!item.master_id || FALLBACK_MASTER_ID_SET.has(item.master_id)) && (
+                                        <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full border text-amber-400 bg-amber-500/10 border-amber-500/20">Neu</span>
+                                    )}
                                 </div>
                                 {(item.amount || item.type || item.attenuation) && (
                                     <div className="text-xs text-text-muted mt-0.5">{formatSummary(item)}</div>
@@ -252,6 +270,7 @@ export function YeastListEditor({ value, onChange }: YeastListEditorProps) {
                                 <SorteCombobox
                                     value={editingItem.name}
                                     onSelect={(m) => handleSorteSelect(editingIdx, m)}
+                                    onFreeText={(name) => handleFreeText(editingIdx, name)}
                                     yeasts={dbYeasts}
                                 />
                             </div>
@@ -376,10 +395,11 @@ export function YeastListEditor({ value, onChange }: YeastListEditorProps) {
                             className="grid grid-cols-[1.3fr_1fr_130px_140px_80px_28px] gap-x-3 px-3 py-2.5 items-center group relative focus-within:z-[60]"
                         >
                             {/* Sorte */}
-                            <div className="h-9 flex items-center bg-background border border-border rounded-lg px-2.5 focus-within:border-blue-500/50 transition z-10">
+                            <div className={`h-9 flex items-center bg-background border rounded-lg px-2.5 focus-within:border-blue-500/50 transition z-10 ${item.name && (!item.master_id || FALLBACK_MASTER_ID_SET.has(item.master_id)) ? 'border-amber-500/40' : 'border-border'}`}>
                                 <SorteCombobox
                                     value={item.name}
                                     onSelect={(m) => handleSorteSelect(idx, m)}
+                                    onFreeText={(name) => handleFreeText(idx, name)}
                                     yeasts={dbYeasts}
                                 />
                             </div>

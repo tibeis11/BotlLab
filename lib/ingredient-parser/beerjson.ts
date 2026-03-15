@@ -39,7 +39,7 @@ export class BeerJsonParser implements IRecipeParser {
         style_name: recipe.style?.name,
         ingredients: [],
         description: recipe.description || recipe.notes || undefined,
-        boil_time_minutes: this.extractTimeMinutesFromBoil(recipe.boil),
+        boil_time_minutes: this.extractTimeMinutesFromBoil(recipe.boil) ?? this.extractTimeMinutesDirect(recipe.boil_time),
         fermentation_temp_c: this.extractFermentationTemp(recipe.fermentation),
         efficiency: recipe.efficiency?.brewhouse?.value ?? recipe.efficiency?.mash?.value ?? undefined,
         mash_steps: this.extractMashSteps(recipe.mash),
@@ -71,7 +71,7 @@ export class BeerJsonParser implements IRecipeParser {
             unit: 'g',
             time_minutes: this.extractTimeMinutes(h.timing),
             usage: h.timing?.use,
-            override_alpha: h.alpha_acids,
+            override_alpha: h.alpha_acid?.value ?? h.alpha_acids?.value ?? (typeof h.alpha_acids === 'number' ? h.alpha_acids : undefined),
             manufacturer: h.producer
           });
         });
@@ -100,7 +100,7 @@ export class BeerJsonParser implements IRecipeParser {
             type: 'yeast',
             amount: clampAmount(amount, 'yeast'),
             unit,
-            override_attenuation: c.attenuation,
+            override_attenuation: typeof c.attenuation === 'number' ? c.attenuation : c.attenuation?.value,
             manufacturer: c.producer
           });
         });
@@ -147,6 +147,15 @@ export class BeerJsonParser implements IRecipeParser {
     return t.value;
   }
 
+  // Liest boil_time direkt als TimeType (BotlLab-Export-Format: recipe.boil_time)
+  private extractTimeMinutesDirect(t: any): number | undefined {
+    if (!t?.value) return undefined;
+    if (t.unit === 'min') return t.value;
+    if (t.unit === 'sec') return t.value / 60;
+    if (t.unit === 'hr') return t.value * 60;
+    return t.value;
+  }
+
   private extractFermentationTemp(fermentation: any): number | undefined {
     const step = fermentation?.fermentation_steps?.[0];
     if (!step?.start_temperature) return undefined;
@@ -162,16 +171,33 @@ export class BeerJsonParser implements IRecipeParser {
       .map((s: any): ParsedMashStep | null => {
         const tempObj = s.step_temperature;
         const timeObj = s.step_time;
-        if (!tempObj?.value || !timeObj?.value) return null;
+        // timeObj.value kann 0 sein (z.B. Strike-Step) — nur null/undefined ausschließen
+        if (tempObj?.value == null || timeObj?.value == null) return null;
         let temp = tempObj.value;
         if (tempObj.unit === 'F') temp = (temp - 32) * 5 / 9;
         let time = timeObj.value;
         if (timeObj.unit === 'hr') time = time * 60;
         if (timeObj.unit === 'sec') time = time / 60;
-        return { name: s.name || undefined, temperature_c: Math.round(temp * 10) / 10, duration_minutes: Math.round(time) };
+        const step_type = this.mapBeerJsonStepType(s.type);
+        return {
+          name: s.name || undefined,
+          temperature_c: Math.round(temp * 10) / 10,
+          duration_minutes: Math.round(time),
+          step_type,
+        };
       })
       .filter((s: ParsedMashStep | null): s is ParsedMashStep => s !== null);
     return result.length > 0 ? result : undefined;
+  }
+
+  private mapBeerJsonStepType(type: string | undefined): ParsedMashStep['step_type'] {
+    switch (type) {
+      case 'decoction':    return 'decoction';
+      case 'temperature':  return 'mashout';
+      case 'strike':       return 'strike';
+      case 'infusion':
+      default:             return 'rest';
+    }
   }
 
   // --- Hilfsfunktionen für das komplexe BeerJSON Struct ---

@@ -22,7 +22,7 @@ export interface ParsedMashStep {
   name?: string;
   temperature_c: number;
   duration_minutes: number;
-  step_type?: 'rest' | 'decoction';
+  step_type?: 'rest' | 'decoction' | 'strike' | 'mashout';
   // Dekoktions-spezifisch
   volume_liters?: number;
   decoction_form?: 'thick' | 'thin' | 'liquid';

@@ -28,6 +28,91 @@ import { Flame, Heart, Star, Sparkles, Search, Filter, SearchX, ChevronDown, Che
 import Image from 'next/image';
 import { Section, SectionHeader } from './_components/DiscoverSection';
 
+// ── Ingredient / Style Search Input ───────────────────────────────────────────
+// onChange: fires on every keystroke (for live-filter use cases like hopFilter)
+// onSelect: fires only when the user clicks a suggestion (for exact-match use cases like styleFilter)
+// If onSelect is provided, the internal input clears after selection and onChange is NOT called on keystrokes.
+function IngredientSearchInput({
+  value,
+  onChange,
+  onSelect,
+  suggestions,
+  placeholder,
+  className,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onSelect?: (v: string) => void;
+  suggestions: string[];
+  placeholder?: string;
+  className?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [localValue, setLocalValue] = useState(value);
+
+  useEffect(() => { setLocalValue(value); }, [value]);
+
+  const filtered = useMemo(() => {
+    const q = localValue.trim().toLowerCase();
+    if (q.length < 2) return [];
+    return suggestions.filter(n => n.toLowerCase().includes(q)).slice(0, 8);
+  }, [localValue, suggestions]);
+
+  function handleSelect(name: string) {
+    if (onSelect) {
+      onSelect(name);
+      setLocalValue('');
+    } else {
+      onChange(name);
+      setLocalValue(name);
+    }
+    setOpen(false);
+  }
+
+  function handleChange(v: string) {
+    setLocalValue(v);
+    if (!onSelect) onChange(v);
+    setOpen(true);
+  }
+
+  return (
+    <div className="relative">
+      <input
+        type="text"
+        value={localValue}
+        onChange={e => handleChange(e.target.value)}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        placeholder={placeholder}
+        className={className}
+      />
+      {localValue && (
+        <button
+          onMouseDown={e => e.preventDefault()}
+          onClick={() => { setLocalValue(''); onChange(''); setOpen(false); }}
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      )}
+      {open && filtered.length > 0 && (
+        <ul className="absolute z-50 top-full mt-1 left-0 w-full bg-surface border border-border rounded-xl shadow-2xl overflow-hidden max-h-56 overflow-y-auto">
+          {filtered.map(name => (
+            <li
+              key={name}
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => handleSelect(name)}
+              className="px-3 py-2 text-sm text-text-primary hover:bg-surface-hover cursor-pointer truncate"
+            >
+              {name}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 type Brew = {
   id: string;
   name: string;
@@ -132,6 +217,31 @@ export default function DiscoverClient({
   const [hasMore, setHasMore] = useState(initialBrews.length >= PAGE_SIZE);
   const [loadingMore, setLoadingMore] = useState(false);
   const [likedBrewIds, setLikedBrewIds] = useState<Set<string>>(new Set());
+  const [dbIngredientNames, setDbIngredientNames] = useState<string[]>([]);
+  const [dbStyles, setDbStyles] = useState<string[]>([]);
+
+  // Load ingredient names from DB for rich autocomplete in the ingredient filter
+  useEffect(() => {
+    supabase.from('ingredient_master').select('name').then(({ data }) => {
+      if (data) setDbIngredientNames(data.map((r: { name: string }) => r.name));
+    });
+  }, [supabase]);
+
+  // Load all unique styles from DB for the style combobox
+  useEffect(() => {
+    supabase
+      .from('brews')
+      .select('style')
+      .eq('is_public', true)
+      .not('style', 'is', null)
+      .limit(500)
+      .then(({ data }) => {
+        if (data) {
+          const unique = Array.from(new Set(data.map((r: { style: string | null }) => r.style).filter((s): s is string => !!s))).sort();
+          setDbStyles(unique as string[]);
+        }
+      });
+  }, [supabase]);
 
   // Load recent searches from localStorage on mount
   useEffect(() => {
@@ -610,13 +720,13 @@ export default function DiscoverClient({
 
   // Unique ingredient names (hops + malts) from all loaded brews, for autocomplete
   const allIngredientNames = useMemo(() => {
-    const names = new Set<string>();
+    const names = new Set<string>(dbIngredientNames);
     brews.forEach(b => {
       (b.data?.hops as any[] | undefined)?.forEach((h: any) => { if (h?.name) names.add(h.name); });
       (b.data?.malts as any[] | undefined)?.forEach((m: any) => { if (m?.name) names.add(m.name); });
     });
     return Array.from(names).sort();
-  }, [brews]);
+  }, [brews, dbIngredientNames]);
 
   // Autocomplete suggestions: brew names + styles + ingredients, max 8 total
   type Suggestion = { label: string; type: 'recipe' | 'style' | 'ingredient' };
@@ -718,7 +828,6 @@ export default function DiscoverClient({
       { value: 'newest', label: 'Neueste' },
   ];
 
-  const POPULAR_STYLES = ['IPA', 'Weizen', 'Pils', 'Stout', 'Lager', 'Porter', 'Pale Ale', 'Sour'];
   const POPULAR_SEARCHES = ['IPA', 'Weizen', 'Saison', 'Pils', 'Stout', 'Helles', 'Citra', 'Kölsch', 'Pale Ale', 'Sour'];
   const BREW_TYPES = [
     { value: 'all', label: 'Alle' },
@@ -1014,7 +1123,7 @@ export default function DiscoverClient({
         {/* Main Layout: Sidebar + Content */}
         <div className="flex gap-0 max-w-screen-2xl mx-auto">
           {/* Left Sidebar - always visible on desktop, scrolls naturally with page */}
-          <aside className="hidden md:flex w-56 lg:w-64 xl:w-72 flex-shrink-0 flex-col border-r border-border/60 sticky top-14 self-start pt-8 pb-10 pl-6 md:pl-8 lg:pl-12 xl:pl-16 pr-6 space-y-8">
+          <aside className="hidden md:flex w-56 lg:w-64 xl:w-72 flex-shrink-0 flex-col border-r border-border/60 pt-8 pb-10 pl-6 md:pl-8 lg:pl-12 xl:pl-16 pr-6 space-y-8">
 
             {/* Sortierung */}
             <div>
@@ -1042,29 +1151,24 @@ export default function DiscoverClient({
             {/* Bierstil */}
             <div>
               <h3 className="text-[10px] font-bold text-text-disabled uppercase tracking-widest mb-2">Bierstil</h3>
-              <div className="flex flex-col">
+              {styleFilter !== 'all' ? (
                 <button
                   onClick={() => setStyleFilter('all')}
-                  className={`relative text-left py-1.5 text-sm transition-colors ${
-                    styleFilter === 'all' ? 'text-text-primary font-semibold' : 'text-text-muted hover:text-text-secondary'
-                  }`}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-sm font-medium w-full text-left"
                 >
-                  {styleFilter === 'all' && <span className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 w-0.5 h-4 bg-cyan-500 rounded-full" />}
-                  Alle Stile
+                  <span className="flex-1 truncate">{styleFilter}</span>
+                  <X className="w-3.5 h-3.5 shrink-0" />
                 </button>
-                {POPULAR_STYLES.map(style => (
-                  <button
-                    key={style}
-                    onClick={() => setStyleFilter(style)}
-                    className={`relative text-left py-1.5 text-sm transition-colors ${
-                      styleFilter === style ? 'text-text-primary font-semibold' : 'text-text-muted hover:text-text-secondary'
-                    }`}
-                  >
-                    {styleFilter === style && <span className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 w-0.5 h-4 bg-cyan-500 rounded-full" />}
-                    {style}
-                  </button>
-                ))}
-              </div>
+              ) : (
+                <IngredientSearchInput
+                  value=""
+                  onChange={() => {}}
+                  onSelect={setStyleFilter}
+                  suggestions={dbStyles}
+                  placeholder="Stil suchen…"
+                  className="w-full bg-surface/50 border border-border focus:border-border-active rounded-lg px-3 py-2 text-sm text-text-primary placeholder:text-text-disabled focus:outline-none transition-colors"
+                />
+              )}
             </div>
 
             {/* Braumethode */}
@@ -1146,27 +1250,13 @@ export default function DiscoverClient({
             {/* Zutat (Hopfen/Malz) */}
             <div>
               <h3 className="text-[10px] font-bold text-text-disabled uppercase tracking-widest mb-2">Zutat</h3>
-              <div className="relative">
-                <input
-                  type="text"
-                  list="ingredient-suggestions-desktop"
-                  value={hopFilter}
-                  onChange={(e) => setHopFilter(e.target.value)}
-                  placeholder="z. B. Citra…"
-                  className="w-full bg-surface/50 border border-border focus:border-border-active rounded-lg px-3 py-2 text-sm text-text-primary placeholder:text-text-disabled focus:outline-none transition-colors"
-                />
-                {hopFilter && (
-                  <button
-                    onClick={() => setHopFilter('')}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-              <datalist id="ingredient-suggestions-desktop">
-                {allIngredientNames.map(n => <option key={n} value={n} />)}
-              </datalist>
+              <IngredientSearchInput
+                value={hopFilter}
+                onChange={setHopFilter}
+                suggestions={allIngredientNames}
+                placeholder="z. B. Citra…"
+                className="w-full bg-surface/50 border border-border focus:border-border-active rounded-lg px-3 py-2 text-sm text-text-primary placeholder:text-text-disabled focus:outline-none transition-colors"
+              />
             </div>
 
             {/* Einsteiger-Modus */}
@@ -1767,6 +1857,27 @@ export default function DiscoverClient({
                   ))}
                 </div>
               </div>
+              {/* Bierstil */}
+              <div className="px-4 py-4">
+                <p className="text-[10px] font-medium text-text-disabled uppercase tracking-wider mb-3">Bierstil</p>
+                {styleFilter !== 'all' ? (
+                  <button
+                    onClick={() => setStyleFilter('all')}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-sm font-medium w-full text-left min-h-[38px]"
+                  >
+                    <span className="flex-1 truncate">{styleFilter}</span>
+                    <X className="w-4 h-4 shrink-0" />
+                  </button>
+                ) : (
+                  <IngredientSearchInput
+                    value=""
+                    onChange={v => { if (v) setStyleFilter(v); }}
+                    suggestions={dbStyles}
+                    placeholder="z. B. Böhmisches Pils, IPA…"
+                    className="w-full bg-surface border border-border rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder:text-text-disabled focus:outline-none focus:border-border-active transition-colors min-h-[38px]"
+                  />
+                )}
+              </div>
               {/* Brautyp */}
               <div className="px-4 py-4">
                 <p className="text-[10px] font-medium text-text-disabled uppercase tracking-wider mb-3">Brautyp</p>
@@ -1846,28 +1957,13 @@ export default function DiscoverClient({
               {/* Zutat */}
               <div className="px-4 py-4">
                 <p className="text-[10px] font-medium text-text-disabled uppercase tracking-wider mb-3">Zutat (Hopfen oder Malz)</p>
-                <div className="relative">
-                  <input
-                    type="text"
-                    list="ingredient-suggestions-sheet"
-                    value={hopFilter}
-                    onChange={(e) => setHopFilter(e.target.value)}
-                    placeholder="z. B. Citra, Hallertau, Pilsner Malz…"
-                    className="w-full bg-surface border border-border rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder:text-text-disabled focus:outline-none focus:border-border-active transition-colors min-h-[38px]"
-                  />
-                  {hopFilter && (
-                    <button
-                      onClick={() => setHopFilter('')}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary"
-                      aria-label="Löschen"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-                <datalist id="ingredient-suggestions-sheet">
-                  {allIngredientNames.map(n => <option key={n} value={n} />)}
-                </datalist>
+                <IngredientSearchInput
+                  value={hopFilter}
+                  onChange={setHopFilter}
+                  suggestions={allIngredientNames}
+                  placeholder="z. B. Citra, Hallertau, Pilsner Malz…"
+                  className="w-full bg-surface border border-border rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder:text-text-disabled focus:outline-none focus:border-border-active transition-colors min-h-[38px]"
+                />
               </div>
               {/* Einsteiger-Modus */}
               <div className="px-4 py-4">

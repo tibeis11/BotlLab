@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Trash2, Plus, X, ChevronRight } from 'lucide-react';
 import { Command } from 'cmdk';
 import { useSupabase } from '@/lib/hooks/useSupabase';
+import { FALLBACK_MASTER_ID_SET } from '@/lib/ingredients/constants';
 
 export interface Hop {
     name: string;
@@ -41,10 +42,11 @@ const USAGE_OPTIONS = [
     { value: 'Dry Hop', label: 'Stopfen' },
     { value: 'Whirlpool', label: 'Whirlpool' },
     { value: 'Mash', label: 'Maischen' },
-    { value: 'First Wort', label: 'Vorderwürze' }
+    { value: 'First Wort', label: 'Vorderwürze' },
+    { value: 'spice', label: 'Gewürz' },
 ];
 
-function SorteCombobox({ value, onSelect, hops }: { value: string; onSelect: (master: MasterHop) => void; hops: MasterHop[]; }) {
+function SorteCombobox({ value, onSelect, onFreeText, hops }: { value: string; onSelect: (master: MasterHop) => void; onFreeText?: (name: string) => void; hops: MasterHop[]; }) {
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState(value || '');
 
@@ -59,7 +61,10 @@ function SorteCombobox({ value, onSelect, hops }: { value: string; onSelect: (ma
                 value={search}
                 onValueChange={(val) => { setSearch(val); setOpen(true); }}
                 onFocus={() => setOpen(true)}
-                onBlur={() => setTimeout(() => setOpen(false), 200)}
+                onBlur={() => setTimeout(() => {
+                    setOpen(false);
+                    if (search !== value && onFreeText) onFreeText(search);
+                }, 200)}
             />
             <div className={`absolute ${open ? "" : "hidden"} top-full mt-1 left-0 z-50 w-full min-w-[280px] bg-surface border border-border rounded-xl shadow-2xl overflow-hidden max-h-64 flex flex-col`}>
                     <Command.List className="overflow-y-auto p-1">
@@ -175,20 +180,32 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
 
     const handleChange = (newItems: Hop[]) => { setItems(newItems); onChange(newItems); };
     const addRow = () => { const idx = items.length; handleChange([...items, { name: '', amount: '', unit: 'g', usage: 'Boil', form: 'Pellet' }]); setEditingIdx(idx); };
+    const addSpice = () => { const idx = items.length; handleChange([...items, { name: '', amount: '', unit: 'g', usage: 'spice', time: '0' }]); setEditingIdx(idx); };
     const updateRow = (index: number, field: keyof Hop, val: string) => { const n = [...items]; n[index] = { ...n[index], [field]: val }; handleChange(n); };
     const updateRowPartial = (index: number, updates: Partial<Hop>) => { const n = [...items]; n[index] = { ...n[index], ...updates }; handleChange(n); };
     const removeRow = (index: number) => { handleChange(items.filter((_, i) => i !== index)); setEditingIdx(null); };
+
+    const isSpice = (item: Hop) => item.usage?.toLowerCase() === 'spice';
 
     const formatSummary = (item: Hop) => {
         const parts: string[] = [];
         if (item.manufacturer) parts.push(item.manufacturer);
         if (item.amount) parts.push(item.amount + ' ' + item.unit);
-        if (item.alpha) parts.push(item.alpha + '% α');
+        if (!isSpice(item) && item.alpha) parts.push(item.alpha + '% α');
         return parts.join(' · ');
     };
 
     const handleSorteSelect = (index: number, master: MasterHop) => {
         updateRowPartial(index, { name: master.name, master_id: master.id, manufacturer: '', alpha: master.alpha_pct ? master.alpha_pct.toString() : '' });
+    };
+
+    const handleFreeText = (index: number, name: string) => {
+        const exactMatch = dbHops.find(m => m.name.toLowerCase() === name.toLowerCase());
+        if (exactMatch) {
+            handleSorteSelect(index, exactMatch);
+        } else {
+            updateRowPartial(index, { name, master_id: undefined });
+        }
     };
 
     const handleManufacturerSelect = (index: number, manufacturer: string) => {
@@ -204,6 +221,7 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
 
     const editingItem = editingIdx !== null ? items[editingIdx] : null;
     const editingMaster = editingItem ? dbHops.find(m => m.name === editingItem.name) : null;
+    const editingIsSpice = editingItem ? isSpice(editingItem) : false;
 
     return (
         <div>
@@ -216,8 +234,16 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
                         <button key={idx} type="button" onClick={() => setEditingIdx(idx)}
                             className="w-full flex items-center gap-3 px-3 py-3 text-left">
                             <div className="flex-1 min-w-0">
-                                <div className="text-sm font-semibold text-text-primary truncate">
-                                    {item.name || <span className="text-text-disabled italic font-normal">Sorte wählen…</span>}
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm font-semibold text-text-primary truncate">
+                                        {item.name || <span className="text-text-disabled italic font-normal">{isSpice(item) ? 'Gewürz eingeben…' : 'Sorte wählen…'}</span>}
+                                    </span>
+                                    {isSpice(item) && (
+                                        <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full border text-purple-400 bg-purple-500/10 border-purple-500/20">Gewürz</span>
+                                    )}
+                                    {!isSpice(item) && item.name && (!item.master_id || FALLBACK_MASTER_ID_SET.has(item.master_id)) && (
+                                        <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full border text-amber-400 bg-amber-500/10 border-amber-500/20">Neu</span>
+                                    )}
                                 </div>
                                 {(item.amount || item.alpha || item.manufacturer) && (
                                     <div className="text-xs text-text-muted mt-0.5">{formatSummary(item)}</div>
@@ -233,7 +259,9 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
             {editingItem !== null && editingIdx !== null && (
                 <div className="md:hidden fixed inset-0 z-50 bg-background flex flex-col">
                     <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
-                        <h2 className="text-base font-bold text-text-primary">Hopfen bearbeiten</h2>
+                        <h2 className="text-base font-bold text-text-primary">
+                            {editingIsSpice ? 'Gewürz bearbeiten' : 'Hopfen bearbeiten'}
+                        </h2>
                         <button type="button" onClick={() => setEditingIdx(null)}
                             className="w-8 h-8 flex items-center justify-center rounded-full bg-surface-hover text-text-secondary hover:text-text-primary transition">
                             <X size={18} />
@@ -241,25 +269,41 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
                     </div>
                     <div className="flex-1 overflow-y-auto px-4 py-5 space-y-4">
                         <div>
-                            <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">Sorte</label>
-                            <div className="bg-surface border border-border rounded-xl px-3 py-2.5 focus-within:border-green-500/50 transition h-12">
-                                <SorteCombobox value={editingItem.name} onSelect={(m) => handleSorteSelect(editingIdx, m)} hops={dbHops} />
-                            </div>
+                            <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">
+                                {editingIsSpice ? 'Gewürz / Zusatz' : 'Sorte'}
+                            </label>
+                            {editingIsSpice ? (
+                                <div className="bg-surface border border-border rounded-xl px-3 py-2.5 focus-within:border-purple-500/50 transition">
+                                    <input
+                                        type="text"
+                                        className="w-full bg-transparent text-sm text-text-primary outline-none placeholder:text-text-disabled"
+                                        placeholder="z.B. Orangenschale, Koriander…"
+                                        value={editingItem.name}
+                                        onChange={(e) => updateRow(editingIdx, 'name', e.target.value)}
+                                    />
+                                </div>
+                            ) : (
+                                <div className="bg-surface border border-border rounded-xl px-3 py-2.5 focus-within:border-green-500/50 transition h-12">
+                                    <SorteCombobox value={editingItem.name} onSelect={(m) => handleSorteSelect(editingIdx, m)} onFreeText={(name) => handleFreeText(editingIdx, name)} hops={dbHops} />
+                                </div>
+                            )}
                         </div>
-                        <div>
-                            <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">Hersteller (Optional)</label>
-                            <div className="flex bg-surface border border-border rounded-xl px-3 py-2.5 overflow-visible focus-within:border-green-500/50 transition relative h-12">
-                                <ManufacturerCombobox
-                                    value={editingItem.manufacturer || ''}
-                                    products={editingMaster?.products || []}
-                                    onSelect={(val) => handleManufacturerSelect(editingIdx, val)}
-                                    disabled={!editingMaster || editingMaster.products.length === 0}
-                                />
+                        {!editingIsSpice && (
+                            <div>
+                                <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">Hersteller (Optional)</label>
+                                <div className="flex bg-surface border border-border rounded-xl px-3 py-2.5 overflow-visible focus-within:border-green-500/50 transition relative h-12">
+                                    <ManufacturerCombobox
+                                        value={editingItem.manufacturer || ''}
+                                        products={editingMaster?.products || []}
+                                        onSelect={(val) => handleManufacturerSelect(editingIdx, val)}
+                                        disabled={!editingMaster || editingMaster.products.length === 0}
+                                    />
+                                </div>
                             </div>
-                        </div>
+                        )}
                         <div>
                             <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">Verwendung</label>
-                            <div className="flex bg-surface border border-border rounded-xl overflow-hidden focus-within:border-green-500/50 transition">
+                            <div className={`flex bg-surface border border-border rounded-xl overflow-hidden transition ${editingIsSpice ? 'focus-within:border-purple-500/50' : 'focus-within:border-green-500/50'}`}>
                                 <select className="flex-1 bg-transparent px-3 py-3 text-sm text-text-primary outline-none appearance-none"
                                     value={editingItem.usage || 'Boil'}
                                     onChange={(e) => updateRow(editingIdx, 'usage', e.target.value)}>
@@ -270,7 +314,7 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">Menge</label>
-                                <div className="flex bg-surface border border-border rounded-xl overflow-hidden focus-within:border-green-500/50 transition">
+                                <div className={`flex bg-surface border border-border rounded-xl overflow-hidden transition ${editingIsSpice ? 'focus-within:border-purple-500/50' : 'focus-within:border-green-500/50'}`}>
                                     <input type="text" inputMode="decimal"
                                         className="flex-1 min-w-0 bg-transparent pl-3 pr-1 py-3 text-sm text-text-primary outline-none text-right"
                                         placeholder="0" value={editingItem.amount || ''}
@@ -284,20 +328,22 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
                                     </select>
                                 </div>
                             </div>
-                            <div>
-                                <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">Alpha %</label>
-                                <div className="bg-surface border border-border rounded-xl overflow-hidden focus-within:border-green-500/50 transition">
-                                    <input type="text" inputMode="decimal"
-                                        className="w-full bg-transparent px-3 py-3 text-sm text-text-primary outline-none text-right placeholder:text-text-disabled"
-                                        placeholder="0.0" value={editingItem.alpha || ''}
-                                        onChange={(e) => updateRow(editingIdx, 'alpha', e.target.value.replace(',', '.'))} />
+                            {!editingIsSpice && (
+                                <div>
+                                    <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">Alpha %</label>
+                                    <div className="bg-surface border border-border rounded-xl overflow-hidden focus-within:border-green-500/50 transition">
+                                        <input type="text" inputMode="decimal"
+                                            className="w-full bg-transparent px-3 py-3 text-sm text-text-primary outline-none text-right placeholder:text-text-disabled"
+                                            placeholder="0.0" value={editingItem.alpha || ''}
+                                            onChange={(e) => updateRow(editingIdx, 'alpha', e.target.value.replace(',', '.'))} />
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">Zeit (Min.)</label>
-                                <div className="bg-surface border border-border rounded-xl overflow-hidden focus-within:border-green-500/50 transition">
+                                <div className={`bg-surface border border-border rounded-xl overflow-hidden transition ${editingIsSpice ? 'focus-within:border-purple-500/50' : 'focus-within:border-green-500/50'}`}>
                                     <input type="text" inputMode="decimal"
                                         className="w-full bg-transparent px-3 py-3 text-sm text-text-primary outline-none text-right"
                                         placeholder="z.B. 60" value={editingItem.time || ''}
@@ -323,7 +369,7 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
                             <Trash2 size={14} /> Löschen
                         </button>
                         <button type="button" onClick={() => setEditingIdx(null)}
-                            className="flex-1 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-bold rounded-xl transition">
+                            className={`flex-1 py-2.5 text-white text-sm font-bold rounded-xl transition ${editingIsSpice ? 'bg-purple-600 hover:bg-purple-700' : 'bg-green-600 hover:bg-green-700'}`}>
                             Fertig
                         </button>
                     </div>
@@ -332,7 +378,7 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
 
             {/* ── DESKTOP ── */}
             <div className="hidden md:block bg-surface border border-border rounded-xl overflow-visible mb-2 divide-y divide-border">
-                <div className="grid grid-cols-[1.3fr_1.3fr_110px_90px_100px_70px_28px] gap-x-3 px-3 py-1.5 bg-surface-hover/60 rounded-t-xl">
+                <div className="grid grid-cols-[1fr_1fr_110px_120px_100px_70px_28px] gap-x-3 px-3 py-1.5 bg-surface-hover/60 rounded-t-xl">
                     <span className="text-[10px] font-bold text-text-disabled uppercase tracking-wider">Sorte</span>
                     <span className="text-[10px] font-bold text-text-disabled uppercase tracking-wider">Hersteller (Opt.)</span>
                     <span className="text-[10px] font-bold text-text-disabled uppercase tracking-wider">Verwendung</span>
@@ -343,23 +389,40 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
                 </div>
                 {items.map((item, idx) => {
                     const masterForRow = dbHops.find(m => m.name === item.name);
+                    const spice = isSpice(item);
                     return (
-                        <div key={idx} className="grid grid-cols-[1.3fr_1.3fr_110px_90px_100px_70px_28px] gap-x-3 px-3 py-2.5 items-center group relative focus-within:z-[60]">
-                            {/* Sorte */}
-                            <div className="h-9 flex items-center bg-background border border-border rounded-lg px-2.5 focus-within:border-green-500/50 transition z-10">
-                                <SorteCombobox value={item.name} onSelect={(m) => handleSorteSelect(idx, m)} hops={dbHops} />
+                        <div key={idx} className="grid grid-cols-[1fr_1fr_110px_120px_100px_70px_28px] gap-x-3 px-3 py-2.5 items-center group relative focus-within:z-[60]">
+                            {/* Sorte / Gewürz Name */}
+                            <div className={`h-9 flex items-center bg-background border rounded-lg px-2.5 transition z-10 ${
+                                spice
+                                    ? 'border-purple-500/30 focus-within:border-purple-500/60'
+                                    : item.name && (!item.master_id || FALLBACK_MASTER_ID_SET.has(item.master_id))
+                                        ? 'border-amber-500/40 focus-within:border-green-500/50'
+                                        : 'border-border focus-within:border-green-500/50'
+                            }`}>
+                                {spice ? (
+                                    <input
+                                        type="text"
+                                        className="w-full bg-transparent px-0 py-0 text-sm text-text-primary outline-none placeholder:text-text-disabled h-full"
+                                        placeholder="z.B. Orangenschale…"
+                                        value={item.name}
+                                        onChange={(e) => updateRow(idx, 'name', e.target.value)}
+                                    />
+                                ) : (
+                                    <SorteCombobox value={item.name} onSelect={(m) => handleSorteSelect(idx, m)} onFreeText={(name) => handleFreeText(idx, name)} hops={dbHops} />
+                                )}
                             </div>
-                            {/* Hersteller */}
-                            <div className="h-9 flex bg-background border border-border rounded-lg overflow-visible focus-within:border-green-500/50 transition relative pl-2.5 z-10">
+                            {/* Hersteller (hidden for spices) */}
+                            <div className={`h-9 flex bg-background border border-border rounded-lg overflow-visible focus-within:border-green-500/50 transition relative pl-2.5 z-10 ${spice ? 'opacity-30 pointer-events-none' : ''}`}>
                                 <ManufacturerCombobox
                                     value={item.manufacturer || ''}
                                     products={masterForRow?.products || []}
                                     onSelect={(val) => handleManufacturerSelect(idx, val)}
-                                    disabled={!masterForRow || masterForRow.products.length === 0}
+                                    disabled={spice || !masterForRow || masterForRow.products.length === 0}
                                 />
                             </div>
                             {/* Verwendung */}
-                            <div className="h-9 flex bg-background border border-border rounded-lg overflow-hidden focus-within:border-green-500/50 transition">
+                            <div className={`h-9 flex bg-background border border-border rounded-lg overflow-hidden transition ${spice ? 'focus-within:border-purple-500/50' : 'focus-within:border-green-500/50'}`}>
                                 <select className="w-full bg-transparent px-2 text-sm text-text-primary outline-none appearance-none truncate"
                                     value={item.usage || 'Boil'}
                                     onChange={(e) => updateRow(idx, 'usage', e.target.value)}>
@@ -367,7 +430,7 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
                                 </select>
                             </div>
                             {/* Menge */}
-                            <div className="h-9 flex bg-background border border-border rounded-lg overflow-hidden focus-within:border-green-500/50 transition">
+                            <div className={`h-9 flex bg-background border border-border rounded-lg overflow-hidden transition ${spice ? 'focus-within:border-purple-500/50' : 'focus-within:border-green-500/50'}`}>
                                 <input type="text" inputMode="decimal"
                                     className="flex-1 min-w-0 bg-transparent pl-2 pr-1 text-sm text-text-primary outline-none text-right"
                                     placeholder="0" value={item.amount || ''}
@@ -381,7 +444,7 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
                                 </select>
                             </div>
                             {/* Zeit / Temp */}
-                            <div className="h-9 flex bg-background border border-border rounded-lg overflow-hidden focus-within:border-green-500/50 transition text-sm">
+                            <div className={`h-9 flex bg-background border border-border rounded-lg overflow-hidden transition text-sm ${spice ? 'focus-within:border-purple-500/50' : 'focus-within:border-green-500/50'}`}>
                                 <input type="text" inputMode="decimal"
                                     className="flex-1 min-w-0 bg-transparent px-2 text-text-primary outline-none text-right placeholder:text-text-disabled"
                                     placeholder={item.usage === 'Whirlpool' ? 'Min.' : 'Zeit'} value={item.time || ''}
@@ -396,13 +459,19 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
                                     </>
                                 )}
                             </div>
-                            {/* Alpha */}
-                            <div className="h-9 flex bg-background border border-border rounded-lg overflow-hidden focus-within:border-green-500/50 transition">
-                                <input type="text" inputMode="decimal"
-                                    className="w-full bg-transparent px-2 text-sm text-text-primary outline-none text-right"
-                                    placeholder="0.0" value={item.alpha || ''}
-                                    onChange={(e) => updateRow(idx, 'alpha', e.target.value.replace(',', '.'))} />
-                            </div>
+                            {/* Alpha or Spice badge */}
+                            {spice ? (
+                                <div className="h-9 flex items-center justify-center">
+                                    <span className="text-[10px] font-bold text-purple-400 uppercase tracking-wider">Gewürz</span>
+                                </div>
+                            ) : (
+                                <div className="h-9 flex bg-background border border-border rounded-lg overflow-hidden focus-within:border-green-500/50 transition">
+                                    <input type="text" inputMode="decimal"
+                                        className="w-full bg-transparent px-2 text-sm text-text-primary outline-none text-right"
+                                        placeholder="0.0" value={item.alpha || ''}
+                                        onChange={(e) => updateRow(idx, 'alpha', e.target.value.replace(',', '.'))} />
+                                </div>
+                            )}
                             {/* Delete */}
                             <button type="button" onClick={() => removeRow(idx)}
                                 className="w-7 h-7 flex items-center justify-center rounded-lg text-text-disabled hover:text-red-400 hover:bg-red-500/10 transition opacity-0 group-hover:opacity-100">
@@ -413,10 +482,16 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
                 })}
             </div>
 
-            <button type="button" onClick={addRow}
-                className="flex items-center gap-2 px-3 py-2 text-sm font-bold text-green-500 bg-green-500/10 hover:bg-green-500/20 rounded-xl transition">
-                <Plus size={16} /> Hopfen hinzufügen
-            </button>
+            <div className="flex items-center gap-2 flex-wrap">
+                <button type="button" onClick={addRow}
+                    className="flex items-center gap-2 px-3 py-2 text-sm font-bold text-green-500 bg-green-500/10 hover:bg-green-500/20 rounded-xl transition">
+                    <Plus size={16} /> Hopfen hinzufügen
+                </button>
+                <button type="button" onClick={addSpice}
+                    className="flex items-center gap-2 px-3 py-2 text-sm font-bold text-purple-400 bg-purple-500/10 hover:bg-purple-500/20 rounded-xl transition">
+                    <Plus size={16} /> Gewürz hinzufügen
+                </button>
+            </div>
         </div>
     );
 }

@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { createBrowserClient } from '@supabase/ssr';
+import type { Database } from './database.types';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -45,14 +46,14 @@ const navigatorLockWithFallback = async (
  * Use `createClient` from `@/lib/supabase-server` for Server Components/Actions.
  */
 export const supabase = typeof window !== 'undefined'
-  ? createBrowserClient(supabaseUrl, supabaseAnonKey, {
+  ? createBrowserClient<Database>(supabaseUrl, supabaseAnonKey, {
       auth: {
         flowType: 'pkce',
         persistSession: true,
         lock: navigatorLockWithFallback,
       },
     })
-  : createClient(supabaseUrl, supabaseAnonKey);
+  : createClient<Database>(supabaseUrl, supabaseAnonKey);
 
 // Hilfsfunktionen für das Squad-Modell (Brauerei-Gruppen)
 

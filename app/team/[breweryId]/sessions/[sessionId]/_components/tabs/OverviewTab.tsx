@@ -189,7 +189,7 @@ export function OverviewTab({ setActiveTab }: { setActiveTab: (tab: any) => void
             </div>
 
             {/* KPI Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 <MetricCard 
                     label="Stammwürze (OG)" 
                     value={og ? og.toFixed(3) : null} 
@@ -214,11 +214,18 @@ export function OverviewTab({ setActiveTab }: { setActiveTab: (tab: any) => void
                     guideKey="gaerung.endverwaerungsgrad"
                 />
 
-                <MetricCard 
-                    label="Volumen" 
-                    value={vol} 
-                    unit="L" 
+                <MetricCard
+                    label="Volumen"
+                    value={vol}
+                    unit="L"
                     subtext={isTargetVol ? 'Geplant (Rezept)' : 'Im Gärfass'}
+                />
+                <MetricCard
+                    label="SHA (Sudausbeute)"
+                    value={session.measured_efficiency !== null ? `${session.measured_efficiency}%` : null}
+                    color="cyan"
+                    subtext="Gemessene Effizienz"
+                    guideKey="effizienz.sudhausausbeute"
                 />
             </div>
 

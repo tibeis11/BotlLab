@@ -68,10 +68,10 @@ export async function importAndMatchRecipe(formData: FormData) {
     // 2. Zutaten abgleichen (Smart Match) — ein einziger Batch-Call statt N Einzelaufrufe
     const unmatchedForQueue: { raw_name: string; type: string; raw_data: Record<string, unknown> }[] = [];
 
-    // Nur non-water Zutaten müssen gematcht werden; originaler Index wird mitgegeben
+    // Nur non-water, non-spice Zutaten müssen gematcht werden; originaler Index wird mitgegeben
     const toMatch = recipe.ingredients
       .map((ing, origIdx) => ({ ing, origIdx }))
-      .filter(({ ing }) => ing.type !== 'water');
+      .filter(({ ing }) => ing.type !== 'water' && ing.usage !== 'spice');
 
     // Einen einzigen DB-Call für alle Zutaten
     const { data: batchResults } = await (supabase as any).rpc('match_ingredients_batch', {
@@ -88,6 +88,21 @@ export async function importAndMatchRecipe(formData: FormData) {
 
     const processedIngredients: MatchedIngredient[] = recipe.ingredients.map((ing, origIdx) => {
       if (ing.type === 'water') return { ...ing, status: 'unmatched' as const };
+
+      // Gewürze (spice) werden nie gegen die DB gematcht — sie sind immer freier Text
+      if (ing.usage === 'spice') {
+        return {
+          ...ing,
+          status: 'matched' as const,
+          match: {
+            master_id: '00000000-0000-4000-a000-000000000002', // fallback hop ID
+            name: ing.raw_name,
+            type: 'hop',
+            match_score: 1.0,
+            match_level: 99,
+          },
+        };
+      }
 
       const batchIdx = toMatch.findIndex(t => t.origIdx === origIdx);
       const matchRow = batchIdx >= 0 ? matchByBatchIdx.get(batchIdx) : undefined;

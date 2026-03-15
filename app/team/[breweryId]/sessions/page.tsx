@@ -497,12 +497,21 @@ function SessionCard({ session, breweryId }: { session: any, breweryId: string }
                         <span className="text-[9px] text-text-muted mt-0.5">ABV</span>
                     </span>
                     <span className="w-px h-5 bg-border shrink-0" />
-                    <span className="flex flex-col items-center leading-none min-w-0">
-                        <span className={`text-[13px] font-black tabular-nums ${session.current_gravity ? 'text-brand' : 'text-text-disabled'}`}>
-                            {session.current_gravity ? Number(session.current_gravity).toFixed(3) : '—'}
+                    {session.measured_efficiency ? (
+                        <span className="flex flex-col items-center leading-none min-w-0">
+                            <span className="text-[13px] font-black tabular-nums text-brand">
+                                {session.measured_efficiency}%
+                            </span>
+                            <span className="text-[9px] text-text-muted mt-0.5">SHA</span>
                         </span>
-                        <span className="text-[9px] text-text-muted mt-0.5">Aktuell</span>
-                    </span>
+                    ) : (
+                        <span className="flex flex-col items-center leading-none min-w-0">
+                            <span className={`text-[13px] font-black tabular-nums ${session.current_gravity ? 'text-brand' : 'text-text-disabled'}`}>
+                                {session.current_gravity ? Number(session.current_gravity).toFixed(3) : '—'}
+                            </span>
+                            <span className="text-[9px] text-text-muted mt-0.5">Aktuell</span>
+                        </span>
+                    )}
                 </div>
             </div>
 

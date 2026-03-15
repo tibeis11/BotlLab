@@ -39,7 +39,7 @@ export function generateBeerXML(brew: any): string {
   const efficiency = safeNum(data.efficiency, 75);
 
   const HOP_USE: Record<string, string> = {
-    boil: 'Boil', dry_hop: 'Dry Hop', whirlpool: 'Aroma', mash: 'First Wort',
+    boil: 'Boil', dry_hop: 'Dry Hop', 'dry hop': 'Dry Hop', whirlpool: 'Aroma', mash: 'Mash', 'first wort': 'First Wort', spice: 'Dry Hop',
   };
 
   const fermentables = malts.map(m => {
@@ -161,7 +161,7 @@ export function generateBeerJSON(brew: any): string {
   const efficiency = safeNum(data.efficiency, 75);
 
   const HOP_USE: Record<string, string> = {
-    boil: 'boil', dry_hop: 'dry hop', whirlpool: 'whirlpool', mash: 'mash',
+    boil: 'boil', dry_hop: 'dry hop', 'dry hop': 'dry hop', whirlpool: 'whirlpool', mash: 'mash', 'first wort': 'first wort', spice: 'dry hop',
   };
 
   const fermentable_additions = malts.map(m => ({
@@ -197,7 +197,7 @@ export function generateBeerJSON(brew: any): string {
   }));
 
   const STEP_TYPE: Record<string, string> = {
-    rest: 'infusion', decoction: 'decoction', mashout: 'temperature', strike: 'infusion',
+    rest: 'infusion', decoction: 'decoction', mashout: 'temperature', strike: 'strike',
   };
 
   const mash_steps = mashSteps.length > 0

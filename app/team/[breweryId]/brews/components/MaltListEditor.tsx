@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Trash2, Plus, X, ChevronRight } from 'lucide-react';
 import { Command } from 'cmdk';
 import { useSupabase } from '@/lib/hooks/useSupabase';
+import { FALLBACK_MASTER_ID_SET } from '@/lib/ingredients/constants';
 
 export interface Malt {
     name: string;
@@ -45,7 +46,7 @@ interface ProductMalt {
     potential_pts: number | null;
 }
 
-function SorteCombobox({ value, onSelect, malts }: { value: string; onSelect: (master: MasterMalt) => void; malts: MasterMalt[]; }) {
+function SorteCombobox({ value, onSelect, onFreeText, malts }: { value: string; onSelect: (master: MasterMalt) => void; onFreeText?: (name: string) => void; malts: MasterMalt[]; }) {
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState(value || '');
 
@@ -60,12 +61,58 @@ function SorteCombobox({ value, onSelect, malts }: { value: string; onSelect: (m
                 value={search}
                 onValueChange={(val) => { setSearch(val); setOpen(true); }}
                 onFocus={() => setOpen(true)}
-                onBlur={() => setTimeout(() => setOpen(false), 200)}
+                onBlur={() => setTimeout(() => {
+                    setOpen(false);
+                    if (search !== value && onFreeText) onFreeText(search);
+                }, 200)}
             />
             <div className={`absolute ${open ? "" : "hidden"} top-full mt-1 left-0 z-50 w-full min-w-[280px] bg-surface border border-border rounded-xl shadow-2xl overflow-hidden max-h-64 flex flex-col`}>
                     <Command.List className="overflow-y-auto p-1">
                         <Command.Empty className="p-3 text-sm text-text-muted text-center">Keine Sorte gefunden.</Command.Empty>
                         {malts.map(m => (
+                            <Command.Item
+                                key={m.id}
+                                value={m.name + " " + (m.aliases ? m.aliases.join(" ") : "")}
+                                onSelect={() => {
+                                    setSearch(m.name);
+                                    onSelect(m);
+                                    setOpen(false);
+                                }}
+                                className="px-3 py-2 cursor-pointer rounded-lg hover:bg-surface-hover flex items-center justify-between text-sm data-[selected='true']:bg-surface-hover"
+                            >
+                                <div className="font-semibold text-text-primary truncate">{m.name}</div>
+                            </Command.Item>
+                        ))}
+                    </Command.List>
+                </div>
+        </Command>
+    );
+}
+
+function AdjunktCombobox({ value, onSelect, onFreeText, miscs }: { value: string; onSelect: (master: MasterMalt) => void; onFreeText?: (name: string) => void; miscs: MasterMalt[]; }) {
+    const [open, setOpen] = useState(false);
+    const [search, setSearch] = useState(value || '');
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/set-state-in-effect
+    useEffect(() => { if (value !== search) setSearch(value || ''); }, [value]);
+
+    return (
+        <Command className="relative overflow-visible w-full h-full" shouldFilter={true}>
+            <Command.Input
+                className="w-full bg-transparent px-0 py-0 text-sm text-text-primary outline-none placeholder:text-text-disabled h-full"
+                placeholder="Adjunkt suchen…"
+                value={search}
+                onValueChange={(val) => { setSearch(val); setOpen(true); }}
+                onFocus={() => setOpen(true)}
+                onBlur={() => setTimeout(() => {
+                    setOpen(false);
+                    if (search !== value && onFreeText) onFreeText(search);
+                }, 200)}
+            />
+            <div className={`absolute ${open ? "" : "hidden"} top-full mt-1 left-0 z-50 w-full min-w-[280px] bg-surface border border-border rounded-xl shadow-2xl overflow-hidden max-h-64 flex flex-col`}>
+                    <Command.List className="overflow-y-auto p-1">
+                        <Command.Empty className="p-3 text-sm text-text-muted text-center">Kein Adjunkt gefunden.</Command.Empty>
+                        {miscs.map(m => (
                             <Command.Item
                                 key={m.id}
                                 value={m.name + " " + (m.aliases ? m.aliases.join(" ") : "")}
@@ -106,7 +153,7 @@ function ManufacturerCombobox({ value, onSelect, products, disabled }: { value: 
             <div className={`absolute ${open && !disabled ? "" : "hidden"} top-full mt-1 left-0 z-50 w-full min-w-[280px] bg-surface border border-border rounded-xl shadow-xl overflow-hidden max-h-64 flex flex-col`}>
                     <Command.List className="overflow-y-auto p-1">
                         <Command.Empty className="p-3 text-sm text-text-muted text-center">Kein Hersteller gefunden.</Command.Empty>
-                        
+
                         <Command.Item
                             value="(Beliebig)"
                             onSelect={() => {
@@ -144,6 +191,9 @@ export function MaltListEditor({ value, onChange }: MaltListEditorProps) {
     const [items, setItems] = useState<Malt[]>([]);
     const [initialized, setInitialized] = useState(false);
     const [dbMalts, setDbMalts] = useState<MasterMalt[]>([]);
+    const [dbMiscs, setDbMiscs] = useState<MasterMalt[]>([]);
+    const [miscIds, setMiscIds] = useState<Set<string>>(new Set());
+    const [adjunktNewIndices, setAdjunktNewIndices] = useState<Set<number>>(new Set());
     const [editingIdx, setEditingIdx] = useState<number | null>(null);
 
     useEffect(() => {
@@ -154,22 +204,27 @@ export function MaltListEditor({ value, onChange }: MaltListEditorProps) {
     }, [value, initialized]);
 
     useEffect(() => {
-        async function fetchMalts() {
-            const { data } = await supabase
-                .from('ingredient_master')
-                .select(`id, name, aliases, color_ebc, potential_pts, ingredient_products(id, name, manufacturer, color_ebc, potential_pts)`)
-                .eq('type', 'malt')
-                .order('name');
-            if (data) {
+        async function fetchIngredients() {
+            const [maltResult, miscResult] = await Promise.all([
+                supabase
+                    .from('ingredient_master')
+                    .select(`id, name, aliases, color_ebc, potential_pts, ingredient_products(id, name, manufacturer, color_ebc, potential_pts)`)
+                    .eq('type', 'malt')
+                    .order('name'),
+                supabase
+                    .from('ingredient_master')
+                    .select(`id, name, aliases, color_ebc, potential_pts, ingredient_products(id, name, manufacturer, color_ebc, potential_pts)`)
+                    .eq('type', 'misc')
+                    .order('name'),
+            ]);
+
+            function buildMap(data: any[]): MasterMalt[] {
                 const uniqueMap = new Map<string, MasterMalt>();
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 data.forEach((m: any) => {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const products = (m.ingredient_products || []).filter((p: any) => p.manufacturer);
                     if (uniqueMap.has(m.name)) {
                         const existing = uniqueMap.get(m.name)!;
                         const mergedProducts = [...(existing.products || [])];
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         products.forEach((p: any) => {
                             if (!mergedProducts.some(ep => ep.manufacturer === p.manufacturer)) {
                                 mergedProducts.push(p);
@@ -187,17 +242,49 @@ export function MaltListEditor({ value, onChange }: MaltListEditorProps) {
                         });
                     }
                 });
-                setDbMalts(Array.from(uniqueMap.values()));
+                return Array.from(uniqueMap.values());
+            }
+
+            if (maltResult.data) setDbMalts(buildMap(maltResult.data));
+            if (miscResult.data) {
+                const miscList = buildMap(miscResult.data);
+                setDbMiscs(miscList);
+                setMiscIds(new Set(miscResult.data.map((m: any) => m.id)));
             }
         }
-        fetchMalts();
+        fetchIngredients();
     }, [supabase]);
 
+    const isAdjunkt = (idx: number, item: Malt) =>
+        adjunktNewIndices.has(idx) || !!(item.master_id && miscIds.has(item.master_id));
+
     const handleChange = (newItems: Malt[]) => { setItems(newItems); onChange(newItems); };
-    const addRow = () => { const idx = items.length; handleChange([...items, { name: '', amount: '', unit: 'kg', color_ebc: '' }]); setEditingIdx(idx); };
+
+    const addRow = () => {
+        const idx = items.length;
+        handleChange([...items, { name: '', amount: '', unit: 'kg', color_ebc: '' }]);
+        setEditingIdx(idx);
+    };
+
+    const addAdjunkt = () => {
+        const idx = items.length;
+        handleChange([...items, { name: '', amount: '', unit: 'kg', color_ebc: '' }]);
+        setAdjunktNewIndices(prev => new Set([...prev, idx]));
+        setEditingIdx(idx);
+    };
+
     const updateRow = (index: number, field: keyof Malt, val: string) => { const n = [...items]; n[index] = { ...n[index], [field]: val }; handleChange(n); };
     const updateRowPartial = (index: number, updates: Partial<Malt>) => { const n = [...items]; n[index] = { ...n[index], ...updates }; handleChange(n); };
-    const removeRow = (index: number) => { handleChange(items.filter((_, i) => i !== index)); setEditingIdx(null); };
+
+    const removeRow = (index: number) => {
+        handleChange(items.filter((_, i) => i !== index));
+        setEditingIdx(null);
+        setAdjunktNewIndices(prev => {
+            const next = new Set<number>();
+            prev.forEach(i => { if (i !== index) next.add(i > index ? i - 1 : i); });
+            return next;
+        });
+    };
 
     const formatSummary = (item: Malt) => {
         const parts: string[] = [];
@@ -218,27 +305,47 @@ export function MaltListEditor({ value, onChange }: MaltListEditorProps) {
         updateRowPartial(index, updates);
     };
 
+    const handleFreeText = (index: number, name: string) => {
+        const exactMatch = dbMalts.find(m => m.name.toLowerCase() === name.toLowerCase());
+        if (exactMatch) {
+            handleSorteSelect(index, exactMatch);
+        } else {
+            updateRowPartial(index, { name, master_id: undefined });
+        }
+    };
+
+    const handleAdjunktFreeText = (index: number, name: string) => {
+        const exactMatch = dbMiscs.find(m => m.name.toLowerCase() === name.toLowerCase());
+        if (exactMatch) {
+            handleSorteSelect(index, exactMatch);
+        } else {
+            updateRowPartial(index, { name, master_id: undefined });
+        }
+    };
+
     const handleManufacturerSelect = (index: number, manufacturer: string) => {
         const item = items[index];
-        const master = dbMalts.find(m => m.name === item.name);
+        const master = isAdjunkt(index, item)
+            ? dbMiscs.find(m => m.name === item.name)
+            : dbMalts.find(m => m.name === item.name);
         if (!master) {
             updateRowPartial(index, { manufacturer });
             return;
         }
-        
+
         if (!manufacturer) {
-            updateRowPartial(index, { 
-                manufacturer: '', 
-                color_ebc: master.color_ebc ? master.color_ebc.toString() : '', 
-                potential_pts: master.potential_pts ? master.potential_pts.toString() : '' 
+            updateRowPartial(index, {
+                manufacturer: '',
+                color_ebc: master.color_ebc ? master.color_ebc.toString() : '',
+                potential_pts: master.potential_pts ? master.potential_pts.toString() : ''
             });
             return;
         }
 
         const product = master.products.find(p => p.manufacturer === manufacturer);
         if (product) {
-            updateRowPartial(index, { 
-                manufacturer, 
+            updateRowPartial(index, {
+                manufacturer,
                 color_ebc: product.color_ebc?.toString() || (master.color_ebc ? master.color_ebc.toString() : ''),
                 potential_pts: product.potential_pts?.toString() || (master.potential_pts ? master.potential_pts.toString() : '')
             });
@@ -248,7 +355,12 @@ export function MaltListEditor({ value, onChange }: MaltListEditorProps) {
     };
 
     const editingItem = editingIdx !== null ? items[editingIdx] : null;
-    const editingMaster = editingItem ? dbMalts.find(m => m.name === editingItem.name) : null;
+    const editingIsAdjunkt = editingIdx !== null && editingItem !== null && isAdjunkt(editingIdx, editingItem);
+    const editingMaster = editingItem
+        ? editingIsAdjunkt
+            ? dbMiscs.find(m => m.name === editingItem.name)
+            : dbMalts.find(m => m.name === editingItem.name)
+        : null;
 
     return (
         <div>
@@ -261,8 +373,16 @@ export function MaltListEditor({ value, onChange }: MaltListEditorProps) {
                         <button key={idx} type="button" onClick={() => setEditingIdx(idx)}
                             className="w-full flex items-center gap-3 px-3 py-3 text-left">
                             <div className="flex-1 min-w-0">
-                                <div className="text-sm font-semibold text-text-primary truncate">
-                                    {item.name || <span className="text-text-disabled italic font-normal">Sorte wählen…</span>}
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm font-semibold text-text-primary truncate">
+                                        {item.name || <span className="text-text-disabled italic font-normal">Sorte wählen…</span>}
+                                    </span>
+                                    {isAdjunkt(idx, item) && (
+                                        <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full border text-yellow-400 bg-yellow-500/10 border-yellow-500/20">Adjunkt</span>
+                                    )}
+                                    {item.name && !isAdjunkt(idx, item) && (!item.master_id || FALLBACK_MASTER_ID_SET.has(item.master_id)) && (
+                                        <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full border text-amber-400 bg-amber-500/10 border-amber-500/20">Neu</span>
+                                    )}
                                 </div>
                                 {(item.amount || item.color_ebc || item.manufacturer) && (
                                     <div className="text-xs text-text-muted mt-0.5">{formatSummary(item)}</div>
@@ -278,7 +398,9 @@ export function MaltListEditor({ value, onChange }: MaltListEditorProps) {
             {editingItem !== null && editingIdx !== null && (
                 <div className="md:hidden fixed inset-0 z-50 bg-background flex flex-col">
                     <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
-                        <h2 className="text-base font-bold text-text-primary">Malz bearbeiten</h2>
+                        <h2 className="text-base font-bold text-text-primary">
+                            {editingIsAdjunkt ? 'Adjunkt bearbeiten' : 'Malz bearbeiten'}
+                        </h2>
                         <button type="button" onClick={() => setEditingIdx(null)}
                             className="w-8 h-8 flex items-center justify-center rounded-full bg-surface-hover text-text-secondary hover:text-text-primary transition">
                             <X size={18} />
@@ -286,14 +408,19 @@ export function MaltListEditor({ value, onChange }: MaltListEditorProps) {
                     </div>
                     <div className="flex-1 overflow-y-auto px-4 py-5 space-y-4">
                         <div>
-                            <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">Sorte</label>
-                            <div className="bg-surface border border-border rounded-xl px-3 py-2.5 focus-within:border-orange-500/50 transition">
-                                <SorteCombobox value={editingItem.name} onSelect={(master) => handleSorteSelect(editingIdx, master)} malts={dbMalts} />
+                            <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">
+                                {editingIsAdjunkt ? 'Adjunkt' : 'Sorte'}
+                            </label>
+                            <div className={`bg-surface border border-border rounded-xl px-3 py-2.5 transition ${editingIsAdjunkt ? 'focus-within:border-yellow-500/50' : 'focus-within:border-orange-500/50'}`}>
+                                {editingIsAdjunkt
+                                    ? <AdjunktCombobox value={editingItem.name} onSelect={(master) => handleSorteSelect(editingIdx, master)} onFreeText={(name) => handleAdjunktFreeText(editingIdx, name)} miscs={dbMiscs} />
+                                    : <SorteCombobox value={editingItem.name} onSelect={(master) => handleSorteSelect(editingIdx, master)} onFreeText={(name) => handleFreeText(editingIdx, name)} malts={dbMalts} />
+                                }
                             </div>
                         </div>
                         <div>
                             <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">Hersteller (Optional)</label>
-                            <div className="flex bg-surface border border-border rounded-xl px-3 py-2.5 overflow-visible focus-within:border-orange-500/50 transition relative h-12">
+                            <div className={`flex bg-surface border border-border rounded-xl px-3 py-2.5 overflow-visible transition relative h-12 ${editingIsAdjunkt ? 'focus-within:border-yellow-500/50' : 'focus-within:border-orange-500/50'}`}>
                                 <ManufacturerCombobox
                                     value={editingItem.manufacturer || ''}
                                     products={editingMaster?.products || []}
@@ -304,7 +431,7 @@ export function MaltListEditor({ value, onChange }: MaltListEditorProps) {
                         </div>
                         <div>
                             <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">Menge</label>
-                            <div className="flex bg-surface border border-border rounded-xl overflow-hidden focus-within:border-orange-500/50 transition">
+                            <div className={`flex bg-surface border border-border rounded-xl overflow-hidden transition ${editingIsAdjunkt ? 'focus-within:border-yellow-500/50' : 'focus-within:border-orange-500/50'}`}>
                                 <input type="text" inputMode="decimal"
                                     className="flex-1 bg-transparent pl-3.5 pr-2 py-3 text-sm text-text-primary outline-none text-right placeholder:text-text-disabled"
                                     placeholder="0" value={editingItem.amount || ''}
@@ -322,7 +449,7 @@ export function MaltListEditor({ value, onChange }: MaltListEditorProps) {
                         </div>
                         <div>
                             <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">Farbe (EBC)</label>
-                            <div className="flex bg-surface border border-border rounded-xl overflow-hidden focus-within:border-orange-500/50 transition">
+                            <div className={`flex bg-surface border border-border rounded-xl overflow-hidden transition ${editingIsAdjunkt ? 'focus-within:border-yellow-500/50' : 'focus-within:border-orange-500/50'}`}>
                                 <input type="text" inputMode="decimal"
                                     className="flex-1 bg-transparent pl-3.5 pr-2 py-3 text-sm text-text-primary outline-none text-right placeholder:text-text-disabled"
                                     placeholder="–" value={editingItem.color_ebc || ''}
@@ -348,7 +475,7 @@ export function MaltListEditor({ value, onChange }: MaltListEditorProps) {
                             <Trash2 size={14} /> Löschen
                         </button>
                         <button type="button" onClick={() => setEditingIdx(null)}
-                            className="flex-1 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold rounded-xl transition">
+                            className={`flex-1 py-2.5 text-white text-sm font-bold rounded-xl transition ${editingIsAdjunkt ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-orange-500 hover:bg-orange-600'}`}>
                             Fertig
                         </button>
                     </div>
@@ -365,15 +492,27 @@ export function MaltListEditor({ value, onChange }: MaltListEditorProps) {
                         <span />
                     </div>
                     {items.map((item, idx) => {
-                        const masterForThisItem = dbMalts.find(m => m.name === item.name);
+                        const adjunkt = isAdjunkt(idx, item);
+                        const masterForThisItem = adjunkt
+                            ? dbMiscs.find(m => m.name === item.name)
+                            : dbMalts.find(m => m.name === item.name);
                         return (
                         <div key={idx} className="grid grid-cols-[1.5fr_1.5fr_130px_90px_28px] gap-x-3 px-3 py-2.5 items-center group relative focus-within:z-[60]">
-                            {/* Sorte */}
-                            <div className="h-9 flex items-center bg-background border border-border rounded-lg px-2.5 focus-within:border-orange-500/50 transition">
-                                <SorteCombobox value={item.name} onSelect={(master) => handleSorteSelect(idx, master)} malts={dbMalts} />
+                            {/* Sorte / Adjunkt */}
+                            <div className={`h-9 flex items-center bg-background border rounded-lg px-2.5 transition ${
+                                adjunkt
+                                    ? 'border-yellow-500/40 focus-within:border-yellow-500/60'
+                                    : item.name && (!item.master_id || FALLBACK_MASTER_ID_SET.has(item.master_id))
+                                        ? 'border-amber-500/40 focus-within:border-orange-500/50'
+                                        : 'border-border focus-within:border-orange-500/50'
+                            }`}>
+                                {adjunkt
+                                    ? <AdjunktCombobox value={item.name} onSelect={(master) => handleSorteSelect(idx, master)} onFreeText={(name) => handleAdjunktFreeText(idx, name)} miscs={dbMiscs} />
+                                    : <SorteCombobox value={item.name} onSelect={(master) => handleSorteSelect(idx, master)} onFreeText={(name) => handleFreeText(idx, name)} malts={dbMalts} />
+                                }
                             </div>
                             {/* Hersteller */}
-                            <div className="h-9 flex bg-background border border-border rounded-lg overflow-visible focus-within:border-orange-500/50 transition relative pl-2.5">
+                            <div className={`h-9 flex bg-background border border-border rounded-lg overflow-visible transition relative pl-2.5 ${adjunkt ? 'focus-within:border-yellow-500/50' : 'focus-within:border-orange-500/50'}`}>
                                 <ManufacturerCombobox
                                     value={item.manufacturer || ''}
                                     products={masterForThisItem?.products || []}
@@ -382,7 +521,7 @@ export function MaltListEditor({ value, onChange }: MaltListEditorProps) {
                                 />
                             </div>
                             {/* Menge + Einheit */}
-                            <div className="h-9 flex bg-background border border-border rounded-lg overflow-hidden focus-within:border-orange-500/50 transition">
+                            <div className={`h-9 flex bg-background border border-border rounded-lg overflow-hidden transition ${adjunkt ? 'focus-within:border-yellow-500/50' : 'focus-within:border-orange-500/50'}`}>
                                 <input type="text" inputMode="decimal"
                                     className="flex-1 min-w-0 bg-transparent pl-2.5 pr-1 text-sm text-text-primary outline-none text-right placeholder:text-text-disabled"
                                     placeholder="0" value={item.amount || ''}
@@ -400,7 +539,7 @@ export function MaltListEditor({ value, onChange }: MaltListEditorProps) {
                                 </select>
                             </div>
                             {/* EBC */}
-                            <div className="h-9 flex bg-background border border-border rounded-lg overflow-hidden focus-within:border-orange-500/50 transition">
+                            <div className={`h-9 flex bg-background border border-border rounded-lg overflow-hidden transition ${adjunkt ? 'focus-within:border-yellow-500/50' : 'focus-within:border-orange-500/50'}`}>
                                 <input type="text" inputMode="decimal"
                                     className="flex-1 min-w-0 bg-transparent pl-2 pr-0 text-sm text-text-primary outline-none text-right placeholder:text-text-disabled"
                                     placeholder="–" value={item.color_ebc || ''}
@@ -417,10 +556,16 @@ export function MaltListEditor({ value, onChange }: MaltListEditorProps) {
                     )})}
             </div>
 
-            <button type="button" onClick={addRow}
-                className="flex items-center gap-2 px-3 py-2 text-sm font-bold text-orange-500 bg-orange-500/10 hover:bg-orange-500/20 rounded-xl transition">
-                <Plus size={16} /> Malz hinzufügen
-            </button>
+            <div className="flex items-center gap-2 flex-wrap">
+                <button type="button" onClick={addRow}
+                    className="flex items-center gap-2 px-3 py-2 text-sm font-bold text-orange-500 bg-orange-500/10 hover:bg-orange-500/20 rounded-xl transition">
+                    <Plus size={16} /> Malz hinzufügen
+                </button>
+                <button type="button" onClick={addAdjunkt}
+                    className="flex items-center gap-2 px-3 py-2 text-sm font-bold text-yellow-500 bg-yellow-500/10 hover:bg-yellow-500/20 rounded-xl transition">
+                    <Plus size={16} /> Adjunkt hinzufügen
+                </button>
+            </div>
         </div>
     );
 }

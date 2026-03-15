@@ -1,0 +1,3 @@
+-- bjcp_styles table was created directly in the local database.
+-- The full CREATE TABLE + seed is handled by 20260321130000_seed_bjcp_styles.sql
+-- using CREATE TABLE IF NOT EXISTS, so this migration is intentionally a no-op.

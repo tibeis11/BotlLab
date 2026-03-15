@@ -178,7 +178,7 @@ export default function ImportWizardPage({ params }: { params: Promise<{ brewery
   if (step === 'editor' && importedData) {
     return (
       <div className="flex flex-col min-h-[calc(100vh-80px)]">
-        <div className="sticky top-0 z-50 bg-amber-500/10 border-b border-amber-500/20 px-4 py-3 flex items-center justify-center gap-2 text-sm text-white shadow-sm">
+        <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-3 flex items-center justify-center gap-2 text-sm text-white shadow-sm">
           <AlertCircle className="w-5 h-5 text-amber-400 shrink-0" />
           <span>
             <strong>Importiertes Rezept:</strong> Bitte überprüfe die extrahierten Daten. Beim Speichern wird der Sud in deiner Datenbank angelegt.
