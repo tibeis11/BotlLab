@@ -65,57 +65,67 @@ export async function importAndMatchRecipe(formData: FormData) {
 
     const recipe = recipes[0]; // Wir nehmen vorerst nur das erste Rezept
 
-    // 2. Zutaten abgleichen (Smart Match)
-    const processedIngredients: MatchedIngredient[] = [];
+    // 2. Zutaten abgleichen (Smart Match) — ein einziger Batch-Call statt N Einzelaufrufe
     const unmatchedForQueue: { raw_name: string; type: string; raw_data: Record<string, unknown> }[] = [];
 
-    for (const ing of recipe.ingredients) {
-      if (ing.type === 'water') {
-        processedIngredients.push({ ...ing, status: 'unmatched' });
-        continue;
-      }
+    // Nur non-water Zutaten müssen gematcht werden; originaler Index wird mitgegeben
+    const toMatch = recipe.ingredients
+      .map((ing, origIdx) => ({ ing, origIdx }))
+      .filter(({ ing }) => ing.type !== 'water');
 
-      const { data, error } = await supabase.rpc('match_ingredient', {
-        search_term: ing.raw_name,
-        search_type: ing.type
-      });
+    // Einen einzigen DB-Call für alle Zutaten
+    const { data: batchResults } = await (supabase as any).rpc('match_ingredients_batch', {
+      p_terms: toMatch.map(({ ing }) => ({ raw_name: ing.raw_name, type: ing.type })),
+    });
 
-      if (!error && data && data.length > 0) {
-        processedIngredients.push({
-          ...ing,
-          status: 'matched',
-          match: {
-             master_id: data[0].master_id,
-             name: data[0].name,
-             type: data[0].type,
-             match_score: data[0].match_score,
-             match_level: data[0].match_level,
-             color_ebc: data[0].color_ebc,
-             potential_pts: data[0].potential_pts,
-             alpha_pct: data[0].alpha_pct,
-             attenuation_pct: (data[0] as any).attenuation_pct
-          }
-        });
-      } else {
-        processedIngredients.push({
-          ...ing,
-          status: 'unmatched'
-        });
-        unmatchedForQueue.push({
-          raw_name: ing.raw_name,
-          type: ing.type,
-          raw_data: {
-            amount: ing.amount,
-            unit: ing.unit,
-            ...(ing.time_minutes != null && { time_minutes: ing.time_minutes }),
-            ...(ing.usage != null && { usage: ing.usage }),
-            ...(ing.override_alpha != null && { alpha_pct: ing.override_alpha }),
-            ...(ing.override_color_ebc != null && { color_ebc: ing.override_color_ebc }),
-            ...(ing.override_attenuation != null && { attenuation_pct: ing.override_attenuation }),
-          },
-        });
+    // Ergebnisse nach input_index indexieren (0-basiert = Position in toMatch)
+    const matchByBatchIdx = new Map<number, any>();
+    for (const row of (batchResults ?? [])) {
+      if (!matchByBatchIdx.has(row.input_index)) {
+        matchByBatchIdx.set(row.input_index, row);
       }
     }
+
+    const processedIngredients: MatchedIngredient[] = recipe.ingredients.map((ing, origIdx) => {
+      if (ing.type === 'water') return { ...ing, status: 'unmatched' as const };
+
+      const batchIdx = toMatch.findIndex(t => t.origIdx === origIdx);
+      const matchRow = batchIdx >= 0 ? matchByBatchIdx.get(batchIdx) : undefined;
+
+      if (matchRow) {
+        return {
+          ...ing,
+          status: 'matched' as const,
+          match: {
+            master_id: matchRow.master_id,
+            name: matchRow.name,
+            type: matchRow.type,
+            match_score: matchRow.match_score,
+            match_level: matchRow.match_level,
+            color_ebc: matchRow.color_ebc,
+            potential_pts: matchRow.potential_pts,
+            alpha_pct: matchRow.alpha_pct,
+            attenuation_pct: matchRow.attenuation_pct,
+          },
+        };
+      }
+
+      // Kein Match → für Import-Queue vormerken
+      unmatchedForQueue.push({
+        raw_name: ing.raw_name,
+        type: ing.type,
+        raw_data: {
+          amount: ing.amount,
+          unit: ing.unit,
+          ...(ing.time_minutes != null && { time_minutes: ing.time_minutes }),
+          ...(ing.usage != null && { usage: ing.usage }),
+          ...(ing.override_alpha != null && { alpha_pct: ing.override_alpha }),
+          ...(ing.override_color_ebc != null && { color_ebc: ing.override_color_ebc }),
+          ...(ing.override_attenuation != null && { attenuation_pct: ing.override_attenuation }),
+        },
+      });
+      return { ...ing, status: 'unmatched' as const };
+    });
 
     // 3. Unbekannte Zutaten in die Import-Queue schreiben (max. 50 pro Import)
     // Deduplizierung: gleicher raw_name + type → import_count erhöhen statt neue Row

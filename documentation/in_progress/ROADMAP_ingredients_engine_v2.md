@@ -1,19 +1,116 @@
 # Roadmap: Ingredients Engine v2 — Hierarchische Zutaten-Datenbank & BeerXML-Interoperabilität
 
 ## **UPDATE (Letzter Stand - WICHTIG)**
-> **Status: ✅ Ingredients Engine v2 — vollständig abgeschlossen (Stand: 15. März 2026)**
+> **Status: ✅ Ingredients Engine v2 — Kern vollständig · Qualitäts-Audit abgeschlossen (Stand: 15. März 2026)**
 >
-> **Zuletzt abgeschlossen (15. März 2026):**
-> - **JSONB→recipe_ingredients Batch-Migration** (`scripts/migrate-jsonb-ingredients.js`): Alle Production-Brews vollständig migriert, 90.7% Smart-Match-Rate.
-> - **Rematch-Script** (`scripts/rematch-recipe-ingredients.js`): Fallback-Master-IDs durch echte `ingredient_master`-Einträge ersetzt.
-> - **Validierungsskript** (`scripts/validate-ingredient-migration.js`): Bestätigt 100% Migration in Production — 0 JSONB-Keys verbleibend.
-> - **Adapter-Verbesserungen** (`lib/ingredients/ingredient-adapter.ts`): Zeigt `ingredient_master.name` statt `raw_name` für gematchte Zutaten. EBC/Alpha/Attenuation aus Master/Product als Fallback.
-> - **Durchschnitts-Trigger** (`20260319150000`/`20260319160000`): `ingredient_master.color_ebc/alpha_pct/potential_pts` werden automatisch als gerundeter Durchschnitt aller `ingredient_products` gehalten.
-> - **Admin-Queue RLS-Fix**: Admin-Actions nutzen Service Role Client — alle Queue-Einträge sind nun sichtbar.
-> - **BeerXML + BeerJSON + PDF Export**: Client-seitig via `lib/recipe-export.ts` + `lib/brew-pdf.ts`, Export-Dropdown in `/brew/[id]`.
+> **Zuletzt abgeschlossen — Quality Audit & Reparaturen (15. März 2026):**
+> - **Stilles Speicherversagen gefixt**: `extractAndSaveRecipeIngredients` wirft jetzt einen echten Fehler statt silent return. BrewEditor fängt ihn ab und zeigt ihn dem User.
+> - **Import Wizard `master_id`-Leck gefixt**: `mapRecipeToBrewForm` übergibt `master_id` jetzt korrekt aus dem Match-Ergebnis in die malt/hop/yeast-Objekte → beim Speichern landen echte Master-IDs in `recipe_ingredients`.
+> - **Fuzzy-Match Threshold erhöht**: Level-5-Schwelle von `0.25 → 0.35` (Migration `20260319180000`) — eliminiert False Positives bei kurzen Namen.
+> - **Composite Index**: `(recipe_id, type)` auf `recipe_ingredients` (Migration `20260319170000`) für effizientere Adapter-Queries.
+> - **Import Bounds-Checking**: Neuer `clampAmount()` Helper (`lib/ingredient-parser/utils.ts`) in BeerXML, BeerJSON und MMuM eingebunden — verhindert Garbage-Werte (z.B. 9999 kg Malz).
+> - **Fallback-UUIDs zentralisiert**: Neue Konstanten-Datei `lib/ingredients/constants.ts` (FALLBACK_MASTER_IDS / FALLBACK_MASTER_ID_SET) — Adapter importiert daraus, Script hat Kommentar-Hinweis.
+> - **Vollständiges Adapter-Audit aller 15 Dateien**: 4 echte Bugs gefunden und gefixt:
+>   1. `botlguide/route.ts` L344 — Adapter-Ergebnis für `recentBrews` verworfen → Gefixt
+>   2. `FermentationTab.tsx` L146 — `yeast?.name` auf Array → `[object Object]` ans BotlGuide → Gefixt
+>   3. `CompletedTab.tsx` L289 — gleiche Yeast-Array-Problematik für PDF-Export → Gefixt
+>   4. `botlguide-embed/index.ts` — Edge Function las `brew.data.malts/hops` direkt (nach Migration leer) → Gefixt via `recipe_ingredients` Query
 >
-> **Einzig verbleibender offener Punkt:**
-> 1. **Taste-Score-Erweiterungen Phase 5.2** — Cohumulone, Melanoidin, Hefeesterigkeit als produktspezifische Score-Parameter. Bewusst auf Later verschoben — hängt von besserer `product_id`-Abdeckung ab.
+> **Bewusst zurückgestellt (kein Showstopper):**
+> - **Supabase Types veraltet**: RPC-Aufrufe nutzen `as any`. Zu beheben nach Schema-Freeze via `supabase gen types`.
+> - **Taste-Score-Erweiterungen Phase 5.2**: Cohumulone, Melanoidin, Hefeesterigkeit. Hängt von besserer `product_id`-Abdeckung ab.
+
+---
+
+## ✅ Vollständige Checkliste (Stand: 15. März 2026)
+
+> **Legende:** ✅ Abgeschlossen · ⏳ Bewusst zurückgestellt · ❌ Nicht implementiert
+
+### Phase 0 — Schema & Infrastruktur
+- [x] Tabellen `ingredient_master`, `ingredient_products`, `ingredient_import_queue`, `recipe_ingredients` angelegt
+- [x] FK `recipe_ingredients.recipe_id → brews(id) ON DELETE CASCADE`
+- [x] Basis-Indizes auf `recipe_id`, `master_id`, `type`
+- [x] RLS für alle Tabellen aktiviert (public read, authenticated insert für queue)
+- [x] Admin Write RLS für `ingredient_master` + `ingredient_products` (prüft `admin_users`)
+- [x] `pg_trgm` Extension aktiviert + GIN-Index `idx_ingredient_master_aliases_trgm`
+- [x] `aliases_flat` Spalte + Trigger für trgm-kompatible Suche
+- [x] `match_ingredient()` RPC mit 5-Stufen-Logik (Exakt Produkt → Exakt Master/Alias → Alias-Substring → Fuzzy Produkt → Fuzzy Master)
+- [x] Fuzzy-Threshold von 0.25 auf 0.35 erhöht (`20260319180000`)
+- [x] Composite Index `(recipe_id, type)` auf `recipe_ingredients` (`20260319170000`)
+- [x] `idx_ingredient_products_manufacturer` — in Base-Schema Phase 0 enthalten
+
+### Phase 1 — Seed-Datenbank
+- [x] 512 `ingredient_master` Einträge (Malze, Hopfen, Hefen, Misc)
+- [x] 512 `ingredient_products` Einträge mit Herstellerangaben
+- [x] Deutsche Aliases für alle gängigen Zutaten (`20260318600000_german_aliases.sql`)
+- [x] Legal-Validierung in `documentation/legal/INGREDIENTS_DATA_COMPLIANCE.md`
+- [x] Durchschnitts-Trigger auf `ingredient_master` für aggregierte Produktwerte
+- [x] W-34/70 Aliases ("34/70", "W34/70", "Saflager W-34/70") — `20260319120000_yeast_alias_34_70.sql`
+
+### Phase 2 — BeerXML / BeerJSON Import
+- [x] Parser-Abstraktion `IRecipeParser` + `ParsedRecipe` Typen (`lib/ingredient-parser/types.ts`)
+- [x] BeerXML Parser (`lib/ingredient-parser/beerxml.ts`) inkl. Fermentable, Hop, Yeast, Mash Steps
+- [x] BeerJSON Parser (`lib/ingredient-parser/beerjson.ts`)
+- [x] MMuM JSON Parser (`lib/ingredient-parser/mmumjson.ts`)
+- [x] `clampAmount()` Bounds-Checking Helper in allen 3 Parsern eingebunden (`lib/ingredient-parser/utils.ts`)
+- [x] Smart-Match Server Action (`app/api/match-ingredients/route.ts`)
+- [x] Import-Wizard UI mit Drag & Drop (`app/team/[breweryId]/brews/import/page.tsx`)
+- [x] Match-Preview Komponente (`app/team/[breweryId]/brews/import/ImportMatchPreview.tsx`)
+- [x] `ManualMatchRow` — ungematchte Zutaten manuell zuweisen
+- [x] `master_id` wird aus Match-Ergebnis korrekt in `mapRecipeToBrewForm` übertragen (Fix: 15. März 2026)
+- [x] BrewEditor-Integration: Import landet als vollständig verknüpftes Rezept
+- [x] BeerXML Export (`lib/recipe-export.ts`)
+- [x] BeerJSON Export (`lib/recipe-export.ts`)
+- [x] PDF Export (`lib/brew-pdf.ts`)
+- [x] N+1 Queries im Import behoben — `match_ingredients_batch()` RPC (1 Call statt N)
+
+### Phase 3 — JSONB-Migration & Anti-Corruption Layer
+- [x] Write-Adapter `extractAndSaveRecipeIngredients` — JSONB → relational bei jedem Save
+- [x] Read-Adapter `mergeRecipeIngredientsIntoData` — relational → JSONB für Downstream-Kompatibilität
+- [x] Fehler im Adapter werden jetzt geworfen statt still ignoriert (Fix: 15. März 2026)
+- [x] Batch-Migrations-Script `scripts/migrate-jsonb-ingredients.js`
+- [x] Rematch-Script `scripts/rematch-recipe-ingredients.js`
+- [x] Validierungs-Script `scripts/validate-ingredient-migration.js`
+- [x] Alle Production-Brews migriert (100%, 0 JSONB-Keys verbleibend)
+- [x] Fallback-UUIDs zentralisiert in `lib/ingredients/constants.ts`
+
+### Adapter-Verdrahtung (alle Datenpfade)
+- [x] `BrewEditor.tsx` — Lesen + Speichern verdrahtet, Fehler abgefangen
+- [x] `app/brew/[id]/page.tsx` + `layout.tsx` — öffentliche Brauseite
+- [x] `app/b/[id]/page.tsx` — Scan-Seite
+- [x] `app/discover/page.tsx` — Discover-Seite
+- [x] `SessionContext.tsx` — Session-Kontext
+- [x] `app/api/botlguide/route.ts` — BotlGuide AI (recentBrews-Fix: 15. März 2026)
+- [x] `lib/actions/brew-actions.ts` — `getBrewForEdit` Server Action
+- [x] `FermentationTab.tsx` — Yeast-Array-Fix (15. März 2026)
+- [x] `CompletedTab.tsx` — Yeast-Array-Fix für PDF-Export (15. März 2026)
+- [x] `supabase/functions/botlguide-embed/index.ts` — Edge Function liest jetzt aus `recipe_ingredients`
+
+### Phase 4 — Import-Queue & Duplicate Prevention
+- [x] Migration `20260319000000_phase4_import_queue.sql`
+- [x] Import-Deduplizierung (gleicher Name + Typ → kein doppelter Queue-Eintrag)
+- [x] Admin-Queue-UI mit Merge/Reject-Modals
+- [x] Live-Badge in Sidebar zeigt offene Queue-Einträge
+- [x] `ingredient_import_queue.import_count` — in Phase 4 Migration enthalten (`20260319000000`)
+
+### Phase 5 — Qualitäts-Score Integration
+- [x] `calculate_brew_quality_score` liest aus `recipe_ingredients`
+- [x] `potential_pts` aus DB als primäre Quelle, `MALT_POTENTIAL_TABLE` als Fallback
+- [x] `get_user_brew_context` RPC liest aus `recipe_ingredients`
+- ⏳ Taste-Score-Erweiterungen (Cohumulone, Melanoidin, Hefeesterigkeit) — hängt von besserer `product_id`-Abdeckung ab
+
+### Phase 6 — UI/UX Upgrade
+- [x] Malz-Editor: Vollständig auf neues Design und Mobile-UX umgebaut
+- [x] Hopfen-Editor: Vollständig auf neues Design und Mobile-UX umgebaut
+- [x] Hefe-Editor: Vollständig auf neues Design und Mobile-UX umgebaut
+- [x] Maischeplan-Editor: Vollständig auf neues Design und Mobile-UX umgebaut
+
+### Technische Schulden (bewusst zurückgestellt)
+- [x] **N+1 Queries im Import**: `match_ingredients_batch()` RPC implementiert (`20260319200000`) + `recipe-import.ts` auf Batch-Call umgestellt
+- ⏳ **Supabase Types**: `supabase gen types` nach Schema-Freeze ausführen; RPCs nutzen aktuell `as any`
+- ⏳ **Taste-Score Phase 5.2**: Cohumulone, Melanoidin, Hefeesterigkeit — nach besserer Product-Coverage
+
+---
 
 **Kontext:** Zutaten werden aktuell als unkontrollierter JSONB-Blob in der `data`-Spalte jedes Rezepts gespeichert (`data->'hops'`, `data->'malts'`, `data->'yeast'`). Berechnungslogik wie Extrakt-Potenziale und EBC-Defaults liegen als Code in `lib/brewing-calculations.ts` — als Regex-Tabelle mit 40+ Patterns, die jede neue Zutat im Code statt in der Datenbank erfordert. Diese Roadmap überführt das System in ein relationales 3-Ebenen-Modell mit BeerXML-Import, löst die JSONB-Migrationslast und behebt alle strukturellen Schwachstellen des aktuellen Designs.
 

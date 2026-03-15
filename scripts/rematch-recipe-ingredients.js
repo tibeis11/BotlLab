@@ -27,6 +27,7 @@ if (!supabaseUrl || !supabaseKey) {
 const isDryRun = process.argv.includes('--dry-run');
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Source of truth for these UUIDs: lib/ingredients/constants.ts (FALLBACK_MASTER_IDS)
 const FALLBACK_IDS = [
   '00000000-0000-4000-a000-000000000001',
   '00000000-0000-4000-a000-000000000002',

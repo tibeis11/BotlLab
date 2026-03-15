@@ -1,4 +1,5 @@
 import { IRecipeParser, ParsedRecipe, ParsedMashStep } from "./types";
+import { clampAmount } from "./utils";
 
 export class MMuMJsonParser implements IRecipeParser {
   canParse(content: string): boolean {
@@ -46,7 +47,7 @@ export class MMuMJsonParser implements IRecipeParser {
         parsedRecipe.ingredients.push({
           raw_name: m.Name,
           type: "malt",
-          amount: parseFloat(m.Menge) || 0,
+          amount: clampAmount(parseFloat(m.Menge) || 0, 'malt'),
           unit: "kg",
           usage: "mash"
         });
@@ -58,7 +59,7 @@ export class MMuMJsonParser implements IRecipeParser {
         parsedRecipe.ingredients.push({
           raw_name: h.Sorte,
           type: "hop",
-          amount: parseFloat(h.Menge) || 0,
+          amount: clampAmount(parseFloat(h.Menge) || 0, 'hop'),
           unit: "g",
           override_alpha: parseFloat(h.Alpha),
           time_minutes: parseFloat(h.Zeit),

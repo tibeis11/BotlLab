@@ -1,5 +1,6 @@
 import { XMLParser } from 'fast-xml-parser';
 import { IRecipeParser, ParsedRecipe, ParsedIngredient, ParsedMashStep, BaseIngredientType } from './types';
+import { clampAmount } from './utils';
 
 export class BeerXmlParser implements IRecipeParser {
   private parser: XMLParser;
@@ -52,11 +53,12 @@ export class BeerXmlParser implements IRecipeParser {
       if (recipe.FERMENTABLES && recipe.FERMENTABLES.FERMENTABLE) {
         const fermentables = recipe.FERMENTABLES.FERMENTABLE;
         fermentables.forEach((f: any) => {
-          const amount = Number(f.AMOUNT);
+          const rawAmount = Number(f.AMOUNT);
+          const type = this.mapFermentableType(f.TYPE);
           parsedRecipe.ingredients.push({
             raw_name: f.NAME,
-            type: this.mapFermentableType(f.TYPE),
-            amount: isNaN(amount) ? 0 : amount, // In BeerXML immer in kg
+            type,
+            amount: clampAmount(isNaN(rawAmount) ? 0 : rawAmount, type), // In BeerXML immer in kg
             unit: 'kg', 
             override_color_ebc: f.COLOR ? Number(f.COLOR) * 1.97 : undefined, // SRM to EBC (BeerXML spec uses Lovibond for fermentables which ≈ SRM)
             manufacturer: f.SUPPLIER,
@@ -73,7 +75,7 @@ export class BeerXmlParser implements IRecipeParser {
           parsedRecipe.ingredients.push({
             raw_name: h.NAME,
             type: 'hop',
-            amount: isNaN(amountKg) ? 0 : amountKg * 1000, // BeerXML spec: amount is always kg → convert to g
+            amount: clampAmount(isNaN(amountKg) ? 0 : amountKg * 1000, 'hop'), // BeerXML spec: amount is always kg → convert to g
             unit: 'g',
             time_minutes: Number(h.TIME) || 0,
             usage: h.USE?.toLowerCase(), // z.B. 'boil', 'dry hop', 'mash'
@@ -89,11 +91,11 @@ export class BeerXmlParser implements IRecipeParser {
         yeasts.forEach((y: any) => {
           const amountRaw = Number(y.AMOUNT);
           // BeerXML spec: yeast amount is in liters. For dry yeast (small values <0.1), treat as kg.
-          const amount = isNaN(amountRaw) ? 1 : (amountRaw < 0.1 ? amountRaw * 1000 : amountRaw * 1000);
+          const rawAmount = isNaN(amountRaw) ? 1 : amountRaw * 1000;
           parsedRecipe.ingredients.push({
             raw_name: y.NAME,
             type: 'yeast',
-            amount,
+            amount: clampAmount(rawAmount, 'yeast'),
             unit: amountRaw < 0.1 ? 'g' : 'ml', // Dry yeast → g, Liquid yeast → ml
             override_attenuation: !isNaN(Number(y.ATTENUATION)) ? Number(y.ATTENUATION) : undefined,
             manufacturer: y.LABORATORY,

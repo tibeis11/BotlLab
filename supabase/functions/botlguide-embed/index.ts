@@ -110,7 +110,25 @@ async function embedUserRecipe(
 
   if (error || !brew) throw new Error(`Brew not found: ${body.brew_id}`)
 
-  const content = buildRecipeEmbeddingText(brew)
+  // Fetch ingredients from recipe_ingredients (v2 engine — brew.data no longer has malts/hops)
+  const { data: recipeIngredients } = await supabase
+    .from('recipe_ingredients')
+    .select('type, amount, unit, raw_name, ingredient_master(name)')
+    .eq('recipe_id', body.brew_id)
+
+  const malts = (recipeIngredients ?? [])
+    .filter((i: any) => i.type === 'malt')
+    .map((i: any) => ({ name: (i.ingredient_master as any)?.name || i.raw_name, amount: i.amount, unit: i.unit }))
+  const hops = (recipeIngredients ?? [])
+    .filter((i: any) => i.type === 'hop')
+    .map((i: any) => ({ name: (i.ingredient_master as any)?.name || i.raw_name, amount: i.amount, unit: i.unit }))
+
+  const enrichedBrew = {
+    ...brew,
+    data: { ...(brew.data as Record<string, unknown> || {}), malts, hops },
+  }
+
+  const content = buildRecipeEmbeddingText(enrichedBrew)
   const embedding = await generateEmbedding(apiKey, content)
 
   const metadata = {

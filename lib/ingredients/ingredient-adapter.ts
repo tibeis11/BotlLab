@@ -1,19 +1,13 @@
 import { supabase as browserClient } from "@/lib/supabase";
 import { SupabaseClient } from "@supabase/supabase-js";
-
-const FALLBACK_MASTER_IDS = new Set([
-  '00000000-0000-4000-a000-000000000001',
-  '00000000-0000-4000-a000-000000000002',
-  '00000000-0000-4000-a000-000000000003',
-  '00000000-0000-4000-a000-000000000004',
-]);
+import { FALLBACK_MASTER_ID_SET } from "./constants";
 
 // Gibt den "besten" Anzeigenamen zurück:
 // - Echter Master-Match → ingredient_master.name (sauber, kein Hersteller-Prefix)
 // - Fallback/kein Match → raw_name (Original-Eingabe)
 function displayName(i: any, fallback: string): string {
   const masterName = (i.ingredient_master as any)?.name;
-  if (masterName && i.master_id && !FALLBACK_MASTER_IDS.has(i.master_id)) {
+  if (masterName && i.master_id && !FALLBACK_MASTER_ID_SET.has(i.master_id)) {
     return masterName;
   }
   return i.raw_name || masterName || fallback;
@@ -157,7 +151,7 @@ export async function extractAndSaveRecipeIngredients(
   const { error: deleteError } = await sb.from('recipe_ingredients').delete().eq('recipe_id', recipeId);
   if (deleteError) {
     console.error('Failed to clear existing recipe ingredients:', deleteError);
-    return { extracted: false, sanitisedData: dataObj };
+    throw new Error(`Zutaten konnten nicht gespeichert werden: ${deleteError.message}`);
   }
 
   const inserts: any[] = [];
@@ -213,6 +207,7 @@ export async function extractAndSaveRecipeIngredients(
     const { error } = await sb.from('recipe_ingredients').insert(inserts);
     if (error) {
       console.error("Failed to extract ingredients on save:", error);
+      throw new Error(`Zutaten konnten nicht gespeichert werden: ${error.message}`);
     }
   }
 

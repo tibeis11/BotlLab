@@ -16,6 +16,7 @@ function mapRecipeToBrewForm(recipe: ProcessedRecipe): Partial<BrewForm> {
     .filter(i => i.type === 'malt')
     .map(i => ({
       id: crypto.randomUUID(),
+      master_id: i.match?.master_id || undefined,
       name: i.match ? i.match.name : i.raw_name,
       amount: i.amount.toString(),
       unit: 'kg',
@@ -27,6 +28,7 @@ function mapRecipeToBrewForm(recipe: ProcessedRecipe): Partial<BrewForm> {
     .filter(i => i.type === 'hop')
     .map(i => ({
       id: crypto.randomUUID(),
+      master_id: i.match?.master_id || undefined,
       name: i.match ? i.match.name : i.raw_name,
       amount: i.amount.toString(),
       unit: 'g',
@@ -39,6 +41,7 @@ function mapRecipeToBrewForm(recipe: ProcessedRecipe): Partial<BrewForm> {
     .filter(i => i.type === 'yeast')
     .map(i => ({
       id: crypto.randomUUID(),
+      master_id: i.match?.master_id || undefined,
       name: i.match ? i.match.name : i.raw_name,
       amount: i.amount.toString(),
       unit: 'pkg',

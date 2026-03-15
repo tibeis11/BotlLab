@@ -4,6 +4,7 @@ import { BeerJsonParser } from './beerjson';
 import { MMuMJsonParser } from './mmumjson';
 
 export * from './types';
+export * from './utils';
 
 export class RecipeImportService {
   private parsers: IRecipeParser[];

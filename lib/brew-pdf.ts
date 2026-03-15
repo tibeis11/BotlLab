@@ -159,6 +159,8 @@ export async function exportBrewPDF(brew: any): Promise<void> {
   const hops:  any[]  = data.hops   ?? [];
   const yeasts: any[] = data.yeast  ?? [];
   const steps: any[]  = data.mash_steps ?? [];
+  const mashWater = safeNum(data.mash_water_liters, 0);
+  const spargeWater = safeNum(data.sparge_water_liters, 0);
   const stats  = calcStats(brew);
 
   // ── HEADER BLOCK ─────────────────────────────────────────────────────────
@@ -167,19 +169,19 @@ export async function exportBrewPDF(brew: any): Promise<void> {
 
   // BotlLab wordmark (top-left)
   try {
-    const logoImg = await loadImage('/brand/logo_withName_black.png');
+    const logoImg = await loadImage('/brand/logo_withName.png');
     const h = 8;
     const w = h * (logoImg.width / logoImg.height);
     doc.addImage(logoImg, 'PNG', ML, 6, w, h);
   } catch (e) {
     // Fallback if image fails to load
-    textColor(doc, currentC.brand);
+    textColor(doc, currentC.textMain);
     doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
-    doc.text('BOTL', ML, 10);
-    const botlW = doc.getTextWidth('BOTL');
-    textColor(doc, currentC.textMain);
-    doc.text('LAB', ML + botlW, 10);
+    doc.text('Botl', ML, 10);
+    const botlW = doc.getTextWidth('Botl');
+    textColor(doc, currentC.brand);
+    doc.text('Lab', ML + botlW, 10);
   }
 
   // Brew type badge (top-right)
@@ -238,7 +240,7 @@ export async function exportBrewPDF(brew: any): Promise<void> {
     { label: 'OG',         value: stats.og },
     { label: 'Sud',        value: stats.batch },
     { label: 'Ausbeute',   value: stats.efficiency },
-    { label: 'Kochzeit',   value: stats.boilTime },
+    { label: 'Karbonisierung', value: data.carbonation_g_l ? `${safeNum(data.carbonation_g_l).toFixed(1).replace('.', ',')} g/l` : '—' },
   ];
 
   const tileW = CW / statItems.length;
@@ -331,6 +333,58 @@ export async function exportBrewPDF(brew: any): Promise<void> {
     y += 4;
   }
 
+  // ── MAISCHEPLAN ──────────────────────────────────────────────────────────
+  if (steps.length > 0 || mashWater > 0 || spargeWater > 0) {
+    checkNewPage();
+    rect(doc, 0, y - 2, PW, steps.length * 5.5 + (mashWater > 0 || spargeWater > 0 ? 15 : 0) + 14, currentC.bg);
+    sectionHeader('MAISCHEPLAN & WASSER');
+
+    if (mashWater > 0 || spargeWater > 0) {
+      textColor(doc, currentC.textMain);
+      doc.setFontSize(8);
+      if (mashWater > 0) {
+        doc.setFont('helvetica', 'bold');
+        doc.text('Hauptguss: ', ML + 5, y);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`${mashWater.toFixed(1).replace('.', ',')} L`, ML + 25, y);
+      }
+      if (spargeWater > 0) {
+        doc.setFont('helvetica', 'bold');
+        const offset = mashWater > 0 ? 45 : 0;
+        doc.text('Nachguss: ', ML + 5 + offset, y);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`${spargeWater.toFixed(1).replace('.', ',')} L`, ML + 25 + offset, y);
+      }
+      y += 6;
+    }
+
+    if (steps.length > 0) {
+      textColor(doc, currentC.disabled);
+      doc.setFontSize(6.5);
+      doc.text('RAST',        ML + 5,       y);
+      doc.text('TEMPERATUR',  ML + 115,     y);
+      doc.text('DAUER',       ML + CW - 2,  y, { align: 'right' });
+      y += 2;
+      hline(doc, ML, y, CW, currentC.surface2, 0.15);
+      y += 3;
+
+      steps.forEach((s: any, i: number) => {
+        checkNewPage();
+        const STEP_LABELS: Record<string, string> = {
+          rest: '', decoction: ' (Dekoktion)', mashout: ' (Abmaischen)', strike: ' (Einmaischen)',
+        };
+        const suffix = STEP_LABELS[s.step_type] ?? '';
+        tableRow([
+          { text: (s.name ?? 'Rast') + suffix,                x: ML + 5,      w: 105 },
+          { text: safeNum(s.temperature, 66).toFixed(0) + ' °C', x: ML + 115, w: 30, color: currentC.amber },
+          { text: safeNum(s.duration, 60).toFixed(0) + ' min',  x: ML + CW - 20, w: 18, align: 'right' },
+        ], y, i % 2 === 0);
+        y += 5.5;
+      });
+    }
+    y += 4;
+  }
+
   // ── HOPFEN ───────────────────────────────────────────────────────────────
   if (hops.length > 0) {
     checkNewPage();
@@ -395,37 +449,6 @@ export async function exportBrewPDF(brew: any): Promise<void> {
     y += 4;
   }
 
-  // ── MAISCHEPLAN ──────────────────────────────────────────────────────────
-  if (steps.length > 0) {
-    checkNewPage();
-    rect(doc, 0, y - 2, PW, steps.length * 5.5 + 14, currentC.bg);
-    sectionHeader('MAISCHEPLAN');
-
-    textColor(doc, currentC.disabled);
-    doc.setFontSize(6.5);
-    doc.text('RAST',        ML + 5,       y);
-    doc.text('TEMPERATUR',  ML + 115,     y);
-    doc.text('DAUER',       ML + CW - 2,  y, { align: 'right' });
-    y += 2;
-    hline(doc, ML, y, CW, currentC.surface2, 0.15);
-    y += 3;
-
-    steps.forEach((s: any, i: number) => {
-      checkNewPage();
-      const STEP_LABELS: Record<string, string> = {
-        rest: '', decoction: ' (Dekoktion)', mashout: ' (Abmaischen)', strike: ' (Einmaischen)',
-      };
-      const suffix = STEP_LABELS[s.step_type] ?? '';
-      tableRow([
-        { text: (s.name ?? 'Rast') + suffix,                x: ML + 5,      w: 105 },
-        { text: safeNum(s.temperature, 66).toFixed(0) + ' °C', x: ML + 115, w: 30, color: currentC.amber },
-        { text: safeNum(s.duration, 60).toFixed(0) + ' min',  x: ML + CW - 20, w: 18, align: 'right' },
-      ], y, i % 2 === 0);
-      y += 5.5;
-    });
-    y += 4;
-  }
-
   // ── NOTIZEN ───────────────────────────────────────────────────────────────
   const notes = data.notes || brew.description;
   if (notes) {
@@ -453,16 +476,20 @@ export async function exportBrewPDF(brew: any): Promise<void> {
   rect(doc, 0, FOOTER_Y - 5, PW, 15, currentC.bg);
   hline(doc, ML, FOOTER_Y - 4, CW, currentC.surface2, 0.3);
 
-  textColor(doc, currentC.brand);
+  textColor(doc, currentC.textMain);
   doc.setFontSize(7);
   doc.setFont('helvetica', 'bold');
-  doc.text('BotlLab', ML, FOOTER_Y + 1);
+  doc.text('Botl', ML, FOOTER_Y + 1);
+  const footerBotlW = doc.getTextWidth('Botl');
+  textColor(doc, currentC.brand);
+  doc.text('Lab', ML + footerBotlW, FOOTER_Y + 1);
+  const footerFullW = doc.getTextWidth('BotlLab');
 
   textColor(doc, currentC.muted);
   doc.setFont('helvetica', 'normal');
   doc.text(
     `Exportiert am ${new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}  ·  botllab.de`,
-    ML + doc.getTextWidth('BotlLab') + 3,
+    ML + footerFullW + 3,
     FOOTER_Y + 1,
   );
 

@@ -1,4 +1,5 @@
 import { IRecipeParser, ParsedRecipe, ParsedIngredient, ParsedMashStep, BaseIngredientType } from './types';
+import { clampAmount } from './utils';
 
 export class BeerJsonParser implements IRecipeParser {
   canParse(content: string): boolean {
@@ -52,7 +53,7 @@ export class BeerJsonParser implements IRecipeParser {
           parsedRecipe.ingredients.push({
             raw_name: f.name,
             type: 'malt', // oder f.type mappen, falls in BeerJSON vorhanden
-            amount: this.extractMassKg(f.amount),
+            amount: clampAmount(this.extractMassKg(f.amount), 'malt'),
             unit: 'kg',
             override_color_ebc: this.extractColorEBC(f.color),
             manufacturer: f.producer
@@ -66,7 +67,7 @@ export class BeerJsonParser implements IRecipeParser {
           parsedRecipe.ingredients.push({
             raw_name: h.name,
             type: 'hop',
-            amount: this.extractMassKg(h.amount) * 1000,
+            amount: clampAmount(this.extractMassKg(h.amount) * 1000, 'hop'),
             unit: 'g',
             time_minutes: this.extractTimeMinutes(h.timing),
             usage: h.timing?.use,
@@ -97,7 +98,7 @@ export class BeerJsonParser implements IRecipeParser {
           parsedRecipe.ingredients.push({
             raw_name: c.name,
             type: 'yeast',
-            amount,
+            amount: clampAmount(amount, 'yeast'),
             unit,
             override_attenuation: c.attenuation,
             manufacturer: c.producer

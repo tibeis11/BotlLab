@@ -46,29 +46,46 @@ function SectionLabel({ label, icon: Icon, iconColor = 'text-text-muted' }: {
 function MaltView({ value, factor = 1 }: { value: any; factor?: number }) {
   if (!value || !Array.isArray(value)) return <IngredientView value={value} />;
   return (
-    <ul className="space-y-3">
-      {value.map((item: any, i: number) => (
-        <li key={i} className="flex justify-between items-center text-sm group hover:bg-surface/30 rounded-lg px-2 -mx-2 py-1.5 transition-colors">
-          <div className="flex items-center gap-3">
-            {item.color_ebc && (
-              <div
-                className="w-2.5 h-2.5 rounded-full ring-1 ring-white/10 shrink-0"
-                style={{ backgroundColor: `hsl(35, 100%, ${Math.max(20, 90 - (parseInt(item.color_ebc) * 2))}%)` }}
-                title={`${item.color_ebc} EBC`}
-              />
-            )}
-            <div className="flex flex-col">
-              <span className="text-text-primary font-medium">{item.name}</span>
-              {item.color_ebc && <span className="text-[10px] text-text-disabled">{item.color_ebc} EBC</span>}
-            </div>
-          </div>
-          <div className="text-right font-mono text-text-muted shrink-0 ml-4">
-            <span className="text-text-primary font-bold">{scaleAmount(item.amount, factor)}</span>{' '}
-            <span className="text-text-disabled text-xs">{item.unit || 'kg'}</span>
-          </div>
-        </li>
-      ))}
-    </ul>
+    <div className="w-full overflow-hidden rounded-xl border border-border bg-surface/30">
+      <table className="w-full text-sm text-left">
+        <thead className="bg-surface border-b border-border text-[10px] font-bold uppercase tracking-widest text-text-muted">
+          <tr>
+            <th className="px-4 py-3 font-medium">Zutat</th>
+            <th className="px-4 py-3 font-medium w-24">Farbe</th>
+            <th className="px-4 py-3 font-medium text-right w-32">Menge</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border/60">
+          {value.map((item: any, i: number) => (
+            <tr key={i} className="group hover:bg-surface-hover transition-colors">
+              <td className="px-4 py-3">
+                <span className="text-text-primary font-medium">{item.name}</span>
+              </td>
+              <td className="px-4 py-3">
+                {item.color_ebc ? (
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-2.5 h-2.5 rounded-full ring-1 ring-border shrink-0"
+                      style={{ backgroundColor: `hsl(35, 100%, ${Math.max(20, 90 - (parseInt(item.color_ebc) * 2))}%)` }}
+                      title={`${item.color_ebc} EBC`}
+                    />
+                    <span className="text-text-disabled text-xs tabular-nums leading-none">{item.color_ebc} EBC</span>
+                  </div>
+                ) : (
+                  <span className="text-text-disabled">—</span>
+                )}
+              </td>
+              <td className="px-4 py-3 text-right">
+                <div className="font-mono tabular-nums">
+                  <span className="text-text-primary font-bold text-sm">{scaleAmount(item.amount, factor)}</span>{' '}
+                  <span className="text-text-disabled text-xs">{item.unit || 'kg'}</span>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -108,49 +125,79 @@ function HopView({ value, factor = 1 }: { value: any; factor?: number }) {
         </p>
       )}
 
-      <ul className="space-y-3">
-        {value.map((item: any, i: number) => {
-          const correctedAlpha = corrections[i];
-          const originalAlpha = typeof item.alpha === 'string'
-            ? parseFloat(item.alpha.replace(',', '.'))
-            : item.alpha;
-          const alphaRatio = correctedAlpha && originalAlpha
-            ? originalAlpha / correctedAlpha
-            : 1;
-          const isCorrected = correctedAlpha !== null && correctedAlpha !== undefined && correctedAlpha !== originalAlpha;
+      <div className="w-full overflow-x-auto overflow-y-hidden rounded-xl border border-border bg-surface/30">
+        <table className="w-full text-sm text-left">
+          <thead className="bg-surface border-b border-border text-[10px] font-bold uppercase tracking-widest text-text-muted">
+            <tr>
+              <th className="px-4 py-3 font-medium">Zutat</th>
+              <th className="px-4 py-3 font-medium w-32">Alpha</th>
+              <th className="px-4 py-3 font-medium w-32">Gabe</th>
+              <th className="px-4 py-3 font-medium text-right w-24">Zeit</th>
+              <th className="px-4 py-3 font-medium text-right w-32">Menge</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border/60">
+            {value.map((item: any, i: number) => {
+              const correctedAlpha = corrections[i];
+              const originalAlpha = typeof item.alpha === 'string'
+                ? parseFloat(item.alpha.replace(',', '.'))
+                : item.alpha;
+              const alphaRatio = correctedAlpha && originalAlpha
+                ? originalAlpha / correctedAlpha
+                : 1;
+              const isCorrected = correctedAlpha !== null && correctedAlpha !== undefined && correctedAlpha !== originalAlpha;
 
-          return (
-            <li key={i} className="group hover:bg-surface/30 rounded-lg px-2 -mx-2 py-1.5 transition-colors">
-              <div className="flex justify-between items-center text-sm">
-                <div className="flex flex-col">
-                  <span className="text-text-primary font-medium">{item.name}</span>
-                  <span className="text-[10px] text-text-disabled">
-                    {item.use && <span>{item.use} · </span>}
-                    {item.alpha && <span>{item.alpha}% α</span>}
-                    {isCorrected && <span className="text-brand ml-1">→ {correctedAlpha}% α (korrigiert)</span>}
-                  </span>
-                </div>
-                <div className="text-right font-mono shrink-0 ml-4">
-                  {isCorrectionMode ? (
-                    <input
-                      type="number"
-                      step="0.1"
-                      placeholder={String(originalAlpha || '')}
-                      className="bg-surface border border-border-hover text-text-primary text-xs px-2 py-1 rounded-lg w-20 text-right focus:border-brand focus:outline-none"
-                      onChange={(e) => setAlpha(i, parseFloat(e.target.value))}
-                    />
-                  ) : (
-                    <>
-                      <span className="text-text-primary font-bold">{scaleAmount(item.amount, factor * alphaRatio)}</span>{' '}
-                      <span className="text-text-disabled text-xs">{item.unit || 'g'}</span>
-                    </>
-                  )}
-                </div>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+              return (
+                <tr key={i} className="group hover:bg-surface-hover transition-colors">
+                  <td className="px-4 py-3">
+                    <span className="text-text-primary font-medium">{item.name}</span>
+                  </td>
+                  <td className="px-4 py-3 text-text-secondary tabular-nums">
+                    {isCorrectionMode ? (
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="number"
+                          step="0.1"
+                          placeholder={String(originalAlpha || '')}
+                          className="bg-surface border border-border-hover text-text-primary text-xs px-2 py-1 rounded-lg w-16 focus:border-brand focus:outline-none"
+                          onChange={(e) => setAlpha(i, parseFloat(e.target.value))}
+                        />
+                        <span className="text-text-disabled text-xs">% α</span>
+                      </div>
+                    ) : item.alpha ? (
+                      <span className={isCorrected ? "text-brand font-medium" : ""}>
+                        {isCorrected ? `${correctedAlpha}` : item.alpha}% α
+                      </span>
+                    ) : (
+                      <span className="text-text-disabled">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-text-secondary">
+                    {(item.use || item.usage) || <span className="text-text-disabled">—</span>}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {item.time > 0 ? (
+                      <span className="font-mono text-text-secondary text-xs font-semibold tabular-nums">{item.time} min</span>
+                    ) : (
+                      <span className="text-text-disabled">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <div className="font-mono tabular-nums">
+                      <span className={isCorrectionMode && isCorrected ? "text-brand font-bold text-sm" : "text-text-primary font-bold text-sm"}>
+                        {scaleAmount(item.amount, factor * alphaRatio)}
+                      </span>{' '}
+                      <span className={isCorrectionMode && isCorrected ? "text-brand/70 text-xs" : "text-text-disabled text-xs"}>
+                        {item.unit || 'g'}
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -174,50 +221,46 @@ function MashScheduleView({ steps, mashWater, spargeWater, factor = 1, calculate
   const hasDecoction = mashProcess === 'decoction' || (Array.isArray(steps) && steps.some((s: any) => s.step_type === 'decoction'));
 
   return (
-    <div className="space-y-6">
+    <div className="w-full overflow-hidden rounded-xl border border-border bg-surface/30">
       {(mashWater || spargeWater || calculatedMashWater !== undefined) && (
-        <div className="grid grid-cols-2 gap-6">
-          <div className="flex flex-col">
-            <span className="text-[10px] font-bold text-text-disabled uppercase tracking-wider mb-1">Hauptguss</span>
-            <span className="font-mono text-text-primary font-black text-2xl">
+        <div className="bg-surface border-b border-border/60 px-4 py-4 flex flex-wrap gap-8 sm:gap-16">
+          <div className="flex items-baseline gap-2">
+            <span className="text-[10px] font-bold text-text-disabled uppercase tracking-widest">Hauptguss</span>
+            <span className="font-mono text-text-primary font-bold text-lg tabular-nums">
               {typeof displayMash === 'number' ? displayMash.toFixed(1).replace('.', ',') : displayMash || '–'}
-              <span className="text-text-disabled text-sm font-normal ml-1">L</span>
+              <span className="text-text-disabled text-xs font-normal ml-1">L</span>
             </span>
           </div>
-          <div className="flex flex-col">
-            <span className="text-[10px] font-bold text-text-disabled uppercase tracking-wider mb-1">Nachguss</span>
-            <span className="font-mono text-text-primary font-black text-2xl">
+          <div className="flex items-baseline gap-2">
+            <span className="text-[10px] font-bold text-text-disabled uppercase tracking-widest">Nachguss</span>
+            <span className="font-mono text-text-primary font-bold text-lg tabular-nums">
               {typeof displaySparge === 'number' ? displaySparge.toFixed(1).replace('.', ',') : displaySparge || '–'}
-              <span className="text-text-disabled text-sm font-normal ml-1">L</span>
+              <span className="text-text-disabled text-xs font-normal ml-1">L</span>
             </span>
           </div>
         </div>
       )}
 
       {Array.isArray(steps) && steps.length > 0 && (
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-widest text-text-disabled mb-4 flex items-center gap-2">
-            <Thermometer className="w-3 h-3" /> Maischplan
-            {hasDecoction && (
-              <span className="text-[9px] font-bold text-orange-600 dark:text-accent-orange bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-900/30 px-1.5 py-0.5 rounded-full uppercase tracking-widest">
-                Dekoktion
-              </span>
-            )}
-          </p>
-          <div className="relative border-l border-border ml-2.5 space-y-1">
+        <table className="w-full text-sm text-left">
+          <thead className="bg-surface/50 border-b border-border/60 text-[10px] font-bold uppercase tracking-widest text-text-muted">
+            <tr>
+              <th className="px-4 py-3 font-medium">Schritt</th>
+              <th className="px-4 py-3 font-medium text-right w-24">Temp.</th>
+              <th className="px-4 py-3 font-medium text-right w-24">Dauer</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border/60">
             {steps.map((step: any, i: number) => {
               const isDecoction = step.step_type === 'decoction';
               const isMashout = step.step_type === 'mashout';
               const isStrike = step.step_type === 'strike';
 
               return (
-                <div key={i} className="relative pl-5 py-1.5 group">
-                  <span className={`absolute -left-[5px] top-3.5 w-2.5 h-2.5 rounded-full border-2 border-background group-hover:bg-brand transition-colors ${
-                    isDecoction ? 'bg-orange-500' : isMashout ? 'bg-emerald-600' : isStrike ? 'bg-blue-500' : i === 0 ? 'bg-text-muted' : 'bg-surface-hover'
-                  }`} />
-                  <div className="flex justify-between items-start gap-3">
-                    <div className="flex flex-col gap-0.5 min-w-0">
-                      <span className="text-sm font-semibold text-text-secondary group-hover:text-text-primary transition-colors flex items-center gap-2">
+                <tr key={i} className="group hover:bg-surface-hover transition-colors">
+                  <td className="px-4 py-3">
+                    <div className="flex flex-col gap-0.5 min-w-0 flex-1 justify-center">
+                      <span className="text-sm font-semibold text-text-secondary group-hover:text-text-primary transition-colors flex flex-wrap items-center gap-2">
                         {step.name || (isDecoction ? `Dekoktion ${i + 1}` : isMashout ? 'Abmaischen' : isStrike ? 'Einmaischen' : `Rast ${i + 1}`)}
                         {isDecoction && <Flame className="w-3.5 h-3.5 text-accent-orange shrink-0" />}
                         {step.step_type && step.step_type !== 'rest' && (STEP_TYPE_LABEL[step.step_type] || step.step_type).toLowerCase() !== (step.name || '').toLowerCase() && (
@@ -249,22 +292,26 @@ function MashScheduleView({ steps, mashWater, spargeWater, factor = 1, calculate
                         </div>
                       )}
                     </div>
-                    <div className="flex gap-2 text-xs items-center shrink-0">
-                      <span className="font-mono text-text-secondary bg-surface/60 px-2 py-0.5 rounded">
-                        {step.temperature}°C
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <span className="font-mono text-text-primary text-sm font-semibold tabular-nums">
+                      {step.temperature}°C
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {step.duration ? (
+                      <span className="font-mono text-text-secondary text-sm font-semibold tabular-nums">
+                        {step.duration} min
                       </span>
-                      {step.duration && (
-                        <span className="font-mono text-text-muted bg-surface/40 px-2 py-0.5 rounded">
-                          {step.duration} min
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                    ) : (
+                      <span className="text-text-disabled">—</span>
+                    )}
+                  </td>
+                </tr>
               );
             })}
-          </div>
-        </div>
+          </tbody>
+        </table>
       )}
     </div>
   );
@@ -273,33 +320,75 @@ function MashScheduleView({ steps, mashWater, spargeWater, factor = 1, calculate
 /* ─── IngredientView ─── */
 
 function IngredientView({ value, factor = 1 }: { value: any; factor?: number }) {
-  if (!value) return <span className="text-text-disabled">–</span>;
+  if (!value) return <span className="text-text-disabled">—</span>;
   if (typeof value === 'string') return <p className="text-sm text-text-secondary font-medium leading-relaxed">{value}</p>;
 
   if (Array.isArray(value)) {
     return (
-      <ul className="space-y-3">
-        {value.map((item: any, i: number) => (
-          <li key={i} className="flex justify-between items-center text-sm border-b border-border pb-2 last:border-0 last:pb-0 group hover:bg-surface/30 -mx-2 px-2 rounded-lg py-1 transition-colors">
-            <span className="text-text-secondary font-medium group-hover:text-text-primary transition-colors">{item.name}</span>
-            <span className="text-text-muted font-mono text-xs whitespace-nowrap ml-4 flex items-baseline gap-1">
-              {item.amount && <span className="text-text-primary font-bold text-base">{scaleAmount(item.amount, factor)}</span>}
-              {item.unit && <span className="opacity-70">{item.unit}</span>}
-            </span>
-          </li>
-        ))}
-      </ul>
+      <div className="w-full overflow-hidden rounded-xl border border-border bg-surface/30">
+        <table className="w-full text-sm text-left">
+          <thead className="bg-surface border-b border-border text-[10px] font-bold uppercase tracking-widest text-text-muted">
+            <tr>
+              <th className="px-4 py-3 font-medium">Zutat</th>
+              <th className="px-4 py-3 font-medium text-right w-32">Menge</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border/60">
+            {value.map((item: any, i: number) => (
+              <tr key={i} className="group hover:bg-surface-hover transition-colors">
+                <td className="px-4 py-3">
+                  <span className="text-text-primary font-medium">{item.name || item.type || item.strain || 'Zutat'}</span>
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <div className="font-mono tabular-nums">
+                    {item.amount ? (
+                      <>
+                        <span className="text-text-primary font-bold text-sm">{scaleAmount(item.amount, factor)}</span>{' '}
+                        <span className="text-text-disabled text-xs">{item.unit || 'g'}</span>
+                      </>
+                    ) : (
+                      <span className="text-text-disabled">—</span>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     );
   }
 
   if (typeof value === 'object') {
     return (
-      <div className="flex justify-between items-center text-sm">
-        <span className="text-text-secondary font-medium">{value.name}</span>
-        <span className="text-text-muted font-mono text-xs whitespace-nowrap ml-4 flex items-baseline gap-1">
-          {value.amount && <span className="text-text-primary font-bold text-base">{scaleAmount(value.amount, factor)}</span>}
-          {value.unit && <span className="opacity-70">{value.unit}</span>}
-        </span>
+      <div className="w-full overflow-hidden rounded-xl border border-border bg-surface/30">
+        <table className="w-full text-sm text-left">
+          <thead className="bg-surface border-b border-border text-[10px] font-bold uppercase tracking-widest text-text-muted">
+            <tr>
+              <th className="px-4 py-3 font-medium">Zutat</th>
+              <th className="px-4 py-3 font-medium text-right w-32">Menge</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border/60">
+            <tr className="group hover:bg-surface-hover transition-colors">
+              <td className="px-4 py-3">
+                <span className="text-text-primary font-medium">{value.name || value.type || value.strain || 'Zutat'}</span>
+              </td>
+              <td className="px-4 py-3 text-right">
+                <div className="font-mono tabular-nums">
+                  {value.amount ? (
+                    <>
+                      <span className="text-text-primary font-bold text-sm">{scaleAmount(value.amount, factor)}</span>{' '}
+                      <span className="text-text-disabled text-xs">{value.unit || 'g'}</span>
+                    </>
+                  ) : (
+                    <span className="text-text-disabled">—</span>
+                  )}
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     );
   }
@@ -444,27 +533,29 @@ export default function BrewRecipeTab({
 
       {/* ── Spec Stats ── */}
       {isBeer && (
-        <div>
+        <div className="bg-surface border border-border rounded-2xl p-6 shadow-sm">
           <SectionLabel label="Technische Details" />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             <StatItem label="Alkohol" value={brew.data.abv || brew.data.est_abv || '–'} unit="%" accent />
+            
             <StatItem
               label="Farbe"
               value={
                 <span className="flex items-center gap-3">
                   {brew.data.color && (
                     <span
-                      className="w-3 h-3 rounded-full shadow-lg border border-white/10 inline-block"
+                      className="w-3 h-3 rounded-full shadow-lg border border-white/10 inline-block shrink-0"
                       style={{ backgroundColor: ebcToHex(parseFloat(brew.data.color)) }}
                     />
                   )}
-                  {brew.data.color || '–'}
+                  <span className="truncate">{brew.data.color || '–'}</span>
                 </span>
               }
               unit="EBC"
-              colorHex={brew.data.color ? ebcToHex(parseFloat(brew.data.color)) : undefined}
             />
+            
             <StatItem label="Bittere" value={brew.data.ibu || '–'} unit="IBU" />
+            
             <StatItem
               label="Stammwürze"
               value={(() => {
@@ -483,7 +574,7 @@ export default function BrewRecipeTab({
 
       {/* ── BEER Recipe sections ── */}
       {isBeer && (
-        <div className="space-y-12">
+        <div className="space-y-12 mt-6">
           {/* Malts */}
           {brew.data.malts && (
             <section>
@@ -512,17 +603,7 @@ export default function BrewRecipeTab({
           {brew.data.hops && (
             <section>
               <SectionLabel label="Kochen & Hopfen" icon={Flame} iconColor="text-red-500" />
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-text-disabled mb-3 flex items-center gap-1.5">
-                    <Clock className="w-3 h-3" /> Kochzeit
-                  </p>
-                  <p className="text-text-primary font-mono text-xl font-black">{brew.data.boil_time || 60} <span className="text-text-disabled text-sm font-normal">min</span></p>
-                </div>
-                <div className="md:col-span-3">
-                  <HopView value={brew.data.hops} factor={volFactor} />
-                </div>
-              </div>
+              <HopView value={brew.data.hops} factor={volFactor} />
             </section>
           )}
 
@@ -530,17 +611,17 @@ export default function BrewRecipeTab({
           {(brew.data.yeast || brew.data.carbonation_g_l) && (
             <section>
               <SectionLabel label="Hefe & Gärung" icon={Microscope} iconColor="text-purple-500" />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                {brew.data.yeast && (
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-text-disabled mb-3">Hefe</p>
-                    <IngredientView value={brew.data.yeast} factor={volFactor} />
-                  </div>
-                )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-text-disabled mb-3">Hefe</p>
+                  <IngredientView value={brew.data.yeast} factor={volFactor} />
+                </div>
                 {brew.data.carbonation_g_l && (
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-widest text-text-disabled mb-1">Karbonisierung</p>
-                    <p className="text-text-primary font-mono text-xl font-black">{brew.data.carbonation_g_l} <span className="text-text-disabled text-sm font-normal">g/l</span></p>
+                    <p className="text-text-primary font-mono text-xl font-black">
+                      {brew.data.carbonation_g_l || '–'} <span className="text-text-disabled text-sm font-normal">g/l</span>
+                    </p>
                   </div>
                 )}
               </div>

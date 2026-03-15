@@ -803,7 +803,13 @@ export default function BrewEditor({ breweryId, brewId, initialData }: { brewery
 
             // Post-Save Ingredient Extraction (since we now have a recipe_id)
             if (payload.data) {
-                 await extractAndSaveRecipeIngredients(data.id, payload.data);
+                try {
+                    await extractAndSaveRecipeIngredients(data.id, payload.data);
+                } catch (extractErr: any) {
+                    setMessage(extractErr.message || 'Zutaten konnten nicht gespeichert werden.');
+                    setSaving(false);
+                    return;
+                }
             }
             // Feed Post
             addToFeed(supabase, breweryId, user, 'BREW_CREATED', {
@@ -880,7 +886,15 @@ export default function BrewEditor({ breweryId, brewId, initialData }: { brewery
 
         // UPDATE Logic
         const tempOriginalData = { ...payload.data }; // Save copy with arrays for our extractor
-        const { sanitisedData } = await extractAndSaveRecipeIngredients(id, payload.data);
+        let sanitisedData: any;
+        try {
+            const result = await extractAndSaveRecipeIngredients(id, payload.data);
+            sanitisedData = result.sanitisedData;
+        } catch (extractErr: any) {
+            setMessage(extractErr.message || 'Zutaten konnten nicht gespeichert werden.');
+            setSaving(false);
+            return;
+        }
         payload.data = sanitisedData;
 
         const { data, error } = await updateBrew(id, payload);

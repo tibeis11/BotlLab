@@ -286,7 +286,7 @@ export function CompletedTab() {
                   recipe: {
                       malts: session?.brew?.recipe_data?.malts || [],
                       hops: session?.brew?.recipe_data?.hops || [],
-                      yeast: session?.brew?.recipe_data?.yeast?.name || session?.brew?.recipe_data?.yeast || '-'
+                      yeast: (() => { const y = session?.brew?.recipe_data?.yeast; if (Array.isArray(y)) return y[0]?.name || '-'; return (y as any)?.name || y || '-'; })()
                   },
                   timeline: session?.timeline || [],
                   tastingNote: tastingNote
