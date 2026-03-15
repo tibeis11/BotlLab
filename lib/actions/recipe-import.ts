@@ -5,19 +5,22 @@ import { createClient } from '@/lib/supabase-server';
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
 
-export type MatchedIngredient = ParsedIngredient & {
-  match?: {
-    master_id: string;
-    name: string;
-    type: string;
-    match_score: number;
-    match_level: number;
-    color_ebc?: number | null;
-    potential_pts?: number | null;
-    alpha_pct?: number | null;
-  };
-  status: 'matched' | 'unmatched';
-};
+export type MatchedIngredient = ParsedIngredient & (
+  | {
+      status: 'matched';
+      match: {
+        master_id: string;
+        name: string;
+        type: string;
+        match_score: number;
+        match_level: number;
+        color_ebc?: number | null;
+        potential_pts?: number | null;
+        alpha_pct?: number | null;
+      };
+    }
+  | { status: 'unmatched'; match?: undefined }
+);
 
 export type ProcessedRecipe = Omit<ParsedRecipe, 'ingredients'> & {
   ingredients: MatchedIngredient[];
