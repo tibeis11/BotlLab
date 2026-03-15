@@ -64,7 +64,7 @@ function ArrowLeftIcon({ className }: { className?: string }) {
     );
 }
 
-interface BrewForm {
+export interface BrewForm {
     id?: string;
     name: string;
     style: string;
@@ -290,7 +290,7 @@ const LABEL_STYLES: { id: string; label: string; prompt: string }[] = [
     { id: 'flat_design',  label: 'Flat Design',         prompt: 'modern flat design with simple shapes and a clean two-tone color scheme' },
 ];
 
-export default function BrewEditor({ breweryId, brewId }: { breweryId: string, brewId?: string }) {
+export default function BrewEditor({ breweryId, brewId, initialData }: { breweryId: string, brewId?: string, initialData?: Partial<BrewForm> }) {
     const supabase = useSupabase();
     const router = useRouter();
     const { user, loading: authLoading } = useAuth();
@@ -411,37 +411,75 @@ export default function BrewEditor({ breweryId, brewId }: { breweryId: string, b
     const [loadedFromProfile, setLoadedFromProfile] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const fileInputCapRef = useRef<HTMLInputElement>(null);
-    const [brew, setBrew] = useState<BrewForm>({
-        name: '',
-        style: '',
-        brew_type: 'beer',
-        description: '',
-        image_url: '/default_label/default.png',
-        cap_url: null,
-        is_public: true,
-        moderation_status: 'pending',
-        moderation_rejection_reason: null,
-        data: {
-            batch_size_liters: '',
-            og: '',
-            fg: '',
-            abv: '',
-            ibu: '',
-            color: '',
-            efficiency: '',
-            carbonation_g_l: '',
-            mash_water_liters: '',
-            sparge_water_liters: '',
-            mash_ph: '',
-            boil_time: '',
-            boil_temp: '',
-            yeast: [],
-            attenuation: '',
-            primary_temp: '',
-            malts: [],
-            hops: [],
-            mash_steps: []
+    const [brew, setBrew] = useState<BrewForm>(() => {
+        if (initialData) {
+            return {
+                name: initialData.name || '',
+                style: initialData.style || '',
+                brew_type: initialData.brew_type || 'beer',
+                description: initialData.description || '',
+                image_url: initialData.image_url || '/default_label/default.png',
+                cap_url: initialData.cap_url || null,
+                is_public: initialData.is_public ?? true,
+                moderation_status: initialData.moderation_status || 'pending',
+                moderation_rejection_reason: initialData.moderation_rejection_reason || null,
+                data: {
+                    ...initialData.data,
+                    batch_size_liters: initialData.data?.batch_size_liters || '',
+                    og: initialData.data?.og || '',
+                    fg: initialData.data?.fg || '',
+                    abv: initialData.data?.abv || '',
+                    ibu: initialData.data?.ibu || '',
+                    color: initialData.data?.color || '',
+                    efficiency: initialData.data?.efficiency || '',
+                    carbonation_g_l: initialData.data?.carbonation_g_l || '',
+                    mash_water_liters: initialData.data?.mash_water_liters || '',
+                    sparge_water_liters: initialData.data?.sparge_water_liters || '',
+                    mash_ph: initialData.data?.mash_ph || '',
+                    boil_time: initialData.data?.boil_time || '',
+                    boil_temp: initialData.data?.boil_temp || '',
+                    yeast: initialData.data?.yeast || [],
+                    attenuation: initialData.data?.attenuation || '',
+                    primary_temp: initialData.data?.primary_temp || '',
+                    malts: initialData.data?.malts || [],
+                    hops: initialData.data?.hops || [],
+                    mash_steps: initialData.data?.mash_steps || []
+                }
+            };
         }
+        
+        return {
+            name: '',
+            style: '',
+            brew_type: 'beer',
+            description: '',
+            image_url: '/default_label/default.png',
+            cap_url: null,
+            is_public: true,
+            moderation_status: 'pending',
+            moderation_rejection_reason: null,
+            data: {
+                batch_size_liters: '',
+                og: '',
+                fg: '',
+                abv: '',
+                ibu: '',
+                color: '',
+                efficiency: '',
+                carbonation_g_l: '',
+                mash_water_liters: '',
+                sparge_water_liters: '',
+                mash_ph: '',
+                boil_time: '',
+                boil_temp: '',
+                yeast: [],
+                attenuation: '',
+                primary_temp: '',
+                malts: [],
+                hops: [],
+                mash_steps: []
+            }
+        };
     });
 
     function updateData(key: string, value: any) {

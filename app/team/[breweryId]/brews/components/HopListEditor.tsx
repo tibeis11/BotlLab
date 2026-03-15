@@ -9,8 +9,26 @@ export interface Hop {
     unit: string;
     alpha?: string;
     time?: string;
+    temperature?: string;
     usage?: string;
     form?: string;
+    manufacturer?: string;
+    master_id?: string;
+}
+
+interface ProductHop {
+    id: string;
+    name: string;
+    manufacturer: string;
+    alpha_pct?: number;
+}
+
+export interface MasterHop {
+    id: string;
+    name: string;
+    aliases: string[];
+    alpha_pct?: number;
+    products: ProductHop[];
 }
 
 interface HopListEditorProps {
@@ -26,44 +44,87 @@ const USAGE_OPTIONS = [
     { value: 'First Wort', label: 'Vorderwürze' }
 ];
 
-function HopCombobox({ value, onSelect, hops }: { value: string; onSelect: (update: Partial<Hop>) => void; hops: any[]; }) {
+function SorteCombobox({ value, onSelect, hops }: { value: string; onSelect: (master: MasterHop) => void; hops: MasterHop[]; }) {
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState(value || '');
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => { if (value !== search) setSearch(value || ''); }, [value]);
 
     return (
-        <Command className="relative overflow-visible w-full" shouldFilter={true}>
+        <Command className="relative overflow-visible w-full h-full" shouldFilter={true}>
             <Command.Input
-                className="w-full bg-transparent px-0 py-0 text-sm text-text-primary outline-none placeholder:text-text-disabled"
-                placeholder="Sorte suchen (z.B. Citra, Hallertau)…"
+                className="w-full bg-transparent px-0 py-0 text-sm text-text-primary outline-none placeholder:text-text-disabled h-full"
+                placeholder="Sorte suchen…"
                 value={search}
-                onValueChange={(val) => { setSearch(val); setOpen(true); onSelect({ name: val }); }}
+                onValueChange={(val) => { setSearch(val); setOpen(true); }}
                 onFocus={() => setOpen(true)}
                 onBlur={() => setTimeout(() => setOpen(false), 200)}
             />
-            {open && search.length > 0 && (
-                <div className="absolute top-full mt-1 z-50 w-full min-w-[280px] bg-surface border border-border rounded-xl shadow-2xl overflow-hidden max-h-64 flex flex-col">
+            <div className={`absolute ${open ? "" : "hidden"} top-full mt-1 left-0 z-50 w-full min-w-[280px] bg-surface border border-border rounded-xl shadow-2xl overflow-hidden max-h-64 flex flex-col`}>
                     <Command.List className="overflow-y-auto p-1">
-                        <Command.Empty className="p-3 text-sm text-text-muted text-center">Keine Hopfen gefunden.</Command.Empty>
-                        {hops.map(h => (
+                        <Command.Empty className="p-3 text-sm text-text-muted text-center">Keine Sorte gefunden.</Command.Empty>
+                        {hops.map(m => (
                             <Command.Item
-                                key={h.id}
-                                value={h.name + " " + (h.aliases ? h.aliases.join(" ") : "")}
-                                onSelect={() => { setSearch(h.name); onSelect({ name: h.name, alpha: h.alpha_pct?.toString() }); setOpen(false); }}
+                                key={m.id}
+                                value={m.name + ' ' + (m.aliases ? m.aliases.join(' ') : '')}
+                                onSelect={() => { setSearch(m.name); onSelect(m); setOpen(false); }}
                                 className="px-3 py-2 cursor-pointer rounded-lg hover:bg-surface-hover flex items-center justify-between text-sm data-[selected='true']:bg-surface-hover"
                             >
-                                <div className="font-semibold text-text-primary truncate mr-2">{h.name}</div>
-                                {h.alpha_pct && (
-                                    <span className="shrink-0 bg-green-500/10 text-green-500 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border border-green-500/20">
-                                        {h.alpha_pct}% α
-                                    </span>
-                                )}
+                                <div className="font-semibold text-text-primary truncate">{m.name}</div>
                             </Command.Item>
                         ))}
                     </Command.List>
                 </div>
-            )}
+        </Command>
+    );
+}
+
+function ManufacturerCombobox({ value, onSelect, products, disabled }: {
+    value: string;
+    onSelect: (manufacturer: string) => void;
+    products: { manufacturer: string }[];
+    disabled?: boolean;
+}) {
+    const [open, setOpen] = useState(false);
+    const [search, setSearch] = useState(value || '');
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    useEffect(() => { if (value !== search) setSearch(value || ''); }, [value]);
+
+    return (
+        <Command className="relative overflow-visible w-full h-full" shouldFilter={true}>
+            <Command.Input
+                className="w-full bg-transparent px-0 py-0 text-sm text-text-primary outline-none placeholder:text-text-disabled h-full disabled:opacity-50 disabled:cursor-not-allowed"
+                placeholder={disabled ? '(Nicht verfügbar)' : 'Hersteller suchen…'}
+                disabled={disabled}
+                value={search}
+                onValueChange={(val) => { setSearch(val); setOpen(true); }}
+                onFocus={() => { if (!disabled) setOpen(true); }}
+                onBlur={() => setTimeout(() => setOpen(false), 200)}
+            />
+            <div className={`absolute ${open && !disabled ? "" : "hidden"} top-full mt-1 left-0 z-50 w-full min-w-[280px] bg-surface border border-border rounded-xl shadow-xl overflow-hidden max-h-64 flex flex-col`}>
+                    <Command.List className="overflow-y-auto p-1">
+                        <Command.Empty className="p-3 text-sm text-text-muted text-center">Kein Hersteller gefunden.</Command.Empty>
+                        <Command.Item
+                            value="(Beliebig)"
+                            onSelect={() => { setSearch(''); onSelect(''); setOpen(false); }}
+                            className="px-3 py-2 cursor-pointer rounded-lg hover:bg-surface-hover text-sm data-[selected='true']:bg-surface-hover mb-1"
+                        >
+                            <div className="font-semibold italic text-text-muted truncate">(Beliebiger Hersteller)</div>
+                        </Command.Item>
+                        {products.map((p, i) => (
+                            <Command.Item
+                                key={i}
+                                value={p.manufacturer}
+                                onSelect={() => { setSearch(p.manufacturer); onSelect(p.manufacturer); setOpen(false); }}
+                                className="px-3 py-2 cursor-pointer rounded-lg hover:bg-surface-hover text-sm data-[selected='true']:bg-surface-hover"
+                            >
+                                <div className="font-semibold text-text-primary truncate">{p.manufacturer}</div>
+                            </Command.Item>
+                        ))}
+                    </Command.List>
+                </div>
         </Command>
     );
 }
@@ -72,7 +133,7 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
     const supabase = useSupabase();
     const [items, setItems] = useState<Hop[]>([]);
     const [initialized, setInitialized] = useState(false);
-    const [dbHops, setDbHops] = useState<any[]>([]);
+    const [dbHops, setDbHops] = useState<MasterHop[]>([]);
     const [editingIdx, setEditingIdx] = useState<number | null>(null);
 
     useEffect(() => {
@@ -84,39 +145,65 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
     useEffect(() => {
         async function fetchHops() {
             const { data } = await supabase
-                .from('ingredient_products')
-                .select(`id, name, manufacturer, alpha_pct, ingredient_master!inner(type, aliases, name)`)
-                .eq('ingredient_master.type', 'hop')
+                .from('ingredient_master')
+                .select('id, name, aliases, alpha_pct, ingredient_products(id, name, manufacturer, alpha_pct)')
+                .eq('type', 'hop')
                 .order('name');
             if (data) {
-                setDbHops(data.map((p: any) => ({
-                    id: p.id,
-                    name: p.manufacturer && !p.name.includes(p.manufacturer) ? `${p.name} (${p.manufacturer})` : p.name,
-                    alpha_pct: p.alpha_pct,
-                    aliases: p.ingredient_master?.aliases || [],
-                })));
+                const uniqueMap = new Map<string, MasterHop>();
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                data.forEach((m: any) => {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const products = (m.ingredient_products || []).filter((p: any) => p.manufacturer);
+                    if (uniqueMap.has(m.name)) {
+                        const existing = uniqueMap.get(m.name)!;
+                        const merged = [...(existing.products || [])];
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        products.forEach((p: any) => {
+                            if (!merged.some(ep => ep.manufacturer === p.manufacturer)) merged.push(p);
+                        });
+                        existing.products = merged;
+                    } else {
+                        uniqueMap.set(m.name, { id: m.id, name: m.name, aliases: m.aliases || [], alpha_pct: m.alpha_pct, products });
+                    }
+                });
+                setDbHops(Array.from(uniqueMap.values()));
             }
         }
         fetchHops();
     }, [supabase]);
 
     const handleChange = (newItems: Hop[]) => { setItems(newItems); onChange(newItems); };
-    const addRow = () => { const idx = items.length; handleChange([...items, { name: '', amount: '', unit: 'g', alpha: '', time: '', usage: 'Boil', form: 'Pellet' }]); setEditingIdx(idx); };
+    const addRow = () => { const idx = items.length; handleChange([...items, { name: '', amount: '', unit: 'g', usage: 'Boil', form: 'Pellet' }]); setEditingIdx(idx); };
     const updateRow = (index: number, field: keyof Hop, val: string) => { const n = [...items]; n[index] = { ...n[index], [field]: val }; handleChange(n); };
     const updateRowPartial = (index: number, updates: Partial<Hop>) => { const n = [...items]; n[index] = { ...n[index], ...updates }; handleChange(n); };
     const removeRow = (index: number) => { handleChange(items.filter((_, i) => i !== index)); setEditingIdx(null); };
 
-    const usageLabel = (u: string | undefined) => USAGE_OPTIONS.find(o => o.value === u)?.label ?? u ?? '';
     const formatSummary = (item: Hop) => {
         const parts: string[] = [];
-        if (item.amount) parts.push(`${item.amount} ${item.unit}`);
-        if (item.alpha) parts.push(`${item.alpha}% α`);
-        if (item.time) parts.push(`${item.time} min`);
-        if (item.usage) parts.push(usageLabel(item.usage));
+        if (item.manufacturer) parts.push(item.manufacturer);
+        if (item.amount) parts.push(item.amount + ' ' + item.unit);
+        if (item.alpha) parts.push(item.alpha + '% α');
         return parts.join(' · ');
     };
 
+    const handleSorteSelect = (index: number, master: MasterHop) => {
+        updateRowPartial(index, { name: master.name, master_id: master.id, manufacturer: '', alpha: master.alpha_pct ? master.alpha_pct.toString() : '' });
+    };
+
+    const handleManufacturerSelect = (index: number, manufacturer: string) => {
+        const item = items[index];
+        const master = dbHops.find(m => m.name === item.name);
+        if (!manufacturer) {
+            updateRowPartial(index, { manufacturer: '', alpha: master?.alpha_pct ? master.alpha_pct.toString() : '' });
+            return;
+        }
+        const product = master?.products.find(p => p.manufacturer === manufacturer);
+        updateRowPartial(index, { manufacturer, alpha: product?.alpha_pct?.toString() || (master?.alpha_pct ? master.alpha_pct.toString() : '') });
+    };
+
     const editingItem = editingIdx !== null ? items[editingIdx] : null;
+    const editingMaster = editingItem ? dbHops.find(m => m.name === editingItem.name) : null;
 
     return (
         <div>
@@ -132,7 +219,7 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
                                 <div className="text-sm font-semibold text-text-primary truncate">
                                     {item.name || <span className="text-text-disabled italic font-normal">Sorte wählen…</span>}
                                 </div>
-                                {(item.amount || item.alpha || item.time || item.usage) && (
+                                {(item.amount || item.alpha || item.manufacturer) && (
                                     <div className="text-xs text-text-muted mt-0.5">{formatSummary(item)}</div>
                                 )}
                             </div>
@@ -155,48 +242,79 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
                     <div className="flex-1 overflow-y-auto px-4 py-5 space-y-4">
                         <div>
                             <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">Sorte</label>
-                            <div className="bg-surface border border-border rounded-xl px-3 py-2.5 focus-within:border-green-500/50 transition">
-                                <HopCombobox value={editingItem.name} onSelect={(u) => updateRowPartial(editingIdx, u)} hops={dbHops} />
+                            <div className="bg-surface border border-border rounded-xl px-3 py-2.5 focus-within:border-green-500/50 transition h-12">
+                                <SorteCombobox value={editingItem.name} onSelect={(m) => handleSorteSelect(editingIdx, m)} hops={dbHops} />
                             </div>
                         </div>
                         <div>
-                            <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">Menge</label>
-                            <div className="flex bg-surface border border-border rounded-xl overflow-hidden focus-within:border-green-500/50 transition">
-                                <input type="text" inputMode="decimal"
-                                    className="flex-1 bg-transparent pl-3.5 pr-2 py-3 text-sm text-text-primary outline-none text-right placeholder:text-text-disabled"
-                                    placeholder="0" value={editingItem.amount || ''}
-                                    onChange={(e) => updateRow(editingIdx, 'amount', e.target.value.replace(',', '.'))} />
-                                <span className="flex items-center pr-3.5 text-text-disabled text-sm select-none">g</span>
-                            </div>
-                        </div>
-                        <div>
-                            <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">Alpha %</label>
-                            <div className="flex bg-surface border border-border rounded-xl overflow-hidden focus-within:border-green-500/50 transition">
-                                <input type="text" inputMode="decimal"
-                                    className="flex-1 bg-transparent pl-3.5 pr-2 py-3 text-sm text-text-primary outline-none text-right placeholder:text-text-disabled"
-                                    placeholder="–" value={editingItem.alpha || ''}
-                                    onChange={(e) => updateRow(editingIdx, 'alpha', e.target.value.replace(',', '.'))} />
-                                <span className="flex items-center pr-3.5 text-text-disabled text-sm select-none">%</span>
-                            </div>
-                        </div>
-                        <div>
-                            <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">Kochzeit</label>
-                            <div className="flex bg-surface border border-border rounded-xl overflow-hidden focus-within:border-green-500/50 transition">
-                                <input type="text" inputMode="numeric"
-                                    className="flex-1 bg-transparent pl-3.5 pr-2 py-3 text-sm text-text-primary outline-none text-right placeholder:text-text-disabled"
-                                    placeholder="–" value={editingItem.time || ''}
-                                    onChange={(e) => updateRow(editingIdx, 'time', e.target.value)} />
-                                <span className="flex items-center pr-3.5 text-text-disabled text-sm select-none">min</span>
+                            <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">Hersteller (Optional)</label>
+                            <div className="flex bg-surface border border-border rounded-xl px-3 py-2.5 overflow-visible focus-within:border-green-500/50 transition relative h-12">
+                                <ManufacturerCombobox
+                                    value={editingItem.manufacturer || ''}
+                                    products={editingMaster?.products || []}
+                                    onSelect={(val) => handleManufacturerSelect(editingIdx, val)}
+                                    disabled={!editingMaster || editingMaster.products.length === 0}
+                                />
                             </div>
                         </div>
                         <div>
                             <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">Verwendung</label>
-                            <select
-                                className="w-full bg-surface border border-border rounded-xl px-3.5 py-3 text-sm text-text-primary outline-none"
-                                value={editingItem.usage || 'Boil'}
-                                onChange={(e) => updateRow(editingIdx, 'usage', e.target.value)}>
-                                {USAGE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                            </select>
+                            <div className="flex bg-surface border border-border rounded-xl overflow-hidden focus-within:border-green-500/50 transition">
+                                <select className="flex-1 bg-transparent px-3 py-3 text-sm text-text-primary outline-none appearance-none"
+                                    value={editingItem.usage || 'Boil'}
+                                    onChange={(e) => updateRow(editingIdx, 'usage', e.target.value)}>
+                                    {USAGE_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                                </select>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">Menge</label>
+                                <div className="flex bg-surface border border-border rounded-xl overflow-hidden focus-within:border-green-500/50 transition">
+                                    <input type="text" inputMode="decimal"
+                                        className="flex-1 min-w-0 bg-transparent pl-3 pr-1 py-3 text-sm text-text-primary outline-none text-right"
+                                        placeholder="0" value={editingItem.amount || ''}
+                                        onChange={(e) => updateRow(editingIdx, 'amount', e.target.value.replace(',', '.'))} />
+                                    <select className="bg-surface-hover border-l border-border px-2 py-3 text-sm font-bold text-text-secondary outline-none shrink-0"
+                                        value={editingItem.unit || 'g'}
+                                        onChange={(e) => updateRow(editingIdx, 'unit', e.target.value)}>
+                                        <option value="g">g</option>
+                                        <option value="kg">kg</option>
+                                        <option value="oz">oz</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">Alpha %</label>
+                                <div className="bg-surface border border-border rounded-xl overflow-hidden focus-within:border-green-500/50 transition">
+                                    <input type="text" inputMode="decimal"
+                                        className="w-full bg-transparent px-3 py-3 text-sm text-text-primary outline-none text-right placeholder:text-text-disabled"
+                                        placeholder="0.0" value={editingItem.alpha || ''}
+                                        onChange={(e) => updateRow(editingIdx, 'alpha', e.target.value.replace(',', '.'))} />
+                                </div>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">Zeit (Min.)</label>
+                                <div className="bg-surface border border-border rounded-xl overflow-hidden focus-within:border-green-500/50 transition">
+                                    <input type="text" inputMode="decimal"
+                                        className="w-full bg-transparent px-3 py-3 text-sm text-text-primary outline-none text-right"
+                                        placeholder="z.B. 60" value={editingItem.time || ''}
+                                        onChange={(e) => updateRow(editingIdx, 'time', e.target.value)} />
+                                </div>
+                            </div>
+                            {editingItem.usage === 'Whirlpool' && (
+                                <div>
+                                    <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">Temperatur (°C)</label>
+                                    <div className="bg-surface border border-border rounded-xl overflow-hidden focus-within:border-green-500/50 transition">
+                                        <input type="text" inputMode="decimal"
+                                            className="w-full bg-transparent px-3 py-3 text-sm text-text-primary outline-none text-right"
+                                            placeholder="z.B. 80" value={editingItem.temperature || ''}
+                                            onChange={(e) => updateRow(editingIdx, 'temperature', e.target.value.replace(',', '.'))} />
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                     <div className="shrink-0 px-4 py-4 border-t border-border flex gap-3">
@@ -212,81 +330,92 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
                 </div>
             )}
 
-            {/* ── DESKTOP: Merged container ── */}
+            {/* ── DESKTOP ── */}
             <div className="hidden md:block bg-surface border border-border rounded-xl overflow-visible mb-2 divide-y divide-border">
-                    <div className="grid grid-cols-[1fr_120px_88px_88px_140px_28px] gap-x-3 px-3 py-1.5 bg-surface-hover/60 rounded-t-xl">
-                        <span className="text-[10px] font-bold text-text-disabled uppercase tracking-wider">Sorte</span>
-                        <span className="text-[10px] font-bold text-text-disabled uppercase tracking-wider">Menge</span>
-                        <span className="text-[10px] font-bold text-text-disabled uppercase tracking-wider">Alpha</span>
-                        <span className="text-[10px] font-bold text-text-disabled uppercase tracking-wider">Zeit</span>
-                        <span className="text-[10px] font-bold text-text-disabled uppercase tracking-wider">Verwendung</span>
-                        <span />
-                    </div>
-                    {items.map((item, idx) => (
-                        <div key={idx} className="grid grid-cols-[1fr_120px_88px_88px_140px_28px] gap-x-3 px-3 py-2.5 items-center group">
+                <div className="grid grid-cols-[1.3fr_1.3fr_110px_90px_100px_70px_28px] gap-x-3 px-3 py-1.5 bg-surface-hover/60 rounded-t-xl">
+                    <span className="text-[10px] font-bold text-text-disabled uppercase tracking-wider">Sorte</span>
+                    <span className="text-[10px] font-bold text-text-disabled uppercase tracking-wider">Hersteller (Opt.)</span>
+                    <span className="text-[10px] font-bold text-text-disabled uppercase tracking-wider">Verwendung</span>
+                    <span className="text-[10px] font-bold text-text-disabled uppercase tracking-wider">Menge</span>
+                    <span className="text-[10px] font-bold text-text-disabled uppercase tracking-wider">Zeit / Temp.</span>
+                    <span className="text-[10px] font-bold text-text-disabled uppercase tracking-wider text-right pr-2">Alpha %</span>
+                    <span />
+                </div>
+                {items.map((item, idx) => {
+                    const masterForRow = dbHops.find(m => m.name === item.name);
+                    return (
+                        <div key={idx} className="grid grid-cols-[1.3fr_1.3fr_110px_90px_100px_70px_28px] gap-x-3 px-3 py-2.5 items-center group relative">
                             {/* Sorte */}
-                            <div className="h-9 flex items-center bg-background border border-border rounded-lg px-2.5 focus-within:border-green-500/50 transition">
-                                <HopCombobox value={item.name} onSelect={(u) => updateRowPartial(idx, u)} hops={dbHops} />
+                            <div className="h-9 flex items-center bg-background border border-border rounded-lg px-2.5 focus-within:border-green-500/50 transition z-10">
+                                <SorteCombobox value={item.name} onSelect={(m) => handleSorteSelect(idx, m)} hops={dbHops} />
+                            </div>
+                            {/* Hersteller */}
+                            <div className="h-9 flex bg-background border border-border rounded-lg overflow-visible focus-within:border-green-500/50 transition relative pl-2.5 z-10">
+                                <ManufacturerCombobox
+                                    value={item.manufacturer || ''}
+                                    products={masterForRow?.products || []}
+                                    onSelect={(val) => handleManufacturerSelect(idx, val)}
+                                    disabled={!masterForRow || masterForRow.products.length === 0}
+                                />
+                            </div>
+                            {/* Verwendung */}
+                            <div className="h-9 flex bg-background border border-border rounded-lg overflow-hidden focus-within:border-green-500/50 transition">
+                                <select className="w-full bg-transparent px-2 text-sm text-text-primary outline-none appearance-none truncate"
+                                    value={item.usage || 'Boil'}
+                                    onChange={(e) => updateRow(idx, 'usage', e.target.value)}>
+                                    {USAGE_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                                </select>
                             </div>
                             {/* Menge */}
                             <div className="h-9 flex bg-background border border-border rounded-lg overflow-hidden focus-within:border-green-500/50 transition">
                                 <input type="text" inputMode="decimal"
-                                    className="flex-1 min-w-0 bg-transparent pl-2.5 pr-1 text-sm text-text-primary outline-none text-right placeholder:text-text-disabled"
+                                    className="flex-1 min-w-0 bg-transparent pl-2 pr-1 text-sm text-text-primary outline-none text-right"
                                     placeholder="0" value={item.amount || ''}
                                     onChange={(e) => updateRow(idx, 'amount', e.target.value.replace(',', '.'))} />
-                                <span className="flex items-center pl-1 pr-2.5 text-text-disabled text-sm select-none">g</span>
+                                <select className="bg-surface-hover border-l border-border px-1 text-xs font-bold text-text-secondary outline-none shrink-0"
+                                    value={item.unit || 'g'}
+                                    onChange={(e) => updateRow(idx, 'unit', e.target.value)}>
+                                    <option value="g">g</option>
+                                    <option value="kg">kg</option>
+                                    <option value="oz">oz</option>
+                                </select>
+                            </div>
+                            {/* Zeit / Temp */}
+                            <div className="h-9 flex bg-background border border-border rounded-lg overflow-hidden focus-within:border-green-500/50 transition text-sm">
+                                <input type="text" inputMode="decimal"
+                                    className="flex-1 min-w-0 bg-transparent px-2 text-text-primary outline-none text-right placeholder:text-text-disabled"
+                                    placeholder={item.usage === 'Whirlpool' ? 'Min.' : 'Zeit'} value={item.time || ''}
+                                    onChange={(e) => updateRow(idx, 'time', e.target.value)} />
+                                {item.usage === 'Whirlpool' && (
+                                    <>
+                                        <div className="w-px bg-border my-2" />
+                                        <input type="text" inputMode="decimal"
+                                            className="flex-1 min-w-0 bg-transparent px-2 text-text-primary outline-none text-right placeholder:text-text-disabled"
+                                            placeholder="°C" value={item.temperature || ''}
+                                            onChange={(e) => updateRow(idx, 'temperature', e.target.value.replace(',', '.'))} />
+                                    </>
+                                )}
                             </div>
                             {/* Alpha */}
                             <div className="h-9 flex bg-background border border-border rounded-lg overflow-hidden focus-within:border-green-500/50 transition">
                                 <input type="text" inputMode="decimal"
-                                    className="flex-1 min-w-0 bg-transparent pl-2 pr-0 text-sm text-text-primary outline-none text-right placeholder:text-text-disabled"
-                                    placeholder="–" value={item.alpha || ''}
+                                    className="w-full bg-transparent px-2 text-sm text-text-primary outline-none text-right"
+                                    placeholder="0.0" value={item.alpha || ''}
                                     onChange={(e) => updateRow(idx, 'alpha', e.target.value.replace(',', '.'))} />
-                                <span className="flex items-center pl-1.5 pr-2 text-text-disabled text-sm select-none">%</span>
-                            </div>
-                            {/* Zeit */}
-                            <div className="h-9 flex bg-background border border-border rounded-lg overflow-hidden focus-within:border-green-500/50 transition">
-                                <input type="text" inputMode="numeric"
-                                    className="flex-1 min-w-0 bg-transparent pl-2 pr-0 text-sm text-text-primary outline-none text-right placeholder:text-text-disabled"
-                                    placeholder="–" value={item.time || ''}
-                                    onChange={(e) => updateRow(idx, 'time', e.target.value)} />
-                                <span className="flex items-center pl-1 pr-2 text-text-disabled text-xs select-none">min</span>
-                            </div>
-                            {/* Verwendung */}
-                            <div className="h-9 bg-background border border-border rounded-lg overflow-hidden flex items-center focus-within:border-green-500/50 transition">
-                                <select
-                                    className="w-full h-full bg-transparent px-2.5 text-sm text-text-primary outline-none"
-                                    value={item.usage || 'Boil'}
-                                    onChange={(e) => updateRow(idx, 'usage', e.target.value)}>
-                                    {USAGE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                                </select>
                             </div>
                             {/* Delete */}
                             <button type="button" onClick={() => removeRow(idx)}
-                                className="flex text-text-disabled hover:text-red-400 transition justify-center items-center opacity-0 group-hover:opacity-100"
-                                title="Entfernen">
-                                <Trash2 size={15} />
+                                className="w-7 h-7 flex items-center justify-center rounded-lg text-text-disabled hover:text-red-400 hover:bg-red-500/10 transition opacity-0 group-hover:opacity-100">
+                                <Trash2 size={14} />
                             </button>
                         </div>
-                    ))}
-                <div className="px-3 py-2.5">
-                    <button type="button" onClick={addRow}
-                        className="flex items-center gap-2 text-text-muted hover:text-text-secondary transition text-sm font-medium">
-                        <span className="w-5 h-5 rounded-full bg-green-500/10 text-green-500 flex items-center justify-center">
-                            <Plus size={12} />
-                        </span>
-                        Hopfen hinzufügen
-                    </button>
-                </div>
+                    );
+                })}
             </div>
 
-            {/* Mobile add button */}
             <button type="button" onClick={addRow}
-                className="md:hidden w-full py-2.5 bg-surface hover:bg-surface-hover border border-dashed border-border rounded-xl text-text-secondary text-sm font-semibold flex items-center justify-center gap-2 transition group">
-                <span className="w-5 h-5 rounded-full bg-green-500/10 text-green-500 flex items-center justify-center group-hover:bg-green-500/20 transition">
-                    <Plus size={12} />
-                </span>
-                Hopfen hinzufügen
+                className="flex items-center gap-2 px-3 py-2 text-sm font-bold text-green-500 bg-green-500/10 hover:bg-green-500/20 rounded-xl transition">
+                <Plus size={16} /> Hopfen hinzufügen
             </button>
         </div>
     );

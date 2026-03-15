@@ -6,6 +6,8 @@ type AnySupabaseClient = SupabaseClient<any, any, any>;
 
 export interface LegacyMaltItem {
   id?: string;
+  master_id?: string;
+  product_id?: string;
   name: string;
   amount: number | string;
   unit: string;
@@ -14,6 +16,8 @@ export interface LegacyMaltItem {
 
 export interface LegacyHopItem {
   id?: string;
+  master_id?: string;
+  product_id?: string;
   name: string;
   amount: number | string;
   unit: string;
@@ -24,6 +28,8 @@ export interface LegacyHopItem {
 
 export interface LegacyYeastItem {
   id?: string;
+  master_id?: string;
+  product_id?: string;
   name: string;
   amount: number | string;
   unit: string;
@@ -115,7 +121,8 @@ export async function extractAndSaveRecipeIngredients(
     const m = malts[i];
     inserts.push({
       recipe_id: recipeId,
-      master_id: '00000000-0000-4000-a000-000000000001',
+      master_id: m.master_id || null,
+      product_id: m.product_id || null,
       raw_name: m.name || 'Unbekanntes Malz',
       type: 'malt',
       amount: m.amount || null,
@@ -129,7 +136,8 @@ export async function extractAndSaveRecipeIngredients(
     const h = hops[i];
     inserts.push({
       recipe_id: recipeId,
-      master_id: '00000000-0000-4000-a000-000000000002',
+      master_id: h.master_id || null,
+      product_id: h.product_id || null,
       raw_name: h.name || 'Unbekannter Hopfen',
       type: 'hop',
       amount: h.amount || null,
@@ -145,7 +153,8 @@ export async function extractAndSaveRecipeIngredients(
     const y = yeast[i];
     inserts.push({
       recipe_id: recipeId,
-      master_id: '00000000-0000-4000-a000-000000000003',
+      master_id: y.master_id || null,
+      product_id: y.product_id || null,
       raw_name: y.name || 'Unbekannte Hefe',
       type: 'yeast',
       amount: y.amount || null,

@@ -272,17 +272,6 @@ function StepMashEditor({ value, onChange }: Omit<MashStepsEditorProps, 'mashPro
                     </button>
                 ))}
             </div>
-            <button
-                type="button"
-                onClick={addRestMobile}
-                className="md:hidden w-full py-2.5 bg-surface hover:bg-surface-hover border border-dashed border-border rounded-xl text-text-secondary text-sm font-semibold flex items-center justify-center gap-2 transition group mb-2"
-            >
-                <span className="w-5 h-5 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center group-hover:bg-red-500/20 transition">
-                    <Plus size={12} />
-                </span>
-                Rast hinzufügen
-            </button>
-
             {/* ── DESKTOP: Merged container ── */}
             <div className="hidden md:block bg-surface border border-border rounded-xl overflow-visible mb-2 divide-y divide-border">
                 <div className="grid grid-cols-[1fr_90px_90px_28px] gap-x-3 px-3 py-1.5 bg-surface-hover/60 rounded-t-xl">
@@ -353,19 +342,14 @@ function StepMashEditor({ value, onChange }: Omit<MashStepsEditorProps, 'mashPro
                         </div>
                     );
                 })}
-                <div className="px-3 py-2.5 rounded-b-xl">
-                    <button
-                        type="button"
-                        onClick={addRest}
-                        className="flex items-center gap-2 text-text-muted hover:text-text-secondary transition text-sm font-medium"
-                    >
-                        <span className="w-5 h-5 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center">
-                            <Plus size={12} />
-                        </span>
-                        Rast hinzufügen
-                    </button>
+                <div className="px-3 py-2.5 rounded-b-xl hidden md:block">
                 </div>
             </div>
+
+            <button type="button" onClick={addRestMobile}
+                className="flex items-center gap-2 px-3 py-2 text-sm font-bold text-red-500 bg-red-500/10 hover:bg-red-500/20 rounded-xl transition">
+                <Plus size={16} /> Rast hinzufügen
+            </button>
         </div>
     );
 }
@@ -639,24 +623,6 @@ function DecoctionEditor({ value, onChange, mashInfusionTotal }: Omit<MashStepsE
                     </button>
                 ))}
             </div>
-            <div className="md:hidden grid grid-cols-2 gap-2 mb-2">
-                <button
-                    type="button"
-                    onClick={addRestMobile}
-                    className="py-2.5 bg-surface hover:bg-surface-hover border border-dashed border-border rounded-xl text-text-secondary text-sm font-semibold flex items-center justify-center gap-2 transition group"
-                >
-                    <span className="w-5 h-5 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center group-hover:bg-red-500/20 transition"><Plus size={12} /></span>
-                    Rast
-                </button>
-                <button
-                    type="button"
-                    onClick={addDecoctionMobile}
-                    className="py-2.5 bg-amber-500/5 hover:bg-amber-500/10 border border-dashed border-amber-500/30 rounded-xl text-amber-500 text-sm font-semibold flex items-center justify-center gap-2 transition group"
-                >
-                    <span className="w-5 h-5 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center group-hover:bg-amber-500/20 transition"><Flame size={12} /></span>
-                    Teilmaische
-                </button>
-            </div>
 
             {/* ── DESKTOP: Merged container ── */}
             <div className="hidden md:block bg-surface border border-border rounded-xl overflow-visible mb-2 divide-y divide-border">
@@ -771,28 +737,17 @@ function DecoctionEditor({ value, onChange, mashInfusionTotal }: Omit<MashStepsE
                         </div>
                     );
                 })}
-                <div className="px-3 py-2.5 rounded-b-xl flex gap-4">
-                    <button
-                        type="button"
-                        onClick={addRest}
-                        className="flex items-center gap-2 text-text-muted hover:text-text-secondary transition text-sm font-medium"
-                    >
-                        <span className="w-5 h-5 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center">
-                            <Plus size={12} />
-                        </span>
-                        Rast
-                    </button>
-                    <button
-                        type="button"
-                        onClick={addDecoction}
-                        className="flex items-center gap-2 text-amber-500 hover:text-amber-400 transition text-sm font-medium"
-                    >
-                        <span className="w-5 h-5 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center">
-                            <Flame size={12} />
-                        </span>
-                        Teilmaische
-                    </button>
-                </div>
+            </div>
+            
+            <div className="flex gap-2">
+                <button type="button" onClick={addRestMobile}
+                    className="flex-1 sm:flex-none flex items-center justify-center sm:justify-start gap-2 px-3 py-2 text-sm font-bold text-red-500 bg-red-500/10 hover:bg-red-500/20 rounded-xl transition">
+                    <Plus size={16} /> Rast
+                </button>
+                <button type="button" onClick={addDecoctionMobile}
+                    className="flex-1 sm:flex-none flex items-center justify-center sm:justify-start gap-2 px-3 py-2 text-sm font-bold text-amber-500 bg-amber-500/10 hover:bg-amber-500/20 rounded-xl transition">
+                    <Flame size={16} /> Teilmaische
+                </button>
             </div>
         </div>
     );

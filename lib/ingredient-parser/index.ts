@@ -1,6 +1,7 @@
 import { IRecipeParser, ParsedRecipe } from './types';
 import { BeerXmlParser } from './beerxml';
 import { BeerJsonParser } from './beerjson';
+import { MMuMJsonParser } from './mmumjson';
 
 export * from './types';
 
@@ -10,6 +11,7 @@ export class RecipeImportService {
   constructor() {
     this.parsers = [
       new BeerJsonParser(),
+      new MMuMJsonParser(),
       new BeerXmlParser()
       // Hier könnten später weitere Formate wie "Brewfather CSV" hinzugefügt werden.
     ];

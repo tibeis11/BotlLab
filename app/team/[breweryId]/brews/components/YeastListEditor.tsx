@@ -9,6 +9,23 @@ export interface Yeast {
     unit: string;
     attenuation?: string;
     type?: string;
+    manufacturer?: string;
+    master_id?: string;
+}
+
+interface ProductYeast {
+    id: string;
+    name: string;
+    manufacturer: string;
+    attenuation_pct?: number;
+}
+
+export interface MasterYeast {
+    id: string;
+    name: string;
+    aliases: string[];
+    attenuation_pct?: number;
+    products: ProductYeast[];
 }
 
 interface YeastListEditorProps {
@@ -16,65 +33,87 @@ interface YeastListEditorProps {
     onChange: (value: Yeast[]) => void;
 }
 
-function YeastCombobox({ 
-    value, 
-    onSelect, 
-    yeasts 
-}: { 
-    value: string; 
-    onSelect: (update: Partial<Yeast>) => void;
-    yeasts: any[];
-}) {
+function SorteCombobox({ value, onSelect, yeasts }: { value: string; onSelect: (master: MasterYeast) => void; yeasts: MasterYeast[]; }) {
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState(value || '');
 
-    useEffect(() => { 
-        if (value !== search) setSearch(value || ''); 
-    }, [value]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    useEffect(() => { if (value !== search) setSearch(value || ''); }, [value]);
 
     return (
-        <Command className="relative overflow-visible w-full" shouldFilter={true}>
-            <Command.Input 
-                className="w-full bg-transparent px-0 py-0 text-sm text-text-primary outline-none placeholder:text-text-disabled"
-                placeholder="Sorte suchen (z.B. US-05, Weizenbierhefe)…"
+        <Command className="relative overflow-visible w-full h-full" shouldFilter={true}>
+            <Command.Input
+                className="w-full bg-transparent px-0 py-0 text-sm text-text-primary outline-none placeholder:text-text-disabled h-full"
+                placeholder="Sorte suchen…"
                 value={search}
-                onValueChange={(val) => {
-                    setSearch(val);
-                    setOpen(true);
-                    onSelect({ name: val }); 
-                }}
+                onValueChange={(val) => { setSearch(val); setOpen(true); }}
                 onFocus={() => setOpen(true)}
                 onBlur={() => setTimeout(() => setOpen(false), 200)}
             />
-            {open && search.length > 0 && (
-                <div className="absolute top-full mt-1 z-50 w-full min-w-[280px] bg-surface border border-border rounded-xl shadow-2xl overflow-hidden max-h-64 flex flex-col">
+            <div className={`absolute ${open ? "" : "hidden"} top-full mt-1 left-0 z-50 w-full min-w-[280px] bg-surface border border-border rounded-xl shadow-2xl overflow-hidden max-h-64 flex flex-col`}>
                     <Command.List className="overflow-y-auto p-1">
-                        <Command.Empty className="p-3 text-sm text-text-muted text-center">Keine Hefe gefunden.</Command.Empty>
-                        {yeasts.map(y => (
-                            <Command.Item 
-                                key={y.id}
-                                value={y.name + " " + (y.aliases ? y.aliases.join(" ") : "")}
-                                onSelect={() => {
-                                    setSearch(y.name);
-                                    onSelect({ 
-                                        name: y.name, 
-                                        attenuation: y.attenuation_pct?.toString()
-                                    });
-                                    setOpen(false);
-                                }}
-                                className="px-3 py-2 cursor-pointer rounded-lg hover:bg-surface-hover flex items-center justify-between text-sm data-[selected='true']:bg-surface-hover"
+                        <Command.Empty className="p-3 text-sm text-text-muted text-center">Keine Sorte gefunden.</Command.Empty>
+                        {yeasts.map(m => (
+                            <Command.Item
+                                key={m.id}
+                                value={m.name + ' ' + (m.aliases ? m.aliases.join(' ') : '')}
+                                onSelect={() => { setSearch(m.name); onSelect(m); setOpen(false); }}
+                                className="px-3 py-2 cursor-pointer rounded-lg hover:bg-surface-hover text-sm data-[selected='true']:bg-surface-hover"
                             >
-                                <div className="font-semibold text-text-primary truncate mr-2">{y.name}</div>
-                                {y.attenuation_pct && (
-                                    <span className="shrink-0 bg-blue-500/10 text-blue-400 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border border-blue-500/20">
-                                        {y.attenuation_pct}% EVG
-                                    </span>
-                                )}
+                                <div className="font-semibold text-text-primary truncate">{m.name}</div>
                             </Command.Item>
                         ))}
                     </Command.List>
                 </div>
-            )}
+        </Command>
+    );
+}
+
+function ManufacturerCombobox({ value, onSelect, products, disabled }: {
+    value: string;
+    onSelect: (manufacturer: string) => void;
+    products: { manufacturer: string }[];
+    disabled?: boolean;
+}) {
+    const [open, setOpen] = useState(false);
+    const [search, setSearch] = useState(value || '');
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    useEffect(() => { if (value !== search) setSearch(value || ''); }, [value]);
+
+    return (
+        <Command className="relative overflow-visible w-full h-full" shouldFilter={true}>
+            <Command.Input
+                className="w-full bg-transparent px-0 py-0 text-sm text-text-primary outline-none placeholder:text-text-disabled h-full disabled:opacity-50 disabled:cursor-not-allowed"
+                placeholder={disabled ? '(Nicht verfügbar)' : 'Hersteller suchen…'}
+                disabled={disabled}
+                value={search}
+                onValueChange={(val) => { setSearch(val); setOpen(true); }}
+                onFocus={() => { if (!disabled) setOpen(true); }}
+                onBlur={() => setTimeout(() => setOpen(false), 200)}
+            />
+            <div className={`absolute ${open && !disabled ? "" : "hidden"} top-full mt-1 left-0 z-50 w-full min-w-[280px] bg-surface border border-border rounded-xl shadow-xl overflow-hidden max-h-64 flex flex-col`}>
+                    <Command.List className="overflow-y-auto p-1">
+                        <Command.Empty className="p-3 text-sm text-text-muted text-center">Kein Hersteller gefunden.</Command.Empty>
+                        <Command.Item
+                            value="(Beliebig)"
+                            onSelect={() => { setSearch(''); onSelect(''); setOpen(false); }}
+                            className="px-3 py-2 cursor-pointer rounded-lg hover:bg-surface-hover text-sm data-[selected='true']:bg-surface-hover mb-1"
+                        >
+                            <div className="font-semibold italic text-text-muted truncate">(Beliebiger Hersteller)</div>
+                        </Command.Item>
+                        {products.map((p, i) => (
+                            <Command.Item
+                                key={i}
+                                value={p.manufacturer}
+                                onSelect={() => { setSearch(p.manufacturer); onSelect(p.manufacturer); setOpen(false); }}
+                                className="px-3 py-2 cursor-pointer rounded-lg hover:bg-surface-hover text-sm data-[selected='true']:bg-surface-hover"
+                            >
+                                <div className="font-semibold text-text-primary truncate">{p.manufacturer}</div>
+                            </Command.Item>
+                        ))}
+                    </Command.List>
+                </div>
         </Command>
     );
 }
@@ -83,7 +122,7 @@ export function YeastListEditor({ value, onChange }: YeastListEditorProps) {
     const supabase = useSupabase();
     const [items, setItems] = useState<Yeast[]>([]);
     const [initialized, setInitialized] = useState(false);
-    const [dbYeasts, setDbYeasts] = useState<any[]>([]);
+    const [dbYeasts, setDbYeasts] = useState<MasterYeast[]>([]);
     const [editingIdx, setEditingIdx] = useState<number | null>(null);
 
     useEffect(() => {
@@ -102,59 +141,65 @@ export function YeastListEditor({ value, onChange }: YeastListEditorProps) {
     useEffect(() => {
         async function fetchYeasts() {
             const { data } = await supabase
-                .from('ingredient_products')
-                .select(`id, name, manufacturer, attenuation_pct, ingredient_master!inner(type, aliases, name)`)
-                .eq('ingredient_master.type', 'yeast')
+                .from('ingredient_master')
+                .select('id, name, aliases, ingredient_products(id, name, manufacturer, attenuation_pct)')
+                .eq('type', 'yeast')
                 .order('name');
             if (data) {
-                setDbYeasts(data.map((p: any) => ({
-                    id: p.id,
-                    name: p.manufacturer && !p.name.includes(p.manufacturer) ? `${p.name} (${p.manufacturer})` : p.name,
-                    attenuation_pct: p.attenuation_pct,
-                    aliases: p.ingredient_master?.aliases || [],
-                })));
+                const uniqueMap = new Map<string, MasterYeast>();
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                data.forEach((m: any) => {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const products = (m.ingredient_products || []).filter((p: any) => p.manufacturer);
+                    if (uniqueMap.has(m.name)) {
+                        const existing = uniqueMap.get(m.name)!;
+                        const merged = [...(existing.products || [])];
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        products.forEach((p: any) => {
+                            if (!merged.some(ep => ep.manufacturer === p.manufacturer)) merged.push(p);
+                        });
+                        existing.products = merged;
+                    } else {
+                        uniqueMap.set(m.name, { id: m.id, name: m.name, aliases: m.aliases || [], attenuation_pct: m.attenuation_pct, products });
+                    }
+                });
+                setDbYeasts(Array.from(uniqueMap.values()));
             }
         }
         fetchYeasts();
     }, [supabase]);
 
-    const handleChange = (newItems: Yeast[]) => {
-        setItems(newItems);
-        onChange(newItems);
-    };
-
-    const addRow = () => {
-        const newIdx = items.length;
-        handleChange([...items, { name: '', amount: '', unit: 'g', attenuation: '75', type: 'dry' }]);
-        setEditingIdx(newIdx);
-    };
-
-    const updateRow = (index: number, field: keyof Yeast, val: string) => {
-        const newItems = [...items];
-        newItems[index] = { ...newItems[index], [field]: val };
-        handleChange(newItems);
-    };
-
-    const updateRowPartial = (index: number, updates: Partial<Yeast>) => {
-        const newItems = [...items];
-        newItems[index] = { ...newItems[index], ...updates };
-        handleChange(newItems);
-    };
-
-    const removeRow = (index: number) => {
-        handleChange(items.filter((_, i) => i !== index));
-        setEditingIdx(null);
-    };
+    const handleChange = (newItems: Yeast[]) => { setItems(newItems); onChange(newItems); };
+    const addRow = () => { const idx = items.length; handleChange([...items, { name: '', amount: '', unit: 'g', attenuation: '75', type: 'dry' }]); setEditingIdx(idx); };
+    const updateRow = (index: number, field: keyof Yeast, val: string) => { const n = [...items]; n[index] = { ...n[index], [field]: val }; handleChange(n); };
+    const updateRowPartial = (index: number, updates: Partial<Yeast>) => { const n = [...items]; n[index] = { ...n[index], ...updates }; handleChange(n); };
+    const removeRow = (index: number) => { handleChange(items.filter((_, i) => i !== index)); setEditingIdx(null); };
 
     const formatSummary = (item: Yeast) => {
         const parts: string[] = [];
-        if (item.amount) parts.push(`${item.amount} ${item.unit}`);
-        if (item.type) parts.push(item.type === 'dry' ? 'Trocken' : 'Flüssig');
-        if (item.attenuation) parts.push(`EVG ${item.attenuation}%`);
+        if (item.manufacturer) parts.push(item.manufacturer);
+        if (item.amount) parts.push(item.amount + ' ' + item.unit);
+        if (item.attenuation) parts.push('EVG ' + item.attenuation + '%');
         return parts.join(' · ');
     };
 
+    const handleSorteSelect = (index: number, master: MasterYeast) => {
+        updateRowPartial(index, { name: master.name, master_id: master.id, manufacturer: '', attenuation: master.attenuation_pct ? master.attenuation_pct.toString() : '' });
+    };
+
+    const handleManufacturerSelect = (index: number, manufacturer: string) => {
+        const item = items[index];
+        const master = dbYeasts.find(m => m.name === item.name);
+        if (!manufacturer) {
+            updateRowPartial(index, { manufacturer: '', attenuation: master?.attenuation_pct ? master.attenuation_pct.toString() : '' });
+            return;
+        }
+        const product = master?.products.find(p => p.manufacturer === manufacturer);
+        updateRowPartial(index, { manufacturer, attenuation: product?.attenuation_pct?.toString() || (master?.attenuation_pct ? master.attenuation_pct.toString() : '') });
+    };
+
     const editingItem = editingIdx !== null ? items[editingIdx] : null;
+    const editingMaster = editingItem ? dbYeasts.find(m => m.name === editingItem.name) : null;
 
     return (
         <div>
@@ -203,11 +248,22 @@ export function YeastListEditor({ value, onChange }: YeastListEditorProps) {
                     <div className="flex-1 overflow-y-auto px-4 py-5 space-y-4">
                         <div>
                             <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">Sorte</label>
-                            <div className="bg-surface border border-border rounded-xl px-3 py-2.5 focus-within:border-blue-500/50 transition">
-                                <YeastCombobox
+                            <div className="bg-surface border border-border rounded-xl px-3 py-2.5 focus-within:border-blue-500/50 transition h-12">
+                                <SorteCombobox
                                     value={editingItem.name}
-                                    onSelect={(updates) => updateRowPartial(editingIdx, updates)}
+                                    onSelect={(m) => handleSorteSelect(editingIdx, m)}
                                     yeasts={dbYeasts}
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="text-xs font-bold text-text-disabled uppercase tracking-wider mb-1.5 block">Hersteller (Optional)</label>
+                            <div className="flex bg-surface border border-border rounded-xl px-3 py-2.5 overflow-visible focus-within:border-blue-500/50 transition relative h-12">
+                                <ManufacturerCombobox
+                                    value={editingItem.manufacturer || ''}
+                                    products={editingMaster?.products || []}
+                                    onSelect={(val) => handleManufacturerSelect(editingIdx, val)}
+                                    disabled={!editingMaster || editingMaster.products.length === 0}
                                 />
                             </div>
                         </div>
@@ -303,25 +359,37 @@ export function YeastListEditor({ value, onChange }: YeastListEditorProps) {
             {/* Fixed column widths (not fr/auto) guarantee header ↔ row alignment */}
             {/* overflow-visible so the cmdk dropdown is not clipped */}
             <div className="hidden md:block bg-surface border border-border rounded-xl overflow-visible mb-2 divide-y divide-border">
-                    <div className="grid grid-cols-[1fr_130px_160px_92px_28px] gap-x-3 px-3 py-1.5 bg-surface-hover/60 rounded-t-xl">
+                    <div className="grid grid-cols-[1.3fr_1fr_130px_140px_80px_28px] gap-x-3 px-3 py-1.5 bg-surface-hover/60 rounded-t-xl">
                         <span className="text-[10px] font-bold text-text-disabled uppercase tracking-wider">Sorte</span>
+                        <span className="text-[10px] font-bold text-text-disabled uppercase tracking-wider">Hersteller (Opt.)</span>
                         <span className="text-[10px] font-bold text-text-disabled uppercase tracking-wider">Menge</span>
                         <span className="text-[10px] font-bold text-text-disabled uppercase tracking-wider">Typ</span>
                         <span className="text-[10px] font-bold text-text-disabled uppercase tracking-wider text-right pr-2">EVG</span>
                         <span />
                     </div>
 
-                    {items.map((item, idx) => (
+                    {items.map((item, idx) => {
+                        const masterForRow = dbYeasts.find(m => m.name === item.name);
+                        return (
                         <div
                             key={idx}
-                            className="grid grid-cols-[1fr_130px_160px_92px_28px] gap-x-3 px-3 py-2.5 items-center group"
+                            className="grid grid-cols-[1.3fr_1fr_130px_140px_80px_28px] gap-x-3 px-3 py-2.5 items-center group relative focus-within:z-[60]"
                         >
                             {/* Sorte */}
-                            <div className="h-9 flex items-center bg-background border border-border rounded-lg px-2.5 focus-within:border-blue-500/50 transition">
-                                <YeastCombobox
+                            <div className="h-9 flex items-center bg-background border border-border rounded-lg px-2.5 focus-within:border-blue-500/50 transition z-10">
+                                <SorteCombobox
                                     value={item.name}
-                                    onSelect={(updates) => updateRowPartial(idx, updates)}
+                                    onSelect={(m) => handleSorteSelect(idx, m)}
                                     yeasts={dbYeasts}
+                                />
+                            </div>
+                            {/* Hersteller */}
+                            <div className="h-9 flex bg-background border border-border rounded-lg overflow-visible focus-within:border-blue-500/50 transition relative pl-2.5 z-10">
+                                <ManufacturerCombobox
+                                    value={item.manufacturer || ''}
+                                    products={masterForRow?.products || []}
+                                    onSelect={(val) => handleManufacturerSelect(idx, val)}
+                                    disabled={!masterForRow || masterForRow.products.length === 0}
                                 />
                             </div>
 
@@ -395,31 +463,12 @@ export function YeastListEditor({ value, onChange }: YeastListEditorProps) {
                                 <Trash2 size={15} />
                             </button>
                         </div>
-                    ))}
-                <div className="px-3 py-2.5">
-                    <button
-                        type="button"
-                        onClick={addRow}
-                        className="flex items-center gap-2 text-text-muted hover:text-text-secondary transition text-sm font-medium"
-                    >
-                        <span className="w-5 h-5 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center">
-                            <Plus size={12} />
-                        </span>
-                        Hefe hinzufügen
-                    </button>
-                </div>
+                    ); })}
             </div>
 
-            {/* Mobile add button */}
-            <button
-                type="button"
-                onClick={addRow}
-                className="md:hidden w-full py-2.5 bg-surface hover:bg-surface-hover border border-dashed border-border rounded-xl text-text-secondary text-sm font-semibold flex items-center justify-center gap-2 transition group"
-            >
-                <span className="w-5 h-5 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center group-hover:bg-blue-500/20 transition">
-                    <Plus size={12} />
-                </span>
-                Hefe hinzufügen
+            <button type="button" onClick={addRow}
+                className="flex items-center gap-2 px-3 py-2 text-sm font-bold text-blue-500 bg-blue-500/10 hover:bg-blue-500/20 rounded-xl transition">
+                <Plus size={16} /> Hefe hinzufügen
             </button>
         </div>
     );

@@ -15,6 +15,7 @@ import { getPremiumStatus, getBreweryPremiumStatus } from '@/lib/actions/premium
 import { type PremiumStatus } from '@/lib/premium-config';
 import { 
     Plus, 
+    Download,
     Beer, 
     Lock, 
     Eye, 
@@ -276,25 +277,35 @@ export default function TeamBrewsPage({ params }: { params: Promise<{ breweryId:
 
             <div className="flex items-center gap-4">
                  {isMember && (
-                    <button
-                        onClick={() => {
-                            if (isLimitReached) {
-                                alert(`Die Brauerei hat das Limit für den ${tierConfig.displayName}-Status erreicht (${tierConfig.limits.maxBrews} Rezepte).`);
-                                return;
-                            }
-                            router.push(`/team/${breweryId}/brews/new`);
-                        }}
-                        className={`
-                            px-4 py-2 rounded-md font-bold text-sm transition-all shadow-sm flex items-center gap-2
-                            ${isLimitReached 
-                                ? 'bg-surface text-text-disabled cursor-not-allowed border border-border' 
-                                : 'bg-text-primary hover:bg-text-secondary text-background border border-transparent'
-                            }
-                        `}
-                    >
-                        <Plus className="w-4 h-4" />
-                        <span>Rezept erstellen</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => router.push(`/team/${breweryId}/brews/import`)}
+                            className="px-4 py-2 rounded-md font-bold text-sm transition-all shadow-sm flex items-center gap-2 bg-surface hover:bg-surface-hover text-text-primary border border-border"
+                            title="Rezept importieren"
+                        >
+                            <Download className="w-4 h-4" />
+                            <span className="hidden sm:inline">Importieren</span>
+                        </button>
+                        <button
+                            onClick={() => {
+                                if (isLimitReached) {
+                                    alert(`Die Brauerei hat das Limit für den ${tierConfig.displayName}-Status erreicht (${tierConfig.limits.maxBrews} Rezepte).`);
+                                    return;
+                                }
+                                router.push(`/team/${breweryId}/brews/new`);
+                            }}
+                            className={`
+                                px-4 py-2 rounded-md font-bold text-sm transition-all shadow-sm flex items-center gap-2
+                                ${isLimitReached 
+                                    ? 'bg-surface text-text-disabled cursor-not-allowed border border-border' 
+                                    : 'bg-text-primary hover:bg-text-secondary text-background border border-transparent'
+                                }
+                            `}
+                        >
+                            <Plus className="w-4 h-4" />
+                            <span>Rezept erstellen</span>
+                        </button>
+                    </div>
                  )}
 
                  <div className="h-8 w-px bg-border hidden md:block"></div>
