@@ -1,5 +1,18 @@
 # Roadmap: Ingredients Engine v2 — Hierarchische Zutaten-Datenbank & BeerXML-Interoperabilität
 
+## **UPDATE (Letzter Stand - WICHTIG)**
+> **Status: ✅ UI-Refactoring, Sorte/Hersteller Split & Deutsche Aliasse Implementiert**
+> 
+> **Was in der letzten Session erfolgreich umgesetzt wurde (Phase 2 & 3 UI-Polishing):**
+> - **Architektur-Split im UI:** Strikte Trennung von "Sorte" (Master Ingredient) und "Hersteller" (Product Ingredient) in den Editoren (`MaltListEditor`, `HopListEditor`, `YeastListEditor`). Die UI zwingt den User dazu, erst eine Sorte zu wählen, bevor herstellerspezifische Daten ausgewählt werden.
+> - **Deutsche Aliasse:** Die Migration `20260318600000_german_aliases.sql` wurde erstellt und lokal ausgeführt. Sie integriert deutsche Übersetzungen für generische Malz- und Hopfensorten, was den `Smart Match` erheblich verbessert.
+> - **UI-Layering / Z-Index Fix:** Die Comboboxen der Ingredient-Listen überlappten sich fehlerhaft. Dies wurde mit `relative focus-within:z-[60]` in den List-Editoren behoben.
+> - **Lokale Sandbox vs. Prod:** Es wurde strikt darauf geachtet, dass Datenbank-Änderungen und Tests ausschließlich in der lokalen Supabase-Umgebung (`npx supabase db reset`) stattfinden. Ein Push nach Prod (`npx supabase db push --include-all --yes`) verursachte einen alten Foreign Key Constraint Fehler zu `ingredient_master`, den wir ignorieren, da die Entwicklung rein lokal weitergeht.
+> - **Krisenmanagement:** Ein `git restore` Unfall, der die UI-Komponenten temporär gelöscht hatte, wurde durch Extraktion der Code-Stände aus der _VS Code Local History_ vollständig restoriert und gerettet.
+> 
+> **Nächster logischer Schritt:**
+> Phase 4: Admin Import-Queue Handling für unbekannte Zutaten.
+
 **Kontext:** Zutaten werden aktuell als unkontrollierter JSONB-Blob in der `data`-Spalte jedes Rezepts gespeichert (`data->'hops'`, `data->'malts'`, `data->'yeast'`). Berechnungslogik wie Extrakt-Potenziale und EBC-Defaults liegen als Code in `lib/brewing-calculations.ts` — als Regex-Tabelle mit 40+ Patterns, die jede neue Zutat im Code statt in der Datenbank erfordert. Diese Roadmap überführt das System in ein relationales 3-Ebenen-Modell mit BeerXML-Import, löst die JSONB-Migrationslast und behebt alle strukturellen Schwachstellen des aktuellen Designs.
 
 ---
