@@ -9,6 +9,7 @@ export interface LegacyMaltItem {
   master_id?: string;
   product_id?: string;
   name: string;
+  manufacturer?: string;
   amount: number | string;
   unit: string;
   color?: number | string;
@@ -19,6 +20,7 @@ export interface LegacyHopItem {
   master_id?: string;
   product_id?: string;
   name: string;
+  manufacturer?: string;
   amount: number | string;
   unit: string;
   time: number | string;
@@ -31,6 +33,7 @@ export interface LegacyYeastItem {
   master_id?: string;
   product_id?: string;
   name: string;
+  manufacturer?: string;
   amount: number | string;
   unit: string;
   attenuation?: number | string;
@@ -45,7 +48,7 @@ export async function mergeRecipeIngredientsIntoData(
   // Query recipe_ingredients for this brew
   const { data: ingredients, error } = await sb
     .from('recipe_ingredients')
-    .select('*, ingredient_master(name)')
+    .select('*, ingredient_master(name), ingredient_products(manufacturer)')
     .eq('recipe_id', brewId);
   
   if (error || !ingredients) {
@@ -58,7 +61,10 @@ export async function mergeRecipeIngredientsIntoData(
     .filter((i) => i.type === 'malt')
     .map((i) => ({
       id: i.id,
+      master_id: i.master_id || undefined,
+      product_id: i.product_id || undefined,
       name: i.raw_name || (i.ingredient_master as any)?.name || 'Unbekanntes Malz',
+      manufacturer: (i.ingredient_products as any)?.manufacturer || undefined,
       amount: i.amount || 0,
       unit: i.unit || 'kg',
       color: i.override_color_ebc || undefined
@@ -68,7 +74,10 @@ export async function mergeRecipeIngredientsIntoData(
     .filter((i) => i.type === 'hop')
     .map((i) => ({
       id: i.id,
+      master_id: i.master_id || undefined,
+      product_id: i.product_id || undefined,
       name: i.raw_name || (i.ingredient_master as any)?.name || 'Unbekannter Hopfen',
+      manufacturer: (i.ingredient_products as any)?.manufacturer || undefined,
       amount: i.amount || 0,
       unit: i.unit || 'g',
       time: i.time_minutes || 0,
@@ -80,7 +89,10 @@ export async function mergeRecipeIngredientsIntoData(
     .filter((i) => i.type === 'yeast')
     .map((i) => ({
       id: i.id,
+      master_id: i.master_id || undefined,
+      product_id: i.product_id || undefined,
       name: i.raw_name || (i.ingredient_master as any)?.name || 'Unbekannte Hefe',
+      manufacturer: (i.ingredient_products as any)?.manufacturer || undefined,
       amount: i.amount || 0,
       unit: i.unit || 'pkg',
       attenuation: i.override_attenuation || undefined
@@ -113,7 +125,11 @@ export async function extractAndSaveRecipeIngredients(
   const yeast = dataObj.yeast || [];
 
   // First, delete existing to prevent duplicates on update
-  await sb.from('recipe_ingredients').delete().eq('recipe_id', recipeId);
+  const { error: deleteError } = await sb.from('recipe_ingredients').delete().eq('recipe_id', recipeId);
+  if (deleteError) {
+    console.error('Failed to clear existing recipe ingredients:', deleteError);
+    return { extracted: false, sanitisedData: dataObj };
+  }
 
   const inserts: any[] = [];
 

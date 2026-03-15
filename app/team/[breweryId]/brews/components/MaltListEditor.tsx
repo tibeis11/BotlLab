@@ -367,7 +367,7 @@ export function MaltListEditor({ value, onChange }: MaltListEditorProps) {
                     {items.map((item, idx) => {
                         const masterForThisItem = dbMalts.find(m => m.name === item.name);
                         return (
-                        <div key={idx} className="grid grid-cols-[1.5fr_1.5fr_130px_90px_28px] gap-x-3 px-3 py-2.5 items-center group relative">
+                        <div key={idx} className="grid grid-cols-[1.5fr_1.5fr_130px_90px_28px] gap-x-3 px-3 py-2.5 items-center group relative focus-within:z-[60]">
                             {/* Sorte */}
                             <div className="h-9 flex items-center bg-background border border-border rounded-lg px-2.5 focus-within:border-orange-500/50 transition">
                                 <SorteCombobox value={item.name} onSelect={(master) => handleSorteSelect(idx, master)} malts={dbMalts} />

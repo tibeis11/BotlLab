@@ -47,12 +47,13 @@ export class BeerXmlParser implements IRecipeParser {
       if (recipe.FERMENTABLES && recipe.FERMENTABLES.FERMENTABLE) {
         const fermentables = recipe.FERMENTABLES.FERMENTABLE;
         fermentables.forEach((f: any) => {
+          const amount = Number(f.AMOUNT);
           parsedRecipe.ingredients.push({
             raw_name: f.NAME,
             type: this.mapFermentableType(f.TYPE),
-            amount: Number(f.AMOUNT), // In BeerXML typischerweise in kg
+            amount: isNaN(amount) ? 0 : amount, // In BeerXML immer in kg
             unit: 'kg', 
-            override_color_ebc: f.COLOR ? Number(f.COLOR) * 1.97 : undefined, // SRM to EBC rough conversion if needed, but BeerXML might specify EBC depending on tool. Assuming SRM often default.
+            override_color_ebc: f.COLOR ? Number(f.COLOR) * 1.97 : undefined, // SRM to EBC (BeerXML spec uses Lovibond for fermentables which ≈ SRM)
             manufacturer: f.SUPPLIER,
             notes: f.NOTES
           });
@@ -63,14 +64,15 @@ export class BeerXmlParser implements IRecipeParser {
       if (recipe.HOPS && recipe.HOPS.HOP) {
         const hops = recipe.HOPS.HOP;
         hops.forEach((h: any) => {
+          const amountKg = Number(h.AMOUNT);
           parsedRecipe.ingredients.push({
             raw_name: h.NAME,
             type: 'hop',
-            amount: Number(h.AMOUNT) * 1000, // BeerXML amount ist kg, wir preferieren g
+            amount: isNaN(amountKg) ? 0 : amountKg * 1000, // BeerXML spec: amount is always kg → convert to g
             unit: 'g',
-            time_minutes: Number(h.TIME),
+            time_minutes: Number(h.TIME) || 0,
             usage: h.USE?.toLowerCase(), // z.B. 'boil', 'dry hop', 'mash'
-            override_alpha: Number(h.ALPHA),
+            override_alpha: !isNaN(Number(h.ALPHA)) ? Number(h.ALPHA) : undefined,
             notes: h.NOTES
           });
         });
@@ -80,12 +82,15 @@ export class BeerXmlParser implements IRecipeParser {
       if (recipe.YEASTS && recipe.YEASTS.YEAST) {
         const yeasts = recipe.YEASTS.YEAST;
         yeasts.forEach((y: any) => {
+          const amountRaw = Number(y.AMOUNT);
+          // BeerXML spec: yeast amount is in liters. For dry yeast (small values <0.1), treat as kg.
+          const amount = isNaN(amountRaw) ? 1 : (amountRaw < 0.1 ? amountRaw * 1000 : amountRaw * 1000);
           parsedRecipe.ingredients.push({
             raw_name: y.NAME,
             type: 'yeast',
-            amount: Number(y.AMOUNT) * 1000, // meist kg/L -> wir speichern es vorerst generisch
-            unit: 'g', 
-            override_attenuation: Number(y.ATTENUATION),
+            amount,
+            unit: amountRaw < 0.1 ? 'g' : 'ml', // Dry yeast → g, Liquid yeast → ml
+            override_attenuation: !isNaN(Number(y.ATTENUATION)) ? Number(y.ATTENUATION) : undefined,
             manufacturer: y.LABORATORY,
             notes: y.NOTES
           });
@@ -96,12 +101,13 @@ export class BeerXmlParser implements IRecipeParser {
       if (recipe.MISCS && recipe.MISCS.MISC) {
         const miscs = recipe.MISCS.MISC;
         miscs.forEach((m: any) => {
+          const amount = Number(m.AMOUNT);
           parsedRecipe.ingredients.push({
             raw_name: m.NAME,
             type: 'misc',
-            amount: Number(m.AMOUNT),
-            unit: m.AMOUNT_IS_WEIGHT ? 'kg' : 'l',
-            time_minutes: Number(m.TIME),
+            amount: isNaN(amount) ? 0 : amount,
+            unit: m.AMOUNT_IS_WEIGHT === true || m.AMOUNT_IS_WEIGHT === 'TRUE' ? 'kg' : 'l',
+            time_minutes: Number(m.TIME) || 0,
             usage: m.USE?.toLowerCase(),
             notes: m.NOTES
           });

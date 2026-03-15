@@ -344,7 +344,7 @@ export function HopListEditor({ value, onChange }: HopListEditorProps) {
                 {items.map((item, idx) => {
                     const masterForRow = dbHops.find(m => m.name === item.name);
                     return (
-                        <div key={idx} className="grid grid-cols-[1.3fr_1.3fr_110px_90px_100px_70px_28px] gap-x-3 px-3 py-2.5 items-center group relative">
+                        <div key={idx} className="grid grid-cols-[1.3fr_1.3fr_110px_90px_100px_70px_28px] gap-x-3 px-3 py-2.5 items-center group relative focus-within:z-[60]">
                             {/* Sorte */}
                             <div className="h-9 flex items-center bg-background border border-border rounded-lg px-2.5 focus-within:border-green-500/50 transition z-10">
                                 <SorteCombobox value={item.name} onSelect={(m) => handleSorteSelect(idx, m)} hops={dbHops} />

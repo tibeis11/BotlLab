@@ -74,11 +74,26 @@ export class BeerJsonParser implements IRecipeParser {
       // Cultures (Yeasts)
       if (Array.isArray(ingredients.culture_additions)) {
         ingredients.culture_additions.forEach((c: any) => {
+          // BeerJSON cultures can specify amount as mass or volume
+          let amount = 1;
+          let unit = 'pkg';
+          if (c.amount?.value) {
+            if (['kg', 'g', 'lb', 'oz'].includes(c.amount.unit)) {
+              amount = this.extractMassKg(c.amount) * 1000;
+              unit = 'g';
+            } else if (['l', 'ml', 'gal'].includes(c.amount.unit)) {
+              amount = (this.extractVolumeLiters(c.amount) ?? 0) * 1000;
+              unit = 'ml';
+            } else {
+              amount = c.amount.value;
+              unit = 'pkg';
+            }
+          }
           parsedRecipe.ingredients.push({
             raw_name: c.name,
             type: 'yeast',
-            amount: (this.extractMassKg(c.amount) * 1000) || ((this.extractVolumeLiters(c.amount) ?? 0) * 1000) || 1, 
-            unit: 'g/ml/pkg', // BeerJSON kann sehr komplex sein bzgl. Culture-Amounts
+            amount,
+            unit,
             override_attenuation: c.attenuation,
             manufacturer: c.producer
           });
@@ -88,11 +103,25 @@ export class BeerJsonParser implements IRecipeParser {
       // Miscs
       if (Array.isArray(ingredients.miscellaneous_additions)) {
         ingredients.miscellaneous_additions.forEach((m: any) => {
+          const massKg = this.extractMassKg(m.amount);
+          const volumeL = this.extractVolumeLiters(m.amount);
+          let amount: number;
+          let unit: string;
+          if (massKg > 0) {
+            amount = massKg;
+            unit = 'kg';
+          } else if (volumeL && volumeL > 0) {
+            amount = volumeL;
+            unit = 'l';
+          } else {
+            amount = m.amount?.value || 1;
+            unit = m.amount?.unit || 'each';
+          }
           parsedRecipe.ingredients.push({
             raw_name: m.name,
             type: 'misc',
-            amount: this.extractMassKg(m.amount) || this.extractVolumeLiters(m.amount) || 1,
-            unit: m.amount?.unit || 'unknown',
+            amount,
+            unit,
             time_minutes: this.extractTimeMinutes(m.timing),
             usage: m.timing?.use
           });

@@ -33,14 +33,21 @@ export async function importAndMatchRecipe(formData: FormData) {
       return { success: false, error: 'Nicht authentifiziert. Bitte einloggen.' };
     }
 
-    const file = formData.get('file') as File;
-    if (!file) {
-      return { success: false, error: 'Keine Datei hochgeladen.' };
+    const file = formData.get('file');
+    if (!file || !(file instanceof File)) {
+      return { success: false, error: 'Keine gültige Datei hochgeladen.' };
     }
 
     // Dateigrößen-Limit prüfen
     if (file.size > MAX_FILE_SIZE) {
       return { success: false, error: 'Datei ist zu groß (max. 2 MB).' };
+    }
+
+    // Dateityp-Validierung
+    const allowedExtensions = ['.xml', '.json', '.beerxml', '.beerjson'];
+    const fileName = file.name.toLowerCase();
+    if (!allowedExtensions.some(ext => fileName.endsWith(ext))) {
+      return { success: false, error: 'Ungültiger Dateityp. Erlaubt: XML, JSON, BeerXML, BeerJSON.' };
     }
 
     const content = await file.text();
@@ -93,9 +100,10 @@ export async function importAndMatchRecipe(formData: FormData) {
       }
     }
 
-    // 3. Unbekannte Zutaten in die Import-Queue schreiben
+    // 3. Unbekannte Zutaten in die Import-Queue schreiben (max. 50 pro Import)
     if (unmatchedForQueue.length > 0) {
-      for (const item of unmatchedForQueue) {
+      const limitedQueue = unmatchedForQueue.slice(0, 50);
+      for (const item of limitedQueue) {
         await supabase.from('ingredient_import_queue').insert({
           raw_name: item.raw_name,
           type: item.type,
